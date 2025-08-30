@@ -1,0 +1,68 @@
+name: guardify_app
+description: A secure Flutter application with clean architecture and BLoC pattern.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.5
+
+  # Dependency Injection
+  get_it: ^8.2.0
+  injectable: ^2.3.2
+
+  # Network
+  dio: ^5.4.0
+  retrofit: ^4.2.0
+  json_annotation: ^4.8.1
+
+  # Local Storage & Security
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^10.0.0-beta.4
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  crypto: ^3.0.3
+
+  # Authentication & Security
+  local_auth: ^2.1.7
+
+  # Utils
+  dartz: ^0.10.1
+  freezed_annotation: ^2.4.4
+  logger: ^2.0.2+1
+  device_info_plus: ^11.5.0
+  package_info_plus: ^8.3.1
+
+  # UI
+  cupertino_icons: ^1.0.2
+
+  # Windows compatibility fix
+  win32: ^5.14.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code Generation
+  build_runner: ^2.4.8
+  injectable_generator: ^2.6.2
+  retrofit_generator: ^8.2.1
+  json_serializable: ^6.8.0
+  freezed: 2.5.2
+  hive_generator: ^2.0.1
+
+  # Linting
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
