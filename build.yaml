@@ -1,0 +1,25 @@
+# Flutter build configuration
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          # Creates fromJson() method
+          checked: true
+          create_to_json: true
+          # Creates toJson() method
+          disallow_unrecognized_keys: false
+          explicit_to_json: true
+          field_rename: snake
+          generic_argument_factories: false
+          ignore_unannotated: false
+          include_if_null: true
+          
+      injectable_generator:injectable_builder:
+        enabled: true
+        
+      retrofit_generator:
+        enabled: true
+        
+      freezed:
+        enabled: true
