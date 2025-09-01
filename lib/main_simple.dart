@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'features/home/home_page.dart';
+import 'package:guardify_app/features/home/presentation/pages/home_page.dart';
 
 void main() {
   runApp(const GuardifyApp());

@@ -12,6 +12,7 @@ dependencies:
 
   # State Management
   flutter_bloc: ^9.1.1
+  provider: ^6.1.2
   equatable: ^2.0.5
 
   # Dependency Injection
@@ -42,6 +43,7 @@ dependencies:
 
   # UI
   cupertino_icons: ^1.0.2
+  table_calendar: ^3.1.2
 
   # Windows compatibility fix
   win32: ^5.14.0

@@ -1,3 +1,0 @@
-@echo off
-echo Starting Guardify Security App on Android...
-flutter run -d emulator-5554 lib/main_simple.dart --android-skip-build-dependency-validation

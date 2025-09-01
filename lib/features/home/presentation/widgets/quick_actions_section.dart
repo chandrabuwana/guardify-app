@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../shared/widgets/quick_action_button.dart';
+import '../../../../shared/widgets/quick_action_button.dart';
 
 class QuickActionsSection extends StatelessWidget {
   final VoidCallback? onRecapTap;
