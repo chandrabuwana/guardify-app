@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../shared/widgets/red_card_widget.dart';
+import '../../../../shared/widgets/red_card_widget.dart';
 
 class ReportSection extends StatelessWidget {
   final VoidCallback? onActivityReportTap;
