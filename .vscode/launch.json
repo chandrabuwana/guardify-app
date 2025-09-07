@@ -8,7 +8,7 @@
             "name": "Flutter (Android)",
             "request": "launch",
             "type": "dart",
-            "program": "lib/main_simple.dart",
+            "program": "lib/main.dart",
             "deviceId": "emulator-5554",
             "args": [
                 "--debug",
@@ -19,7 +19,7 @@
             "name": "Flutter (Web)",
             "request": "launch",
             "type": "dart",
-            "program": "lib/main_simple.dart",
+            "program": "lib/main.dart",
             "deviceId": "chrome",
             "args": [
                 "--web-port=3000"

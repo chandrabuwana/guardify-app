@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarWidget extends StatefulWidget {
@@ -31,24 +32,24 @@ class _CalendarWidgetState extends State<CalendarWidget> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: REdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Jadwal',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 20.sp,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 16),
+          16.verticalSpace,
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: REdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               boxShadow: [
                 BoxShadow(
                   color: Colors.grey.withOpacity(0.1),

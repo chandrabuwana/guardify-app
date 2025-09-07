@@ -44,6 +44,13 @@ dependencies:
   # UI
   cupertino_icons: ^1.0.2
   table_calendar: ^3.1.2
+  flutter_screenutil: ^5.9.3
+
+  # File & Camera
+  file_picker: ^8.1.2
+  camera: ^0.11.0+2
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.4
 
   # Windows compatibility fix
   win32: ^5.14.0

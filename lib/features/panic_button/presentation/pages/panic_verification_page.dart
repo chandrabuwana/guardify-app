@@ -1,15 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../bloc/panic_button_bloc.dart';
 import '../bloc/panic_button_event.dart';
 import '../bloc/panic_button_state.dart';
+import '../../../../shared/widgets/app_scaffold.dart';
 
 class PanicVerificationPage extends StatelessWidget {
   const PanicVerificationPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // Initialize bloc with event
+    context.read<PanicButtonBloc>().add(const LoadVerificationItemsEvent());
+    return const _PanicVerificationView();
+  }
+}
+
+class _PanicVerificationView extends StatelessWidget {
+  const _PanicVerificationView();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScaffold(
+      enableScrolling: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -21,17 +35,17 @@ class PanicVerificationPage extends StatelessWidget {
             Navigator.pop(context);
           },
         ),
-        title: const Text(
+        title: Text(
           'Panic Button',
           style: TextStyle(
             color: Colors.black,
-            fontSize: 18,
+            fontSize: 18.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: false,
       ),
-      body: BlocConsumer<PanicButtonBloc, PanicButtonState>(
+      child: BlocConsumer<PanicButtonBloc, PanicButtonState>(
         listener: (context, state) {
           if (state.status == PanicButtonStateStatus.activated) {
             _showSuccessDialog(context);
@@ -49,7 +63,7 @@ class PanicVerificationPage extends StatelessWidget {
           }
 
           return Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: EdgeInsets.all(20.w),
             child: Column(
               children: [
                 Expanded(
@@ -57,14 +71,14 @@ class PanicVerificationPage extends StatelessWidget {
                     itemCount: state.verificationItems.length,
                     itemBuilder: (context, index) {
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 24.0),
+                        padding: EdgeInsets.only(bottom: 24.h),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              width: 24,
-                              height: 24,
-                              margin: const EdgeInsets.only(right: 16, top: 2),
+                              width: 24.w,
+                              height: 24.h,
+                              margin: EdgeInsets.only(right: 16.w, top: 2.h),
                               child: Checkbox(
                                 value: state.verificationStates[index],
                                 onChanged: (bool? value) {
@@ -75,15 +89,15 @@ class PanicVerificationPage extends StatelessWidget {
                                 },
                                 activeColor: const Color(0xFFE74C3C),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(4.r),
                                 ),
                               ),
                             ),
                             Expanded(
                               child: Text(
                                 state.verificationItems[index],
-                                style: const TextStyle(
-                                  fontSize: 16,
+                                style: TextStyle(
+                                  fontSize: 16.sp,
                                   color: Colors.black87,
                                   height: 1.5,
                                 ),
@@ -100,7 +114,7 @@ class PanicVerificationPage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: SizedBox(
-                        height: 50,
+                        height: 50.h,
                         child: ElevatedButton(
                           onPressed: () {
                             context
@@ -112,29 +126,30 @@ class PanicVerificationPage extends StatelessWidget {
                             backgroundColor: const Color(0xFFE74C3C),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(12.r),
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
+                          child: Text(
                             'KEMBALI',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 16.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    16.horizontalSpace,
                     Expanded(
                       child: SizedBox(
-                        height: 50,
+                        height: 50.h,
                         child: ElevatedButton(
                           onPressed: state.allVerified
-                              ? () => context.read<PanicButtonBloc>().add(
-                                    const ActivatePanicButtonEvent('user_123'),
-                                  )
+                              ? () {
+                                  Navigator.pushNamed(
+                                      context, '/panic-disaster-confirmation');
+                                }
                               : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: state.allVerified
@@ -144,14 +159,14 @@ class PanicVerificationPage extends StatelessWidget {
                                 ? Colors.white
                                 : Colors.grey[600],
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(12.r),
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
+                          child: Text(
                             'LANJUT',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 16.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -160,7 +175,7 @@ class PanicVerificationPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                20.verticalSpace,
               ],
             ),
           );
@@ -175,48 +190,48 @@ class PanicVerificationPage extends StatelessWidget {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 80,
-              height: 80,
+              width: 80.w,
+              height: 80.h,
               decoration: const BoxDecoration(
                 color: Color(0xFFE74C3C),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.check,
                 color: Colors.white,
-                size: 50,
+                size: 50.w,
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
+            20.verticalSpace,
+            Text(
               'Panic Button Diaktifkan!',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
-            const Text(
+            12.verticalSpace,
+            Text(
               'Alert darurat telah dikirim ke tim keamanan dan atasan Anda.',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 14.sp,
                 color: Colors.grey,
                 height: 1.3,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            24.verticalSpace,
             SizedBox(
               width: double.infinity,
-              height: 45,
+              height: 45.h,
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context); // Close dialog
@@ -229,13 +244,13 @@ class PanicVerificationPage extends StatelessWidget {
                   backgroundColor: const Color(0xFFE74C3C),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'OK',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
