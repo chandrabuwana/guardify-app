@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CustomBottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -13,7 +14,7 @@ class CustomBottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 80,
+      height: 80.h,
       decoration: BoxDecoration(
         color: const Color(0xFFE74C3C),
         boxShadow: [
@@ -70,14 +71,14 @@ class CustomBottomNavigation extends StatelessWidget {
           Icon(
             icon,
             color: Colors.white,
-            size: 24,
+            size: 24.r,
           ),
-          const SizedBox(height: 4),
+          4.verticalSpace,
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: 12.sp,
               fontWeight: FontWeight.w500,
             ),
           ),

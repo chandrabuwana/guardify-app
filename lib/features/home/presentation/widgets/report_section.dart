@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../shared/widgets/red_card_widget.dart';
 
 class ReportSection extends StatelessWidget {
@@ -16,7 +17,7 @@ class ReportSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: REdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
           Row(
@@ -25,24 +26,24 @@ class ReportSection extends StatelessWidget {
                 child: RedCardWidget(
                   title: 'Laporan\nKegiatan',
                   onTap: onActivityReportTap,
-                  height: 80,
+                  height: 80.h,
                 ),
               ),
-              const SizedBox(width: 12),
+              12.horizontalSpace,
               Expanded(
                 child: RedCardWidget(
                   title: 'Laporan\nKejadian',
                   onTap: onIncidentReportTap,
-                  height: 80,
+                  height: 80.h,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          12.verticalSpace,
           RedCardWidget(
             title: 'Mulai Bekerja',
             isFullWidth: true,
-            height: 60,
+            height: 60.h,
             onTap: onStartWorkTap,
           ),
         ],

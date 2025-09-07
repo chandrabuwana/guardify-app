@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../widgets/home_header_widget.dart';
 import '../widgets/weather_info_section.dart';
 import '../widgets/panic_button_widget.dart';
@@ -7,19 +8,27 @@ import '../widgets/calendar_widget.dart';
 import '../widgets/report_section.dart';
 import '../widgets/quick_actions_section.dart';
 import '../../../../shared/widgets/custom_bottom_navigation.dart';
+import '../../../../shared/widgets/app_scaffold.dart';
 import '../bloc/home_bloc.dart';
 import '../bloc/home_event.dart';
 import '../bloc/home_state.dart';
-import 'panic_verification_page.dart';
+import '../../../../core/di/injection.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => getIt<HomeBloc>()..add(const HomeInitialEvent()),
+      child: const _HomePageView(),
+    );
+  }
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageView extends StatelessWidget {
+  const _HomePageView();
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<HomeBloc, HomeState>(
@@ -40,338 +49,219 @@ class _HomePageState extends State<HomePage> {
       },
       builder: (context, state) {
         if (state is! HomeLoaded) {
-          return const Scaffold(
-            body: Center(
+          return const AppScaffold(
+            child: Center(
               child: CircularProgressIndicator(),
             ),
           );
         }
 
-        return Scaffold(
-          backgroundColor: Colors.grey[50],
-          body: SafeArea(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  const HomeHeaderWidget(
-                    greeting: 'Selamat Pagi!',
-                    userName: 'Gilang William',
-                    subtitle: 'Security',
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Weather and Disaster Info
-                  WeatherInfoSection(
-                    temperature: '30°C',
-                    weatherInfo: 'Hari Ini',
-                    onWeatherTap: () {
-                      context
-                          .read<HomeBloc>()
-                          .add(const ShowSnackbarEvent('Informasi Cuaca'));
-                    },
-                    onDisasterInfoTap: () {
-                      context
-                          .read<HomeBloc>()
-                          .add(const ShowSnackbarEvent('Informasi Bencana'));
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Panic Button
-                  PanicButtonWidget(
-                    onPressed: () {
-                      _showPanicDialog();
-                    },
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Calendar
-                  const CalendarWidget(),
-
-                  const SizedBox(height: 24),
-
-                  // Report Section
-                  ReportSection(
-                    onActivityReportTap: () {
-                      context
-                          .read<HomeBloc>()
-                          .add(const ShowSnackbarEvent('Laporan Kegiatan'));
-                    },
-                    onIncidentReportTap: () {
-                      context
-                          .read<HomeBloc>()
-                          .add(const ShowSnackbarEvent('Laporan Kejadian'));
-                    },
-                    onStartWorkTap: () {
-                      context
-                          .read<HomeBloc>()
-                          .add(const ShowSnackbarEvent('Mulai Bekerja'));
-                    },
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Quick Actions
-                  QuickActionsSection(
-                    onRecapTap: () {
-                      context.read<HomeBloc>().add(
-                          const ShowSnackbarEvent('Rekapitulasi Kehadiran'));
-                    },
-                    onSubmissionTap: () {
-                      context
-                          .read<HomeBloc>()
-                          .add(const ShowSnackbarEvent('Pengajuan Cuti'));
-                    },
-                    onRegulationTap: () {
-                      context
-                          .read<HomeBloc>()
-                          .add(const ShowSnackbarEvent('Peraturan Perusahaan'));
-                    },
-                    onBMITap: () {
-                      context
-                          .read<HomeBloc>()
-                          .add(const ShowSnackbarEvent('BMI Calculator'));
-                    },
-                    onTestResultTap: () {
-                      context
-                          .read<HomeBloc>()
-                          .add(const ShowSnackbarEvent('Hasil Ujian'));
-                    },
-                  ),
-
-                  const SizedBox(height: 100), // Space for bottom navigation
-                ],
-              ),
-            ),
-          ),
+        return AppScaffold(
           bottomNavigationBar: CustomBottomNavigation(
             currentIndex: state.currentBottomNavIndex,
             onTap: (index) {
               context.read<HomeBloc>().add(BottomNavigationTappedEvent(index));
             },
           ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              const HomeHeaderWidget(
+                greeting: 'Selamat Pagi!',
+                userName: 'Gilang William',
+                subtitle: 'Security',
+              ),
+
+              20.verticalSpace,
+
+              // Weather and Disaster Info
+              WeatherInfoSection(
+                temperature: '30°C',
+                weatherInfo: 'Hari Ini',
+                onWeatherTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const ShowSnackbarEvent('Informasi Cuaca'));
+                },
+                onDisasterInfoTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const ShowSnackbarEvent('Informasi Bencana'));
+                },
+              ),
+
+              20.verticalSpace,
+
+              // Panic Button
+              PanicButtonWidget(
+                onPressed: () {
+                  _showPanicConfirmationDialog(context);
+                },
+              ),
+
+              24.verticalSpace,
+
+              // Calendar
+              const CalendarWidget(),
+
+              24.verticalSpace,
+
+              // Report Section
+              ReportSection(
+                onActivityReportTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const ShowSnackbarEvent('Laporan Kegiatan'));
+                },
+                onIncidentReportTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const ShowSnackbarEvent('Laporan Kejadian'));
+                },
+                onStartWorkTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const ShowSnackbarEvent('Mulai Bekerja'));
+                },
+              ),
+
+              24.verticalSpace,
+
+              // Quick Actions
+              QuickActionsSection(
+                onRecapTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const ShowSnackbarEvent('Rekapitulasi Kehadiran'));
+                },
+                onSubmissionTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const ShowSnackbarEvent('Pengajuan Cuti'));
+                },
+                onRegulationTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const ShowSnackbarEvent('Peraturan Perusahaan'));
+                },
+                onBMITap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const ShowSnackbarEvent('BMI Calculator'));
+                },
+                onTestResultTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const ShowSnackbarEvent('Hasil Ujian'));
+                },
+              ),
+
+              100.verticalSpace, // Space for bottom navigation
+            ],
+          ),
         );
       },
     );
   }
 
-  void _showPanicDialog() {
+  void _showPanicConfirmationDialog(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Close button
-              Align(
-                alignment: Alignment.topRight,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    child: const Text(
-                      'X',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
+          content: SizedBox(
+            width: 300.w,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Warning Icon
+                Container(
+                  width: 80.w,
+                  height: 80.h,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE74C3C),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.warning,
+                    color: Colors.white,
+                    size: 45.r,
                   ),
                 ),
-              ),
+                20.verticalSpace,
 
-              const SizedBox(height: 10),
-
-              // Warning icon
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: CustomPaint(
-                  painter: WarningTrianglePainter(),
-                  size: const Size(80, 80),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Main text
-              RichText(
-                textAlign: TextAlign.center,
-                text: const TextSpan(
+                Text(
+                  'Apakah anda yakin ingin mengaktifkan Panic Button? Pastikan situasi darurat yang terjadi valid',
                   style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 14.sp,
+                    color: Colors.black87,
+                    height: 1.4,
                   ),
+                  textAlign: TextAlign.center,
+                ),
+                24.verticalSpace,
+
+                // Buttons
+                Row(
                   children: [
-                    TextSpan(text: 'Apakah anda yakin ingin\nmengaktifkan '),
-                    TextSpan(
-                      text: 'Panic Button',
-                      style: TextStyle(
-                        color: Color(0xFFE74C3C),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextSpan(text: '?'),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Sub text
-              const Text(
-                'Pastikan situasi darurat yang\nterjadi valid',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                  height: 1.3,
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 50,
+                    Expanded(
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE74C3C),
-                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.grey[300],
+                          foregroundColor: Colors.black87,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(8.r),
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Kembali',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 50,
+                    12.horizontalSpace,
+                    Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const PanicVerificationPage(),
-                            ),
-                          );
+                          Navigator.of(context).pop();
+                          Navigator.pushNamed(context, '/panic-verification');
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFE74C3C),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(8.r),
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
+                        child: Text(
                           'YA',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
-}
-
-class WarningTrianglePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFE74C3C)
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-
-    // Create a triangle shape
-    final double width = size.width * 0.8;
-    final double height = size.height * 0.7;
-    final double centerX = size.width / 2;
-    final double centerY = size.height / 2;
-
-    // Move to top point
-    path.moveTo(centerX, centerY - height / 2);
-    // Line to bottom right
-    path.lineTo(centerX + width / 2, centerY + height / 2);
-    // Line to bottom left
-    path.lineTo(centerX - width / 2, centerY + height / 2);
-    // Close the path
-    path.close();
-
-    canvas.drawPath(path, paint);
-
-    // Draw exclamation mark
-    final textPainter = TextPainter(
-      text: const TextSpan(
-        text: '!',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        centerX - textPainter.width / 2,
-        centerY - textPainter.height / 2,
-      ),
-    );
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
