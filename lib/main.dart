@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'features/home/presentation/pages/home_page.dart';
+import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/reset_password_page.dart';
+import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/panic_button/presentation/pages/panic_verification_page.dart';
 import 'features/panic_button/presentation/pages/panic_disaster_confirmation_page.dart';
 import 'features/panic_button/presentation/pages/panic_disaster_selection_page.dart';
@@ -43,6 +46,15 @@ class GuardifyApp extends StatelessWidget {
           ),
           routes: {
             '/': (context) => const HomePage(),
+            '/home': (context) => const HomePage(),
+            '/login': (context) => BlocProvider(
+                  create: (context) => getIt<AuthBloc>(),
+                  child: const LoginPage(),
+                ),
+            '/reset-password': (context) => BlocProvider(
+                  create: (context) => getIt<AuthBloc>(),
+                  child: const ResetPasswordPage(),
+                ),
             '/panic-verification': (context) => BlocProvider(
                   create: (context) => getIt<PanicButtonBloc>(),
                   child: const PanicVerificationPage(),

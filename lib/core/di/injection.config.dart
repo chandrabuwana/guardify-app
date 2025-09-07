@@ -9,6 +9,8 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:get_it/get_it.dart' as _i174;
+import 'package:guardify_app/features/auth/presentation/bloc/auth_bloc.dart'
+    as _i296;
 import 'package:guardify_app/features/home/presentation/bloc/home_bloc.dart'
     as _i890;
 import 'package:guardify_app/features/panic_button/data/datasources/panic_button_datasource.dart'
@@ -38,6 +40,7 @@ extension GetItInjectableX on _i174.GetIt {
       environment,
       environmentFilter,
     );
+    gh.factory<_i296.AuthBloc>(() => _i296.AuthBloc());
     gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc());
     gh.lazySingleton<_i460.PanicButtonDataSource>(
         () => _i754.PanicButtonLocalDataSource());
