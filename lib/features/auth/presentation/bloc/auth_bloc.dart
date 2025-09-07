@@ -1,17 +1,13 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/usecases/login_use_case.dart';
+import 'package:injectable/injectable.dart';
+import '../../../../core/utils/validators.dart' as validator;
 
 part 'auth_event.dart';
 part 'auth_state.dart';
 
+@injectable
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final AuthRepository authRepository;
-  final LoginUseCase loginUseCase;
-
-  AuthBloc({
-    required this.authRepository,
-    required this.loginUseCase,
-  }) : super(AuthState.initial()) {
+  AuthBloc() : super(AuthState.initial()) {
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthLogoutRequested>(_onLogoutRequested);
@@ -34,24 +30,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      final result = await loginUseCase(
+      // Temporary mock implementation
+      await Future.delayed(const Duration(seconds: 1));
+
+      // Mock successful login with demo user
+      final user = User(
+        id: '1',
         email: event.email,
-        password: event.password,
+        name: 'Demo User',
+        phoneNumber: null,
       );
 
-      if (result.isSuccess) {
-        // Get user data after successful login
-        final userResult = await authRepository.getCurrentUser();
-        if (userResult.isSuccess && userResult.user != null) {
-          emit(AuthState.authenticated(userResult.user!));
-        } else {
-          emit(AuthState.error('Failed to get user data'));
-        }
-      } else {
-        emit(AuthState.error(result.failure?.message ?? 'Login failed'));
-      }
+      emit(AuthState.authenticated(user));
     } catch (e) {
-      emit(AuthState.error('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthState.error('Login failed: ${e.toString()}'));
     }
   }
 
@@ -63,19 +55,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     try {
       // Validate inputs
-      final emailValidation = Validators.validateEmail(event.email);
+      final emailValidation = validator.Validators.validateEmail(event.email);
       if (emailValidation != null) {
         emit(AuthState.error(emailValidation));
         return;
       }
 
-      final passwordValidation = Validators.validatePassword(event.password);
+      final passwordValidation =
+          validator.Validators.validatePassword(event.password);
       if (passwordValidation != null) {
         emit(AuthState.error(passwordValidation));
         return;
       }
 
-      final nameValidation = Validators.validateName(event.name);
+      final nameValidation = validator.Validators.validateName(event.name);
       if (nameValidation != null) {
         emit(AuthState.error(nameValidation));
         return;
@@ -83,34 +76,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (event.phoneNumber != null) {
         final phoneValidation =
-            Validators.validatePhoneNumber(event.phoneNumber);
+            validator.Validators.validatePhoneNumber(event.phoneNumber);
         if (phoneValidation != null) {
           emit(AuthState.error(phoneValidation));
           return;
         }
       }
 
-      final result = await authRepository.register(
+      // Mock successful registration
+      await Future.delayed(const Duration(seconds: 1));
+
+      final user = User(
+        id: '1',
         email: event.email.trim().toLowerCase(),
-        password: event.password,
         name: event.name.trim(),
         phoneNumber: event.phoneNumber?.trim(),
       );
 
-      if (result.isSuccess) {
-        // Get user data after successful registration
-        final userResult = await authRepository.getCurrentUser();
-        if (userResult.isSuccess && userResult.user != null) {
-          emit(AuthState.authenticated(userResult.user!));
-        } else {
-          emit(AuthState.error(
-              'Registration successful but failed to get user data'));
-        }
-      } else {
-        emit(AuthState.error(result.failure?.message ?? 'Registration failed'));
-      }
+      emit(AuthState.authenticated(user));
     } catch (e) {
-      emit(AuthState.error('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthState.error('Registration failed: ${e.toString()}'));
     }
   }
 
@@ -121,14 +106,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      final result = await authRepository.logout();
-      if (result.isSuccess) {
-        emit(AuthState.unauthenticated());
-      } else {
-        emit(AuthState.error(result.failure?.message ?? 'Logout failed'));
-      }
+      await Future.delayed(const Duration(milliseconds: 500));
+      emit(AuthState.unauthenticated());
     } catch (e) {
-      emit(AuthState.error('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthState.error('Logout failed: ${e.toString()}'));
     }
   }
 
@@ -139,21 +120,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      final result = await authRepository.loginWithBiometric();
-      if (result.isSuccess && result.success == true) {
-        final userResult = await authRepository.getCurrentUser();
-        if (userResult.isSuccess && userResult.user != null) {
-          emit(AuthState.authenticated(userResult.user!));
-        } else {
-          emit(AuthState.error(
-              'Biometric login successful but failed to get user data'));
-        }
-      } else {
-        emit(AuthState.error(
-            result.failure?.message ?? 'Biometric login failed'));
-      }
+      // Mock biometric login
+      await Future.delayed(const Duration(seconds: 1));
+
+      final user = User(
+        id: '1',
+        email: 'demo@example.com',
+        name: 'Demo User',
+        phoneNumber: null,
+      );
+
+      emit(AuthState.authenticated(user));
     } catch (e) {
-      emit(AuthState.error('Biometric login error: ${e.toString()}'));
+      emit(AuthState.error('Biometric login failed: ${e.toString()}'));
     }
   }
 
@@ -164,26 +143,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      final pinValidation = Validators.validatePin(event.pin);
+      final pinValidation = validator.Validators.validatePin(event.pin);
       if (pinValidation != null) {
         emit(AuthState.error(pinValidation));
         return;
       }
 
-      final result = await authRepository.loginWithPin(event.pin);
-      if (result.isSuccess && result.success == true) {
-        final userResult = await authRepository.getCurrentUser();
-        if (userResult.isSuccess && userResult.user != null) {
-          emit(AuthState.authenticated(userResult.user!));
-        } else {
-          emit(AuthState.error(
-              'PIN login successful but failed to get user data'));
-        }
-      } else {
-        emit(AuthState.error(result.failure?.message ?? 'PIN login failed'));
-      }
+      // Mock PIN login
+      await Future.delayed(const Duration(seconds: 1));
+
+      final user = User(
+        id: '1',
+        email: 'demo@example.com',
+        name: 'Demo User',
+        phoneNumber: null,
+      );
+
+      emit(AuthState.authenticated(user));
     } catch (e) {
-      emit(AuthState.error('PIN login error: ${e.toString()}'));
+      emit(AuthState.error('PIN login failed: ${e.toString()}'));
     }
   }
 
@@ -194,26 +172,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      final emailValidation = Validators.validateEmail(event.email);
+      final emailValidation = validator.Validators.validateEmail(event.email);
       if (emailValidation != null) {
         emit(AuthState.error(emailValidation));
         return;
       }
 
-      final result =
-          await authRepository.forgotPassword(event.email.trim().toLowerCase());
-      if (result.isSuccess) {
-        emit(state.copyWith(
-          status: AuthStatus.initial,
-          isLoading: false,
-          errorMessage: null,
-        ));
-      } else {
-        emit(AuthState.error(
-            result.failure?.message ?? 'Failed to send reset email'));
-      }
+      // Mock reset password request
+      await Future.delayed(const Duration(seconds: 1));
+
+      emit(state.copyWith(
+        status: AuthStatus.initial,
+        isLoading: false,
+        errorMessage: null,
+      ));
     } catch (e) {
-      emit(AuthState.error('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthState.error('Failed to send reset email: ${e.toString()}'));
     }
   }
 
@@ -224,25 +198,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      final passwordValidation = Validators.validatePassword(event.newPassword);
+      final passwordValidation =
+          validator.Validators.validatePassword(event.newPassword);
       if (passwordValidation != null) {
         emit(AuthState.error(passwordValidation));
         return;
       }
 
-      final result = await authRepository.resetPassword(
-        token: event.token,
-        newPassword: event.newPassword,
-      );
-
-      if (result.isSuccess) {
-        emit(AuthState.unauthenticated());
-      } else {
-        emit(AuthState.error(
-            result.failure?.message ?? 'Failed to reset password'));
-      }
+      // Mock reset password
+      await Future.delayed(const Duration(seconds: 1));
+      emit(AuthState.unauthenticated());
     } catch (e) {
-      emit(AuthState.error('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthState.error('Failed to reset password: ${e.toString()}'));
     }
   }
 
@@ -254,14 +221,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     try {
       final currentPasswordValidation =
-          Validators.validatePassword(event.currentPassword);
+          validator.Validators.validatePassword(event.currentPassword);
       if (currentPasswordValidation != null) {
         emit(AuthState.error('Current password: $currentPasswordValidation'));
         return;
       }
 
       final newPasswordValidation =
-          Validators.validatePassword(event.newPassword);
+          validator.Validators.validatePassword(event.newPassword);
       if (newPasswordValidation != null) {
         emit(AuthState.error('New password: $newPasswordValidation'));
         return;
@@ -273,22 +240,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      final result = await authRepository.changePassword(
-        currentPassword: event.currentPassword,
-        newPassword: event.newPassword,
-      );
+      // Mock change password
+      await Future.delayed(const Duration(seconds: 1));
 
-      if (result.isSuccess) {
-        emit(state.copyWith(
-          isLoading: false,
-          errorMessage: null,
-        ));
-      } else {
-        emit(AuthState.error(
-            result.failure?.message ?? 'Failed to change password'));
-      }
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: null,
+      ));
     } catch (e) {
-      emit(AuthState.error('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthState.error('Failed to change password: ${e.toString()}'));
     }
   }
 
@@ -297,22 +257,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     try {
-      final isLoggedIn = await authRepository.isLoggedIn();
-      if (isLoggedIn) {
-        final hasValidToken = await authRepository.hasValidToken();
-        if (hasValidToken) {
-          final userResult = await authRepository.getCurrentUser();
-          if (userResult.isSuccess && userResult.user != null) {
-            emit(AuthState.authenticated(userResult.user!));
-          } else {
-            emit(AuthState.unauthenticated());
-          }
-        } else {
-          emit(AuthState.unauthenticated());
-        }
-      } else {
-        emit(AuthState.unauthenticated());
-      }
+      // Mock check status - return unauthenticated for now
+      await Future.delayed(const Duration(milliseconds: 500));
+      emit(AuthState.unauthenticated());
     } catch (e) {
       emit(AuthState.unauthenticated());
     }
@@ -326,7 +273,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     try {
       if (event.name != null) {
-        final nameValidation = Validators.validateName(event.name);
+        final nameValidation = validator.Validators.validateName(event.name);
         if (nameValidation != null) {
           emit(AuthState.error(nameValidation));
           return;
@@ -335,32 +282,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (event.phoneNumber != null) {
         final phoneValidation =
-            Validators.validatePhoneNumber(event.phoneNumber);
+            validator.Validators.validatePhoneNumber(event.phoneNumber);
         if (phoneValidation != null) {
           emit(AuthState.error(phoneValidation));
           return;
         }
       }
 
-      final result = await authRepository.updateProfile(
-        name: event.name?.trim(),
-        phoneNumber: event.phoneNumber?.trim(),
+      // Mock update profile
+      await Future.delayed(const Duration(seconds: 1));
+
+      final updatedUser = User(
+        id: state.user?.id ?? '1',
+        email: state.user?.email ?? 'demo@example.com',
+        name: event.name?.trim() ?? state.user?.name ?? 'Demo User',
+        phoneNumber: event.phoneNumber?.trim() ?? state.user?.phoneNumber,
       );
 
-      if (result.isSuccess) {
-        final userResult = await authRepository.getCurrentUser();
-        if (userResult.isSuccess && userResult.user != null) {
-          emit(AuthState.authenticated(userResult.user!));
-        } else {
-          emit(AuthState.error(
-              'Profile updated but failed to get updated user data'));
-        }
-      } else {
-        emit(AuthState.error(
-            result.failure?.message ?? 'Failed to update profile'));
-      }
+      emit(AuthState.authenticated(updatedUser));
     } catch (e) {
-      emit(AuthState.error('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthState.error('Failed to update profile: ${e.toString()}'));
     }
   }
 
@@ -371,23 +312,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      final result = event.enable
-          ? await authRepository.enableBiometric()
-          : await authRepository.disableBiometric();
+      // Mock biometric toggle
+      await Future.delayed(const Duration(seconds: 1));
 
-      if (result.isSuccess) {
-        final userResult = await authRepository.getCurrentUser();
-        if (userResult.isSuccess && userResult.user != null) {
-          emit(AuthState.authenticated(userResult.user!));
-        } else {
-          emit(state.copyWith(isLoading: false));
-        }
-      } else {
-        emit(AuthState.error(
-            result.failure?.message ?? 'Failed to toggle biometric'));
-      }
+      emit(state.copyWith(isLoading: false));
     } catch (e) {
-      emit(AuthState.error('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthState.error('Failed to toggle biometric: ${e.toString()}'));
     }
   }
 
@@ -398,20 +328,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      final pinValidation = Validators.validatePin(event.pin);
+      final pinValidation = validator.Validators.validatePin(event.pin);
       if (pinValidation != null) {
         emit(AuthState.error(pinValidation));
         return;
       }
 
-      final result = await authRepository.setPin(event.pin);
-      if (result.isSuccess) {
-        emit(state.copyWith(isLoading: false));
-      } else {
-        emit(AuthState.error(result.failure?.message ?? 'Failed to set PIN'));
-      }
+      // Mock set PIN
+      await Future.delayed(const Duration(seconds: 1));
+      emit(state.copyWith(isLoading: false));
     } catch (e) {
-      emit(AuthState.error('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthState.error('Failed to set PIN: ${e.toString()}'));
     }
   }
 
@@ -422,13 +349,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      final currentPinValidation = Validators.validatePin(event.currentPin);
+      final currentPinValidation =
+          validator.Validators.validatePin(event.currentPin);
       if (currentPinValidation != null) {
         emit(AuthState.error('Current PIN: $currentPinValidation'));
         return;
       }
 
-      final newPinValidation = Validators.validatePin(event.newPin);
+      final newPinValidation = validator.Validators.validatePin(event.newPin);
       if (newPinValidation != null) {
         emit(AuthState.error('New PIN: $newPinValidation'));
         return;
@@ -439,74 +367,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      final result = await authRepository.changePin(
-        currentPin: event.currentPin,
-        newPin: event.newPin,
-      );
-
-      if (result.isSuccess) {
-        emit(state.copyWith(isLoading: false));
-      } else {
-        emit(
-            AuthState.error(result.failure?.message ?? 'Failed to change PIN'));
-      }
+      // Mock change PIN
+      await Future.delayed(const Duration(seconds: 1));
+      emit(state.copyWith(isLoading: false));
     } catch (e) {
-      emit(AuthState.error('An unexpected error occurred: ${e.toString()}'));
+      emit(AuthState.error('Failed to change PIN: ${e.toString()}'));
     }
-  }
-}
-
-// Temporary implementations
-abstract class AuthRepository {
-  Future<AuthResult> register({
-    required String email,
-    required String password,
-    required String name,
-    String? phoneNumber,
-  });
-
-  Future<AuthResult> getCurrentUser();
-  Future<AuthResult> logout();
-  Future<AuthResult> loginWithBiometric();
-  Future<AuthResult> loginWithPin(String pin);
-  Future<AuthResult> forgotPassword(String email);
-  Future<AuthResult> resetPassword(
-      {required String token, required String newPassword});
-  Future<AuthResult> changePassword(
-      {required String currentPassword, required String newPassword});
-  Future<bool> isLoggedIn();
-  Future<bool> hasValidToken();
-  Future<AuthResult> updateProfile({String? name, String? phoneNumber});
-  Future<AuthResult> enableBiometric();
-  Future<AuthResult> disableBiometric();
-  Future<AuthResult> setPin(String pin);
-  Future<AuthResult> changePin(
-      {required String currentPin, required String newPin});
-}
-
-class AuthResult {
-  final bool isSuccess;
-  final User? user;
-  final bool? success;
-  final Failure? failure;
-
-  const AuthResult({
-    required this.isSuccess,
-    this.user,
-    this.success,
-    this.failure,
-  });
-}
-
-class Failure {
-  final String message;
-  const Failure(this.message);
-}
-
-class LoginUseCase {
-  Future<AuthResult> call(
-      {required String email, required String password}) async {
-    // Implementation here
-    return const AuthResult(isSuccess: true);
   }
 }
