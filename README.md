@@ -1,34 +1,8 @@
-# Guardify App - Secure Flutter Application
+# Guardify App
 
-Aplikasi Flutter dengan arsitektur yang aman menggunakan Clean Architecture, BLoC pattern, dan fitur keamanan tingkat enterprise.
+Aplikasi Flutter dengan fitur keamanan tinggi menggunakan Clean Architecture dan BLoC pattern.
 
-## Fitur Keamanan
-
-### 🔐 Autentikasi Multi-Layer
-- **Login Email/Password** dengan validasi ketat
-- **Autentikasi Biometrik** (fingerprint, face recognition)
-- **PIN Authentication** sebagai fallback
-- **Token-based Authentication** dengan refresh mechanism
-
-### 🛡️ Enkripsi & Penyimpanan Aman
-- **Flutter Secure Storage** untuk data sensitif
-- **PBKDF2 Password Hashing** dengan salt
-- **AES Encryption** untuk data tambahan
-- **Keychain/Keystore Integration** platform-native
-
-### 🌐 Network Security
-- **SSL Pinning** untuk mencegah MITM attacks
-- **Request Signing** untuk verifikasi integritas
-- **Auto Token Refresh** dengan fallback logout
-- **API Rate Limiting** protection
-
-### 📱 Device Security
-- **Device Binding** untuk session security
-- **Jailbreak/Root Detection** (dapat ditambahkan)
-- **App Signature Verification**
-- **Screen Recording Protection** (dapat ditambahkan)
-
-## Arsitektur
+## Arsitektur Project
 
 ### Clean Architecture Structure
 ```
@@ -40,189 +14,155 @@ lib/
 │   ├── network/        # Network configuration & interceptors
 │   ├── security/       # Security utilities & managers
 │   └── utils/          # Validators, logger, helpers
-└── features/
-    └── auth/
-        ├── data/
-        │   ├── datasources/  # API & local data sources
-        │   ├── models/       # Data models & serialization
-        │   └── repositories/ # Repository implementations
-        ├── domain/
-        │   ├── entities/     # Business entities
-        │   ├── repositories/ # Repository contracts
-        │   └── usecases/     # Business logic use cases
-        └── presentation/
-            ├── bloc/         # BLoC state management
-            ├── pages/        # UI screens
-            └── widgets/      # Reusable UI components
+├── features/
+│   └── auth/
+│       ├── data/
+│       │   ├── datasources/  # API & local data sources
+│       │   ├── models/       # Data models & serialization
+│       │   └── repositories/ # Repository implementations
+│       ├── domain/
+│       │   ├── entities/     # Business entities
+│       │   ├── repositories/ # Repository contracts
+│       │   └── usecases/     # Business logic use cases
+│       └── presentation/
+│           ├── bloc/         # BLoC state management
+│           ├── pages/        # UI screens
+│           └── widgets/      # Reusable UI components
+└── shared/
+    └── widgets/         # Shared UI components
 ```
 
-### State Management - BLoC Pattern
-- **Events**: User actions (login, logout, register, biometric)
-- **States**: UI states (loading, authenticated, error)
-- **Cubits**: Simple state management untuk feature kecil
+### Design Patterns
+- **Clean Architecture**: Separation of concerns dengan layer yang jelas
+- **BLoC Pattern**: State management untuk reactive programming
+- **Repository Pattern**: Abstraksi data sources
+- **Dependency Injection**: Menggunakan GetIt untuk IoC container
 
-## Security Implementation
+## Spesifikasi Project
 
-### Password Security
-```dart
-// Password requirements
-- Minimum 8 karakter
-- Maksimum 128 karakter  
-- Harus mengandung: huruf besar, kecil, angka, simbol khusus
-- PBKDF2 hashing dengan 100,000 iterations
+### Platform Support
+- **Android**: API Level 21+ (Android 5.0)
+- **iOS**: iOS 12.0+
+- **Web**: Progressive Web App support
+- **Desktop**: Windows, macOS, Linux
+
+### Technical Requirements
+- **Flutter SDK**: 3.10.0 atau lebih baru
+- **Dart SDK**: 3.0.0 atau lebih baru
+- **Android Studio**: 2022.2.1 atau lebih baru
+- **Xcode**: 14.0+ (untuk iOS development)
+
+### Dependencies Utama
+```yaml
+dependencies:
+  flutter: sdk
+  flutter_bloc: ^8.1.3          # State management
+  get_it: ^7.6.4                # Dependency injection
+  injectable: ^2.3.2            # Code generation untuk DI
+  dio: ^5.3.2                   # HTTP client
+  flutter_secure_storage: ^9.0.0 # Secure storage
+  local_auth: ^2.1.6            # Biometric authentication
+  device_info_plus: ^9.1.0      # Device information
+  package_info_plus: ^4.2.0     # App information
+  permission_handler: ^11.0.1   # Permissions management
 ```
 
-### Biometric Authentication
-```dart
-// Biometric support check
-- Availability detection
-- Multiple biometric types support
-- Graceful fallback ke PIN/password
-- Platform-specific implementations
-```
+### Fitur Utama
+- **Authentication**: Login, register, biometric auth
+- **Security**: Encrypted storage, secure networking
+- **Cross-platform**: Support untuk multiple platform
+- **Responsive UI**: Adaptive design untuk berbagai ukuran layar
 
-### Data Encryption
-```dart
-// Encryption layers
-- Flutter Secure Storage (hardware-backed)
-- Custom AES encryption untuk additional data
-- Salt-based password hashing
-- Secure key derivation
-```
+## Cara Menjalankan Project
 
-## Getting Started
-
-### Prerequisites
-- Flutter SDK 3.0+
-- Dart 3.0+
-- Android SDK 21+ / iOS 12.0+
-
-### Installation
+### 1. Persiapan Environment
 ```bash
-# Clone repository
-git clone https://github.com/your-username/guardify-app.git
-cd guardify-app
+# Pastikan Flutter sudah terinstall
+flutter doctor
 
+# Clone repository
+git clone <repository-url>
+cd guardify-app
+```
+
+### 2. Install Dependencies
+```bash
 # Install dependencies
 flutter pub get
 
-# Generate code
+# Generate code (jika ada)
 flutter pub run build_runner build
-
-# Run app
-flutter run
 ```
 
-### Platform Setup
+### 3. Platform Setup
 
 #### Android
+Tambahkan permissions di `android/app/src/main/AndroidManifest.xml`:
 ```xml
-<!-- android/app/src/main/AndroidManifest.xml -->
 <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 <uses-permission android:name="android.permission.INTERNET" />
 ```
 
 #### iOS
+Tambahkan konfigurasi di `ios/Runner/Info.plist`:
 ```xml
-<!-- ios/Runner/Info.plist -->
 <key>NSFaceIDUsageDescription</key>
-<string>Aplikasi ini menggunakan Face ID untuk autentikasi yang aman</string>
+<string>App ini menggunakan Face ID untuk autentikasi</string>
 ```
 
-## Development
-
-### Code Generation
+### 4. Menjalankan Aplikasi
 ```bash
-# Generate all files
-flutter pub run build_runner build --delete-conflicting-outputs
+# Development mode
+flutter run
 
-# Watch mode (development)
-flutter pub run build_runner watch
+# Pilih device
+flutter run -d <device-id>
+
+# Debug mode dengan hot reload
+flutter run --debug
+
+# Release mode
+flutter run --release
 ```
 
-### Testing
+### 5. Build untuk Production
 ```bash
-# Unit tests
-flutter test
-
-# Integration tests
-flutter test integration_test/
-
-# Coverage report
-flutter test --coverage
-```
-
-### Build Production
-```bash
-# Android
+# Android APK
 flutter build apk --release
+
+# Android App Bundle
 flutter build appbundle --release
 
 # iOS
 flutter build ios --release
+
+# Web
+flutter build web --release
 ```
 
-## Security Best Practices
+### 6. Testing
+```bash
+# Unit tests
+flutter test
 
-### ✅ Implemented
-- [x] Secure password policies
-- [x] Biometric authentication
-- [x] Encrypted local storage
-- [x] Network security (SSL, request signing)
-- [x] Input validation & sanitization
-- [x] Error handling without data leakage
-- [x] Session management
-- [x] Token refresh mechanism
+# Widget tests
+flutter test test/
 
-### 🔄 Roadmap
-- [ ] SSL Certificate pinning
-- [ ] Root/Jailbreak detection
-- [ ] Screen recording protection
-- [ ] Advanced threat detection
-- [ ] Security analytics
-- [ ] Audit logging
+# Generate coverage report
+flutter test --coverage
+```
 
-## Dependencies
+### 7. Troubleshooting
+```bash
+# Clean build artifacts
+flutter clean
 
-### Core
-- `flutter_bloc` - State management
-- `get_it` + `injectable` - Dependency injection
-- `dartz` - Functional programming
+# Reinstall dependencies
+flutter pub get
 
-### Security
-- `flutter_secure_storage` - Secure storage
-- `local_auth` - Biometric authentication
-- `crypto` - Cryptographic functions
-- `device_info_plus` - Device information
+# Rebuild generated files
+flutter pub run build_runner build --delete-conflicting-outputs
+```
 
-### Network
-- `dio` - HTTP client
-- `retrofit` - Type-safe HTTP client
-- `json_annotation` - JSON serialization
 
-### UI/UX
-- Material Design 3
-- Custom security-focused widgets
-- Responsive design
-- Accessibility support
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## Security
-
-If you discover any security vulnerabilities, please send an email to security@guardify.com instead of using the issue tracker.
-
----
-
-**Note**: Ini adalah implementasi dasar yang dapat dikembangkan lebih lanjut sesuai kebutuhan keamanan spesifik aplikasi Anda.

@@ -45,7 +45,10 @@ class GuardifyApp extends StatelessWidget {
             ),
           ),
           routes: {
-            '/': (context) => const HomePage(),
+            '/': (context) => BlocProvider(
+                  create: (context) => getIt<AuthBloc>(),
+                  child: const LoginPage(),
+                ),
             '/home': (context) => const HomePage(),
             '/login': (context) => BlocProvider(
                   create: (context) => getIt<AuthBloc>(),
