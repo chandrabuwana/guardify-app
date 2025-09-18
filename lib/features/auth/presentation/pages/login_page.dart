@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../../../core/utils/screen_utils.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
+import '../../../../shared/widgets/TextInput/input_primary.dart';
+import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../../../../core/design/colors.dart';
+import '../../../../core/design/styles.dart';
 import '../bloc/auth_bloc.dart';
 
 class LoginPage extends StatefulWidget {
@@ -15,14 +19,14 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nipController = TextEditingController();
+  final _nrpController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
 
   @override
   void dispose() {
-    _nipController.dispose();
+    _nrpController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -31,7 +35,7 @@ class _LoginPageState extends State<LoginPage> {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthBloc>().add(
             AuthLoginRequested(
-              email: _nipController.text, // Using NIP as identifier
+              email: _nrpController.text, // Using NRP as identifier
               password: _passwordController.text,
             ),
           );
@@ -63,351 +67,216 @@ class _LoginPageState extends State<LoginPage> {
             _showMessage(state.errorMessage ?? 'Login gagal');
           }
         },
-        child: SizedBox(
-          height: 300,
-          child: Stack(
-            children: [
-              // Background Layer - Full Red Gradient
-              Container(
-                width: double.infinity,
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: Gradients.primary(),
-                ),
-              ),
-
-              // Content Layer
-              SafeArea(
-                child: SingleChildScrollView(
-                  padding: REdgeInsets.symmetric(horizontal: 20),
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height -
-                        MediaQuery.of(context).padding.top -
-                        MediaQuery.of(context).padding.bottom,
+        child: Container(
+          height: MediaQuery.of(context).size.height,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.center,
+              colors: [
+                primaryColor,
+                Colors.white,
+              ],
+              stops: [0.4, 0.4],
+            ),
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: SizedBox(
+                  child: Stack(
+                children: [
+                  Container(
+                    height: ScreenUtils.halfHeight,
+                    color: primaryColor,
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 24.w),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Logo and Branding
-                        Column(
-                          children: [
-                            // Shield Logo SVG
-                            Container(
-                              width: 80.w,
-                              height: 80.h,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20.r),
-                              ),
-                              child: Center(
-                                child: SvgPicture.asset(
-                                  'assets/images/shield_logo.svg',
-                                  width: 48.w,
-                                  height: 48.h,
-                                ),
-                              ),
-                            ),
-                            16.verticalSpace,
+                        // Top section with logo and title
+                        30.verticalSpace,
 
-                            // Legipsum Text
-                            Text(
-                              'Legipsum',
-                              style: TextStyle(
-                                fontSize: 24.sp,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
+                        // Shield logo
+                        Container(
+                          width: 80.w,
+                          height: 80.h,
+                          padding: EdgeInsets.all(16.r),
+                          decoration: const BoxDecoration(
+                            // color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: SvgPicture.asset(
+                            'assets/images/shield_logo.svg',
+                          ),
                         ),
-                        40.verticalSpace,
+
+                        // SizedBox(height: 40.h),
 
                         // Title
                         Text(
                           'Log in to your\nAccount',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 28.sp,
-                            fontWeight: FontWeight.bold,
+                          style: TS.headlineLarge.copyWith(
                             color: Colors.white,
                             height: 1.2,
                           ),
                         ),
-                        8.verticalSpace,
+
+                        16.verticalSpace,
 
                         // Subtitle
                         Text(
                           'Enter your NRP and password to log in',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            color: Colors.white.withOpacity(0.9),
+                          style: TS.bodyLarge.copyWith(
+                            color: Colors.white,
                           ),
                         ),
-                        40.verticalSpace,
 
-                        // White Form Container
+                        30.verticalSpace,
+
+                        // Form Section
                         Container(
-                          width: double.infinity,
-                          constraints: BoxConstraints(maxWidth: 400.w),
-                          padding: REdgeInsets.all(24),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
                           ),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 24.w, vertical: 32.h),
                           child: Form(
                             key: _formKey,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                // NRP Field
-                                Text(
-                                  'NRP',
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                8.verticalSpace,
-                                TextFormField(
-                                  controller: _nipController,
-                                  keyboardType: TextInputType.text,
-                                  decoration: InputDecoration(
-                                    hintText: 'ABB902830',
-                                    hintStyle: TextStyle(
-                                      fontSize: 14.sp,
-                                      color: Colors.grey[400],
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[300]!,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[300]!,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      borderSide: BorderSide(
-                                        color: primaryColor,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      borderSide: const BorderSide(
-                                        color: Colors.red,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    contentPadding: REdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 14,
-                                    ),
-                                  ),
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    color: Colors.black87,
-                                  ),
-                                  validator: (value) {
-                                    if (value?.isEmpty ?? true) {
+                                // NRP Field using InputPrimary
+                                InputPrimary(
+                                  label: 'NRP',
+                                  hint: '',
+                                  controller: _nrpController,
+                                  isRequired: true,
+                                  validation: (value) {
+                                    if (value == null || value.isEmpty) {
                                       return 'NRP tidak boleh kosong';
                                     }
                                     return null;
                                   },
+                                  keyboardType: TextInputType.text,
+                                  borderRadius: 12,
+                                  color: Colors.white,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 15.w,
+                                    vertical: 8.h,
+                                  ),
                                 ),
-                                16.verticalSpace,
 
-                                // Password Field
-                                Text(
-                                  'Password',
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                8.verticalSpace,
-                                TextFormField(
+                                24.verticalSpace,
+
+                                // Password Field using InputPrimary
+                                InputPrimary(
+                                  label: 'Password',
+                                  hint: '',
                                   controller: _passwordController,
+                                  isRequired: true,
                                   obscureText: !_isPasswordVisible,
-                                  decoration: InputDecoration(
-                                    hintText: '•••••••',
-                                    hintStyle: TextStyle(
-                                      fontSize: 14.sp,
-                                      color: Colors.grey[400],
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _isPasswordVisible
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                      color: neutral50,
                                     ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[300]!,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[300]!,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      borderSide: BorderSide(
-                                        color: primaryColor,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      borderSide: const BorderSide(
-                                        color: Colors.red,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    contentPadding: REdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 14,
-                                    ),
-                                    suffixIcon: IconButton(
-                                      icon: Icon(
-                                        _isPasswordVisible
-                                            ? Icons.visibility
-                                            : Icons.visibility_off,
-                                        color: Colors.grey[600],
-                                        size: 20.r,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _isPasswordVisible =
-                                              !_isPasswordVisible;
-                                        });
-                                      },
-                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _isPasswordVisible =
+                                            !_isPasswordVisible;
+                                      });
+                                    },
                                   ),
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    color: Colors.black87,
-                                  ),
-                                  validator: (value) {
-                                    if (value?.isEmpty ?? true) {
+                                  validation: (value) {
+                                    if (value == null || value.isEmpty) {
                                       return 'Password tidak boleh kosong';
                                     }
                                     return null;
                                   },
+                                  borderRadius: 12,
+                                  color: Colors.white,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 15.w,
+                                    vertical: 8.h,
+                                  ),
                                 ),
-                                16.verticalSpace,
 
-                                // Remember Me & Forgot Password
+                                20.verticalSpace,
+
+                                // Remember me and Forgot password row
                                 Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Checkbox(
-                                      value: _rememberMe,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _rememberMe = value ?? false;
-                                        });
-                                      },
-                                      activeColor: primaryColor,
+                                    Row(
+                                      children: [
+                                        Checkbox(
+                                          value: _rememberMe,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _rememberMe = value ?? false;
+                                            });
+                                          },
+                                          activeColor: primaryColor,
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        Text(
+                                          'Remember me',
+                                          style: TS.bodyMedium.copyWith(
+                                            color: neutral70,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      'Remember me',
-                                      style: TextStyle(
-                                        fontSize: 14.sp,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    GestureDetector(
-                                      onTap: _onForgotPasswordPressed,
+                                    TextButton(
+                                      onPressed: _onForgotPasswordPressed,
                                       child: Text(
                                         'Forgot Password ?',
-                                        style: TextStyle(
-                                          fontSize: 14.sp,
-                                          color: const Color(0xFF3498DB),
-                                          fontWeight: FontWeight.w500,
+                                        style: TS.bodyMedium.copyWith(
+                                          color: const Color(0xFF4A90E2),
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                24.verticalSpace,
 
-                                // Login Button
+                                30.verticalSpace,
+
+                                // Login Button using UIButton
                                 BlocBuilder<AuthBloc, AuthState>(
                                   builder: (context, state) {
-                                    return SizedBox(
-                                      width: double.infinity,
-                                      height: 50.h,
-                                      child: ElevatedButton(
-                                        onPressed: state.isLoading
-                                            ? null
-                                            : _onLoginPressed,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: primaryColor,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8.r),
-                                          ),
-                                          elevation: 0,
-                                          disabledBackgroundColor:
-                                              Colors.grey[300],
-                                        ),
-                                        child: state.isLoading
-                                            ? SizedBox(
-                                                width: 20.w,
-                                                height: 20.h,
-                                                child:
-                                                    const CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                          Color>(
-                                                    Colors.white,
-                                                  ),
-                                                ),
-                                              )
-                                            : Text(
-                                                'Log In',
-                                                style: TextStyle(
-                                                  fontSize: 16.sp,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                      ),
+                                    return UIButton(
+                                      text: 'Log In',
+                                      fullWidth: true,
+                                      size: UIButtonSize.medium,
+                                      variant: UIButtonVariant.primary,
+                                      isLoading: state.isLoading,
+                                      onPressed: state.isLoading
+                                          ? null
+                                          : _onLoginPressed,
+                                      borderRadius: 12,
                                     );
                                   },
                                 ),
+
+                                40.verticalSpace,
                               ],
                             ),
                           ),
                         ),
-                        const Spacer(),
                       ],
                     ),
-                  ),
-                ),
-              ),
-            ],
+                  )
+                ],
+              )),
+            ),
           ),
         ),
       ),

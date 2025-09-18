@@ -7,6 +7,7 @@ class AppScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final Widget? floatingActionButton;
   final FloatingActionButtonLocation? floatingActionButtonLocation;
+  final Widget? bottomSheet;
   final Color? backgroundColor;
   final bool enableScrolling;
   final EdgeInsetsGeometry? padding;
@@ -19,6 +20,7 @@ class AppScaffold extends StatelessWidget {
     this.appBar,
     this.floatingActionButton,
     this.floatingActionButtonLocation,
+    this.bottomSheet,
     this.backgroundColor,
     this.enableScrolling = true,
     this.padding,
@@ -56,6 +58,7 @@ class AppScaffold extends StatelessWidget {
       appBar: appBar,
       body: bodyContent,
       bottomNavigationBar: bottomNavigationBar,
+      bottomSheet: bottomSheet,
       floatingActionButton: floatingActionButton,
       floatingActionButtonLocation: floatingActionButtonLocation,
     );
