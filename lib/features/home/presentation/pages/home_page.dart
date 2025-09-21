@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/constants/enums.dart';
 import '../widgets/home_header_widget.dart';
 import '../widgets/weather_info_section.dart';
 import '../widgets/panic_button_widget.dart';
@@ -146,9 +147,17 @@ class _HomePageView extends StatelessWidget {
                       .add(const ShowSnackbarEvent('Peraturan Perusahaan'));
                 },
                 onBMITap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('BMI Calculator'));
+                  // Demo: Menggunakan user role danton (non-anggota)
+                  // Dalam implementasi sesungguhnya, ambil dari AuthBloc atau user session
+                  Navigator.pushNamed(
+                    context,
+                    '/bmi',
+                    arguments: {
+                      'userId': '2',
+                      'userRole': UserRole
+                          .danton, // Testing sebagai danton (non-anggota role)
+                    },
+                  );
                 },
                 onTestResultTap: () {
                   context
