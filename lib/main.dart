@@ -12,6 +12,7 @@ import 'features/panic_button/presentation/pages/panic_incident_form_page.dart';
 import 'features/panic_button/presentation/pages/panic_security_form_page.dart';
 import 'features/panic_button/presentation/pages/panic_confirmation_page.dart';
 import 'features/panic_button/presentation/bloc/panic_button_bloc.dart';
+import 'features/bmi/presentation/pages/bmi_navigation_page.dart';
 import 'core/di/injection.dart';
 
 void main() async {
@@ -58,6 +59,7 @@ class GuardifyApp extends StatelessWidget {
                   create: (context) => getIt<AuthBloc>(),
                   child: const ResetPasswordPage(),
                 ),
+            '/bmi': (context) => const BMINavigationPage(),
             '/panic-verification': (context) => BlocProvider(
                   create: (context) => getIt<PanicButtonBloc>(),
                   child: const PanicVerificationPage(),
