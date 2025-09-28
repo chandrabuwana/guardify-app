@@ -10,10 +10,56 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<BottomNavigationTappedEvent>(_onBottomNavigationTapped);
     on<ShowSnackbarEvent>(_onShowSnackbar);
     on<PanicButtonPressedEvent>(_onPanicButtonPressed);
+
+    // Attendance Events
+    on<AttendanceToggleEvent>(_onAttendanceToggle);
+    on<AttendanceCheckInEvent>(_onAttendanceCheckIn);
+    on<AttendanceCheckOutEvent>(_onAttendanceCheckOut);
+
+    // Navigation Events
+    on<NavigateToActivityReportEvent>(_onNavigateToActivityReport);
+    on<NavigateToIncidentReportEvent>(_onNavigateToIncidentReport);
+    on<NavigateToAttendanceRecapEvent>(_onNavigateToAttendanceRecap);
+    on<NavigateToBMIEvent>(_onNavigateToBMI);
+    on<NavigateToTestResultEvent>(_onNavigateToTestResult);
+    on<NavigateToLeaveRequestEvent>(_onNavigateToLeaveRequest);
+    on<NavigateToRegulationsEvent>(_onNavigateToRegulations);
+    on<NavigateToEmergencyHistoryEvent>(_onNavigateToEmergencyHistory);
+    on<NavigateToDisasterInfoEvent>(_onNavigateToDisasterInfo);
+
+    // Tasks Events
+    on<LoadTodayTasksEvent>(_onLoadTodayTasks);
+    on<TaskProgressUpdateEvent>(_onTaskProgressUpdate);
+
+    // Profile Events
+    on<LoadUserProfileEvent>(_onLoadUserProfile);
+    on<UpdateUserProfileEvent>(_onUpdateUserProfile);
   }
 
   void _onHomeInitial(HomeInitialEvent event, Emitter<HomeState> emit) {
-    emit(const HomeLoaded(currentBottomNavIndex: 0));
+    // Initialize with default data
+    final userProfile = UserProfile(
+      name: 'Arsyada Rahmasyah',
+      position: 'Security',
+      greeting: _getGreeting(),
+    );
+
+    final attendanceInfo = AttendanceInfo(
+      isCheckedIn: false,
+      currentTime: _getCurrentTime(),
+      shift: 'Shift Pagi - Pos Gajah',
+      position: 'Security',
+      date: DateTime.now(),
+    );
+
+    final todayTasks = _getInitialTasks();
+
+    emit(HomeLoaded(
+      currentBottomNavIndex: 0,
+      userProfile: userProfile,
+      attendanceInfo: attendanceInfo,
+      todayTasks: todayTasks,
+    ));
   }
 
   void _onBottomNavigationTapped(
@@ -65,19 +111,270 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }
   }
 
+  // Attendance Event Handlers
+  void _onAttendanceToggle(
+      AttendanceToggleEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      final newAttendance = currentState.attendanceInfo.copyWith(
+        isCheckedIn: !currentState.attendanceInfo.isCheckedIn,
+        currentTime: _getCurrentTime(),
+      );
+
+      final message = newAttendance.isCheckedIn
+          ? 'Berhasil Check In'
+          : 'Berhasil Check Out';
+
+      emit(currentState.copyWith(
+        attendanceInfo: newAttendance,
+        snackbarMessage: message,
+      ));
+    }
+  }
+
+  void _onAttendanceCheckIn(
+      AttendanceCheckInEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      final newAttendance = currentState.attendanceInfo.copyWith(
+        isCheckedIn: true,
+        currentTime: _getCurrentTime(),
+      );
+
+      emit(currentState.copyWith(
+        attendanceInfo: newAttendance,
+        snackbarMessage: 'Berhasil Check In',
+      ));
+    }
+  }
+
+  void _onAttendanceCheckOut(
+      AttendanceCheckOutEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      final newAttendance = currentState.attendanceInfo.copyWith(
+        isCheckedIn: false,
+        currentTime: _getCurrentTime(),
+      );
+
+      emit(currentState.copyWith(
+        attendanceInfo: newAttendance,
+        snackbarMessage: 'Berhasil Check Out',
+      ));
+    }
+  }
+
+  // Navigation Event Handlers
+  void _onNavigateToActivityReport(
+      NavigateToActivityReportEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Navigating to Laporan Kegiatan...',
+        navigationRoute: '/activity-report',
+      ));
+    }
+  }
+
+  void _onNavigateToIncidentReport(
+      NavigateToIncidentReportEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Navigating to Laporan Kejadian...',
+        navigationRoute: '/incident-report',
+      ));
+    }
+  }
+
+  void _onNavigateToAttendanceRecap(
+      NavigateToAttendanceRecapEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Navigating to Rekapitulasi Kehadiran...',
+        navigationRoute: '/attendance-recap',
+      ));
+    }
+  }
+
+  void _onNavigateToBMI(NavigateToBMIEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Navigating to BMI Calculator...',
+        navigationRoute: '/bmi',
+        navigationArguments: {
+          'userId': '2',
+          'userRole': 'danton',
+        },
+      ));
+    }
+  }
+
+  void _onNavigateToTestResult(
+      NavigateToTestResultEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Navigating to Hasil Ujian...',
+        navigationRoute: '/test-result',
+      ));
+    }
+  }
+
+  void _onNavigateToLeaveRequest(
+      NavigateToLeaveRequestEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Navigating to Pengajuan Cuti...',
+        navigationRoute: '/leave-request',
+      ));
+    }
+  }
+
+  void _onNavigateToRegulations(
+      NavigateToRegulationsEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Navigating to Peraturan Perusahaan...',
+        navigationRoute: '/regulations',
+      ));
+    }
+  }
+
+  void _onNavigateToEmergencyHistory(
+      NavigateToEmergencyHistoryEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Navigating to Riwayat Tombol Darurat...',
+        navigationRoute: '/emergency-history',
+      ));
+    }
+  }
+
+  void _onNavigateToDisasterInfo(
+      NavigateToDisasterInfoEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Navigating to Informasi Bencana...',
+        navigationRoute: '/disaster-info',
+      ));
+    }
+  }
+
+  // Tasks Event Handlers
+  void _onLoadTodayTasks(LoadTodayTasksEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      final tasks = _getInitialTasks();
+
+      emit(currentState.copyWith(
+        todayTasks: tasks,
+        snackbarMessage: 'Tugas hari ini berhasil dimuat',
+      ));
+    }
+  }
+
+  void _onTaskProgressUpdate(
+      TaskProgressUpdateEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      final updatedTasks = currentState.todayTasks.map((task) {
+        if (task.id == event.taskId) {
+          return task.copyWith(progress: event.progress);
+        }
+        return task;
+      }).toList();
+
+      emit(currentState.copyWith(
+        todayTasks: updatedTasks,
+        snackbarMessage: 'Progress tugas berhasil diperbarui',
+      ));
+    }
+  }
+
+  // Profile Event Handlers
+  void _onLoadUserProfile(LoadUserProfileEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Profil pengguna berhasil dimuat',
+      ));
+    }
+  }
+
+  void _onUpdateUserProfile(
+      UpdateUserProfileEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      final updatedProfile = currentState.userProfile.copyWith(
+        name: event.userName,
+        position: event.position,
+        profileImageUrl: event.profileImageUrl,
+      );
+
+      emit(currentState.copyWith(
+        userProfile: updatedProfile,
+        snackbarMessage: 'Profil berhasil diperbarui',
+      ));
+    }
+  }
+
+  // Helper Methods
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Selamat Pagi';
+    } else if (hour < 15) {
+      return 'Selamat Siang';
+    } else if (hour < 18) {
+      return 'Selamat Sore';
+    } else {
+      return 'Selamat Malam';
+    }
+  }
+
+  String _getCurrentTime() {
+    final now = DateTime.now();
+    return '${now.hour.toString().padLeft(2, '0')}.${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  List<TaskItem> _getInitialTasks() {
+    return [
+      const TaskItem(
+        id: 'patrol_a',
+        title: 'Patroli Rute A',
+        subtitle: '5 Lokasi Rute + 1 Lokasi Tambahan',
+        progress: 0.66,
+        completedTasks: 4,
+        totalTasks: 6,
+      ),
+      const TaskItem(
+        id: 'patrol_continue',
+        title: 'Tugas Lanjutan',
+        subtitle: '1 Belum Selesai, 0 Terverifikasi',
+        progress: 0.75,
+        completedTasks: 3,
+        totalTasks: 4,
+      ),
+    ];
+  }
+
+  // Public methods for external use
   void clearSnackbar() {
     add(const ShowSnackbarEvent(''));
   }
 
-  void hidePanicDialog() {
-    if (state is HomeLoaded) {
-      final currentState = state as HomeLoaded;
-      // Emit through event
-      _emitState(currentState.copyWith(showPanicDialog: false));
-    }
+  void clearNavigation() {
+    // Navigation clearing is handled in the UI layer
   }
 
-  void _emitState(HomeState newState) {
-    // This is a helper method - in practice, state changes should go through events
+  void hidePanicDialog() {
+    add(const ShowSnackbarEvent(''));
   }
 }

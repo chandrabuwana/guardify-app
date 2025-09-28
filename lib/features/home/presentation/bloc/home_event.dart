@@ -32,3 +32,88 @@ class ShowSnackbarEvent extends HomeEvent {
 class PanicButtonPressedEvent extends HomeEvent {
   const PanicButtonPressedEvent();
 }
+
+// Attendance Events
+class AttendanceToggleEvent extends HomeEvent {
+  const AttendanceToggleEvent();
+}
+
+class AttendanceCheckInEvent extends HomeEvent {
+  const AttendanceCheckInEvent();
+}
+
+class AttendanceCheckOutEvent extends HomeEvent {
+  const AttendanceCheckOutEvent();
+}
+
+// Menu Navigation Events
+class NavigateToActivityReportEvent extends HomeEvent {
+  const NavigateToActivityReportEvent();
+}
+
+class NavigateToIncidentReportEvent extends HomeEvent {
+  const NavigateToIncidentReportEvent();
+}
+
+class NavigateToAttendanceRecapEvent extends HomeEvent {
+  const NavigateToAttendanceRecapEvent();
+}
+
+class NavigateToBMIEvent extends HomeEvent {
+  const NavigateToBMIEvent();
+}
+
+class NavigateToTestResultEvent extends HomeEvent {
+  const NavigateToTestResultEvent();
+}
+
+class NavigateToLeaveRequestEvent extends HomeEvent {
+  const NavigateToLeaveRequestEvent();
+}
+
+class NavigateToRegulationsEvent extends HomeEvent {
+  const NavigateToRegulationsEvent();
+}
+
+class NavigateToEmergencyHistoryEvent extends HomeEvent {
+  const NavigateToEmergencyHistoryEvent();
+}
+
+class NavigateToDisasterInfoEvent extends HomeEvent {
+  const NavigateToDisasterInfoEvent();
+}
+
+// Tasks Events
+class LoadTodayTasksEvent extends HomeEvent {
+  const LoadTodayTasksEvent();
+}
+
+class TaskProgressUpdateEvent extends HomeEvent {
+  final String taskId;
+  final double progress;
+
+  const TaskProgressUpdateEvent(this.taskId, this.progress);
+
+  @override
+  List<Object> get props => [taskId, progress];
+}
+
+// User Profile Events
+class LoadUserProfileEvent extends HomeEvent {
+  const LoadUserProfileEvent();
+}
+
+class UpdateUserProfileEvent extends HomeEvent {
+  final String userName;
+  final String position;
+  final String? profileImageUrl;
+
+  const UpdateUserProfileEvent({
+    required this.userName,
+    required this.position,
+    this.profileImageUrl,
+  });
+
+  @override
+  List<Object> get props => [userName, position, profileImageUrl ?? ''];
+}

@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../core/constants/enums.dart';
 import '../widgets/home_header_widget.dart';
-import '../widgets/weather_info_section.dart';
-import '../widgets/panic_button_widget.dart';
-import '../widgets/calendar_widget.dart';
-import '../widgets/report_section.dart';
-import '../widgets/quick_actions_section.dart';
+import '../widgets/attendance_card_widget.dart';
+import '../widgets/today_tasks_card_widget.dart';
+import '../widgets/menu_grid_widget.dart';
+import '../widgets/sos_button_widget.dart';
 import '../../../../shared/widgets/custom_bottom_navigation.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
 import '../bloc/home_bloc.dart';
@@ -34,21 +32,85 @@ class _HomePageView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<HomeBloc, HomeState>(
       listener: (context, state) {
-        if (state is HomeLoaded &&
-            state.snackbarMessage != null &&
-            state.snackbarMessage!.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.snackbarMessage!),
-              backgroundColor: const Color(0xFFE74C3C),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-          // Clear snackbar message after showing
-          context.read<HomeBloc>().clearSnackbar();
+        if (state is HomeLoaded) {
+          // Handle snackbar messages
+          if (state.snackbarMessage != null &&
+              state.snackbarMessage!.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.snackbarMessage!),
+                backgroundColor: const Color(0xFFE74C3C),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            // Clear snackbar message after showing
+            context.read<HomeBloc>().clearSnackbar();
+          }
+
+          // Handle navigation
+          if (state.navigationRoute != null &&
+              state.navigationRoute!.isNotEmpty) {
+            if (state.navigationArguments != null) {
+              Navigator.pushNamed(
+                context,
+                state.navigationRoute!,
+                arguments: state.navigationArguments,
+              );
+            } else {
+              Navigator.pushNamed(context, state.navigationRoute!);
+            }
+            // Clear navigation after handling
+            context.read<HomeBloc>().clearNavigation();
+          }
         }
       },
       builder: (context, state) {
+        if (state is HomeLoading) {
+          return const AppScaffold(
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (state is HomeError) {
+          return AppScaffold(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64.r,
+                    color: Colors.red,
+                  ),
+                  16.verticalSpace,
+                  Text(
+                    'Terjadi kesalahan',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  8.verticalSpace,
+                  Text(
+                    state.message,
+                    style: TextStyle(fontSize: 14.sp),
+                    textAlign: TextAlign.center,
+                  ),
+                  24.verticalSpace,
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<HomeBloc>().add(const HomeInitialEvent());
+                    },
+                    child: const Text('Coba Lagi'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         if (state is! HomeLoaded) {
           return const AppScaffold(
             child: Center(
@@ -58,6 +120,9 @@ class _HomePageView extends StatelessWidget {
         }
 
         return AppScaffold(
+          backgroundColor: const Color(0xFFF8F9FA),
+          enableScrolling: true,
+          safeArea: false, // We handle safe area in header
           bottomNavigationBar: CustomBottomNavigation(
             currentIndex: state.currentBottomNavIndex,
             onTap: (index) {
@@ -67,102 +132,94 @@ class _HomePageView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              const HomeHeaderWidget(
-                greeting: 'Selamat Pagi!',
-                userName: 'Gilang William',
-                subtitle: 'Security',
+              // Section 1: Header with profile info
+              HomeHeaderWidget(
+                greeting: state.userProfile.greeting,
+                userName: state.userProfile.name,
+                subtitle: state.userProfile.position,
               ),
 
-              20.verticalSpace,
+              16.verticalSpace,
 
-              // Weather and Disaster Info
-              WeatherInfoSection(
-                temperature: '30°C',
-                weatherInfo: 'Hari Ini',
-                onWeatherTap: () {
+              // Section 2: Attendance card
+              AttendanceCardWidget(
+                isCheckedIn: state.attendanceInfo.isCheckedIn,
+                shift: state.attendanceInfo.shift,
+                position: state.attendanceInfo.position,
+                currentTime: state.attendanceInfo.currentTime,
+                onTap: () {
+                  context.read<HomeBloc>().add(const AttendanceToggleEvent());
+                },
+              ),
+
+              16.verticalSpace,
+
+              // Section 3: Today's tasks
+              TodayTasksCardWidget(
+                tasks: state.todayTasks,
+                onTaskTap: (taskId) {
                   context
                       .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('Informasi Cuaca'));
-                },
-                onDisasterInfoTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('Informasi Bencana'));
+                      .add(const ShowSnackbarEvent('Task tapped'));
                 },
               ),
 
-              20.verticalSpace,
+              16.verticalSpace,
 
-              // Panic Button
-              PanicButtonWidget(
-                onPressed: () {
-                  _showPanicConfirmationDialog(context);
-                },
-              ),
-
-              24.verticalSpace,
-
-              // Calendar
-              const CalendarWidget(),
-
-              24.verticalSpace,
-
-              // Report Section
-              ReportSection(
+              // Section 4: Menu grid
+              MenuGridWidget(
                 onActivityReportTap: () {
                   context
                       .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('Laporan Kegiatan'));
+                      .add(const NavigateToActivityReportEvent());
                 },
                 onIncidentReportTap: () {
                   context
                       .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('Laporan Kejadian'));
+                      .add(const NavigateToIncidentReportEvent());
                 },
-                onStartWorkTap: () {
+                onActivityRecapTap: () {
                   context
                       .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('Mulai Bekerja'));
+                      .add(const NavigateToAttendanceRecapEvent());
+                },
+                onBMITap: () {
+                  context.read<HomeBloc>().add(const NavigateToBMIEvent());
+                },
+                onTestResultTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const NavigateToTestResultEvent());
+                },
+                onLeaveTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const NavigateToLeaveRequestEvent());
+                },
+                onRegulationsTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const NavigateToRegulationsEvent());
+                },
+                onEmergencyHistoryTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const NavigateToEmergencyHistoryEvent());
+                },
+                onDisasterInfoTap: () {
+                  context
+                      .read<HomeBloc>()
+                      .add(const NavigateToDisasterInfoEvent());
                 },
               ),
 
               24.verticalSpace,
 
-              // Quick Actions
-              QuickActionsSection(
-                onRecapTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('Rekapitulasi Kehadiran'));
-                },
-                onSubmissionTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('Pengajuan Cuti'));
-                },
-                onRegulationTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('Peraturan Perusahaan'));
-                },
-                onBMITap: () {
-                  // Demo: Menggunakan user role danton (non-anggota)
-                  // Dalam implementasi sesungguhnya, ambil dari AuthBloc atau user session
-                  Navigator.pushNamed(
-                    context,
-                    '/bmi',
-                    arguments: {
-                      'userId': '2',
-                      'userRole': UserRole
-                          .danton, // Testing sebagai danton (non-anggota role)
-                    },
-                  );
-                },
-                onTestResultTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('Hasil Ujian'));
+              // Section 5: SOS Emergency Button
+              SOSButtonWidget(
+                onPressed: () {
+                  context.read<HomeBloc>().add(const PanicButtonPressedEvent());
+                  _showPanicConfirmationDialog(context);
                 },
               ),
 
