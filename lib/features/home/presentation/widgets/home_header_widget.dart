@@ -16,9 +16,17 @@ class HomeHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: REdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Color(0xFFB71C1C), // Dark red header background
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(0),
+          bottomRight: Radius.circular(0),
+        ),
+      ),
+      padding:
+          REdgeInsets.fromLTRB(20, 50, 20, 20), // Top padding for status bar
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
@@ -28,7 +36,7 @@ class HomeHeaderWidget extends StatelessWidget {
                   greeting,
                   style: TextStyle(
                     fontSize: 16.sp,
-                    color: Colors.grey,
+                    color: Colors.white70,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -36,63 +44,35 @@ class HomeHeaderWidget extends StatelessWidget {
                 Text(
                   userName,
                   style: TextStyle(
-                    fontSize: 24.sp,
+                    fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                4.verticalSpace,
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w400,
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {
-              // Show logout confirmation dialog
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Logout'),
-                    content: const Text('Apakah Anda yakin ingin logout?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text('Batal'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          // Trigger logout and navigate to login
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/',
-                            (route) => false,
-                          );
-                        },
-                        child: const Text('Logout'),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-            icon: Icon(
-              Icons.logout,
-              color: const Color(0xFFE74C3C),
-              size: 24.r,
+          // Profile Photo
+          Container(
+            width: 45.w,
+            height: 45.h,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white,
+                width: 2,
+              ),
             ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
+            child: ClipOval(
+              child: Container(
+                color: Colors.white,
+                child: Icon(
+                  Icons.person,
+                  size: 25.r,
+                  color: const Color(0xFFB71C1C),
+                ),
+              ),
+            ),
           ),
         ],
       ),
