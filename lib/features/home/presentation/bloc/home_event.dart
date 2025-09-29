@@ -46,6 +46,10 @@ class AttendanceCheckOutEvent extends HomeEvent {
   const AttendanceCheckOutEvent();
 }
 
+class NavigateToAttendanceScreenEvent extends HomeEvent {
+  const NavigateToAttendanceScreenEvent();
+}
+
 // Menu Navigation Events
 class NavigateToActivityReportEvent extends HomeEvent {
   const NavigateToActivityReportEvent();

@@ -1,0 +1,141 @@
+import 'package:dio/dio.dart';
+import 'package:injectable/injectable.dart';
+import '../../domain/entities/attendance.dart';
+import '../models/attendance_model.dart';
+
+abstract class AttendanceRemoteDataSource {
+  Future<AttendanceModel> submitAttendance(AttendanceModel attendance);
+  Future<List<AttendanceModel>> getAttendanceHistory(String userId);
+  Future<AttendanceModel> getAttendanceById(String attendanceId);
+  Future<bool> hasCheckedInToday(String userId);
+  Future<AttendanceModel?> getCurrentAttendanceStatus(String userId);
+  Future<AttendanceModel> updateAttendanceStatus({
+    required String attendanceId,
+    required AttendanceStatus status,
+    String? rejectionReason,
+    String? approvedBy,
+  });
+  Future<List<AttendanceModel>> getPendingApprovals(String userRole);
+}
+
+@LazySingleton(as: AttendanceRemoteDataSource)
+class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
+  final Dio dio;
+
+  AttendanceRemoteDataSourceImpl({required this.dio});
+
+  @override
+  Future<AttendanceModel> submitAttendance(AttendanceModel attendance) async {
+    try {
+      final response = await dio.post(
+        '/attendance',
+        data: attendance.toJson(),
+      );
+
+      return AttendanceModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<List<AttendanceModel>> getAttendanceHistory(String userId) async {
+    try {
+      final response = await dio.get('/attendance/history/$userId');
+
+      return (response.data as List)
+          .map((json) => AttendanceModel.fromJson(json))
+          .toList();
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<AttendanceModel> getAttendanceById(String attendanceId) async {
+    try {
+      final response = await dio.get('/attendance/$attendanceId');
+
+      return AttendanceModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<bool> hasCheckedInToday(String userId) async {
+    try {
+      final response = await dio.get('/attendance/check-today/$userId');
+
+      return response.data['hasCheckedIn'] as bool;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<AttendanceModel?> getCurrentAttendanceStatus(String userId) async {
+    try {
+      final response = await dio.get('/attendance/current/$userId');
+
+      if (response.data == null) return null;
+
+      return AttendanceModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<AttendanceModel> updateAttendanceStatus({
+    required String attendanceId,
+    required AttendanceStatus status,
+    String? rejectionReason,
+    String? approvedBy,
+  }) async {
+    try {
+      final response = await dio.put(
+        '/attendance/$attendanceId/status',
+        data: {
+          'status': status.name,
+          'rejectionReason': rejectionReason,
+          'approvedBy': approvedBy,
+        },
+      );
+
+      return AttendanceModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<List<AttendanceModel>> getPendingApprovals(String userRole) async {
+    try {
+      final response = await dio.get('/attendance/pending/$userRole');
+
+      return (response.data as List)
+          .map((json) => AttendanceModel.fromJson(json))
+          .toList();
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Exception _handleDioError(DioException error) {
+    switch (error.response?.statusCode) {
+      case 400:
+        return Exception('Bad request: ${error.response?.data['message']}');
+      case 401:
+        return Exception('Unauthorized');
+      case 403:
+        return Exception('Forbidden');
+      case 404:
+        return Exception('Not found');
+      case 500:
+        return Exception('Internal server error');
+      default:
+        return Exception('Network error: ${error.message}');
+    }
+  }
+}
