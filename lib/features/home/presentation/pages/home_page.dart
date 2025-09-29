@@ -50,7 +50,15 @@ class _HomePageView extends StatelessWidget {
           // Handle navigation
           if (state.navigationRoute != null &&
               state.navigationRoute!.isNotEmpty) {
-            if (state.navigationArguments != null) {
+            if (state.navigationRoute == '/attendance') {
+              // TODO: Navigate to attendance screen
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Navigating to Attendance Screen...'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            } else if (state.navigationArguments != null) {
               Navigator.pushNamed(
                 context,
                 state.navigationRoute!,
@@ -148,7 +156,15 @@ class _HomePageView extends StatelessWidget {
                 position: state.attendanceInfo.position,
                 currentTime: state.attendanceInfo.currentTime,
                 onTap: () {
-                  context.read<HomeBloc>().add(const AttendanceToggleEvent());
+                  if (!state.attendanceInfo.isCheckedIn) {
+                    // Navigate to attendance screen for check-in
+                    context
+                        .read<HomeBloc>()
+                        .add(const NavigateToAttendanceScreenEvent());
+                  } else {
+                    // Handle check-out (could open a different screen or dialog)
+                    context.read<HomeBloc>().add(const AttendanceToggleEvent());
+                  }
                 },
               ),
 

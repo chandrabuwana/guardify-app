@@ -8,9 +8,28 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:guardify_app/core/di/external_dependencies_module.dart'
     as _i267;
+import 'package:guardify_app/features/attendance/data/datasources/attendance_local_data_source.dart'
+    as _i1007;
+import 'package:guardify_app/features/attendance/data/datasources/attendance_remote_data_source.dart'
+    as _i109;
+import 'package:guardify_app/features/attendance/data/repositories/attendance_repository_impl.dart'
+    as _i289;
+import 'package:guardify_app/features/attendance/domain/repositories/attendance_repository.dart'
+    as _i311;
+import 'package:guardify_app/features/attendance/domain/usecases/check_attendance_status_usecase.dart'
+    as _i202;
+import 'package:guardify_app/features/attendance/domain/usecases/get_attendance_history_usecase.dart'
+    as _i624;
+import 'package:guardify_app/features/attendance/domain/usecases/submit_attendance_usecase.dart'
+    as _i974;
+import 'package:guardify_app/features/attendance/domain/usecases/validate_attendance_usecase.dart'
+    as _i601;
+import 'package:guardify_app/features/attendance/presentation/bloc/attendance_bloc.dart'
+    as _i908;
 import 'package:guardify_app/features/auth/presentation/bloc/auth_bloc.dart'
     as _i296;
 import 'package:guardify_app/features/bmi/data/datasources/bmi_local_data_source.dart'
@@ -68,6 +87,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => externalDependenciesModule.sharedPreferences,
       preResolve: true,
     );
+    gh.lazySingleton<_i361.Dio>(() => externalDependenciesModule.dio);
     gh.lazySingleton<_i460.PanicButtonDataSource>(
         () => _i754.PanicButtonLocalDataSource());
     gh.lazySingleton<_i228.PanicButtonRepository>(() =>
@@ -78,12 +98,21 @@ extension GetItInjectableX on _i174.GetIt {
         _i4.GetVerificationItemsUseCase(gh<_i228.PanicButtonRepository>()));
     gh.factory<_i826.BMILocalDataSource>(
         () => _i826.BMILocalDataSource(gh<_i460.SharedPreferences>()));
+    gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
+        () => _i109.AttendanceRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i893.PanicButtonBloc>(() => _i893.PanicButtonBloc(
           activatePanicButtonUseCase: gh<_i491.ActivatePanicButtonUseCase>(),
           getVerificationItemsUseCase: gh<_i4.GetVerificationItemsUseCase>(),
         ));
+    gh.lazySingleton<_i1007.AttendanceLocalDataSource>(() =>
+        _i1007.AttendanceLocalDataSourceImpl(
+            sharedPreferences: gh<_i460.SharedPreferences>()));
     gh.factory<_i814.BMIRepository>(
         () => _i989.BMIRepositoryImpl(gh<_i826.BMILocalDataSource>()));
+    gh.factory<_i311.AttendanceRepository>(() => _i289.AttendanceRepositoryImpl(
+          remoteDataSource: gh<_i109.AttendanceRemoteDataSource>(),
+          localDataSource: gh<_i1007.AttendanceLocalDataSource>(),
+        ));
     gh.factory<_i283.CalculateBMI>(
         () => _i283.CalculateBMI(gh<_i814.BMIRepository>()));
     gh.factory<_i817.GetBMIHistory>(
@@ -94,6 +123,21 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i572.ManagePinnedProfiles(gh<_i814.BMIRepository>()));
     gh.factory<_i708.SearchUserProfiles>(
         () => _i708.SearchUserProfiles(gh<_i814.BMIRepository>()));
+    gh.factory<_i202.CheckAttendanceStatusUseCase>(() =>
+        _i202.CheckAttendanceStatusUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i624.GetAttendanceHistoryUseCase>(() =>
+        _i624.GetAttendanceHistoryUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i974.SubmitAttendanceUseCase>(
+        () => _i974.SubmitAttendanceUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i601.ValidateAttendanceUseCase>(() =>
+        _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i908.AttendanceBloc>(() => _i908.AttendanceBloc(
+          submitAttendanceUseCase: gh<_i974.SubmitAttendanceUseCase>(),
+          validateAttendanceUseCase: gh<_i601.ValidateAttendanceUseCase>(),
+          checkAttendanceStatusUseCase:
+              gh<_i202.CheckAttendanceStatusUseCase>(),
+          getAttendanceHistoryUseCase: gh<_i624.GetAttendanceHistoryUseCase>(),
+        ));
     gh.factory<_i21.BMIBloc>(() => _i21.BMIBloc(
           getUserProfile: gh<_i283.GetUserProfile>(),
           searchUserProfiles: gh<_i708.SearchUserProfiles>(),

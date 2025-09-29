@@ -15,6 +15,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<AttendanceToggleEvent>(_onAttendanceToggle);
     on<AttendanceCheckInEvent>(_onAttendanceCheckIn);
     on<AttendanceCheckOutEvent>(_onAttendanceCheckOut);
+    on<NavigateToAttendanceScreenEvent>(_onNavigateToAttendanceScreen);
 
     // Navigation Events
     on<NavigateToActivityReportEvent>(_onNavigateToActivityReport);
@@ -160,6 +161,23 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(currentState.copyWith(
         attendanceInfo: newAttendance,
         snackbarMessage: 'Berhasil Check Out',
+      ));
+    }
+  }
+
+  void _onNavigateToAttendanceScreen(
+      NavigateToAttendanceScreenEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        navigationRoute: '/attendance',
+        navigationArguments: {
+          'attendanceType': 'clockIn',
+          'shiftType': 'morning',
+          'userId': '1',
+          'userName': currentState.userProfile.name,
+          'guardLocation': 'Pos Utama',
+        },
       ));
     }
   }

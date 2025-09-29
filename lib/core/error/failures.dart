@@ -43,3 +43,19 @@ class BiometricFailure extends Failure {
 class SecurityFailure extends Failure {
   const SecurityFailure(super.message);
 }
+
+class PermissionFailure extends Failure {
+  const PermissionFailure(super.message);
+}
+
+class LocationFailure extends Failure {
+  const LocationFailure(super.message);
+}
+
+class TimeValidationFailure extends Failure {
+  const TimeValidationFailure(super.message);
+}
+
+class AuthorizationFailure extends Failure {
+  const AuthorizationFailure(super.message);
+}
