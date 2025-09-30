@@ -59,3 +59,15 @@ class TimeValidationFailure extends Failure {
 class AuthorizationFailure extends Failure {
   const AuthorizationFailure(super.message);
 }
+
+class FileFailure extends Failure {
+  const FileFailure(super.message);
+}
+
+class ParsingFailure extends Failure {
+  const ParsingFailure(super.message);
+}
+
+class UnexpectedFailure extends Failure {
+  const UnexpectedFailure(super.message);
+}

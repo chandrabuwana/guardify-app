@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 // Red color scheme based on the design
-const primaryColor = Color(0xFF8C1007);
-const primaryDark = Color(0xFFC0392B);
-const primaryAccent = Color(0xFFEC7063);
+const primaryColor = Color(0xFF8B0000); // Dark red as specified
+const primaryDark = Color(0xFF5D0000);
+const primaryAccent = Color(0xFFBB0000);
 
 const Color primary10 = Color(0xFFFDEDEA);
 const Color primary30 = Color(0xFFF1948A);

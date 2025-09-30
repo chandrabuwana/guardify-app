@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/attendance.dart';
+import '../entities/attendance_request.dart';
 
 abstract class AttendanceRepository {
   /// Submit attendance record
@@ -33,4 +34,16 @@ abstract class AttendanceRepository {
 
   /// Validate attendance data
   Future<Either<Failure, bool>> validateAttendanceData(Attendance attendance);
+
+  /// Check in user with provided data
+  Future<Either<Failure, Attendance>> checkIn(CheckInRequest request);
+
+  /// Check out user with provided data
+  Future<Either<Failure, Attendance>> checkOut(CheckOutRequest request);
+
+  /// Validate location for check in/out
+  Future<Either<Failure, bool>> validateLocation(
+    String currentLocation,
+    String requiredLocation,
+  );
 }

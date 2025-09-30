@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/attendance.dart';
+import '../../domain/usecases/get_attendance_status_usecase.dart';
 
 abstract class AttendanceState extends Equatable {
   const AttendanceState();
@@ -16,156 +17,176 @@ class AttendanceLoading extends AttendanceState {
   const AttendanceLoading();
 }
 
-class AttendanceFormState extends AttendanceState {
-  final String personalClothing;
-  final String securityReport;
-  final String photoPath;
-  final String currentLocation;
-  final double? latitude;
-  final double? longitude;
-  final String patrolRoute;
-  final bool isFormValid;
-  final Map<String, String> fieldErrors;
-  final bool isLocationDetected;
-  final bool isTimeValid;
-  final String? validationMessage;
+// Status States
+class AttendanceStatusLoaded extends AttendanceState {
+  final UserAttendanceStatus status;
+  final Attendance? currentAttendance;
 
-  const AttendanceFormState({
-    this.personalClothing = '',
-    this.securityReport = '',
-    this.photoPath = '',
-    this.currentLocation = '',
-    this.latitude,
-    this.longitude,
-    this.patrolRoute = '',
-    this.isFormValid = false,
-    this.fieldErrors = const {},
-    this.isLocationDetected = false,
-    this.isTimeValid = false,
-    this.validationMessage,
+  const AttendanceStatusLoaded({
+    required this.status,
+    this.currentAttendance,
   });
 
-  AttendanceFormState copyWith({
-    String? personalClothing,
-    String? securityReport,
-    String? photoPath,
-    String? currentLocation,
-    double? latitude,
-    double? longitude,
-    String? patrolRoute,
-    bool? isFormValid,
-    Map<String, String>? fieldErrors,
-    bool? isLocationDetected,
-    bool? isTimeValid,
-    String? validationMessage,
-    bool clearPhoto = false,
-    bool clearValidationMessage = false,
+  @override
+  List<Object?> get props => [status, currentAttendance];
+}
+
+// Check In States
+class CheckInFormState extends AttendanceState {
+  final String lokasiPenugasan;
+  final String lokasiTerkini;
+  final String ratePatrol;
+  final String pakaianPersonil;
+  final String laporanPengamanan;
+  final List<String> fotoPengamanan;
+  final List<String> tugasLanjutan;
+  final String? fotoWajah;
+  final Map<String, String> errors;
+  final bool isValid;
+
+  const CheckInFormState({
+    this.lokasiPenugasan = '',
+    this.lokasiTerkini = '',
+    this.ratePatrol = '',
+    this.pakaianPersonil = '',
+    this.laporanPengamanan = '',
+    this.fotoPengamanan = const [],
+    this.tugasLanjutan = const [],
+    this.fotoWajah,
+    this.errors = const {},
+    this.isValid = false,
+  });
+
+  CheckInFormState copyWith({
+    String? lokasiPenugasan,
+    String? lokasiTerkini,
+    String? ratePatrol,
+    String? pakaianPersonil,
+    String? laporanPengamanan,
+    List<String>? fotoPengamanan,
+    List<String>? tugasLanjutan,
+    String? fotoWajah,
+    Map<String, String>? errors,
+    bool? isValid,
   }) {
-    return AttendanceFormState(
-      personalClothing: personalClothing ?? this.personalClothing,
-      securityReport: securityReport ?? this.securityReport,
-      photoPath: clearPhoto ? '' : (photoPath ?? this.photoPath),
-      currentLocation: currentLocation ?? this.currentLocation,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      patrolRoute: patrolRoute ?? this.patrolRoute,
-      isFormValid: isFormValid ?? this.isFormValid,
-      fieldErrors: fieldErrors ?? this.fieldErrors,
-      isLocationDetected: isLocationDetected ?? this.isLocationDetected,
-      isTimeValid: isTimeValid ?? this.isTimeValid,
-      validationMessage: clearValidationMessage
-          ? null
-          : (validationMessage ?? this.validationMessage),
+    return CheckInFormState(
+      lokasiPenugasan: lokasiPenugasan ?? this.lokasiPenugasan,
+      lokasiTerkini: lokasiTerkini ?? this.lokasiTerkini,
+      ratePatrol: ratePatrol ?? this.ratePatrol,
+      pakaianPersonil: pakaianPersonil ?? this.pakaianPersonil,
+      laporanPengamanan: laporanPengamanan ?? this.laporanPengamanan,
+      fotoPengamanan: fotoPengamanan ?? this.fotoPengamanan,
+      tugasLanjutan: tugasLanjutan ?? this.tugasLanjutan,
+      fotoWajah: fotoWajah ?? this.fotoWajah,
+      errors: errors ?? this.errors,
+      isValid: isValid ?? this.isValid,
     );
   }
 
   @override
   List<Object?> get props => [
-        personalClothing,
-        securityReport,
-        photoPath,
-        currentLocation,
-        latitude,
-        longitude,
-        patrolRoute,
-        isFormValid,
-        fieldErrors,
-        isLocationDetected,
-        isTimeValid,
-        validationMessage,
+        lokasiPenugasan,
+        lokasiTerkini,
+        ratePatrol,
+        pakaianPersonil,
+        laporanPengamanan,
+        fotoPengamanan,
+        tugasLanjutan,
+        fotoWajah,
+        errors,
+        isValid,
       ];
 }
 
-class AttendanceValidationSuccess extends AttendanceState {
-  final String message;
+// Check Out States
+class CheckOutFormState extends AttendanceState {
+  final String lokasiPenugasanAkhir;
+  final String statusTugas;
+  final String pakaianPersonil;
+  final String laporanPengamanan;
+  final List<String> fotoPengamanan;
+  final List<String> buktiLaporan;
+  final Map<String, String> errors;
+  final bool isValid;
 
-  const AttendanceValidationSuccess(this.message);
+  const CheckOutFormState({
+    this.lokasiPenugasanAkhir = '',
+    this.statusTugas = '',
+    this.pakaianPersonil = '',
+    this.laporanPengamanan = '',
+    this.fotoPengamanan = const [],
+    this.buktiLaporan = const [],
+    this.errors = const {},
+    this.isValid = false,
+  });
+
+  CheckOutFormState copyWith({
+    String? lokasiPenugasanAkhir,
+    String? statusTugas,
+    String? pakaianPersonil,
+    String? laporanPengamanan,
+    List<String>? fotoPengamanan,
+    List<String>? buktiLaporan,
+    Map<String, String>? errors,
+    bool? isValid,
+  }) {
+    return CheckOutFormState(
+      lokasiPenugasanAkhir: lokasiPenugasanAkhir ?? this.lokasiPenugasanAkhir,
+      statusTugas: statusTugas ?? this.statusTugas,
+      pakaianPersonil: pakaianPersonil ?? this.pakaianPersonil,
+      laporanPengamanan: laporanPengamanan ?? this.laporanPengamanan,
+      fotoPengamanan: fotoPengamanan ?? this.fotoPengamanan,
+      buktiLaporan: buktiLaporan ?? this.buktiLaporan,
+      errors: errors ?? this.errors,
+      isValid: isValid ?? this.isValid,
+    );
+  }
 
   @override
-  List<Object> get props => [message];
+  List<Object?> get props => [
+        lokasiPenugasanAkhir,
+        statusTugas,
+        pakaianPersonil,
+        laporanPengamanan,
+        fotoPengamanan,
+        buktiLaporan,
+        errors,
+        isValid,
+      ];
 }
 
-class AttendanceValidationError extends AttendanceState {
-  final String message;
-
-  const AttendanceValidationError(this.message);
-
-  @override
-  List<Object> get props => [message];
-}
-
-class AttendanceSubmissionLoading extends AttendanceState {
-  const AttendanceSubmissionLoading();
-}
-
-class AttendanceSubmissionSuccess extends AttendanceState {
+// Success States
+class AttendanceCheckedIn extends AttendanceState {
   final Attendance attendance;
   final String message;
 
-  const AttendanceSubmissionSuccess({
+  const AttendanceCheckedIn({
     required this.attendance,
-    this.message = 'Check In Berhasil\nSelamat Bekerja!',
+    this.message = 'Check In Berhasil, Selamat Bekerja',
   });
 
   @override
   List<Object> get props => [attendance, message];
 }
 
-class AttendanceSubmissionError extends AttendanceState {
+class AttendanceCheckedOut extends AttendanceState {
+  final Attendance attendance;
   final String message;
 
-  const AttendanceSubmissionError(this.message);
-
-  @override
-  List<Object> get props => [message];
-}
-
-class AttendanceStatusLoaded extends AttendanceState {
-  final bool hasCheckedIn;
-  final Attendance? currentAttendance;
-
-  const AttendanceStatusLoaded({
-    required this.hasCheckedIn,
-    this.currentAttendance,
+  const AttendanceCheckedOut({
+    required this.attendance,
+    this.message = 'Check Out Berhasil, Selamat Beristirahat',
   });
 
   @override
-  List<Object?> get props => [hasCheckedIn, currentAttendance];
+  List<Object> get props => [attendance, message];
 }
 
-class AttendanceHistoryLoaded extends AttendanceState {
-  final List<Attendance> attendanceHistory;
-
-  const AttendanceHistoryLoaded(this.attendanceHistory);
-
-  @override
-  List<Object> get props => [attendanceHistory];
-}
-
-class AttendanceError extends AttendanceState {
+// Error States
+class AttendanceFailure extends AttendanceState {
   final String message;
 
-  const AttendanceError(this.message);
+  const AttendanceFailure(this.message);
 
   @override
   List<Object> get props => [message];

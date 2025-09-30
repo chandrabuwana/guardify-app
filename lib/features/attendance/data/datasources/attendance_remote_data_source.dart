@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../../domain/entities/attendance.dart';
+import '../../domain/entities/attendance_request.dart';
 import '../models/attendance_model.dart';
 
 abstract class AttendanceRemoteDataSource {
@@ -16,6 +17,12 @@ abstract class AttendanceRemoteDataSource {
     String? approvedBy,
   });
   Future<List<AttendanceModel>> getPendingApprovals(String userRole);
+
+  // New methods for check in/out flow
+  Future<AttendanceModel> checkIn(CheckInRequest request);
+  Future<AttendanceModel> checkOut(CheckOutRequest request);
+  Future<bool> validateLocation(
+      String currentLocation, String requiredLocation);
 }
 
 @LazySingleton(as: AttendanceRemoteDataSource)
@@ -117,6 +124,52 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       return (response.data as List)
           .map((json) => AttendanceModel.fromJson(json))
           .toList();
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<AttendanceModel> checkIn(CheckInRequest request) async {
+    try {
+      final response = await dio.post(
+        '/attendance/checkin',
+        data: request.toJson(),
+      );
+
+      return AttendanceModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<AttendanceModel> checkOut(CheckOutRequest request) async {
+    try {
+      final response = await dio.post(
+        '/attendance/checkout',
+        data: request.toJson(),
+      );
+
+      return AttendanceModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<bool> validateLocation(
+      String currentLocation, String requiredLocation) async {
+    try {
+      final response = await dio.post(
+        '/attendance/validate-location',
+        data: {
+          'currentLocation': currentLocation,
+          'requiredLocation': requiredLocation,
+        },
+      );
+
+      return response.data['isValid'] as bool;
     } on DioException catch (e) {
       throw _handleDioError(e);
     }

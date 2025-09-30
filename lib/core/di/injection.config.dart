@@ -22,8 +22,14 @@ import 'package:guardify_app/features/attendance/domain/repositories/attendance_
     as _i311;
 import 'package:guardify_app/features/attendance/domain/usecases/check_attendance_status_usecase.dart'
     as _i202;
+import 'package:guardify_app/features/attendance/domain/usecases/check_in_usecase.dart'
+    as _i865;
+import 'package:guardify_app/features/attendance/domain/usecases/check_out_usecase.dart'
+    as _i968;
 import 'package:guardify_app/features/attendance/domain/usecases/get_attendance_history_usecase.dart'
     as _i624;
+import 'package:guardify_app/features/attendance/domain/usecases/get_attendance_status_usecase.dart'
+    as _i385;
 import 'package:guardify_app/features/attendance/domain/usecases/submit_attendance_usecase.dart'
     as _i974;
 import 'package:guardify_app/features/attendance/domain/usecases/validate_attendance_usecase.dart'
@@ -50,6 +56,24 @@ import 'package:guardify_app/features/bmi/domain/usecases/search_user_profiles.d
     as _i708;
 import 'package:guardify_app/features/bmi/presentation/bloc/bmi_bloc.dart'
     as _i21;
+import 'package:guardify_app/features/company_regulations/data/datasources/document_local_datasource.dart'
+    as _i313;
+import 'package:guardify_app/features/company_regulations/data/datasources/document_remote_datasource.dart'
+    as _i125;
+import 'package:guardify_app/features/company_regulations/data/repositories/document_repository_impl.dart'
+    as _i117;
+import 'package:guardify_app/features/company_regulations/domain/repositories/document_repository.dart'
+    as _i695;
+import 'package:guardify_app/features/company_regulations/domain/usecases/download_document_usecase.dart'
+    as _i179;
+import 'package:guardify_app/features/company_regulations/domain/usecases/filter_documents_usecase.dart'
+    as _i1037;
+import 'package:guardify_app/features/company_regulations/domain/usecases/get_documents_usecase.dart'
+    as _i718;
+import 'package:guardify_app/features/company_regulations/domain/usecases/search_documents_usecase.dart'
+    as _i1020;
+import 'package:guardify_app/features/company_regulations/presentation/bloc/document_bloc.dart'
+    as _i286;
 import 'package:guardify_app/features/home/presentation/bloc/home_bloc.dart'
     as _i890;
 import 'package:guardify_app/features/panic_button/data/datasources/panic_button_datasource.dart'
@@ -96,6 +120,8 @@ extension GetItInjectableX on _i174.GetIt {
         _i491.ActivatePanicButtonUseCase(gh<_i228.PanicButtonRepository>()));
     gh.factory<_i4.GetVerificationItemsUseCase>(() =>
         _i4.GetVerificationItemsUseCase(gh<_i228.PanicButtonRepository>()));
+    gh.lazySingleton<_i125.DocumentRemoteDataSource>(
+        () => _i125.DocumentRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i826.BMILocalDataSource>(
         () => _i826.BMILocalDataSource(gh<_i460.SharedPreferences>()));
     gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
@@ -104,14 +130,36 @@ extension GetItInjectableX on _i174.GetIt {
           activatePanicButtonUseCase: gh<_i491.ActivatePanicButtonUseCase>(),
           getVerificationItemsUseCase: gh<_i4.GetVerificationItemsUseCase>(),
         ));
+    gh.lazySingleton<_i313.DocumentLocalDataSource>(() =>
+        _i313.DocumentLocalDataSourceImpl(
+            sharedPreferences: gh<_i460.SharedPreferences>()));
     gh.lazySingleton<_i1007.AttendanceLocalDataSource>(() =>
         _i1007.AttendanceLocalDataSourceImpl(
             sharedPreferences: gh<_i460.SharedPreferences>()));
     gh.factory<_i814.BMIRepository>(
         () => _i989.BMIRepositoryImpl(gh<_i826.BMILocalDataSource>()));
+    gh.lazySingleton<_i695.DocumentRepository>(
+        () => _i117.DocumentRepositoryImpl(
+              remoteDataSource: gh<_i125.DocumentRemoteDataSource>(),
+              localDataSource: gh<_i313.DocumentLocalDataSource>(),
+            ));
+    gh.factory<_i179.DownloadDocumentUseCase>(
+        () => _i179.DownloadDocumentUseCase(gh<_i695.DocumentRepository>()));
+    gh.factory<_i1037.FilterDocumentsUseCase>(
+        () => _i1037.FilterDocumentsUseCase(gh<_i695.DocumentRepository>()));
+    gh.factory<_i718.GetDocumentsUseCase>(
+        () => _i718.GetDocumentsUseCase(gh<_i695.DocumentRepository>()));
+    gh.factory<_i1020.SearchDocumentsUseCase>(
+        () => _i1020.SearchDocumentsUseCase(gh<_i695.DocumentRepository>()));
     gh.factory<_i311.AttendanceRepository>(() => _i289.AttendanceRepositoryImpl(
           remoteDataSource: gh<_i109.AttendanceRemoteDataSource>(),
           localDataSource: gh<_i1007.AttendanceLocalDataSource>(),
+        ));
+    gh.factory<_i286.DocumentBloc>(() => _i286.DocumentBloc(
+          getDocumentsUseCase: gh<_i718.GetDocumentsUseCase>(),
+          searchDocumentsUseCase: gh<_i1020.SearchDocumentsUseCase>(),
+          filterDocumentsUseCase: gh<_i1037.FilterDocumentsUseCase>(),
+          downloadDocumentUseCase: gh<_i179.DownloadDocumentUseCase>(),
         ));
     gh.factory<_i283.CalculateBMI>(
         () => _i283.CalculateBMI(gh<_i814.BMIRepository>()));
@@ -131,19 +179,23 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i974.SubmitAttendanceUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i601.ValidateAttendanceUseCase>(() =>
         _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
-    gh.factory<_i908.AttendanceBloc>(() => _i908.AttendanceBloc(
-          submitAttendanceUseCase: gh<_i974.SubmitAttendanceUseCase>(),
-          validateAttendanceUseCase: gh<_i601.ValidateAttendanceUseCase>(),
-          checkAttendanceStatusUseCase:
-              gh<_i202.CheckAttendanceStatusUseCase>(),
-          getAttendanceHistoryUseCase: gh<_i624.GetAttendanceHistoryUseCase>(),
-        ));
+    gh.factory<_i865.CheckInUseCase>(
+        () => _i865.CheckInUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i968.CheckOutUseCase>(
+        () => _i968.CheckOutUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i385.GetAttendanceStatusUseCase>(() =>
+        _i385.GetAttendanceStatusUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i21.BMIBloc>(() => _i21.BMIBloc(
           getUserProfile: gh<_i283.GetUserProfile>(),
           searchUserProfiles: gh<_i708.SearchUserProfiles>(),
           managePinnedProfiles: gh<_i572.ManagePinnedProfiles>(),
           calculateBMI: gh<_i283.CalculateBMI>(),
           getBMIHistory: gh<_i817.GetBMIHistory>(),
+        ));
+    gh.factory<_i908.AttendanceBloc>(() => _i908.AttendanceBloc(
+          checkInUseCase: gh<_i865.CheckInUseCase>(),
+          checkOutUseCase: gh<_i968.CheckOutUseCase>(),
+          getAttendanceStatusUseCase: gh<_i385.GetAttendanceStatusUseCase>(),
         ));
     return this;
   }

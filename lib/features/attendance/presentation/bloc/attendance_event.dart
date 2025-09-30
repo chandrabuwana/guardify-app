@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/attendance.dart';
-import '../../domain/entities/attendance_validation_rules.dart';
+import '../../domain/entities/attendance_request.dart';
 
 abstract class AttendanceEvent extends Equatable {
   const AttendanceEvent();
@@ -9,120 +8,112 @@ abstract class AttendanceEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-// Initialization Events
-class AttendanceInitialEvent extends AttendanceEvent {
-  const AttendanceInitialEvent();
-}
-
-class CheckAttendanceStatusEvent extends AttendanceEvent {
+// Status Events
+class GetAttendanceStatusEvent extends AttendanceEvent {
   final String userId;
 
-  const CheckAttendanceStatusEvent(this.userId);
+  const GetAttendanceStatusEvent(this.userId);
 
   @override
   List<Object> get props => [userId];
+}
+
+// Check In Events
+class CheckInStartedEvent extends AttendanceEvent {
+  const CheckInStartedEvent();
+}
+
+class CheckInSubmittedEvent extends AttendanceEvent {
+  final CheckInRequest request;
+
+  const CheckInSubmittedEvent(this.request);
+
+  @override
+  List<Object> get props => [request];
+}
+
+// Check Out Events
+class CheckOutStartedEvent extends AttendanceEvent {
+  const CheckOutStartedEvent();
+}
+
+class CheckOutSubmittedEvent extends AttendanceEvent {
+  final CheckOutRequest request;
+
+  const CheckOutSubmittedEvent(this.request);
+
+  @override
+  List<Object> get props => [request];
 }
 
 // Form Events
-class AttendanceFormFieldChangedEvent extends AttendanceEvent {
-  final String fieldName;
-  final String value;
+class UpdateCheckInFormEvent extends AttendanceEvent {
+  final String? lokasiPenugasan;
+  final String? lokasiTerkini;
+  final String? ratePatrol;
+  final String? pakaianPersonil;
+  final String? laporanPengamanan;
+  final List<String>? fotoPengamanan;
+  final List<String>? tugasLanjutan;
+  final String? fotoWajah;
 
-  const AttendanceFormFieldChangedEvent({
-    required this.fieldName,
-    required this.value,
+  const UpdateCheckInFormEvent({
+    this.lokasiPenugasan,
+    this.lokasiTerkini,
+    this.ratePatrol,
+    this.pakaianPersonil,
+    this.laporanPengamanan,
+    this.fotoPengamanan,
+    this.tugasLanjutan,
+    this.fotoWajah,
   });
 
   @override
-  List<Object> get props => [fieldName, value];
+  List<Object?> get props => [
+        lokasiPenugasan,
+        lokasiTerkini,
+        ratePatrol,
+        pakaianPersonil,
+        laporanPengamanan,
+        fotoPengamanan,
+        tugasLanjutan,
+        fotoWajah,
+      ];
 }
 
-class LocationDetectedEvent extends AttendanceEvent {
-  final double latitude;
-  final double longitude;
-  final String locationName;
+class UpdateCheckOutFormEvent extends AttendanceEvent {
+  final String? lokasiPenugasanAkhir;
+  final String? statusTugas;
+  final String? pakaianPersonil;
+  final String? laporanPengamanan;
+  final List<String>? fotoPengamanan;
+  final List<String>? buktiLaporan;
 
-  const LocationDetectedEvent({
-    required this.latitude,
-    required this.longitude,
-    required this.locationName,
+  const UpdateCheckOutFormEvent({
+    this.lokasiPenugasanAkhir,
+    this.statusTugas,
+    this.pakaianPersonil,
+    this.laporanPengamanan,
+    this.fotoPengamanan,
+    this.buktiLaporan,
   });
 
   @override
-  List<Object> get props => [latitude, longitude, locationName];
-}
-
-class PhotoCapturedEvent extends AttendanceEvent {
-  final String photoPath;
-
-  const PhotoCapturedEvent(this.photoPath);
-
-  @override
-  List<Object> get props => [photoPath];
-}
-
-class PhotoRemovedEvent extends AttendanceEvent {
-  const PhotoRemovedEvent();
-}
-
-// Validation Events
-class ValidateAttendanceFormEvent extends AttendanceEvent {
-  const ValidateAttendanceFormEvent();
-}
-
-class ValidateTimeAndLocationEvent extends AttendanceEvent {
-  final ShiftType shiftType;
-  final String guardLocation;
-  final String currentLocation;
-  final UserRole userRole;
-
-  const ValidateTimeAndLocationEvent({
-    required this.shiftType,
-    required this.guardLocation,
-    required this.currentLocation,
-    required this.userRole,
-  });
-
-  @override
-  List<Object> get props =>
-      [shiftType, guardLocation, currentLocation, userRole];
-}
-
-// Submission Events
-class SubmitAttendanceEvent extends AttendanceEvent {
-  final AttendanceType type;
-  final ShiftType shiftType;
-  final String userId;
-  final String userName;
-  final String guardLocation;
-
-  const SubmitAttendanceEvent({
-    required this.type,
-    required this.shiftType,
-    required this.userId,
-    required this.userName,
-    required this.guardLocation,
-  });
-
-  @override
-  List<Object> get props => [type, shiftType, userId, userName, guardLocation];
-}
-
-// History Events
-class LoadAttendanceHistoryEvent extends AttendanceEvent {
-  final String userId;
-
-  const LoadAttendanceHistoryEvent(this.userId);
-
-  @override
-  List<Object> get props => [userId];
+  List<Object?> get props => [
+        lokasiPenugasanAkhir,
+        statusTugas,
+        pakaianPersonil,
+        laporanPengamanan,
+        fotoPengamanan,
+        buktiLaporan,
+      ];
 }
 
 // Reset Events
-class ResetAttendanceFormEvent extends AttendanceEvent {
-  const ResetAttendanceFormEvent();
+class ResetAttendanceEvent extends AttendanceEvent {
+  const ResetAttendanceEvent();
 }
 
-class ClearAttendanceErrorEvent extends AttendanceEvent {
-  const ClearAttendanceErrorEvent();
+class ClearErrorEvent extends AttendanceEvent {
+  const ClearErrorEvent();
 }
