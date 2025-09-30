@@ -1,290 +1,219 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import '../../domain/entities/attendance.dart';
-import '../../domain/usecases/submit_attendance_usecase.dart';
-import '../../domain/usecases/validate_attendance_usecase.dart';
-import '../../domain/usecases/check_attendance_status_usecase.dart';
-import '../../domain/usecases/get_attendance_history_usecase.dart';
+import '../../domain/usecases/check_in_usecase.dart';
+import '../../domain/usecases/check_out_usecase.dart';
+import '../../domain/usecases/get_attendance_status_usecase.dart';
 import 'attendance_event.dart';
 import 'attendance_state.dart';
 
 @injectable
 class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
-  final SubmitAttendanceUseCase submitAttendanceUseCase;
-  final ValidateAttendanceUseCase validateAttendanceUseCase;
-  final CheckAttendanceStatusUseCase checkAttendanceStatusUseCase;
-  final GetAttendanceHistoryUseCase getAttendanceHistoryUseCase;
+  final CheckInUseCase checkInUseCase;
+  final CheckOutUseCase checkOutUseCase;
+  final GetAttendanceStatusUseCase getAttendanceStatusUseCase;
 
   AttendanceBloc({
-    required this.submitAttendanceUseCase,
-    required this.validateAttendanceUseCase,
-    required this.checkAttendanceStatusUseCase,
-    required this.getAttendanceHistoryUseCase,
+    required this.checkInUseCase,
+    required this.checkOutUseCase,
+    required this.getAttendanceStatusUseCase,
   }) : super(const AttendanceInitial()) {
-    on<AttendanceInitialEvent>(_onAttendanceInitial);
-    on<CheckAttendanceStatusEvent>(_onCheckAttendanceStatus);
-    on<AttendanceFormFieldChangedEvent>(_onFormFieldChanged);
-    on<LocationDetectedEvent>(_onLocationDetected);
-    on<PhotoCapturedEvent>(_onPhotoCaptured);
-    on<PhotoRemovedEvent>(_onPhotoRemoved);
-    on<ValidateAttendanceFormEvent>(_onValidateForm);
-    on<ValidateTimeAndLocationEvent>(_onValidateTimeAndLocation);
-    on<SubmitAttendanceEvent>(_onSubmitAttendance);
-    on<LoadAttendanceHistoryEvent>(_onLoadAttendanceHistory);
-    on<ResetAttendanceFormEvent>(_onResetForm);
-    on<ClearAttendanceErrorEvent>(_onClearError);
+    on<GetAttendanceStatusEvent>(_onGetAttendanceStatus);
+    on<CheckInStartedEvent>(_onCheckInStarted);
+    on<CheckInSubmittedEvent>(_onCheckInSubmitted);
+    on<CheckOutStartedEvent>(_onCheckOutStarted);
+    on<CheckOutSubmittedEvent>(_onCheckOutSubmitted);
+    on<UpdateCheckInFormEvent>(_onUpdateCheckInForm);
+    on<UpdateCheckOutFormEvent>(_onUpdateCheckOutForm);
+    on<ResetAttendanceEvent>(_onResetAttendance);
+    on<ClearErrorEvent>(_onClearError);
   }
 
-  void _onAttendanceInitial(
-    AttendanceInitialEvent event,
-    Emitter<AttendanceState> emit,
-  ) {
-    emit(const AttendanceFormState());
-  }
-
-  void _onCheckAttendanceStatus(
-    CheckAttendanceStatusEvent event,
+  void _onGetAttendanceStatus(
+    GetAttendanceStatusEvent event,
     Emitter<AttendanceState> emit,
   ) async {
     emit(const AttendanceLoading());
 
-    final result = await checkAttendanceStatusUseCase(event.userId);
+    final result = await getAttendanceStatusUseCase(event.userId);
 
     result.fold(
-      (failure) => emit(AttendanceError(failure.message)),
-      (result) => emit(AttendanceStatusLoaded(
-        hasCheckedIn: result.hasCheckedIn,
-        currentAttendance: result.currentAttendance,
+      (failure) => emit(AttendanceFailure(failure.message)),
+      (statusResult) => emit(AttendanceStatusLoaded(
+        status: statusResult.status,
+        currentAttendance: statusResult.currentAttendance,
       )),
     );
   }
 
-  void _onFormFieldChanged(
-    AttendanceFormFieldChangedEvent event,
+  void _onCheckInStarted(
+    CheckInStartedEvent event,
     Emitter<AttendanceState> emit,
   ) {
-    if (state is AttendanceFormState) {
-      final currentState = state as AttendanceFormState;
-      AttendanceFormState newState;
-
-      switch (event.fieldName) {
-        case 'personalClothing':
-          newState = currentState.copyWith(personalClothing: event.value);
-          break;
-        case 'securityReport':
-          newState = currentState.copyWith(securityReport: event.value);
-          break;
-        case 'patrolRoute':
-          newState = currentState.copyWith(patrolRoute: event.value);
-          break;
-        default:
-          newState = currentState;
-      }
-
-      // Validate form after field change
-      final isValid = _validateFormFields(newState);
-      emit(newState.copyWith(isFormValid: isValid));
-    }
+    emit(const CheckInFormState());
   }
 
-  void _onLocationDetected(
-    LocationDetectedEvent event,
-    Emitter<AttendanceState> emit,
-  ) {
-    if (state is AttendanceFormState) {
-      final currentState = state as AttendanceFormState;
-      final newState = currentState.copyWith(
-        currentLocation: event.locationName,
-        latitude: event.latitude,
-        longitude: event.longitude,
-        isLocationDetected: true,
-      );
-
-      final isValid = _validateFormFields(newState);
-      emit(newState.copyWith(isFormValid: isValid));
-    }
-  }
-
-  void _onPhotoCaptured(
-    PhotoCapturedEvent event,
-    Emitter<AttendanceState> emit,
-  ) {
-    if (state is AttendanceFormState) {
-      final currentState = state as AttendanceFormState;
-      final newState = currentState.copyWith(photoPath: event.photoPath);
-
-      final isValid = _validateFormFields(newState);
-      emit(newState.copyWith(isFormValid: isValid));
-    }
-  }
-
-  void _onPhotoRemoved(
-    PhotoRemovedEvent event,
-    Emitter<AttendanceState> emit,
-  ) {
-    if (state is AttendanceFormState) {
-      final currentState = state as AttendanceFormState;
-      final newState = currentState.copyWith(clearPhoto: true);
-
-      final isValid = _validateFormFields(newState);
-      emit(newState.copyWith(isFormValid: isValid));
-    }
-  }
-
-  void _onValidateForm(
-    ValidateAttendanceFormEvent event,
-    Emitter<AttendanceState> emit,
-  ) {
-    if (state is AttendanceFormState) {
-      final currentState = state as AttendanceFormState;
-      final errors = <String, String>{};
-
-      if (currentState.personalClothing.trim().isEmpty) {
-        errors['personalClothing'] = 'Pakaian Personil harus diisi';
-      }
-
-      if (currentState.securityReport.trim().isEmpty) {
-        errors['securityReport'] = 'Laporan Pengamanan harus diisi';
-      }
-
-      if (currentState.patrolRoute.trim().isEmpty) {
-        errors['patrolRoute'] = 'Rute Patroli harus diisi';
-      }
-
-      if (currentState.photoPath.isEmpty) {
-        errors['photo'] = 'Foto Pengamanan harus diambil';
-      }
-
-      if (!currentState.isLocationDetected) {
-        errors['location'] = 'Lokasi belum terdeteksi';
-      }
-
-      final isValid = errors.isEmpty;
-      emit(currentState.copyWith(
-        fieldErrors: errors,
-        isFormValid: isValid,
-      ));
-    }
-  }
-
-  void _onValidateTimeAndLocation(
-    ValidateTimeAndLocationEvent event,
-    Emitter<AttendanceState> emit,
-  ) async {
-    if (state is AttendanceFormState) {
-      final currentState = state as AttendanceFormState;
-      emit(const AttendanceLoading());
-
-      final result = await validateAttendanceUseCase(
-        currentTime: DateTime.now(),
-        shiftType: event.shiftType,
-        guardLocation: event.guardLocation,
-        currentLocation: event.currentLocation,
-        personalClothing: currentState.personalClothing,
-        securityReport: currentState.securityReport,
-        patrolRoute: currentState.patrolRoute,
-        userRole: event.userRole,
-      );
-
-      result.fold(
-        (failure) => emit(currentState.copyWith(
-          validationMessage: failure.message,
-          isTimeValid: false,
-        )),
-        (message) => emit(currentState.copyWith(
-          validationMessage: message,
-          isTimeValid: true,
-        )),
-      );
-    }
-  }
-
-  void _onSubmitAttendance(
-    SubmitAttendanceEvent event,
-    Emitter<AttendanceState> emit,
-  ) async {
-    if (state is AttendanceFormState) {
-      final currentState = state as AttendanceFormState;
-
-      if (!currentState.isFormValid) {
-        emit(const AttendanceSubmissionError(
-          'Mohon lengkapi semua field yang diperlukan',
-        ));
-        return;
-      }
-
-      emit(const AttendanceSubmissionLoading());
-
-      final now = DateTime.now();
-      final attendance = Attendance(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        userId: event.userId,
-        userName: event.userName,
-        type: event.type,
-        shiftType: event.shiftType,
-        timestamp: now,
-        guardLocation: event.guardLocation,
-        currentLocation: currentState.currentLocation,
-        latitude: currentState.latitude,
-        longitude: currentState.longitude,
-        personalClothing: currentState.personalClothing,
-        securityReport: currentState.securityReport,
-        photoPath: currentState.photoPath,
-        patrolRoute: currentState.patrolRoute,
-        createdAt: now,
-        updatedAt: now,
-      );
-
-      final result = await submitAttendanceUseCase(attendance);
-
-      result.fold(
-        (failure) => emit(AttendanceSubmissionError(failure.message)),
-        (submittedAttendance) => emit(AttendanceSubmissionSuccess(
-          attendance: submittedAttendance,
-          message: event.type == AttendanceType.clockIn
-              ? 'Check In Berhasil\nSelamat Bekerja!'
-              : 'Check Out Berhasil\nTerima Kasih!',
-        )),
-      );
-    }
-  }
-
-  void _onLoadAttendanceHistory(
-    LoadAttendanceHistoryEvent event,
+  void _onCheckInSubmitted(
+    CheckInSubmittedEvent event,
     Emitter<AttendanceState> emit,
   ) async {
     emit(const AttendanceLoading());
 
-    final result = await getAttendanceHistoryUseCase(event.userId);
+    final result = await checkInUseCase(event.request);
 
     result.fold(
-      (failure) => emit(AttendanceError(failure.message)),
-      (history) => emit(AttendanceHistoryLoaded(history)),
+      (failure) => emit(AttendanceFailure(failure.message)),
+      (attendance) => emit(AttendanceCheckedIn(attendance: attendance)),
     );
   }
 
-  void _onResetForm(
-    ResetAttendanceFormEvent event,
+  void _onCheckOutStarted(
+    CheckOutStartedEvent event,
     Emitter<AttendanceState> emit,
   ) {
-    emit(const AttendanceFormState());
+    emit(const CheckOutFormState());
   }
 
-  void _onClearError(
-    ClearAttendanceErrorEvent event,
+  void _onCheckOutSubmitted(
+    CheckOutSubmittedEvent event,
+    Emitter<AttendanceState> emit,
+  ) async {
+    emit(const AttendanceLoading());
+
+    final result = await checkOutUseCase(event.request);
+
+    result.fold(
+      (failure) => emit(AttendanceFailure(failure.message)),
+      (attendance) => emit(AttendanceCheckedOut(attendance: attendance)),
+    );
+  }
+
+  void _onUpdateCheckInForm(
+    UpdateCheckInFormEvent event,
     Emitter<AttendanceState> emit,
   ) {
-    if (state is AttendanceFormState) {
-      final currentState = state as AttendanceFormState;
-      emit(currentState.copyWith(clearValidationMessage: true));
+    if (state is CheckInFormState) {
+      final currentState = state as CheckInFormState;
+      final newState = currentState.copyWith(
+        lokasiPenugasan: event.lokasiPenugasan,
+        lokasiTerkini: event.lokasiTerkini,
+        ratePatrol: event.ratePatrol,
+        pakaianPersonil: event.pakaianPersonil,
+        laporanPengamanan: event.laporanPengamanan,
+        fotoPengamanan: event.fotoPengamanan,
+        tugasLanjutan: event.tugasLanjutan,
+        fotoWajah: event.fotoWajah,
+      );
+
+      // Validate form
+      final errors = _validateCheckInForm(newState);
+      final isValid = errors.isEmpty;
+
+      emit(newState.copyWith(
+        errors: errors,
+        isValid: isValid,
+      ));
     }
   }
 
-  bool _validateFormFields(AttendanceFormState state) {
-    return state.personalClothing.trim().isNotEmpty &&
-        state.securityReport.trim().isNotEmpty &&
-        state.patrolRoute.trim().isNotEmpty &&
-        state.photoPath.isNotEmpty &&
-        state.isLocationDetected;
+  void _onUpdateCheckOutForm(
+    UpdateCheckOutFormEvent event,
+    Emitter<AttendanceState> emit,
+  ) {
+    if (state is CheckOutFormState) {
+      final currentState = state as CheckOutFormState;
+      final newState = currentState.copyWith(
+        lokasiPenugasanAkhir: event.lokasiPenugasanAkhir,
+        statusTugas: event.statusTugas,
+        pakaianPersonil: event.pakaianPersonil,
+        laporanPengamanan: event.laporanPengamanan,
+        fotoPengamanan: event.fotoPengamanan,
+        buktiLaporan: event.buktiLaporan,
+      );
+
+      // Validate form
+      final errors = _validateCheckOutForm(newState);
+      final isValid = errors.isEmpty;
+
+      emit(newState.copyWith(
+        errors: errors,
+        isValid: isValid,
+      ));
+    }
+  }
+
+  void _onResetAttendance(
+    ResetAttendanceEvent event,
+    Emitter<AttendanceState> emit,
+  ) {
+    emit(const AttendanceInitial());
+  }
+
+  void _onClearError(
+    ClearErrorEvent event,
+    Emitter<AttendanceState> emit,
+  ) {
+    if (state is AttendanceFailure) {
+      emit(const AttendanceInitial());
+    }
+  }
+
+  Map<String, String> _validateCheckInForm(CheckInFormState state) {
+    final errors = <String, String>{};
+
+    if (state.lokasiPenugasan.trim().isEmpty) {
+      errors['lokasiPenugasan'] = 'Lokasi Penugasan harus diisi';
+    }
+
+    if (state.lokasiTerkini.trim().isEmpty) {
+      errors['lokasiTerkini'] = 'Lokasi Terkini harus diisi';
+    }
+
+    if (state.ratePatrol.trim().isEmpty) {
+      errors['ratePatrol'] = 'Rate Patrol harus dipilih';
+    }
+
+    if (state.pakaianPersonil.trim().isEmpty) {
+      errors['pakaianPersonil'] = 'Pakaian Personil harus dipilih';
+    }
+
+    if (state.laporanPengamanan.trim().isEmpty) {
+      errors['laporanPengamanan'] = 'Laporan Pengamanan harus diisi';
+    }
+
+    if (state.fotoPengamanan.isEmpty) {
+      errors['fotoPengamanan'] = 'Foto Pengamanan harus diambil';
+    }
+
+    if (state.tugasLanjutan.isEmpty) {
+      errors['tugasLanjutan'] = 'Tugas Lanjutan harus dipilih';
+    }
+
+    return errors;
+  }
+
+  Map<String, String> _validateCheckOutForm(CheckOutFormState state) {
+    final errors = <String, String>{};
+
+    if (state.lokasiPenugasanAkhir.trim().isEmpty) {
+      errors['lokasiPenugasanAkhir'] = 'Lokasi Penugasan Akhir harus diisi';
+    }
+
+    if (state.statusTugas.trim().isEmpty) {
+      errors['statusTugas'] = 'Status Tugas harus dipilih';
+    }
+
+    if (state.pakaianPersonil.trim().isEmpty) {
+      errors['pakaianPersonil'] = 'Pakaian Personil harus dipilih';
+    }
+
+    if (state.laporanPengamanan.trim().isEmpty) {
+      errors['laporanPengamanan'] = 'Laporan Pengamanan harus diisi';
+    }
+
+    if (state.fotoPengamanan.isEmpty) {
+      errors['fotoPengamanan'] = 'Foto Pengamanan harus diambil';
+    }
+
+    return errors;
   }
 }

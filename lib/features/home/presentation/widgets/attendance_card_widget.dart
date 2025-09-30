@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../attendance/presentation/utils/attendance_navigation_helper.dart';
 
 class AttendanceCardWidget extends StatelessWidget {
   final bool isCheckedIn;
@@ -7,6 +8,8 @@ class AttendanceCardWidget extends StatelessWidget {
   final String position;
   final String currentTime;
   final VoidCallback? onTap;
+  final String? userId;
+  final String? namaPersonil;
 
   const AttendanceCardWidget({
     super.key,
@@ -15,6 +18,8 @@ class AttendanceCardWidget extends StatelessWidget {
     required this.position,
     required this.currentTime,
     this.onTap,
+    this.userId,
+    this.namaPersonil,
   });
 
   @override
@@ -165,7 +170,17 @@ class AttendanceCardWidget extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: onTap,
+                  onPressed: () {
+                    if (onTap != null) {
+                      onTap!();
+                    } else if (userId != null && namaPersonil != null) {
+                      AttendanceNavigationHelper.navigateToAttendance(
+                        context: context,
+                        userId: userId!,
+                        namaPersonil: namaPersonil!,
+                      );
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isCheckedIn
                         ? Colors.grey[400]

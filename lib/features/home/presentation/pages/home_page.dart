@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../widgets/home_header_widget.dart';
-import '../widgets/attendance_card_widget.dart';
-import '../widgets/today_tasks_card_widget.dart';
-import '../widgets/menu_grid_widget.dart';
-import '../widgets/sos_button_widget.dart';
-import '../../../../shared/widgets/custom_bottom_navigation.dart';
-import '../../../../shared/widgets/app_scaffold.dart';
+import 'dart:async';
+import '../widgets/shift_card.dart';
+import '../widgets/task_card.dart';
+import '../widgets/menu_grid.dart';
+import '../widgets/custom_bottom_nav.dart';
+import '../widgets/panic_button_widget.dart';
 import '../bloc/home_bloc.dart';
 import '../bloc/home_event.dart';
 import '../bloc/home_state.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/design/colors.dart';
+import '../../../attendance/presentation/pages/attendance_screen.dart';
+import '../../../bmi/presentation/pages/bmi_navigation_page.dart';
+import '../../../panic_button/presentation/pages/panic_verification_page.dart';
+import '../../../panic_button/presentation/bloc/panic_button_bloc.dart';
+import '../../../company_regulations/presentation/pages/company_regulations_page.dart';
+import '../../../company_regulations/presentation/bloc/document_bloc.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -25,8 +31,39 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class _HomePageView extends StatelessWidget {
+class _HomePageView extends StatefulWidget {
   const _HomePageView();
+
+  @override
+  State<_HomePageView> createState() => __HomePageViewState();
+}
+
+class __HomePageViewState extends State<_HomePageView> {
+  Timer? _timer;
+  String _currentTime = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _updateTime();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _updateTime();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _updateTime() {
+    final now = DateTime.now();
+    setState(() {
+      _currentTime =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,51 +76,97 @@ class _HomePageView extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.snackbarMessage!),
-                backgroundColor: const Color(0xFFE74C3C),
+                backgroundColor: primaryColor,
                 behavior: SnackBarBehavior.floating,
               ),
             );
-            // Clear snackbar message after showing
-            context.read<HomeBloc>().clearSnackbar();
           }
 
           // Handle navigation
           if (state.navigationRoute != null &&
               state.navigationRoute!.isNotEmpty) {
-            if (state.navigationRoute == '/attendance') {
-              // TODO: Navigate to attendance screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Navigating to Attendance Screen...'),
-                  backgroundColor: Colors.blue,
-                ),
-              );
-            } else if (state.navigationArguments != null) {
-              Navigator.pushNamed(
-                context,
-                state.navigationRoute!,
-                arguments: state.navigationArguments,
-              );
-            } else {
-              Navigator.pushNamed(context, state.navigationRoute!);
+            switch (state.navigationRoute) {
+              case '/attendance':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AttendanceScreen(
+                      userId: state.navigationArguments?['userId'] ?? '1',
+                      userName:
+                          state.navigationArguments?['userName'] ?? 'User',
+                    ),
+                  ),
+                );
+                break;
+              case '/bmi':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BMINavigationPage(),
+                    settings: RouteSettings(
+                      arguments: {
+                        'userId': state.navigationArguments?['userId'] ?? '2',
+                        'userRole':
+                            state.navigationArguments?['userRole'] ?? 'danton',
+                      },
+                    ),
+                  ),
+                );
+                break;
+              case '/panic-verification':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider(
+                      create: (context) => getIt<PanicButtonBloc>(),
+                      child: const PanicVerificationPage(),
+                    ),
+                  ),
+                );
+                break;
+              case '/regulations':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider(
+                      create: (context) => getIt<DocumentBloc>(),
+                      child: const CompanyRegulationsPage(),
+                    ),
+                  ),
+                );
+                break;
+              default:
+                // For other routes, show snackbar instead of navigating
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        'Fitur "${state.navigationRoute}" sedang dalam pengembangan'),
+                    backgroundColor: primaryColor,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                break;
             }
-            // Clear navigation after handling
-            context.read<HomeBloc>().clearNavigation();
+          }
+
+          // Handle panic dialog
+          if (state.showPanicDialog) {
+            _showPanicDialog();
           }
         }
       },
       builder: (context, state) {
         if (state is HomeLoading) {
-          return const AppScaffold(
-            child: Center(
-              child: CircularProgressIndicator(),
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(color: primaryColor),
             ),
           );
         }
 
         if (state is HomeError) {
-          return AppScaffold(
-            child: Center(
+          return Scaffold(
+            body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -120,134 +203,285 @@ class _HomePageView extends StatelessWidget {
         }
 
         if (state is! HomeLoaded) {
-          return const AppScaffold(
-            child: Center(
-              child: CircularProgressIndicator(),
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(color: primaryColor),
             ),
           );
         }
 
-        return AppScaffold(
-          backgroundColor: const Color(0xFFF8F9FA),
-          enableScrolling: true,
-          safeArea: false, // We handle safe area in header
-          bottomNavigationBar: CustomBottomNavigation(
+        return Scaffold(
+          backgroundColor: neutral10,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // App Header
+                _buildAppHeader(state.userProfile),
+
+                // Scrollable Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        20.verticalSpace,
+
+                        // Shift Card
+                        ShiftCard(
+                          attendanceInfo: state.attendanceInfo,
+                          teamMembersImages: _getTeamMembersImages(),
+                          onWorkButtonPressed: () {
+                            if (!state.attendanceInfo.isCheckedIn) {
+                              // Navigate to attendance screen for check-in
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AttendanceScreen(
+                                    userId: '1',
+                                    userName: state.userProfile.name,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              // Handle check-out directly
+                              context
+                                  .read<HomeBloc>()
+                                  .add(const AttendanceToggleEvent());
+                            }
+                          },
+                        ),
+
+                        24.verticalSpace,
+
+                        // Today's Tasks Section
+                        _buildTodayTasksSection(state.todayTasks),
+
+                        24.verticalSpace,
+
+                        // Menu Grid
+                        MenuGrid(
+                          menuItems: _buildMenuItems(),
+                        ),
+
+                        24.verticalSpace,
+
+                        // Panic Button Widget
+                        PanicButtonWidget(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BlocProvider(
+                                  create: (context) => getIt<PanicButtonBloc>(),
+                                  child: const PanicVerificationPage(),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                        80.verticalSpace, // Bottom padding for bottom nav
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          bottomNavigationBar: CustomBottomNav(
             currentIndex: state.currentBottomNavIndex,
             onTap: (index) {
               context.read<HomeBloc>().add(BottomNavigationTappedEvent(index));
             },
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Section 1: Header with profile info
-              HomeHeaderWidget(
-                greeting: state.userProfile.greeting,
-                userName: state.userProfile.name,
-                subtitle: state.userProfile.position,
-              ),
-
-              16.verticalSpace,
-
-              // Section 2: Attendance card
-              AttendanceCardWidget(
-                isCheckedIn: state.attendanceInfo.isCheckedIn,
-                shift: state.attendanceInfo.shift,
-                position: state.attendanceInfo.position,
-                currentTime: state.attendanceInfo.currentTime,
-                onTap: () {
-                  if (!state.attendanceInfo.isCheckedIn) {
-                    // Navigate to attendance screen for check-in
-                    context
-                        .read<HomeBloc>()
-                        .add(const NavigateToAttendanceScreenEvent());
-                  } else {
-                    // Handle check-out (could open a different screen or dialog)
-                    context.read<HomeBloc>().add(const AttendanceToggleEvent());
-                  }
-                },
-              ),
-
-              16.verticalSpace,
-
-              // Section 3: Today's tasks
-              TodayTasksCardWidget(
-                tasks: state.todayTasks,
-                onTaskTap: (taskId) {
-                  context
-                      .read<HomeBloc>()
-                      .add(const ShowSnackbarEvent('Task tapped'));
-                },
-              ),
-
-              16.verticalSpace,
-
-              // Section 4: Menu grid
-              MenuGridWidget(
-                onActivityReportTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const NavigateToActivityReportEvent());
-                },
-                onIncidentReportTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const NavigateToIncidentReportEvent());
-                },
-                onActivityRecapTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const NavigateToAttendanceRecapEvent());
-                },
-                onBMITap: () {
-                  context.read<HomeBloc>().add(const NavigateToBMIEvent());
-                },
-                onTestResultTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const NavigateToTestResultEvent());
-                },
-                onLeaveTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const NavigateToLeaveRequestEvent());
-                },
-                onRegulationsTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const NavigateToRegulationsEvent());
-                },
-                onEmergencyHistoryTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const NavigateToEmergencyHistoryEvent());
-                },
-                onDisasterInfoTap: () {
-                  context
-                      .read<HomeBloc>()
-                      .add(const NavigateToDisasterInfoEvent());
-                },
-              ),
-
-              24.verticalSpace,
-
-              // Section 5: SOS Emergency Button
-              SOSButtonWidget(
-                onPressed: () {
-                  context.read<HomeBloc>().add(const PanicButtonPressedEvent());
-                  _showPanicConfirmationDialog(context);
-                },
-              ),
-
-              100.verticalSpace, // Space for bottom navigation
-            ],
           ),
         );
       },
     );
   }
 
-  void _showPanicConfirmationDialog(BuildContext context) {
+  Widget _buildAppHeader(UserProfile userProfile) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        gradient: Gradients.primary(),
+      ),
+      child: Column(
+        children: [
+          // Time and Profile Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Time
+              Text(
+                _currentTime,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              // Profile Avatar
+              CircleAvatar(
+                radius: 20.r,
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                backgroundImage: userProfile.profileImageUrl != null
+                    ? NetworkImage(userProfile.profileImageUrl!)
+                    : null,
+                child: userProfile.profileImageUrl == null
+                    ? Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 24.sp,
+                      )
+                    : null,
+              ),
+            ],
+          ),
+
+          16.verticalSpace,
+
+          // Greeting and Name
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  userProfile.greeting,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                4.verticalSpace,
+                Text(
+                  userProfile.name,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodayTasksSection(List<TaskItem> tasks) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tugas Hari Ini',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: neutral90,
+            ),
+          ),
+          16.verticalSpace,
+          ...tasks.map((task) => TaskCard(
+                task: task,
+                onTap: () {
+                  context.read<HomeBloc>().add(
+                        ShowSnackbarEvent('Membuka tugas: ${task.title}'),
+                      );
+                },
+              )),
+        ],
+      ),
+    );
+  }
+
+  List<MenuItem> _buildMenuItems() {
+    return [
+      MenuItem(
+        id: 'incident',
+        title: 'Insiden Kejadian',
+        icon: Icons.report_problem,
+        hasNotification: true,
+        onTap: () =>
+            context.read<HomeBloc>().add(const NavigateToIncidentReportEvent()),
+      ),
+      MenuItem(
+        id: 'attendance_recap',
+        title: 'Rekapitulasi Kehadiran',
+        icon: Icons.assignment,
+        onTap: () => context
+            .read<HomeBloc>()
+            .add(const NavigateToAttendanceRecapEvent()),
+      ),
+      MenuItem(
+        id: 'activity_report',
+        title: 'Laporan Kegiatan',
+        icon: Icons.description,
+        onTap: () =>
+            context.read<HomeBloc>().add(const NavigateToActivityReportEvent()),
+      ),
+      MenuItem(
+        id: 'bmi',
+        title: 'Body Mass Index (BMI)',
+        icon: Icons.monitor_weight,
+        onTap: () => context.read<HomeBloc>().add(const NavigateToBMIEvent()),
+      ),
+      MenuItem(
+        id: 'test_result',
+        title: 'Hasil Ujian',
+        icon: Icons.quiz,
+        hasNotification: true,
+        onTap: () =>
+            context.read<HomeBloc>().add(const NavigateToTestResultEvent()),
+      ),
+      MenuItem(
+        id: 'leave_request',
+        title: 'Pengajuan Cuti',
+        icon: Icons.calendar_month,
+        onTap: () =>
+            context.read<HomeBloc>().add(const NavigateToLeaveRequestEvent()),
+      ),
+      MenuItem(
+        id: 'regulations',
+        title: 'Peraturan Perusahaan',
+        icon: Icons.gavel,
+        onTap: () =>
+            context.read<HomeBloc>().add(const NavigateToRegulationsEvent()),
+      ),
+      MenuItem(
+        id: 'emergency_history',
+        title: 'Riwayat Tombol Darurat',
+        icon: Icons.history,
+        onTap: () => context
+            .read<HomeBloc>()
+            .add(const NavigateToEmergencyHistoryEvent()),
+      ),
+      MenuItem(
+        id: 'disaster_info',
+        title: 'Informasi Bencana',
+        icon: Icons.info,
+        onTap: () =>
+            context.read<HomeBloc>().add(const NavigateToDisasterInfoEvent()),
+      ),
+    ];
+  }
+
+  List<String> _getTeamMembersImages() {
+    // Mock team members images
+    return [
+      '', // Empty for default avatar
+      '', // Empty for default avatar
+      '', // Empty for default avatar
+      '', // Empty for default avatar
+    ];
+  }
+
+  void _showPanicDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -266,7 +500,7 @@ class _HomePageView extends StatelessWidget {
                   width: 80.w,
                   height: 80.h,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFE74C3C),
+                    color: primaryColor,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -278,10 +512,20 @@ class _HomePageView extends StatelessWidget {
                 20.verticalSpace,
 
                 Text(
+                  'TOMBOL DARURAT',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                8.verticalSpace,
+                Text(
                   'Apakah anda yakin ingin mengaktifkan Panic Button? Pastikan situasi darurat yang terjadi valid',
                   style: TextStyle(
                     fontSize: 14.sp,
-                    color: Colors.black87,
+                    color: neutral70,
                     height: 1.4,
                   ),
                   textAlign: TextAlign.center,
@@ -292,23 +536,22 @@ class _HomePageView extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton(
+                      child: OutlinedButton(
                         onPressed: () {
                           Navigator.of(context).pop();
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300],
-                          foregroundColor: Colors.black87,
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: primaryColor),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8.r),
                           ),
-                          elevation: 0,
                         ),
                         child: Text(
-                          'Kembali',
+                          'Batal',
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w600,
+                            color: primaryColor,
                           ),
                         ),
                       ),
@@ -318,18 +561,20 @@ class _HomePageView extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).pop();
-                          Navigator.pushNamed(context, '/panic-verification');
+                          context.read<HomeBloc>().add(
+                                const ShowSnackbarEvent(
+                                    'Tombol darurat telah diaktifkan!'),
+                              );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE74C3C),
+                          backgroundColor: primaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8.r),
                           ),
-                          elevation: 0,
                         ),
                         child: Text(
-                          'YA',
+                          'Ya, Aktifkan',
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w600,

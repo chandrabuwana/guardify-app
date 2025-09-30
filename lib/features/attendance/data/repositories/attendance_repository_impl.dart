@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/attendance.dart';
+import '../../domain/entities/attendance_request.dart';
 import '../../domain/repositories/attendance_repository.dart';
 import '../datasources/attendance_remote_data_source.dart';
 import '../datasources/attendance_local_data_source.dart';
@@ -164,6 +165,53 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       return const Right(true);
     } catch (e) {
       return Left(_handleException(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Attendance>> checkIn(CheckInRequest request) async {
+    try {
+      final result = await remoteDataSource.checkIn(request);
+
+      // Cache the check in result
+      await localDataSource.cacheLastAttendance(result);
+
+      return Right(result.toEntity());
+    } catch (e) {
+      return Left(_handleException(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Attendance>> checkOut(CheckOutRequest request) async {
+    try {
+      final result = await remoteDataSource.checkOut(request);
+
+      // Cache the check out result
+      await localDataSource.cacheLastAttendance(result);
+
+      return Right(result.toEntity());
+    } catch (e) {
+      return Left(_handleException(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> validateLocation(
+    String currentLocation,
+    String requiredLocation,
+  ) async {
+    try {
+      final result = await remoteDataSource.validateLocation(
+        currentLocation,
+        requiredLocation,
+      );
+      return Right(result);
+    } catch (e) {
+      // Fallback to simple string comparison if API fails
+      final isValid = currentLocation.toLowerCase().trim() ==
+          requiredLocation.toLowerCase().trim();
+      return Right(isValid);
     }
   }
 

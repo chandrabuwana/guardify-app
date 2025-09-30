@@ -7,7 +7,7 @@ import 'bmi_page.dart';
 
 /// Navigation wrapper untuk BMI page yang menghandle user role
 class BMINavigationPage extends StatelessWidget {
-  const BMINavigationPage({Key? key}) : super(key: key);
+  const BMINavigationPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +17,10 @@ class BMINavigationPage extends StatelessWidget {
 
     // Default values if no arguments provided
     final String userId = arguments?['userId'] ?? '1';
-    final UserRole userRole = arguments?['userRole'] ?? UserRole.anggota;
+
+    // Convert String userRole to UserRole enum
+    final String userRoleString = arguments?['userRole'] ?? 'anggota';
+    final UserRole userRole = UserRole.fromValue(userRoleString);
 
     return BlocProvider<BMIBloc>(
       create: (context) => getIt<BMIBloc>(),
