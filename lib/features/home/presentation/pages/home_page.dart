@@ -303,7 +303,11 @@ class __HomePageViewState extends State<_HomePageView> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        gradient: Gradients.primary(),
+        color: primaryColor,
+       borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24.r),
+          bottomRight: Radius.circular(24.r),
+        ),
       ),
       child: Column(
         children: [

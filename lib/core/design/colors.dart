@@ -45,6 +45,8 @@ const darkGrey = Color.fromARGB(255, 136, 136, 136);
 const cardColor = Color.fromARGB(195, 247, 248, 255);
 const favoriteColor = Color.fromARGB(255, 250, 200, 38);
 const tabbarColor = Color(0xFFFAFAFA);
+const babyBlueColor = Color(0xFFEEF2FF);
+
 
 // Red theme material color map
 const Map<int, Color> materialColor = {
