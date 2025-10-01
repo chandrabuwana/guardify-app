@@ -64,7 +64,7 @@ class MenuGrid extends StatelessWidget {
   Widget _buildMenuItem(MenuItem item) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: babyBlueColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -90,13 +90,13 @@ class MenuGrid extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: primary10,
+                        color: babyBlueColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         item.icon,
                         color: primaryColor,
-                        size: 24,
+                        size: 34,
                       ),
                     ),
                     if (item.hasNotification)
@@ -114,7 +114,7 @@ class MenuGrid extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 2),
                 // Menu title
                 Expanded(
                   child: Text(
