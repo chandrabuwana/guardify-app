@@ -79,6 +79,10 @@ class NavigateToRegulationsEvent extends HomeEvent {
   const NavigateToRegulationsEvent();
 }
 
+class NavigateToPatrolEvent extends HomeEvent {
+  const NavigateToPatrolEvent();
+}
+
 class NavigateToEmergencyHistoryEvent extends HomeEvent {
   const NavigateToEmergencyHistoryEvent();
 }

@@ -90,6 +90,28 @@ import 'package:guardify_app/features/panic_button/domain/usecases/get_verificat
     as _i4;
 import 'package:guardify_app/features/panic_button/presentation/bloc/panic_button_bloc.dart'
     as _i893;
+import 'package:guardify_app/features/patrol/data/datasources/patrol_remote_data_source.dart'
+    as _i1037;
+import 'package:guardify_app/features/patrol/data/datasources/patrol_remote_data_source_impl.dart'
+    as _i681;
+import 'package:guardify_app/features/patrol/data/repositories/patrol_repository_impl.dart'
+    as _i369;
+import 'package:guardify_app/features/patrol/domain/repositories/patrol_repository.dart'
+    as _i824;
+import 'package:guardify_app/features/patrol/domain/usecases/add_patrol_location.dart'
+    as _i198;
+import 'package:guardify_app/features/patrol/domain/usecases/get_patrol_progress.dart'
+    as _i820;
+import 'package:guardify_app/features/patrol/domain/usecases/get_patrol_routes.dart'
+    as _i759;
+import 'package:guardify_app/features/patrol/domain/usecases/submit_attendance.dart'
+    as _i861;
+import 'package:guardify_app/features/patrol/domain/usecases/verify_location.dart'
+    as _i9;
+import 'package:guardify_app/features/patrol/presentation/bloc/attendance_bloc.dart'
+    as _i849;
+import 'package:guardify_app/features/patrol/presentation/bloc/patrol_bloc.dart'
+    as _i416;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 
@@ -116,6 +138,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i754.PanicButtonLocalDataSource());
     gh.lazySingleton<_i228.PanicButtonRepository>(() =>
         _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
+    gh.factory<_i1037.PatrolRemoteDataSource>(
+        () => _i681.PatrolRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.factory<_i491.ActivatePanicButtonUseCase>(() =>
         _i491.ActivatePanicButtonUseCase(gh<_i228.PanicButtonRepository>()));
     gh.factory<_i4.GetVerificationItemsUseCase>(() =>
@@ -124,6 +148,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i125.DocumentRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i826.BMILocalDataSource>(
         () => _i826.BMILocalDataSource(gh<_i460.SharedPreferences>()));
+    gh.factory<_i824.PatrolRepository>(
+        () => _i369.PatrolRepositoryImpl(gh<_i1037.PatrolRemoteDataSource>()));
     gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
         () => _i109.AttendanceRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i893.PanicButtonBloc>(() => _i893.PanicButtonBloc(
@@ -143,6 +169,16 @@ extension GetItInjectableX on _i174.GetIt {
               remoteDataSource: gh<_i125.DocumentRemoteDataSource>(),
               localDataSource: gh<_i313.DocumentLocalDataSource>(),
             ));
+    gh.factory<_i198.AddPatrolLocation>(
+        () => _i198.AddPatrolLocation(gh<_i824.PatrolRepository>()));
+    gh.factory<_i820.GetPatrolProgress>(
+        () => _i820.GetPatrolProgress(gh<_i824.PatrolRepository>()));
+    gh.factory<_i759.GetPatrolRoutes>(
+        () => _i759.GetPatrolRoutes(gh<_i824.PatrolRepository>()));
+    gh.factory<_i861.SubmitAttendance>(
+        () => _i861.SubmitAttendance(gh<_i824.PatrolRepository>()));
+    gh.factory<_i9.VerifyLocation>(
+        () => _i9.VerifyLocation(gh<_i824.PatrolRepository>()));
     gh.factory<_i179.DownloadDocumentUseCase>(
         () => _i179.DownloadDocumentUseCase(gh<_i695.DocumentRepository>()));
     gh.factory<_i1037.FilterDocumentsUseCase>(
@@ -151,6 +187,10 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i718.GetDocumentsUseCase(gh<_i695.DocumentRepository>()));
     gh.factory<_i1020.SearchDocumentsUseCase>(
         () => _i1020.SearchDocumentsUseCase(gh<_i695.DocumentRepository>()));
+    gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
+          getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
+          getPatrolProgress: gh<_i820.GetPatrolProgress>(),
+        ));
     gh.factory<_i311.AttendanceRepository>(() => _i289.AttendanceRepositoryImpl(
           remoteDataSource: gh<_i109.AttendanceRemoteDataSource>(),
           localDataSource: gh<_i1007.AttendanceLocalDataSource>(),
@@ -173,18 +213,23 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i708.SearchUserProfiles(gh<_i814.BMIRepository>()));
     gh.factory<_i202.CheckAttendanceStatusUseCase>(() =>
         _i202.CheckAttendanceStatusUseCase(gh<_i311.AttendanceRepository>()));
-    gh.factory<_i624.GetAttendanceHistoryUseCase>(() =>
-        _i624.GetAttendanceHistoryUseCase(gh<_i311.AttendanceRepository>()));
-    gh.factory<_i974.SubmitAttendanceUseCase>(
-        () => _i974.SubmitAttendanceUseCase(gh<_i311.AttendanceRepository>()));
-    gh.factory<_i601.ValidateAttendanceUseCase>(() =>
-        _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i865.CheckInUseCase>(
         () => _i865.CheckInUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i968.CheckOutUseCase>(
         () => _i968.CheckOutUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i624.GetAttendanceHistoryUseCase>(() =>
+        _i624.GetAttendanceHistoryUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i385.GetAttendanceStatusUseCase>(() =>
         _i385.GetAttendanceStatusUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i974.SubmitAttendanceUseCase>(
+        () => _i974.SubmitAttendanceUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i601.ValidateAttendanceUseCase>(() =>
+        _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i849.PatrolAttendanceBloc>(() => _i849.PatrolAttendanceBloc(
+          submitAttendance: gh<_i861.SubmitAttendance>(),
+          verifyLocation: gh<_i9.VerifyLocation>(),
+          repository: gh<_i824.PatrolRepository>(),
+        ));
     gh.factory<_i21.BMIBloc>(() => _i21.BMIBloc(
           getUserProfile: gh<_i283.GetUserProfile>(),
           searchUserProfiles: gh<_i708.SearchUserProfiles>(),

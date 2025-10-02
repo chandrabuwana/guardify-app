@@ -25,6 +25,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<NavigateToTestResultEvent>(_onNavigateToTestResult);
     on<NavigateToLeaveRequestEvent>(_onNavigateToLeaveRequest);
     on<NavigateToRegulationsEvent>(_onNavigateToRegulations);
+    on<NavigateToPatrolEvent>(_onNavigateToPatrol);
     on<NavigateToEmergencyHistoryEvent>(_onNavigateToEmergencyHistory);
     on<NavigateToDisasterInfoEvent>(_onNavigateToDisasterInfo);
 
@@ -259,6 +260,17 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(currentState.copyWith(
         snackbarMessage: 'Navigating to Peraturan Perusahaan...',
         navigationRoute: '/regulations',
+      ));
+    }
+  }
+
+  void _onNavigateToPatrol(
+      NavigateToPatrolEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        snackbarMessage: 'Navigating to Patroli...',
+        navigationRoute: '/patrol',
       ));
     }
   }
