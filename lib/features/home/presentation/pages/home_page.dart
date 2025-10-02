@@ -18,6 +18,10 @@ import '../../../panic_button/presentation/pages/panic_verification_page.dart';
 import '../../../panic_button/presentation/bloc/panic_button_bloc.dart';
 import '../../../company_regulations/presentation/pages/company_regulations_page.dart';
 import '../../../company_regulations/presentation/bloc/document_bloc.dart';
+import '../../../patrol/presentation/pages/patrol_detail_page.dart';
+import '../../../patrol/presentation/bloc/patrol_bloc.dart';
+import '../../../patrol/domain/entities/patrol_route.dart';
+import '../../../patrol/domain/entities/patrol_location.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -131,6 +135,76 @@ class __HomePageViewState extends State<_HomePageView> {
                     builder: (context) => BlocProvider(
                       create: (context) => getIt<DocumentBloc>(),
                       child: const CompanyRegulationsPage(),
+                    ),
+                  ),
+                );
+                break;
+              case '/patrol':
+                // Create mock patrol route data
+                final mockPatrolRoute = PatrolRoute(
+                  id: '1',
+                  name: 'Patroli Rute A',
+                  description: '4 Lokasi',
+                  date: DateTime.now(),
+                  locations: const [
+                    PatrolLocation(
+                      id: '1',
+                      name: 'Pos Macan',
+                      description: 'Lokasi 1',
+                      latitude: -6.2088,
+                      longitude: 106.8456,
+                      address: 'Jl. Sudirman No. 1',
+                      status: PatrolLocationStatus.pending,
+                    ),
+                    PatrolLocation(
+                      id: '2',
+                      name: 'Pos Macan',
+                      description: 'Lokasi 2',
+                      latitude: -6.2089,
+                      longitude: 106.8457,
+                      address: 'Jl. Sudirman No. 2',
+                      status: PatrolLocationStatus.completed,
+                      proofImagePath: 'bukti.jpg',
+                    ),
+                    PatrolLocation(
+                      id: '3',
+                      name: 'Pos Macan',
+                      description: 'Lokasi 3',
+                      latitude: -6.2090,
+                      longitude: 106.8458,
+                      address: 'Jl. Sudirman No. 3',
+                      status: PatrolLocationStatus.pending,
+                    ),
+                    PatrolLocation(
+                      id: '4',
+                      name: 'Pos Macan',
+                      description: 'Lokasi 4',
+                      latitude: -6.2091,
+                      longitude: 106.8459,
+                      address: 'Jl. Sudirman No. 4',
+                      status: PatrolLocationStatus.pending,
+                    ),
+                  ],
+                  additionalLocations: const [
+                    PatrolLocation(
+                      id: 'add1',
+                      name: 'Patroli Tambahan',
+                      description: '1 Lokasi',
+                      latitude: -6.2092,
+                      longitude: 106.8460,
+                      address: 'Jl. Tambahan No. 1',
+                      status: PatrolLocationStatus.pending,
+                      isAdditional: true,
+                    ),
+                  ],
+                );
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider(
+                      create: (context) => getIt<PatrolBloc>(),
+                      child: PatrolDetailPage(route: mockPatrolRoute),
                     ),
                   ),
                 );
@@ -394,9 +468,14 @@ class __HomePageViewState extends State<_HomePageView> {
           ...tasks.map((task) => TaskCard(
                 task: task,
                 onTap: () {
-                  context.read<HomeBloc>().add(
-                        ShowSnackbarEvent('Membuka tugas: ${task.title}'),
-                      );
+                  // Handle patrol task navigation
+                  if (task.id.startsWith('patrol')) {
+                    context.read<HomeBloc>().add(const NavigateToPatrolEvent());
+                  } else {
+                    context.read<HomeBloc>().add(
+                          ShowSnackbarEvent('Membuka tugas: ${task.title}'),
+                        );
+                  }
                 },
               )),
         ],
