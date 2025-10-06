@@ -88,7 +88,7 @@ class MenuGrid extends StatelessWidget {
                 Stack(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: babyBlueColor,
                         borderRadius: BorderRadius.circular(12),
