@@ -13,6 +13,7 @@ import 'features/panic_button/presentation/pages/panic_security_form_page.dart';
 import 'features/panic_button/presentation/pages/panic_confirmation_page.dart';
 import 'features/panic_button/presentation/bloc/panic_button_bloc.dart';
 import 'features/bmi/presentation/pages/bmi_navigation_page.dart';
+import 'features/profile/presentation/pages/profile_screen.dart';
 import 'core/di/injection.dart';
 
 void main() async {
@@ -80,6 +81,13 @@ class GuardifyApp extends StatelessWidget {
                   create: (context) => getIt<PanicButtonBloc>(),
                   child: const PanicConfirmationPage(),
                 ),
+            '/profile': (context) {
+              // Get user ID from arguments or use default
+              final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              final String userId = arguments?['userId'] ?? 'current_user';
+              
+              return ProfileScreen(userId: userId);
+            },
           },
           initialRoute: '/',
         );
