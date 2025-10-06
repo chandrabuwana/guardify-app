@@ -22,6 +22,7 @@ import '../../../patrol/presentation/pages/patrol_detail_page.dart';
 import '../../../patrol/presentation/bloc/patrol_bloc.dart';
 import '../../../patrol/domain/entities/patrol_route.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
+import '../../../profile/presentation/pages/profile_screen.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -400,19 +401,29 @@ class __HomePageViewState extends State<_HomePageView> {
               ),
 
               // Profile Avatar
-              CircleAvatar(
-                radius: 20.r,
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
-                backgroundImage: userProfile.profileImageUrl != null
-                    ? NetworkImage(userProfile.profileImageUrl!)
-                    : null,
-                child: userProfile.profileImageUrl == null
-                    ? Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 24.sp,
-                      )
-                    : null,
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20.r),
+                  onTap: () => _navigateToProfile(context, userProfile),
+                  child: Container(
+                    padding: EdgeInsets.all(2.r), // Small padding for better tap area
+                    child: CircleAvatar(
+                      radius: 20.r,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      backgroundImage: userProfile.profileImageUrl != null
+                          ? NetworkImage(userProfile.profileImageUrl!)
+                          : null,
+                      child: userProfile.profileImageUrl == null
+                          ? Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 24.sp,
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -672,6 +683,19 @@ class __HomePageViewState extends State<_HomePageView> {
           ),
         );
       },
+    );
+  }
+
+  /// Navigate to Profile screen when profile avatar is tapped
+  /// Using mock data since API is not ready yet
+  void _navigateToProfile(BuildContext context, UserProfile userProfile) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ProfileScreen(
+          userId: 'user_123', // Mock user ID - will load mock data from ProfileMockData
+        ),
+      ),
     );
   }
 }

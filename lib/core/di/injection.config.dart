@@ -112,6 +112,30 @@ import 'package:guardify_app/features/patrol/presentation/bloc/attendance_bloc.d
     as _i849;
 import 'package:guardify_app/features/patrol/presentation/bloc/patrol_bloc.dart'
     as _i416;
+import 'package:guardify_app/features/profile/data/datasources/profile_local_datasource.dart'
+    as _i895;
+import 'package:guardify_app/features/profile/data/datasources/profile_remote_datasource.dart'
+    as _i220;
+import 'package:guardify_app/features/profile/data/datasources/profile_remote_datasource_impl.dart'
+    as _i1020;
+import 'package:guardify_app/features/profile/data/datasources/profile_remote_datasource_mock.dart'
+    as _i945;
+import 'package:guardify_app/features/profile/data/repositories/profile_repository_impl.dart'
+    as _i422;
+import 'package:guardify_app/features/profile/domain/repositories/profile_repository.dart'
+    as _i252;
+import 'package:guardify_app/features/profile/domain/usecases/get_profile_details_usecase.dart'
+    as _i264;
+import 'package:guardify_app/features/profile/domain/usecases/logout_usecase.dart'
+    as _i936;
+import 'package:guardify_app/features/profile/domain/usecases/update_name_usecase.dart'
+    as _i1045;
+import 'package:guardify_app/features/profile/domain/usecases/update_profile_details_usecase.dart'
+    as _i409;
+import 'package:guardify_app/features/profile/domain/usecases/update_profile_photo_usecase.dart'
+    as _i508;
+import 'package:guardify_app/features/profile/presentation/bloc/profile_bloc.dart'
+    as _i641;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 
@@ -134,6 +158,8 @@ extension GetItInjectableX on _i174.GetIt {
       preResolve: true,
     );
     gh.lazySingleton<_i361.Dio>(() => externalDependenciesModule.dio);
+    gh.lazySingleton<_i220.ProfileRemoteDataSource>(
+        () => _i1020.ProfileRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i460.PanicButtonDataSource>(
         () => _i754.PanicButtonLocalDataSource());
     gh.lazySingleton<_i228.PanicButtonRepository>(() =>
@@ -144,17 +170,28 @@ extension GetItInjectableX on _i174.GetIt {
         _i491.ActivatePanicButtonUseCase(gh<_i228.PanicButtonRepository>()));
     gh.factory<_i4.GetVerificationItemsUseCase>(() =>
         _i4.GetVerificationItemsUseCase(gh<_i228.PanicButtonRepository>()));
+    gh.lazySingleton<_i220.ProfileRemoteDataSource>(
+      () => _i945.ProfileRemoteDataSourceMock(),
+      instanceName: 'mock',
+    );
     gh.lazySingleton<_i125.DocumentRemoteDataSource>(
         () => _i125.DocumentRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i826.BMILocalDataSource>(
         () => _i826.BMILocalDataSource(gh<_i460.SharedPreferences>()));
     gh.factory<_i824.PatrolRepository>(
         () => _i369.PatrolRepositoryImpl(gh<_i1037.PatrolRemoteDataSource>()));
+    gh.lazySingleton<_i895.ProfileLocalDataSource>(
+        () => _i895.ProfileLocalDataSourceImpl(gh<_i460.SharedPreferences>()));
     gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
         () => _i109.AttendanceRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i893.PanicButtonBloc>(() => _i893.PanicButtonBloc(
           activatePanicButtonUseCase: gh<_i491.ActivatePanicButtonUseCase>(),
           getVerificationItemsUseCase: gh<_i4.GetVerificationItemsUseCase>(),
+        ));
+    gh.lazySingleton<_i252.ProfileRepository>(() => _i422.ProfileRepositoryImpl(
+          remoteDataSource:
+              gh<_i220.ProfileRemoteDataSource>(instanceName: 'mock'),
+          localDataSource: gh<_i895.ProfileLocalDataSource>(),
         ));
     gh.lazySingleton<_i313.DocumentLocalDataSource>(() =>
         _i313.DocumentLocalDataSourceImpl(
@@ -169,6 +206,16 @@ extension GetItInjectableX on _i174.GetIt {
               remoteDataSource: gh<_i125.DocumentRemoteDataSource>(),
               localDataSource: gh<_i313.DocumentLocalDataSource>(),
             ));
+    gh.factory<_i264.GetProfileDetailsUseCase>(
+        () => _i264.GetProfileDetailsUseCase(gh<_i252.ProfileRepository>()));
+    gh.factory<_i936.LogoutUseCase>(
+        () => _i936.LogoutUseCase(gh<_i252.ProfileRepository>()));
+    gh.factory<_i1045.UpdateNameUseCase>(
+        () => _i1045.UpdateNameUseCase(gh<_i252.ProfileRepository>()));
+    gh.factory<_i409.UpdateProfileDetailsUseCase>(
+        () => _i409.UpdateProfileDetailsUseCase(gh<_i252.ProfileRepository>()));
+    gh.factory<_i508.UpdateProfilePhotoUseCase>(
+        () => _i508.UpdateProfilePhotoUseCase(gh<_i252.ProfileRepository>()));
     gh.factory<_i198.AddPatrolLocation>(
         () => _i198.AddPatrolLocation(gh<_i824.PatrolRepository>()));
     gh.factory<_i820.GetPatrolProgress>(
@@ -225,6 +272,14 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i974.SubmitAttendanceUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i601.ValidateAttendanceUseCase>(() =>
         _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i641.ProfileBloc>(() => _i641.ProfileBloc(
+          getProfileDetailsUseCase: gh<_i264.GetProfileDetailsUseCase>(),
+          updateProfileDetailsUseCase: gh<_i409.UpdateProfileDetailsUseCase>(),
+          updateNameUseCase: gh<_i1045.UpdateNameUseCase>(),
+          updateProfilePhotoUseCase: gh<_i508.UpdateProfilePhotoUseCase>(),
+          logoutUseCase: gh<_i936.LogoutUseCase>(),
+          profileRepository: gh<_i252.ProfileRepository>(),
+        ));
     gh.factory<_i849.PatrolAttendanceBloc>(() => _i849.PatrolAttendanceBloc(
           submitAttendance: gh<_i861.SubmitAttendance>(),
           verifyLocation: gh<_i9.VerifyLocation>(),
