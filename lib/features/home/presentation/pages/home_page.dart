@@ -12,7 +12,7 @@ import '../bloc/home_event.dart';
 import '../bloc/home_state.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/design/colors.dart';
-import '../../../attendance/presentation/pages/attendance_screen.dart';
+import '../../../attendance/presentation/pages/check_in_page.dart';
 import '../../../bmi/presentation/pages/bmi_navigation_page.dart';
 import '../../../panic_button/presentation/pages/panic_verification_page.dart';
 import '../../../panic_button/presentation/bloc/panic_button_bloc.dart';
@@ -94,9 +94,9 @@ class __HomePageViewState extends State<_HomePageView> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AttendanceScreen(
+                    builder: (context) => CheckInPage(
                       userId: state.navigationArguments?['userId'] ?? '1',
-                      userName:
+                      namaPersonil:
                           state.navigationArguments?['userName'] ?? 'User',
                     ),
                   ),
@@ -306,13 +306,13 @@ class __HomePageViewState extends State<_HomePageView> {
                           teamMembersImages: _getTeamMembersImages(),
                           onWorkButtonPressed: () {
                             if (!state.attendanceInfo.isCheckedIn) {
-                              // Navigate to attendance screen for check-in
+                              // Navigate directly to check-in form (mulai bekerja)
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => AttendanceScreen(
+                                  builder: (context) => CheckInPage(
                                     userId: '1',
-                                    userName: state.userProfile.name,
+                                    namaPersonil: state.userProfile.name,
                                   ),
                                 ),
                               );
@@ -378,7 +378,7 @@ class __HomePageViewState extends State<_HomePageView> {
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: primaryColor,
-       borderRadius: BorderRadius.only(
+        borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(24.r),
           bottomRight: Radius.circular(24.r),
         ),
