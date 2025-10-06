@@ -74,6 +74,30 @@ import 'package:guardify_app/features/company_regulations/domain/usecases/search
     as _i1020;
 import 'package:guardify_app/features/company_regulations/presentation/bloc/document_bloc.dart'
     as _i286;
+import 'package:guardify_app/features/cuti/data/datasources/cuti_remote_datasource.dart'
+    as _i783;
+import 'package:guardify_app/features/cuti/data/repositories/cuti_repository_impl.dart'
+    as _i591;
+import 'package:guardify_app/features/cuti/domain/repositories/cuti_repository.dart'
+    as _i825;
+import 'package:guardify_app/features/cuti/domain/usecases/buat_ajuan_cuti.dart'
+    as _i341;
+import 'package:guardify_app/features/cuti/domain/usecases/filter_cuti.dart'
+    as _i639;
+import 'package:guardify_app/features/cuti/domain/usecases/get_cuti_kuota.dart'
+    as _i1067;
+import 'package:guardify_app/features/cuti/domain/usecases/get_daftar_cuti_anggota.dart'
+    as _i722;
+import 'package:guardify_app/features/cuti/domain/usecases/get_daftar_cuti_saya.dart'
+    as _i1023;
+import 'package:guardify_app/features/cuti/domain/usecases/get_detail_cuti.dart'
+    as _i505;
+import 'package:guardify_app/features/cuti/domain/usecases/get_rekap_cuti.dart'
+    as _i515;
+import 'package:guardify_app/features/cuti/domain/usecases/update_status_cuti.dart'
+    as _i688;
+import 'package:guardify_app/features/cuti/presentation/bloc/cuti_bloc.dart'
+    as _i215;
 import 'package:guardify_app/features/home/presentation/bloc/home_bloc.dart'
     as _i890;
 import 'package:guardify_app/features/panic_button/data/datasources/panic_button_datasource.dart'
@@ -164,6 +188,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i754.PanicButtonLocalDataSource());
     gh.lazySingleton<_i228.PanicButtonRepository>(() =>
         _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
+    gh.lazySingleton<_i783.CutiRemoteDataSource>(
+        () => _i783.CutiRemoteDataSourceImpl());
     gh.factory<_i1037.PatrolRemoteDataSource>(
         () => _i681.PatrolRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.factory<_i491.ActivatePanicButtonUseCase>(() =>
@@ -178,6 +204,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i125.DocumentRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i826.BMILocalDataSource>(
         () => _i826.BMILocalDataSource(gh<_i460.SharedPreferences>()));
+    gh.lazySingleton<_i825.CutiRepository>(() => _i591.CutiRepositoryImpl(
+        remoteDataSource: gh<_i783.CutiRemoteDataSource>()));
     gh.factory<_i824.PatrolRepository>(
         () => _i369.PatrolRepositoryImpl(gh<_i1037.PatrolRemoteDataSource>()));
     gh.lazySingleton<_i895.ProfileLocalDataSource>(
@@ -216,6 +244,22 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i409.UpdateProfileDetailsUseCase(gh<_i252.ProfileRepository>()));
     gh.factory<_i508.UpdateProfilePhotoUseCase>(
         () => _i508.UpdateProfilePhotoUseCase(gh<_i252.ProfileRepository>()));
+    gh.factory<_i341.BuatAjuanCuti>(
+        () => _i341.BuatAjuanCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i639.FilterCuti>(
+        () => _i639.FilterCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i1067.GetCutiKuota>(
+        () => _i1067.GetCutiKuota(gh<_i825.CutiRepository>()));
+    gh.factory<_i722.GetDaftarCutiAnggota>(
+        () => _i722.GetDaftarCutiAnggota(gh<_i825.CutiRepository>()));
+    gh.factory<_i1023.GetDaftarCutiSaya>(
+        () => _i1023.GetDaftarCutiSaya(gh<_i825.CutiRepository>()));
+    gh.factory<_i505.GetDetailCuti>(
+        () => _i505.GetDetailCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i515.GetRekapCuti>(
+        () => _i515.GetRekapCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i688.UpdateStatusCuti>(
+        () => _i688.UpdateStatusCuti(gh<_i825.CutiRepository>()));
     gh.factory<_i198.AddPatrolLocation>(
         () => _i198.AddPatrolLocation(gh<_i824.PatrolRepository>()));
     gh.factory<_i820.GetPatrolProgress>(
@@ -234,6 +278,16 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i718.GetDocumentsUseCase(gh<_i695.DocumentRepository>()));
     gh.factory<_i1020.SearchDocumentsUseCase>(
         () => _i1020.SearchDocumentsUseCase(gh<_i695.DocumentRepository>()));
+    gh.factory<_i215.CutiBloc>(() => _i215.CutiBloc(
+          getCutiKuota: gh<_i1067.GetCutiKuota>(),
+          getDaftarCutiSaya: gh<_i1023.GetDaftarCutiSaya>(),
+          getDaftarCutiAnggota: gh<_i722.GetDaftarCutiAnggota>(),
+          buatAjuanCuti: gh<_i341.BuatAjuanCuti>(),
+          updateStatusCuti: gh<_i688.UpdateStatusCuti>(),
+          filterCuti: gh<_i639.FilterCuti>(),
+          getDetailCuti: gh<_i505.GetDetailCuti>(),
+          getRekapCuti: gh<_i515.GetRekapCuti>(),
+        ));
     gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
           getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
           getPatrolProgress: gh<_i820.GetPatrolProgress>(),

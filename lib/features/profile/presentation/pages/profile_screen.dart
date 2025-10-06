@@ -43,6 +43,7 @@ class ProfileScreenView extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       backgroundColor: primaryColor,
+      enableScrolling: false, // Disable scrolling since we're using Expanded
       appBar: AppBar(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
@@ -143,12 +144,12 @@ class ProfileScreenView extends StatelessWidget {
             );
           }
 
-          if (state is ProfileLoaded || 
+          if (state is ProfileLoaded ||
               state is ProfileUpdateInProgress ||
               state is DocumentUploadInProgress) {
             final profile = _getProfileFromState(state);
-            final isLoading = state is ProfileUpdateInProgress || 
-                             state is DocumentUploadInProgress;
+            final isLoading = state is ProfileUpdateInProgress ||
+                state is DocumentUploadInProgress;
 
             return Stack(
               children: [
@@ -159,9 +160,9 @@ class ProfileScreenView extends StatelessWidget {
                       profile: profile,
                       onPhotoTap: () => _navigateToPhotoUpdate(context),
                     ),
-                    
+
                     SizedBox(height: 32.h),
-                    
+
                     // Body dengan menu-menu
                     Expanded(
                       child: Container(
@@ -178,34 +179,34 @@ class ProfileScreenView extends StatelessWidget {
                           child: Column(
                             children: [
                               SizedBox(height: 20.h),
-                              
+
                               // Menu Profil Saya
-                                ProfileMenuItem(
-                                  icon: Icons.person,
-                                  title: 'Profil Saya',
-                                  onTap: () => _navigateToProfileDetails(context),
-                                ),
-                                
-                                SizedBox(height: 16.h),
-                                
-                                // Menu Bantuan
-                                ProfileMenuItem(
-                                  icon: Icons.help_outline,
-                                  title: 'Bantuan',
-                                  onTap: () => _navigateToHelp(context),
-                                ),
-                                
-                                SizedBox(height: 16.h),
-                                
-                                // Menu Keluar
-                                ProfileMenuItem(
-                                  icon: Icons.logout,
-                                  title: 'Keluar',
-                                  titleColor: Colors.red,
-                                  onTap: () => _showLogoutConfirmation(context),
-                                ),
-                                
-                                const Spacer(),
+                              ProfileMenuItem(
+                                icon: Icons.person,
+                                title: 'Profil Saya',
+                                onTap: () => _navigateToProfileDetails(context),
+                              ),
+
+                              SizedBox(height: 16.h),
+
+                              // Menu Bantuan
+                              ProfileMenuItem(
+                                icon: Icons.help_outline,
+                                title: 'Bantuan',
+                                onTap: () => _navigateToHelp(context),
+                              ),
+
+                              SizedBox(height: 16.h),
+
+                              // Menu Keluar
+                              ProfileMenuItem(
+                                icon: Icons.logout,
+                                title: 'Keluar',
+                                titleColor: Colors.red,
+                                onTap: () => _showLogoutConfirmation(context),
+                              ),
+
+                              const Spacer(),
                             ],
                           ),
                         ),
@@ -213,7 +214,7 @@ class ProfileScreenView extends StatelessWidget {
                     ),
                   ],
                 ),
-                
+
                 // Loading overlay
                 if (isLoading)
                   Container(
@@ -279,7 +280,8 @@ class ProfileScreenView extends StatelessWidget {
       barrierDismissible: false,
       builder: (dialogContext) => ConfirmDialog(
         title: 'Keluar Dari Akun Sekarang?',
-        message: 'Anda akan keluar dari aplikasi dan perlu login kembali untuk mengakses fitur-fitur.',
+        message:
+            'Anda akan keluar dari aplikasi dan perlu login kembali untuk mengakses fitur-fitur.',
         confirmText: 'Keluar',
         cancelText: 'Batal',
         icon: Icons.logout,

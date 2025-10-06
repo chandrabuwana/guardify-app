@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/reset_password_page.dart';
@@ -14,10 +15,18 @@ import 'features/panic_button/presentation/pages/panic_confirmation_page.dart';
 import 'features/panic_button/presentation/bloc/panic_button_bloc.dart';
 import 'features/bmi/presentation/pages/bmi_navigation_page.dart';
 import 'features/profile/presentation/pages/profile_screen.dart';
+import 'features/cuti/presentation/pages/cuti_page.dart';
+import 'features/cuti/presentation/pages/form_ajuan_cuti_page.dart';
+import 'features/cuti/presentation/pages/detail_cuti_page.dart';
+import 'core/constants/enums.dart';
 import 'core/di/injection.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize date formatting for Indonesian locale
+  await initializeDateFormatting('id_ID', null);
+
   await configureDependencies();
   runApp(const GuardifyApp());
 }
@@ -83,10 +92,30 @@ class GuardifyApp extends StatelessWidget {
                 ),
             '/profile': (context) {
               // Get user ID from arguments or use default
-              final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              final arguments = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
               final String userId = arguments?['userId'] ?? 'current_user';
-              
+
               return ProfileScreen(userId: userId);
+            },
+            '/cuti': (context) => const CutiPage(),
+            '/cuti/form': (context) {
+              final arguments = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
+              return FormAjuanCutiPage(
+                userId: arguments?['userId'] ?? 'current_user',
+                userName: arguments?['userName'] ?? 'User',
+              );
+            },
+            '/cuti/detail': (context) {
+              final arguments = ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+              return DetailCutiPage(
+                cutiId: arguments['cutiId'] as String,
+                currentUserRole: arguments['currentUserRole'] as UserRole? ??
+                    UserRole.anggota,
+                showActions: arguments['showActions'] as bool? ?? false,
+              );
             },
           },
           initialRoute: '/',

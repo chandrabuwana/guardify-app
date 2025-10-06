@@ -210,6 +210,9 @@ class __HomePageViewState extends State<_HomePageView> {
                   ),
                 );
                 break;
+              case '/cuti':
+                Navigator.pushNamed(context, '/cuti');
+                break;
               default:
                 // For other routes, show snackbar instead of navigating
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -407,7 +410,8 @@ class __HomePageViewState extends State<_HomePageView> {
                   borderRadius: BorderRadius.circular(20.r),
                   onTap: () => _navigateToProfile(context, userProfile),
                   child: Container(
-                    padding: EdgeInsets.all(2.r), // Small padding for better tap area
+                    padding: EdgeInsets.all(
+                        2.r), // Small padding for better tap area
                     child: CircleAvatar(
                       radius: 20.r,
                       backgroundColor: Colors.white.withValues(alpha: 0.2),
@@ -693,7 +697,8 @@ class __HomePageViewState extends State<_HomePageView> {
       context,
       MaterialPageRoute(
         builder: (context) => const ProfileScreen(
-          userId: 'user_123', // Mock user ID - will load mock data from ProfileMockData
+          userId:
+              'user_123', // Mock user ID - will load mock data from ProfileMockData
         ),
       ),
     );

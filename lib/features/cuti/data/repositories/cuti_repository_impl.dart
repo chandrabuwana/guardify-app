@@ -1,0 +1,152 @@
+import 'package:injectable/injectable.dart';
+import '../../domain/entities/cuti_entity.dart';
+import '../../domain/entities/cuti_kuota_entity.dart';
+import '../../domain/repositories/cuti_repository.dart';
+import '../datasources/cuti_remote_datasource.dart';
+
+@LazySingleton(as: CutiRepository)
+class CutiRepositoryImpl implements CutiRepository {
+  final CutiRemoteDataSource remoteDataSource;
+
+  CutiRepositoryImpl({
+    required this.remoteDataSource,
+  });
+
+  @override
+  Future<CutiKuotaEntity> getCutiKuota(String userId) async {
+    try {
+      final result = await remoteDataSource.getCutiKuota(userId);
+      return result.toEntity();
+    } catch (e) {
+      throw Exception('Failed to get kuota cuti: $e');
+    }
+  }
+
+  @override
+  Future<List<CutiEntity>> getDaftarCutiSaya(String userId) async {
+    try {
+      final result = await remoteDataSource.getDaftarCutiSaya(userId);
+      return result.map((model) => model.toEntity()).toList();
+    } catch (e) {
+      throw Exception('Failed to get daftar cuti saya: $e');
+    }
+  }
+
+  @override
+  Future<List<CutiEntity>> getDaftarCutiAnggota({
+    String? status,
+    String? tipeCuti,
+    DateTime? tanggalMulai,
+    DateTime? tanggalSelesai,
+  }) async {
+    try {
+      final result = await remoteDataSource.getDaftarCutiAnggota(
+        status: status,
+        tipeCuti: tipeCuti,
+        tanggalMulai: tanggalMulai,
+        tanggalSelesai: tanggalSelesai,
+      );
+      return result.map((model) => model.toEntity()).toList();
+    } catch (e) {
+      throw Exception('Failed to get daftar cuti anggota: $e');
+    }
+  }
+
+  @override
+  Future<CutiEntity> buatAjuanCuti({
+    required String userId,
+    required String nama,
+    required CutiType tipeCuti,
+    required DateTime tanggalMulai,
+    required DateTime tanggalSelesai,
+    required String alasan,
+    required int jumlahHari,
+  }) async {
+    try {
+      final result = await remoteDataSource.buatAjuanCuti(
+        userId: userId,
+        nama: nama,
+        tipeCuti: tipeCuti,
+        tanggalMulai: tanggalMulai,
+        tanggalSelesai: tanggalSelesai,
+        alasan: alasan,
+        jumlahHari: jumlahHari,
+      );
+      return result.toEntity();
+    } catch (e) {
+      throw Exception('Failed to create ajuan cuti: $e');
+    }
+  }
+
+  @override
+  Future<CutiEntity> updateStatusCuti({
+    required String cutiId,
+    required CutiStatus status,
+    required String reviewerId,
+    required String reviewerName,
+    String? umpanBalik,
+  }) async {
+    try {
+      final result = await remoteDataSource.updateStatusCuti(
+        cutiId: cutiId,
+        status: status,
+        reviewerId: reviewerId,
+        reviewerName: reviewerName,
+        umpanBalik: umpanBalik,
+      );
+      return result.toEntity();
+    } catch (e) {
+      throw Exception('Failed to update status cuti: $e');
+    }
+  }
+
+  @override
+  Future<List<CutiEntity>> filterCuti({
+    String? status,
+    String? tipeCuti,
+    DateTime? tanggalMulai,
+    DateTime? tanggalSelesai,
+    String? userId,
+  }) async {
+    try {
+      final result = await remoteDataSource.filterCuti(
+        status: status,
+        tipeCuti: tipeCuti,
+        tanggalMulai: tanggalMulai,
+        tanggalSelesai: tanggalSelesai,
+        userId: userId,
+      );
+      return result.map((model) => model.toEntity()).toList();
+    } catch (e) {
+      throw Exception('Failed to filter cuti: $e');
+    }
+  }
+
+  @override
+  Future<CutiEntity> getDetailCuti(String cutiId) async {
+    try {
+      final result = await remoteDataSource.getDetailCuti(cutiId);
+      return result.toEntity();
+    } catch (e) {
+      throw Exception('Failed to get detail cuti: $e');
+    }
+  }
+
+  @override
+  Future<List<CutiEntity>> getRekapCuti({
+    DateTime? tanggalMulai,
+    DateTime? tanggalSelesai,
+    String? status,
+  }) async {
+    try {
+      final result = await remoteDataSource.getRekapCuti(
+        tanggalMulai: tanggalMulai,
+        tanggalSelesai: tanggalSelesai,
+        status: status,
+      );
+      return result.map((model) => model.toEntity()).toList();
+    } catch (e) {
+      throw Exception('Failed to get rekap cuti: $e');
+    }
+  }
+}
