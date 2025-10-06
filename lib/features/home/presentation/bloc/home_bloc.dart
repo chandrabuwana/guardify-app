@@ -248,7 +248,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final currentState = state as HomeLoaded;
       emit(currentState.copyWith(
         snackbarMessage: 'Navigating to Pengajuan Cuti...',
-        navigationRoute: '/leave-request',
+        navigationRoute: '/cuti',
       ));
     }
   }

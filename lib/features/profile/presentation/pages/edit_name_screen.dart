@@ -37,7 +37,7 @@ class _EditNameScreenState extends State<EditNameScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.currentName);
     _profileBloc = getIt<ProfileBloc>();
-    
+
     // Listen untuk perubahan text
     _nameController.addListener(() {
       setState(() {
@@ -58,6 +58,8 @@ class _EditNameScreenState extends State<EditNameScreen> {
       value: _profileBloc,
       child: AppScaffold(
         backgroundColor: Colors.grey.shade50,
+        enableScrolling:
+            false, // Disable scrolling since we're using Spacer in Column
         appBar: AppBar(
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
@@ -105,9 +107,9 @@ class _EditNameScreenState extends State<EditNameScreen> {
                           color: Colors.grey.shade600,
                         ),
                       ),
-                      
+
                       SizedBox(height: 24.h),
-                      
+
                       // Input nama
                       Text(
                         'Nama',
@@ -116,9 +118,9 @@ class _EditNameScreenState extends State<EditNameScreen> {
                           color: Colors.black87,
                         ),
                       ),
-                      
+
                       SizedBox(height: 8.h),
-                      
+
                       InputPrimary(
                         controller: _nameController,
                         hint: 'Masukkan nama lengkap',
@@ -126,22 +128,24 @@ class _EditNameScreenState extends State<EditNameScreen> {
                         enable: !isLoading,
                         maxLength: 50,
                       ),
-                      
+
                       const Spacer(),
-                      
+
                       // Button simpan
                       SizedBox(
                         width: double.infinity,
                         child: UIButton(
                           text: 'Simpan',
-                          onPressed: _isDataChanged && !isLoading ? _onSavePressed : null,
+                          onPressed: _isDataChanged && !isLoading
+                              ? _onSavePressed
+                              : null,
                           isLoading: isLoading,
                         ),
                       ),
                     ],
                   ),
                 ),
-                
+
                 // Loading overlay
                 if (isLoading)
                   Container(
@@ -165,15 +169,15 @@ class _EditNameScreenState extends State<EditNameScreen> {
     if (value == null || value.trim().isEmpty) {
       return 'Nama tidak boleh kosong';
     }
-    
+
     if (value.trim().length < 2) {
       return 'Nama minimal 2 karakter';
     }
-    
+
     if (value.trim().length > 50) {
       return 'Nama maksimal 50 karakter';
     }
-    
+
     return null;
   }
 
@@ -189,7 +193,7 @@ class _EditNameScreenState extends State<EditNameScreen> {
   /// Handle save button pressed
   void _onSavePressed() {
     final newName = _nameController.text.trim();
-    
+
     // Validasi
     final validation = _validateName(newName);
     if (validation != null) {
@@ -215,7 +219,8 @@ class _EditNameScreenState extends State<EditNameScreen> {
       context: context,
       builder: (context) => ConfirmDialog(
         title: 'Perubahan data nama tidak dapat dilakukan.',
-        message: 'Silakan hubungi admin apabila terdapat kesalahan pada informasi Anda.',
+        message:
+            'Silakan hubungi admin apabila terdapat kesalahan pada informasi Anda.',
         confirmText: 'Simpan',
         cancelText: 'Batal',
         icon: Icons.warning,

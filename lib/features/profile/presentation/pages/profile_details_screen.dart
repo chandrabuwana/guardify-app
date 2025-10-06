@@ -40,7 +40,8 @@ class ProfileDetailsScreenView extends StatefulWidget {
   });
 
   @override
-  State<ProfileDetailsScreenView> createState() => _ProfileDetailsScreenViewState();
+  State<ProfileDetailsScreenView> createState() =>
+      _ProfileDetailsScreenViewState();
 }
 
 class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
@@ -63,6 +64,7 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
   Widget build(BuildContext context) {
     return AppScaffold(
       backgroundColor: Colors.grey.shade50,
+      enableScrolling: false, // Disable scrolling since we're using TabBarView
       appBar: AppBar(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
@@ -113,7 +115,8 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
           if (state is DocumentUploadSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Dokumen ${state.documentType} berhasil diupload'),
+                content:
+                    Text('Dokumen ${state.documentType} berhasil diupload'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -158,7 +161,9 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
                   UIButton(
                     text: 'Coba Lagi',
                     onPressed: () {
-                      context.read<ProfileBloc>().add(LoadProfileEvent(widget.userId));
+                      context
+                          .read<ProfileBloc>()
+                          .add(LoadProfileEvent(widget.userId));
                     },
                   ),
                 ],
@@ -166,12 +171,12 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
             );
           }
 
-          if (state is ProfileLoaded || 
+          if (state is ProfileLoaded ||
               state is ProfileUpdateInProgress ||
               state is DocumentUploadInProgress) {
             final profile = _getProfileFromState(state);
-            final isLoading = state is ProfileUpdateInProgress || 
-                             state is DocumentUploadInProgress;
+            final isLoading = state is ProfileUpdateInProgress ||
+                state is DocumentUploadInProgress;
 
             return Stack(
               children: [
@@ -180,12 +185,12 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
                   children: [
                     // Tab Info Pribadi
                     _buildInfoPribadiTab(profile),
-                    
+
                     // Tab Dokumen
                     _buildDokumenTab(profile),
                   ],
                 ),
-                
+
                 // Loading overlay
                 if (isLoading)
                   Container(
@@ -250,118 +255,118 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
               ],
             ),
           ),
-          
+
           SizedBox(height: 8.h),
-          
+
           Text(
             'Foto Profile',
             style: TS.bodyMedium.copyWith(color: Colors.grey.shade600),
           ),
-          
+
           SizedBox(height: 24.h),
-          
+
           // Data profil
           ProfileDetailItem(
             label: 'Nama',
             value: profile.name,
             onTap: () => _navigateToEditName(profile),
           ),
-          
+
           ProfileDetailItem(
             label: 'NRP',
             value: profile.nrp,
           ),
-          
+
           ProfileDetailItem(
             label: 'No KTP',
             value: profile.noKtp,
           ),
-          
+
           ProfileDetailItem(
             label: 'Tempat Lahir',
             value: profile.tempatLahir,
           ),
-          
+
           ProfileDetailItem(
             label: 'Tanggal Lahir',
-            value: DateFormat('dd MMMM yyyy', 'id_ID').format(profile.tanggalLahir),
+            value: _formatDate(profile.tanggalLahir),
           ),
-          
+
           ProfileDetailItem(
             label: 'Jenis Kelamin',
             value: profile.jenisKelamin,
           ),
-          
+
           ProfileDetailItem(
             label: 'Pendidikan',
             value: profile.pendidikan,
           ),
-          
+
           ProfileDetailItem(
             label: 'Telepon Pribadi',
             value: profile.teleponPribadi,
           ),
-          
+
           ProfileDetailItem(
             label: 'Telepon Darurat',
             value: profile.teleponDarurat,
           ),
-          
+
           ProfileDetailItem(
             label: 'Site',
             value: profile.site,
           ),
-          
+
           ProfileDetailItem(
             label: 'Jabatan',
             value: profile.jabatan,
           ),
-          
+
           ProfileDetailItem(
             label: 'Atasan',
             value: profile.atasan,
           ),
-          
+
           ProfileDetailItem(
             label: 'Tgl Penerimaan Karyawan',
-            value: DateFormat('dd MMMM yyyy', 'id_ID').format(profile.tglPenerimaanKaryawan),
+            value: _formatDate(profile.tglPenerimaanKaryawan),
           ),
-          
+
           ProfileDetailItem(
             label: 'Masa Berlaku Permit',
-            value: DateFormat('dd MMMM yyyy', 'id_ID').format(profile.masaBerlakuPermit),
+            value: _formatDate(profile.masaBerlakuPermit),
           ),
-          
+
           ProfileDetailItem(
             label: 'Kompetensi Pekerjaan',
             value: profile.kompetensiPekerjaan,
           ),
-          
+
           ProfileDetailItem(
             label: 'Warga Negara',
             value: profile.wargaNegara,
           ),
-          
+
           ProfileDetailItem(
             label: 'Provinsi',
             value: profile.provinsi,
           ),
-          
+
           ProfileDetailItem(
             label: 'Kota / Kabupaten',
             value: profile.kotaKabupaten,
           ),
-          
+
           ProfileDetailItem(
             label: 'Kecamatan',
             value: profile.kecamatan,
           ),
-          
+
           ProfileDetailItem(
             label: 'Kelurahan',
             value: profile.kelurahan,
           ),
-          
+
           ProfileDetailItem(
             label: 'Alamat Domisili',
             value: profile.alamatDomisili,
@@ -383,41 +388,31 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
             'KTP_${profile.name.replaceAll(' ', '_')}',
             () => _uploadDocument('KTP'),
           ),
-          
           SizedBox(height: 16.h),
-          
           _buildDocumentItem(
             'KTA',
             'KTA_${profile.name.replaceAll(' ', '_')}',
             () => _uploadDocument('KTA'),
           ),
-          
           SizedBox(height: 16.h),
-          
           _buildDocumentItem(
             'Foto',
             'Foto_${profile.name.replaceAll(' ', '_')}',
             () => _uploadDocument('Foto'),
           ),
-          
           SizedBox(height: 16.h),
-          
           _buildDocumentItem(
             'P3TD K3LH',
             'P3TD_K3LH_${profile.name.replaceAll(' ', '_')}',
             () => _uploadDocument('P3TD_K3LH'),
           ),
-          
           SizedBox(height: 16.h),
-          
           _buildDocumentItem(
             'P3TD Security',
             'P3TD_Sec_${profile.name.replaceAll(' ', '_')}',
             () => _uploadDocument('P3TD_Security'),
           ),
-          
           SizedBox(height: 16.h),
-          
           _buildDocumentItem(
             'Pernyataan Tidak Merokok',
             'Tidak_Merokok_${profile.name.replaceAll(' ', '_')}',
@@ -429,7 +424,8 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
   }
 
   /// Build document item widget
-  Widget _buildDocumentItem(String title, String filename, VoidCallback onUpload) {
+  Widget _buildDocumentItem(
+      String title, String filename, VoidCallback onUpload) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -500,5 +496,15 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
         content: Text('Fitur upload $documentType akan segera tersedia'),
       ),
     );
+  }
+
+  /// Format date with error handling
+  String _formatDate(DateTime date) {
+    try {
+      return DateFormat('dd MMMM yyyy', 'id_ID').format(date);
+    } catch (e) {
+      // Fallback to basic formatting if locale data is not available
+      return DateFormat('dd/MM/yyyy').format(date);
+    }
   }
 }
