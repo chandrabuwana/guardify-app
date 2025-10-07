@@ -189,8 +189,12 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       emit(currentState.copyWith(
-        snackbarMessage: 'Navigating to Laporan Kegiatan...',
-        navigationRoute: '/activity-report',
+        snackbarMessage: 'Membuka Laporan Kegiatan...',
+        navigationRoute: '/laporan-kegiatan',
+        navigationArguments: {
+          'userId': 'user_1',
+          'userRole': 'anggota',
+        },
       ));
     }
   }

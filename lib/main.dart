@@ -18,6 +18,8 @@ import 'features/profile/presentation/pages/profile_screen.dart';
 import 'features/cuti/presentation/pages/cuti_page.dart';
 import 'features/cuti/presentation/pages/form_ajuan_cuti_page.dart';
 import 'features/cuti/presentation/pages/detail_cuti_page.dart';
+import 'features/laporan_kegiatan/presentation/pages/laporan_kegiatan_page.dart';
+import 'features/laporan_kegiatan/presentation/bloc/laporan_kegiatan_bloc.dart';
 import 'core/constants/enums.dart';
 import 'core/di/injection.dart';
 
@@ -105,6 +107,21 @@ class GuardifyApp extends StatelessWidget {
               return FormAjuanCutiPage(
                 userId: arguments?['userId'] ?? 'current_user',
                 userName: arguments?['userName'] ?? 'User',
+              );
+            },
+            '/laporan-kegiatan': (context) {
+              final arguments = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
+              final String userId = arguments?['userId'] ?? 'current_user';
+              final String userRoleString = arguments?['userRole'] ?? 'anggota';
+              final UserRole userRole = UserRole.fromValue(userRoleString);
+
+              return BlocProvider(
+                create: (context) => getIt<LaporanKegiatanBloc>(),
+                child: LaporanKegiatanPage(
+                  userId: userId,
+                  userRole: userRole,
+                ),
               );
             },
             '/cuti/detail': (context) {

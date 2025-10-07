@@ -73,6 +73,16 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
     return BlocProvider(
       create: (context) => getIt<CutiBloc>(),
       child: AppScaffold(
+        appBar: AppBar(
+          title: const Text('Buat Ajuan Cuti'),
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
         child: SingleChildScrollView(
           padding: REdgeInsets.all(16),
           child: BlocListener<CutiBloc, CutiState>(
@@ -94,41 +104,6 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
-                  Container(
-                    width: double.infinity,
-                    padding: REdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [primaryColor, primaryColor.withOpacity(0.8)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16.r),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Ajuan Cuti Baru',
-                          style: TS.titleLarge.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        8.verticalSpace,
-                        Text(
-                          'Lengkapi form di bawah untuk mengajukan cuti',
-                          style: TS.bodyMedium.copyWith(
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  24.verticalSpace,
-
                   // Form Fields
                   CustomDropdown<CutiType>(
                     label: 'Tipe Cuti',
@@ -385,7 +360,7 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
       iconColor: primaryColor,
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && mounted) {
       context.read<CutiBloc>().add(
             BuatAjuanCutiEvent(
               userId: widget.userId,
