@@ -213,6 +213,17 @@ class __HomePageViewState extends State<_HomePageView> {
               case '/cuti':
                 Navigator.pushNamed(context, '/cuti');
                 break;
+              case '/laporan-kegiatan':
+                Navigator.pushNamed(
+                  context,
+                  '/laporan-kegiatan',
+                  arguments: {
+                    'userId': state.navigationArguments?['userId'] ?? 'user_1',
+                    'userRole':
+                        state.navigationArguments?['userRole'] ?? 'anggota',
+                  },
+                );
+                break;
               default:
                 // For other routes, show snackbar instead of navigating
                 ScaffoldMessenger.of(context).showSnackBar(

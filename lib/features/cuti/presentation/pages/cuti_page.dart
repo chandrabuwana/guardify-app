@@ -36,6 +36,7 @@ class _CutiPageState extends State<CutiPage>
   late TabController _tabController;
   late String _currentUserId;
   late UserRole _currentUserRole;
+  late CutiBloc _cutiBloc;
 
   @override
   void initState() {
@@ -44,6 +45,9 @@ class _CutiPageState extends State<CutiPage>
     // Use passed parameters or defaults
     _currentUserId = widget.userId ?? 'user_1';
     _currentUserRole = widget.userRole ?? UserRole.anggota;
+
+    // Initialize bloc
+    _cutiBloc = getIt<CutiBloc>();
 
     // Initialize tab controller based on user role
     _tabController = TabController(
@@ -58,6 +62,7 @@ class _CutiPageState extends State<CutiPage>
   @override
   void dispose() {
     _tabController.dispose();
+    _cutiBloc.close();
     super.dispose();
   }
 
@@ -98,27 +103,25 @@ class _CutiPageState extends State<CutiPage>
   }
 
   void _loadInitialData() {
-    final bloc = context.read<CutiBloc>();
-
     switch (_currentUserRole) {
       case UserRole.anggota:
       case UserRole.danton:
-        bloc.add(GetCutiKuotaEvent(_currentUserId));
+        _cutiBloc.add(GetCutiKuotaEvent(_currentUserId));
         break;
       case UserRole.pjo:
       case UserRole.deputy:
-        bloc.add(const GetDaftarCutiAnggotaEvent());
+        _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
         break;
       case UserRole.pengawas:
-        bloc.add(const GetDaftarCutiAnggotaEvent());
+        _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
         break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<CutiBloc>(),
+    return BlocProvider.value(
+      value: _cutiBloc,
       child: AppScaffold(
         appBar: AppBar(
           title: const Text('Pengajuan Cuti'),
@@ -189,32 +192,30 @@ class _CutiPageState extends State<CutiPage>
   }
 
   void _onTabChanged(int index) {
-    final bloc = context.read<CutiBloc>();
-
     switch (_currentUserRole) {
       case UserRole.anggota:
       case UserRole.danton:
         if (index == 0) {
-          bloc.add(GetCutiKuotaEvent(_currentUserId));
+          _cutiBloc.add(GetCutiKuotaEvent(_currentUserId));
         } else if (index == 1) {
-          bloc.add(GetDaftarCutiSayaEvent(_currentUserId));
+          _cutiBloc.add(GetDaftarCutiSayaEvent(_currentUserId));
         }
         break;
       case UserRole.pjo:
       case UserRole.deputy:
         if (index == 0) {
-          bloc.add(const GetDaftarCutiAnggotaEvent());
+          _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
         } else if (index == 1) {
-          bloc.add(GetCutiKuotaEvent(_currentUserId));
+          _cutiBloc.add(GetCutiKuotaEvent(_currentUserId));
         } else if (index == 2) {
-          bloc.add(GetDaftarCutiSayaEvent(_currentUserId));
+          _cutiBloc.add(GetDaftarCutiSayaEvent(_currentUserId));
         }
         break;
       case UserRole.pengawas:
         if (index == 0) {
-          bloc.add(const GetDaftarCutiAnggotaEvent());
+          _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
         } else if (index == 1) {
-          bloc.add(const GetRekapCutiEvent());
+          _cutiBloc.add(const GetRekapCutiEvent());
         }
         break;
     }
@@ -363,14 +364,14 @@ class _CutiPageState extends State<CutiPage>
               FilterCutiWidget(
                 onFilterApplied:
                     (status, tipeCuti, tanggalMulai, tanggalSelesai) {
-                  context.read<CutiBloc>().add(
-                        GetDaftarCutiAnggotaEvent(
-                          status: status,
-                          tipeCuti: tipeCuti,
-                          tanggalMulai: tanggalMulai,
-                          tanggalSelesai: tanggalSelesai,
-                        ),
-                      );
+                  _cutiBloc.add(
+                    GetDaftarCutiAnggotaEvent(
+                      status: status,
+                      tipeCuti: tipeCuti,
+                      tanggalMulai: tanggalMulai,
+                      tanggalSelesai: tanggalSelesai,
+                    ),
+                  );
                 },
               ),
               Expanded(
@@ -410,13 +411,13 @@ class _CutiPageState extends State<CutiPage>
               FilterCutiWidget(
                 onFilterApplied:
                     (status, tipeCuti, tanggalMulai, tanggalSelesai) {
-                  context.read<CutiBloc>().add(
-                        GetRekapCutiEvent(
-                          status: status,
-                          tanggalMulai: tanggalMulai,
-                          tanggalSelesai: tanggalSelesai,
-                        ),
-                      );
+                  _cutiBloc.add(
+                    GetRekapCutiEvent(
+                      status: status,
+                      tanggalMulai: tanggalMulai,
+                      tanggalSelesai: tanggalSelesai,
+                    ),
+                  );
                 },
               ),
               Expanded(

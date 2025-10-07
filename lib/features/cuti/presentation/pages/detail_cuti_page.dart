@@ -8,7 +8,6 @@ import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
-import '../../../../shared/widgets/confirm_dialog.dart';
 import '../bloc/cuti_bloc.dart';
 import '../bloc/cuti_event.dart';
 import '../bloc/cuti_state.dart';
@@ -33,29 +32,41 @@ class DetailCutiPage extends StatefulWidget {
 
 class _DetailCutiPageState extends State<DetailCutiPage> {
   final _feedbackController = TextEditingController();
+  late CutiBloc _cutiBloc;
 
   @override
   void initState() {
     super.initState();
+    _cutiBloc = getIt<CutiBloc>();
     _loadDetailCuti();
   }
 
   @override
   void dispose() {
     _feedbackController.dispose();
+    _cutiBloc.close();
     super.dispose();
   }
 
   void _loadDetailCuti() {
-    context.read<CutiBloc>().add(GetDetailCutiEvent(widget.cutiId));
+    _cutiBloc.add(GetDetailCutiEvent(widget.cutiId));
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) =>
-          getIt<CutiBloc>()..add(GetDetailCutiEvent(widget.cutiId)),
+    return BlocProvider.value(
+      value: _cutiBloc,
       child: AppScaffold(
+        appBar: AppBar(
+          title: const Text('Detail Ajuan Cuti'),
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
         child: BlocListener<CutiBloc, CutiState>(
           listener: (context, state) {
             if (state is StatusCutiUpdated) {
@@ -113,95 +124,22 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Card
-          Container(
-            width: double.infinity,
-            padding: REdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  _getStatusColor(cuti.status),
-                  _getStatusColor(cuti.status).withOpacity(0.8)
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16.r),
-              boxShadow: [
-                BoxShadow(
-                  color: _getStatusColor(cuti.status).withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        cuti.nama,
-                        style: TS.titleLarge.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    _buildStatusChip(cuti.status, isDark: true),
-                  ],
-                ),
-                8.verticalSpace,
-                Text(
-                  cuti.tipeCutiDisplayName,
-                  style: TS.titleMedium.copyWith(
-                    color: Colors.white70,
-                  ),
-                ),
-                16.verticalSpace,
-                Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      color: Colors.white70,
-                      size: 16.sp,
-                    ),
-                    8.horizontalSpace,
-                    Text(
-                      '${formatter.format(cuti.tanggalMulai)} - ${formatter.format(cuti.tanggalSelesai)}',
-                      style: TS.bodyMedium.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                    12.horizontalSpace,
-                    Container(
-                      padding:
-                          REdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Text(
-                        '${cuti.jumlahHari} hari',
-                        style: TS.bodySmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          // Status Badge
+          Center(
+            child: _buildStatusChip(cuti.status, isDark: false),
           ),
 
           24.verticalSpace,
 
           // Detail Information
           _buildInfoSection('Informasi Detail', [
-            _buildInfoItem('ID Cuti', cuti.id),
+            _buildInfoItem('Nama', cuti.nama),
+            _buildInfoItem('Tipe Cuti', cuti.tipeCutiDisplayName),
+            _buildInfoItem(
+                'Tanggal Mulai', formatter.format(cuti.tanggalMulai)),
+            _buildInfoItem(
+                'Tanggal Selesai', formatter.format(cuti.tanggalSelesai)),
+            _buildInfoItem('Jumlah Hari', '${cuti.jumlahHari} hari'),
             _buildInfoItem(
                 'Tanggal Pengajuan', formatter.format(cuti.tanggalPengajuan)),
             if (cuti.reviewerName != null)
@@ -214,7 +152,7 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
           20.verticalSpace,
 
           // Alasan Section
-          _buildInfoSection('Alasan Cuti', [
+          _buildInfoSection('Alasan', [
             _buildTextContent(cuti.alasan),
           ]),
 
@@ -398,19 +336,6 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
     );
   }
 
-  Color _getStatusColor(CutiStatus status) {
-    switch (status) {
-      case CutiStatus.pending:
-        return Colors.orange;
-      case CutiStatus.approved:
-        return Colors.green;
-      case CutiStatus.rejected:
-        return Colors.red;
-      case CutiStatus.cancelled:
-        return Colors.grey;
-    }
-  }
-
   Widget _buildErrorWidget(String message) {
     return Center(
       child: Column(
@@ -532,16 +457,15 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
               return;
             }
 
-            context.read<CutiBloc>().add(
-                  UpdateStatusCutiEvent(
-                    cutiId: cuti.id,
-                    status:
-                        isApproval ? CutiStatus.approved : CutiStatus.rejected,
-                    reviewerId: 'current_reviewer', // TODO: Get from auth
-                    reviewerName: 'Current Reviewer', // TODO: Get from auth
-                    umpanBalik: feedback,
-                  ),
-                );
+            _cutiBloc.add(
+              UpdateStatusCutiEvent(
+                cutiId: cuti.id,
+                status: isApproval ? CutiStatus.approved : CutiStatus.rejected,
+                reviewerId: 'current_reviewer', // TODO: Get from auth
+                reviewerName: 'Current Reviewer', // TODO: Get from auth
+                umpanBalik: feedback,
+              ),
+            );
 
             _feedbackController.clear();
             Navigator.of(context).pop();
