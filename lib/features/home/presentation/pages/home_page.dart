@@ -23,6 +23,8 @@ import '../../../patrol/presentation/bloc/patrol_bloc.dart';
 import '../../../patrol/domain/entities/patrol_route.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
 import '../../../profile/presentation/pages/profile_screen.dart';
+import '../../../test_result/presentation/pages/test_result_page.dart';
+import '../../../../core/constants/enums.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -222,6 +224,17 @@ class __HomePageViewState extends State<_HomePageView> {
                     'userRole':
                         state.navigationArguments?['userRole'] ?? 'anggota',
                   },
+                );
+                break;
+              case '/test-result':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TestResultPage(
+                      userId: state.navigationArguments?['userId'] ?? 'user_1',
+                      userRole: state.navigationArguments?['userRole'] as UserRole? ?? UserRole.anggota,
+                    ),
+                  ),
                 );
                 break;
               default:

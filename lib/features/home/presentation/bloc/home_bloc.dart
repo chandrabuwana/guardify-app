@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import '../../../../core/constants/enums.dart';
 import 'home_event.dart';
 import 'home_state.dart';
 
@@ -239,11 +240,30 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       NavigateToTestResultEvent event, Emitter<HomeState> emit) {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
+      // Determine role from position
+      final userRole = _getUserRoleFromPosition(currentState.userProfile.position);
+      
       emit(currentState.copyWith(
         snackbarMessage: 'Navigating to Hasil Ujian...',
         navigationRoute: '/test-result',
+        navigationArguments: {
+          'userId': 'user_1', // Mock user ID
+          'userRole': userRole,
+        },
       ));
     }
+  }
+  
+  UserRole _getUserRoleFromPosition(String position) {
+    // Simple mapping from position string to UserRole enum
+    if (position.toLowerCase().contains('pjo') || position.toLowerCase().contains('deputy')) {
+      return UserRole.pjo;
+    } else if (position.toLowerCase().contains('danton')) {
+      return UserRole.danton;
+    } else if (position.toLowerCase().contains('pengawas')) {
+      return UserRole.pengawas;
+    }
+    return UserRole.anggota;
   }
 
   void _onNavigateToLeaveRequest(

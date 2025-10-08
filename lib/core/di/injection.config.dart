@@ -100,6 +100,20 @@ import 'package:guardify_app/features/cuti/presentation/bloc/cuti_bloc.dart'
     as _i215;
 import 'package:guardify_app/features/home/presentation/bloc/home_bloc.dart'
     as _i890;
+import 'package:guardify_app/features/laporan_kegiatan/data/datasources/laporan_kegiatan_remote_data_source.dart'
+    as _i590;
+import 'package:guardify_app/features/laporan_kegiatan/data/repositories/laporan_kegiatan_repository_impl.dart'
+    as _i713;
+import 'package:guardify_app/features/laporan_kegiatan/domain/repositories/laporan_kegiatan_repository.dart'
+    as _i352;
+import 'package:guardify_app/features/laporan_kegiatan/domain/usecases/get_laporan_detail.dart'
+    as _i272;
+import 'package:guardify_app/features/laporan_kegiatan/domain/usecases/get_laporan_list.dart'
+    as _i970;
+import 'package:guardify_app/features/laporan_kegiatan/domain/usecases/update_status_laporan.dart'
+    as _i189;
+import 'package:guardify_app/features/laporan_kegiatan/presentation/bloc/laporan_kegiatan_bloc.dart'
+    as _i945;
 import 'package:guardify_app/features/panic_button/data/datasources/panic_button_datasource.dart'
     as _i460;
 import 'package:guardify_app/features/panic_button/data/datasources/panic_button_local_datasource.dart'
@@ -160,6 +174,20 @@ import 'package:guardify_app/features/profile/domain/usecases/update_profile_pho
     as _i508;
 import 'package:guardify_app/features/profile/presentation/bloc/profile_bloc.dart'
     as _i641;
+import 'package:guardify_app/features/test_result/data/datasources/test_result_remote_data_source.dart'
+    as _i652;
+import 'package:guardify_app/features/test_result/data/repositories/test_result_repository_impl.dart'
+    as _i717;
+import 'package:guardify_app/features/test_result/domain/repositories/test_result_repository.dart'
+    as _i422;
+import 'package:guardify_app/features/test_result/domain/usecases/get_member_test_results_usecase.dart'
+    as _i930;
+import 'package:guardify_app/features/test_result/domain/usecases/get_my_test_results_usecase.dart'
+    as _i743;
+import 'package:guardify_app/features/test_result/domain/usecases/get_test_summary_usecase.dart'
+    as _i227;
+import 'package:guardify_app/features/test_result/presentation/bloc/test_result_bloc.dart'
+    as _i1060;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 
@@ -186,6 +214,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i1020.ProfileRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i460.PanicButtonDataSource>(
         () => _i754.PanicButtonLocalDataSource());
+    gh.lazySingleton<_i652.TestResultRemoteDataSource>(
+        () => _i652.TestResultRemoteDataSourceImpl());
     gh.lazySingleton<_i228.PanicButtonRepository>(() =>
         _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
     gh.lazySingleton<_i783.CutiRemoteDataSource>(
@@ -196,6 +226,11 @@ extension GetItInjectableX on _i174.GetIt {
         _i491.ActivatePanicButtonUseCase(gh<_i228.PanicButtonRepository>()));
     gh.factory<_i4.GetVerificationItemsUseCase>(() =>
         _i4.GetVerificationItemsUseCase(gh<_i228.PanicButtonRepository>()));
+    gh.lazySingleton<_i590.LaporanKegiatanRemoteDataSource>(
+        () => _i590.LaporanKegiatanRemoteDataSourceImpl());
+    gh.lazySingleton<_i422.TestResultRepository>(() =>
+        _i717.TestResultRepositoryImpl(
+            remoteDataSource: gh<_i652.TestResultRemoteDataSource>()));
     gh.lazySingleton<_i220.ProfileRemoteDataSource>(
       () => _i945.ProfileRemoteDataSourceMock(),
       instanceName: 'mock',
@@ -210,6 +245,15 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i369.PatrolRepositoryImpl(gh<_i1037.PatrolRemoteDataSource>()));
     gh.lazySingleton<_i895.ProfileLocalDataSource>(
         () => _i895.ProfileLocalDataSourceImpl(gh<_i460.SharedPreferences>()));
+    gh.factory<_i930.GetMemberTestResultsUseCase>(() =>
+        _i930.GetMemberTestResultsUseCase(gh<_i422.TestResultRepository>()));
+    gh.factory<_i743.GetMyTestResultsUseCase>(
+        () => _i743.GetMyTestResultsUseCase(gh<_i422.TestResultRepository>()));
+    gh.factory<_i227.GetTestSummaryUseCase>(
+        () => _i227.GetTestSummaryUseCase(gh<_i422.TestResultRepository>()));
+    gh.lazySingleton<_i352.LaporanKegiatanRepository>(() =>
+        _i713.LaporanKegiatanRepositoryImpl(
+            remoteDataSource: gh<_i590.LaporanKegiatanRemoteDataSource>()));
     gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
         () => _i109.AttendanceRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i893.PanicButtonBloc>(() => _i893.PanicButtonBloc(
@@ -227,6 +271,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1007.AttendanceLocalDataSource>(() =>
         _i1007.AttendanceLocalDataSourceImpl(
             sharedPreferences: gh<_i460.SharedPreferences>()));
+    gh.factory<_i1060.TestResultBloc>(() => _i1060.TestResultBloc(
+          getMyResultsUseCase: gh<_i743.GetMyTestResultsUseCase>(),
+          getMemberResultsUseCase: gh<_i930.GetMemberTestResultsUseCase>(),
+          getSummaryUseCase: gh<_i227.GetTestSummaryUseCase>(),
+        ));
     gh.factory<_i814.BMIRepository>(
         () => _i989.BMIRepositoryImpl(gh<_i826.BMILocalDataSource>()));
     gh.lazySingleton<_i695.DocumentRepository>(
@@ -234,6 +283,12 @@ extension GetItInjectableX on _i174.GetIt {
               remoteDataSource: gh<_i125.DocumentRemoteDataSource>(),
               localDataSource: gh<_i313.DocumentLocalDataSource>(),
             ));
+    gh.factory<_i272.GetLaporanDetail>(
+        () => _i272.GetLaporanDetail(gh<_i352.LaporanKegiatanRepository>()));
+    gh.factory<_i970.GetLaporanList>(
+        () => _i970.GetLaporanList(gh<_i352.LaporanKegiatanRepository>()));
+    gh.factory<_i189.UpdateStatusLaporan>(
+        () => _i189.UpdateStatusLaporan(gh<_i352.LaporanKegiatanRepository>()));
     gh.factory<_i264.GetProfileDetailsUseCase>(
         () => _i264.GetProfileDetailsUseCase(gh<_i252.ProfileRepository>()));
     gh.factory<_i936.LogoutUseCase>(
@@ -333,6 +388,11 @@ extension GetItInjectableX on _i174.GetIt {
           updateProfilePhotoUseCase: gh<_i508.UpdateProfilePhotoUseCase>(),
           logoutUseCase: gh<_i936.LogoutUseCase>(),
           profileRepository: gh<_i252.ProfileRepository>(),
+        ));
+    gh.factory<_i945.LaporanKegiatanBloc>(() => _i945.LaporanKegiatanBloc(
+          getLaporanList: gh<_i970.GetLaporanList>(),
+          getLaporanDetail: gh<_i272.GetLaporanDetail>(),
+          updateStatusLaporan: gh<_i189.UpdateStatusLaporan>(),
         ));
     gh.factory<_i849.PatrolAttendanceBloc>(() => _i849.PatrolAttendanceBloc(
           submitAttendance: gh<_i861.SubmitAttendance>(),
