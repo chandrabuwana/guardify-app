@@ -1,13 +1,16 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/utils/validators.dart' as validator;
+import '../../domain/usecases/login_use_case.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
 
 @injectable
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  AuthBloc() : super(AuthState.initial()) {
+  final LoginUseCase loginUseCase;
+  
+  AuthBloc(this.loginUseCase) : super(AuthState.initial()) {
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthLogoutRequested>(_onLogoutRequested);
@@ -30,20 +33,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      // Temporary mock implementation
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Mock successful login with demo user
-      final user = User(
-        id: '1',
-        email: event.email,
-        name: 'Demo User',
-        phoneNumber: null,
+      // Call login use case dengan username (NRP)
+      final result = await loginUseCase(
+        username: event.email, // event.email sebenarnya berisi NRP
+        password: event.password,
       );
 
-      emit(AuthState.authenticated(user));
+      if (result.isSuccess && result.token != null) {
+        // Login berhasil, token sudah otomatis tersimpan di secure storage
+        // Buat user object dari data yang tersedia
+        // Note: User data sebenarnya ada di result tapi LoginResult hanya return token
+        // Untuk sekarang gunakan data dari token atau buat placeholder
+        final user = User(
+          id: 'user_id', // TODO: Parse dari JWT token
+          email: event.email, // event.email berisi NRP
+          name: 'User', // TODO: Get dari API response
+          phoneNumber: null,
+        );
+
+        emit(AuthState.authenticated(user));
+      } else {
+        // Login gagal
+        final errorMessage = result.failure?.message ?? 'Login gagal';
+        
+        // Emit error state dengan message
+        emit(AuthState.error(errorMessage));
+      }
     } catch (e) {
-      emit(AuthState.error('Login failed: ${e.toString()}'));
+      emit(AuthState.error('Terjadi kesalahan: ${e.toString()}'));
     }
   }
 

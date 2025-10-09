@@ -46,13 +46,61 @@ class _LoginPageState extends State<LoginPage> {
     Navigator.pushNamed(context, '/reset-password');
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: primaryColor,
-      ),
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 28.sp,
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TS.titleLarge.copyWith(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: TS.bodyLarge.copyWith(
+              color: neutral70,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: Text(
+                'OK',
+                style: TS.labelLarge.copyWith(
+                  color: primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -64,7 +112,11 @@ class _LoginPageState extends State<LoginPage> {
           if (state.status == AuthStatus.authenticated) {
             Navigator.pushReplacementNamed(context, '/home');
           } else if (state.status == AuthStatus.error) {
-            _showMessage(state.errorMessage ?? 'Login gagal');
+            // Tampilkan popup dialog untuk error
+            _showErrorDialog(
+              'Login Gagal',
+              state.errorMessage ?? 'Terjadi kesalahan saat login. Silakan coba lagi.',
+            );
           }
         },
         child: Container(

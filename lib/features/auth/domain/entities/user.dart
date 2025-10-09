@@ -8,6 +8,8 @@ class User {
   final bool isBiometricEnabled;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
+  final String? username;
+  final List<String>? roles;
 
   const User({
     required this.id,
@@ -19,6 +21,8 @@ class User {
     required this.isBiometricEnabled,
     required this.createdAt,
     this.lastLoginAt,
+    this.username,
+    this.roles,
   });
 
   User copyWith({
@@ -31,6 +35,8 @@ class User {
     bool? isBiometricEnabled,
     DateTime? createdAt,
     DateTime? lastLoginAt,
+    String? username,
+    List<String>? roles,
   }) {
     return User(
       id: id ?? this.id,
@@ -42,6 +48,8 @@ class User {
       isBiometricEnabled: isBiometricEnabled ?? this.isBiometricEnabled,
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      username: username ?? this.username,
+      roles: roles ?? this.roles,
     );
   }
 
@@ -57,7 +65,8 @@ class User {
         other.isEmailVerified == isEmailVerified &&
         other.isBiometricEnabled == isBiometricEnabled &&
         other.createdAt == createdAt &&
-        other.lastLoginAt == lastLoginAt;
+        other.lastLoginAt == lastLoginAt &&
+        other.username == username;
   }
 
   @override
@@ -72,11 +81,12 @@ class User {
       isBiometricEnabled,
       createdAt,
       lastLoginAt,
+      username,
     );
   }
 
   @override
   String toString() {
-    return 'User(id: $id, email: $email, name: $name, phoneNumber: $phoneNumber, profileImageUrl: $profileImageUrl, isEmailVerified: $isEmailVerified, isBiometricEnabled: $isBiometricEnabled, createdAt: $createdAt, lastLoginAt: $lastLoginAt)';
+    return 'User(id: $id, email: $email, name: $name, phoneNumber: $phoneNumber, profileImageUrl: $profileImageUrl, isEmailVerified: $isEmailVerified, isBiometricEnabled: $isBiometricEnabled, createdAt: $createdAt, lastLoginAt: $lastLoginAt, username: $username, roles: $roles)';
   }
 }
