@@ -46,6 +46,10 @@ class _LoginPageState extends State<LoginPage> {
     Navigator.pushNamed(context, '/reset-password');
   }
 
+  void _onRegisterPressed() {
+    Navigator.pushNamed(context, '/register');
+  }
+
   void _showErrorDialog(String title, String message) {
     showDialog(
       context: context,
@@ -318,7 +322,39 @@ class _LoginPageState extends State<LoginPage> {
                                   },
                                 ),
 
-                                40.verticalSpace,
+                                20.verticalSpace,
+
+                                // Register Link
+                                Center(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Don\'t have an account? ',
+                                        style: TS.bodyMedium.copyWith(
+                                          color: neutral70,
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: _onRegisterPressed,
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        child: Text(
+                                          'Register',
+                                          style: TS.bodyMedium.copyWith(
+                                            color: primaryColor,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                16.verticalSpace,
                               ],
                             ),
                           ),
