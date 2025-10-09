@@ -12,6 +12,7 @@ class AppConstants {
   static const String tokenKey = 'token_guardify';
   static const String refreshTokenKey = 'refresh_token';
   static const String userDataKey = 'user_data';
+  static const String userIdKey = 'user_id';
   static const String biometricEnabledKey = 'biometric_enabled';
   static const String pinKey = 'user_pin';
 

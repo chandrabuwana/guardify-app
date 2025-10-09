@@ -48,6 +48,12 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
         data.refreshToken,
       );
 
+      // Save user ID to secure storage for profile API
+      await SecurityManager.storeSecurely(
+        AppConstants.userIdKey,
+        data.user.id,
+      );
+
       // Create use case AuthToken from entity
       final useCaseToken = AuthToken(
         accessToken: token.accessToken,
@@ -99,9 +105,10 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
   @override
   Future<LogoutResult> logout() async {
     try {
-      // Clear tokens from secure storage
+      // Clear tokens and user ID from secure storage
       await SecurityManager.deleteSecurely(AppConstants.tokenKey);
       await SecurityManager.deleteSecurely(AppConstants.refreshTokenKey);
+      await SecurityManager.deleteSecurely(AppConstants.userIdKey);
       return LogoutResult.success();
     } catch (e) {
       return LogoutResult.failure(
