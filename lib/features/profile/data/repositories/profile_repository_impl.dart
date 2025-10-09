@@ -4,21 +4,32 @@ import '../../domain/repositories/profile_repository.dart';
 import '../datasources/profile_remote_datasource.dart';
 import '../datasources/profile_local_datasource.dart';
 import '../models/profile_user_model.dart';
+import '../../../auth/domain/repositories/auth_repository.dart' as auth;
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/security/security_manager.dart';
 
 /// Implementation repository untuk Profile
 @LazySingleton(as: ProfileRepository)
 class ProfileRepositoryImpl implements ProfileRepository {
   final ProfileRemoteDataSource remoteDataSource;
   final ProfileLocalDataSource localDataSource;
+  final auth.AuthRepository authRepository;
 
   ProfileRepositoryImpl({
     @Named('mock') required this.remoteDataSource, // Using mock for now since API is not ready
     required this.localDataSource,
+    required this.authRepository,
   });
 
   @override
   Future<ProfileUser> getProfileDetails(String userId) async {
     try {
+      // Check session validity dulu sebelum load profile
+      final isValid = await isSessionValid();
+      if (!isValid) {
+        throw Exception('Session tidak valid atau token tidak ditemukan. Silakan login kembali.');
+      }
+      
       // Coba ambil dari cache terlebih dahulu
       final cachedProfile = await localDataSource.getCachedProfileData(userId);
       
@@ -106,16 +117,37 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<void> logout() async {
     try {
-      // Logout dari remote
-      await remoteDataSource.logout();
+      // Logout menggunakan AuthRepository (akan clear token dengan key "token_guardify")
+      final logoutResult = await authRepository.logout();
       
-      // Clear semua data lokal
+      if (!logoutResult.isSuccess) {
+        // Tetap lanjutkan clear data lokal
+        print('Auth logout failed but continuing with local cleanup');
+      }
+      
+      // Clear data lokal profile
       await localDataSource.clearAuthToken();
       await localDataSource.clearCachedProfileData();
+      
+      // Logout dari remote profile service jika ada
+      try {
+        await remoteDataSource.logout();
+      } catch (e) {
+        // Ignore remote logout error
+        print('Remote profile logout failed: $e');
+      }
     } catch (e) {
-      // Tetap clear data lokal meskipun remote logout gagal
+      // Tetap clear semua data lokal meskipun terjadi error
       await localDataSource.clearAuthToken();
       await localDataSource.clearCachedProfileData();
+      
+      // Pastikan token guardify juga terhapus
+      try {
+        await SecurityManager.deleteSecurely(AppConstants.tokenKey);
+        await SecurityManager.deleteSecurely(AppConstants.refreshTokenKey);
+      } catch (securityError) {
+        print('Failed to clear secure tokens: $securityError');
+      }
       
       throw Exception('Logout berhasil, namun terjadi error: $e');
     }
@@ -124,8 +156,26 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<bool> isSessionValid() async {
     try {
-      return await localDataSource.isLoggedIn();
+      // Check apakah token guardify ada dan valid
+      final hasValidToken = await authRepository.hasValidToken();
+      
+      if (!hasValidToken) {
+        // Token tidak ada atau tidak valid, auto logout
+        print('Token not found or invalid, auto logout');
+        try {
+          await logout();
+        } catch (e) {
+          print('Error during auto logout: $e');
+        }
+        return false;
+      }
+      
+      // Check local login status
+      final isLoggedInLocally = await localDataSource.isLoggedIn();
+      
+      return hasValidToken && isLoggedInLocally;
     } catch (e) {
+      print('Error checking session validity: $e');
       return false;
     }
   }
@@ -133,15 +183,26 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<String?> getCurrentUserId() async {
     try {
-      // TODO: Implement logic untuk mendapatkan current user ID
-      // Bisa dari auth token atau cached user data
-      final token = await localDataSource.getAuthToken();
-      if (token != null) {
-        // Parse user ID dari token atau implementasi lainnya
-        return 'current_user_id'; // Replace dengan implementasi sebenarnya
+      // Check if token exists
+      final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
+      
+      if (token == null) {
+        // Token tidak ada, auto logout
+        print('Token not found, triggering auto logout');
+        try {
+          await logout();
+        } catch (e) {
+          print('Error during auto logout: $e');
+        }
+        return null;
       }
-      return null;
+      
+      // TODO: Parse user ID dari JWT token
+      // Untuk sementara return placeholder
+      // Implementasi parsing JWT bisa ditambahkan nanti
+      return 'current_user_id';
     } catch (e) {
+      print('Error getting current user ID: $e');
       return null;
     }
   }
