@@ -78,6 +78,24 @@ class ProfileScreenView extends StatelessWidget {
             );
           }
 
+          // Handle delete account success
+          if (state is DeleteAccountSuccess) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/login',
+              (route) => false,
+            );
+          }
+
+          // Handle delete account failure
+          if (state is DeleteAccountFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+
           // Handle profile update success
           if (state is ProfileUpdateSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -101,6 +119,11 @@ class ProfileScreenView extends StatelessWidget {
           // Show logout confirmation dialog
           if (state is ProfileLoaded && state.showLogoutConfirmation) {
             _showLogoutConfirmationDialog(context);
+          }
+
+          // Show delete account confirmation dialog
+          if (state is ProfileLoaded && state.showDeleteAccountConfirmation) {
+            _showDeleteAccountConfirmationDialog(context);
           }
         },
         builder: (context, state) {
@@ -206,6 +229,16 @@ class ProfileScreenView extends StatelessWidget {
                                 onTap: () => _showLogoutConfirmation(context),
                               ),
 
+                              SizedBox(height: 16.h),
+
+                              // Menu Hapus Akun
+                              ProfileMenuItem(
+                                icon: Icons.delete_forever,
+                                title: 'Hapus Akun',
+                                titleColor: Colors.red[700],
+                                onTap: () => _showDeleteAccountConfirmation(context),
+                              ),
+
                               const Spacer(),
                             ],
                           ),
@@ -294,6 +327,37 @@ class ProfileScreenView extends StatelessWidget {
         onCancel: () {
           Navigator.of(dialogContext).pop();
           context.read<ProfileBloc>().add(const HideLogoutConfirmationEvent());
+        },
+      ),
+    );
+  }
+
+  /// Show delete account confirmation
+  void _showDeleteAccountConfirmation(BuildContext context) {
+    context.read<ProfileBloc>().add(const ShowDeleteAccountConfirmationEvent());
+  }
+
+  /// Show delete account confirmation dialog
+  void _showDeleteAccountConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => ConfirmDialog(
+        title: 'Hapus Akun Permanen?',
+        message:
+            'Tindakan ini tidak dapat dibatalkan. Semua data Anda akan dihapus secara permanen dan Anda tidak akan bisa mengakses akun ini lagi.',
+        confirmText: 'Hapus Akun',
+        cancelText: 'Batal',
+        icon: Icons.delete_forever,
+        iconColor: Colors.red[700]!,
+        isDestructive: true,
+        onConfirm: () {
+          Navigator.of(dialogContext).pop();
+          context.read<ProfileBloc>().add(const DeleteAccountEvent());
+        },
+        onCancel: () {
+          Navigator.of(dialogContext).pop();
+          context.read<ProfileBloc>().add(const HideDeleteAccountConfirmationEvent());
         },
       ),
     );

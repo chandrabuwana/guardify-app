@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/register_page.dart';
 import 'features/auth/presentation/pages/reset_password_page.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/panic_button/presentation/pages/panic_verification_page.dart';
@@ -66,6 +67,10 @@ class GuardifyApp extends StatelessWidget {
             '/login': (context) => BlocProvider(
                   create: (context) => getIt<AuthBloc>(),
                   child: const LoginPage(),
+                ),
+            '/register': (context) => BlocProvider(
+                  create: (context) => getIt<AuthBloc>(),
+                  child: const RegisterPage(),
                 ),
             '/reset-password': (context) => BlocProvider(
                   create: (context) => getIt<AuthBloc>(),

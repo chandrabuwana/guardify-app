@@ -97,3 +97,18 @@ class ShowLogoutConfirmationEvent extends ProfileEvent {
 class HideLogoutConfirmationEvent extends ProfileEvent {
   const HideLogoutConfirmationEvent();
 }
+
+/// Event untuk hapus akun
+class DeleteAccountEvent extends ProfileEvent {
+  const DeleteAccountEvent();
+}
+
+/// Event untuk show delete account confirmation dialog
+class ShowDeleteAccountConfirmationEvent extends ProfileEvent {
+  const ShowDeleteAccountConfirmationEvent();
+}
+
+/// Event untuk hide delete account confirmation dialog
+class HideDeleteAccountConfirmationEvent extends ProfileEvent {
+  const HideDeleteAccountConfirmationEvent();
+}

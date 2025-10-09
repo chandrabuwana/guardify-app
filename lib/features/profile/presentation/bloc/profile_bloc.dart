@@ -39,6 +39,9 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<LogoutEvent>(_onLogout);
     on<ShowLogoutConfirmationEvent>(_onShowLogoutConfirmation);
     on<HideLogoutConfirmationEvent>(_onHideLogoutConfirmation);
+    on<DeleteAccountEvent>(_onDeleteAccount);
+    on<ShowDeleteAccountConfirmationEvent>(_onShowDeleteAccountConfirmation);
+    on<HideDeleteAccountConfirmationEvent>(_onHideDeleteAccountConfirmation);
   }
 
   /// Handler untuk load profile event
@@ -242,6 +245,45 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final currentState = state;
     if (currentState is ProfileLoaded) {
       emit(currentState.copyWith(showLogoutConfirmation: false));
+    }
+  }
+
+  /// Handler untuk delete account event
+  Future<void> _onDeleteAccount(
+    DeleteAccountEvent event,
+    Emitter<ProfileState> emit,
+  ) async {
+    emit(const DeleteAccountInProgress());
+    
+    try {
+      // TODO: Implement actual delete account logic when API is ready
+      // For now, just simulate with logout
+      await logoutUseCase();
+      emit(const DeleteAccountSuccess());
+    } catch (e) {
+      emit(DeleteAccountFailure(e.toString()));
+    }
+  }
+
+  /// Handler untuk show delete account confirmation
+  void _onShowDeleteAccountConfirmation(
+    ShowDeleteAccountConfirmationEvent event,
+    Emitter<ProfileState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is ProfileLoaded) {
+      emit(currentState.copyWith(showDeleteAccountConfirmation: true));
+    }
+  }
+
+  /// Handler untuk hide delete account confirmation
+  void _onHideDeleteAccountConfirmation(
+    HideDeleteAccountConfirmationEvent event,
+    Emitter<ProfileState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is ProfileLoaded) {
+      emit(currentState.copyWith(showDeleteAccountConfirmation: false));
     }
   }
 }

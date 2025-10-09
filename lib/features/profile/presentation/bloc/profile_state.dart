@@ -23,23 +23,27 @@ class ProfileLoading extends ProfileState {
 class ProfileLoaded extends ProfileState {
   final ProfileUser profile;
   final bool showLogoutConfirmation;
+  final bool showDeleteAccountConfirmation;
 
   const ProfileLoaded({
     required this.profile,
     this.showLogoutConfirmation = false,
+    this.showDeleteAccountConfirmation = false,
   });
 
   @override
-  List<Object?> get props => [profile, showLogoutConfirmation];
+  List<Object?> get props => [profile, showLogoutConfirmation, showDeleteAccountConfirmation];
 
   /// Copy with method untuk update state
   ProfileLoaded copyWith({
     ProfileUser? profile,
     bool? showLogoutConfirmation,
+    bool? showDeleteAccountConfirmation,
   }) {
     return ProfileLoaded(
       profile: profile ?? this.profile,
       showLogoutConfirmation: showLogoutConfirmation ?? this.showLogoutConfirmation,
+      showDeleteAccountConfirmation: showDeleteAccountConfirmation ?? this.showDeleteAccountConfirmation,
     );
   }
 }
@@ -162,4 +166,24 @@ class ProfileError extends ProfileState {
 
   @override
   List<Object?> get props => [message, errorCode];
+}
+
+/// State ketika sedang proses hapus akun
+class DeleteAccountInProgress extends ProfileState {
+  const DeleteAccountInProgress();
+}
+
+/// State ketika hapus akun berhasil
+class DeleteAccountSuccess extends ProfileState {
+  const DeleteAccountSuccess();
+}
+
+/// State ketika hapus akun gagal
+class DeleteAccountFailure extends ProfileState {
+  final String errorMessage;
+
+  const DeleteAccountFailure(this.errorMessage);
+
+  @override
+  List<Object?> get props => [errorMessage];
 }
