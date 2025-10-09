@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../models/profile_user_model.dart';
+import '../models/user_api_response_model.dart';
 import 'profile_remote_datasource.dart';
 
 /// Implementation remote data source untuk Profile menggunakan Dio
@@ -13,10 +14,19 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<ProfileUserModel> getProfileDetails(String userId) async {
     try {
-      final response = await _dio.get('/api/v1/profile/$userId');
+      // Menggunakan endpoint User API yang benar
+      final response = await _dio.get('/User/get/$userId');
       
       if (response.statusCode == 200) {
-        return ProfileUserModel.fromJson(response.data['data']);
+        // Parse response menggunakan UserApiResponseModel
+        final apiResponse = UserApiResponseModel.fromJson(response.data);
+        
+        if (!apiResponse.succeeded || apiResponse.data == null) {
+          throw Exception(apiResponse.message);
+        }
+        
+        // Convert dari UserApiDataModel ke ProfileUserModel
+        return apiResponse.data!.toProfileUserModel();
       } else {
         throw Exception('Failed to load profile: ${response.statusMessage}');
       }

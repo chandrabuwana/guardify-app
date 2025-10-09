@@ -25,6 +25,8 @@ import '../../../patrol/domain/entities/patrol_location.dart';
 import '../../../profile/presentation/pages/profile_screen.dart';
 import '../../../test_result/presentation/pages/test_result_page.dart';
 import '../../../../core/constants/enums.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/security/security_manager.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -715,14 +717,30 @@ class __HomePageViewState extends State<_HomePageView> {
   }
 
   /// Navigate to Profile screen when profile avatar is tapped
-  /// Using mock data since API is not ready yet
-  void _navigateToProfile(BuildContext context, UserProfile userProfile) {
+  void _navigateToProfile(BuildContext context, UserProfile userProfile) async {
+    // Get user ID from secure storage
+    final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+    
+    if (!context.mounted) return;
+    
+    if (userId == null || userId.isEmpty) {
+      // If no user ID, show error and logout
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User ID tidak ditemukan. Silakan login kembali.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      // Navigate to login
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      return;
+    }
+    
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ProfileScreen(
-          userId:
-              'user_123', // Mock user ID - will load mock data from ProfileMockData
+        builder: (context) => ProfileScreen(
+          userId: userId, // Real user ID from secure storage
         ),
       ),
     );

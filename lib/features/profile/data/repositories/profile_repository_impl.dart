@@ -16,7 +16,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   final auth.AuthRepository authRepository;
 
   ProfileRepositoryImpl({
-    @Named('mock') required this.remoteDataSource, // Using mock for now since API is not ready
+    required this.remoteDataSource, // Using real API now
     required this.localDataSource,
     required this.authRepository,
   });
@@ -24,12 +24,6 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<ProfileUser> getProfileDetails(String userId) async {
     try {
-      // Check session validity dulu sebelum load profile
-      final isValid = await isSessionValid();
-      if (!isValid) {
-        throw Exception('Session tidak valid atau token tidak ditemukan. Silakan login kembali.');
-      }
-      
       // Coba ambil dari cache terlebih dahulu
       final cachedProfile = await localDataSource.getCachedProfileData(userId);
       
@@ -160,13 +154,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
       final hasValidToken = await authRepository.hasValidToken();
       
       if (!hasValidToken) {
-        // Token tidak ada atau tidak valid, auto logout
-        print('Token not found or invalid, auto logout');
-        try {
-          await logout();
-        } catch (e) {
-          print('Error during auto logout: $e');
-        }
+        print('Token not found or invalid');
         return false;
       }
       
@@ -183,12 +171,12 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<String?> getCurrentUserId() async {
     try {
-      // Check if token exists
-      final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
+      // Get user ID dari secure storage
+      final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
       
-      if (token == null) {
-        // Token tidak ada, auto logout
-        print('Token not found, triggering auto logout');
+      if (userId == null) {
+        // User ID tidak ada, auto logout
+        print('User ID not found, triggering auto logout');
         try {
           await logout();
         } catch (e) {
@@ -197,10 +185,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
         return null;
       }
       
-      // TODO: Parse user ID dari JWT token
-      // Untuk sementara return placeholder
-      // Implementasi parsing JWT bisa ditambahkan nanti
-      return 'current_user_id';
+      return userId;
     } catch (e) {
       print('Error getting current user ID: $e');
       return null;

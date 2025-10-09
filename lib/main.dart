@@ -93,7 +93,7 @@ class GuardifyApp extends StatelessWidget {
                   child: const PanicConfirmationPage(),
                 ),
             '/profile': (context) {
-              // Get user ID from arguments or use default
+              // Get user ID from arguments or secure storage
               final arguments = ModalRoute.of(context)?.settings.arguments
                   as Map<String, dynamic>?;
               final String userId = arguments?['userId'] ?? 'current_user';

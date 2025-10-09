@@ -320,12 +320,6 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i861.SubmitAttendance(gh<_i824.PatrolRepository>()));
     gh.factory<_i9.VerifyLocation>(
         () => _i9.VerifyLocation(gh<_i824.PatrolRepository>()));
-    gh.lazySingleton<_i252.ProfileRepository>(() => _i422.ProfileRepositoryImpl(
-          remoteDataSource:
-              gh<_i220.ProfileRemoteDataSource>(instanceName: 'mock'),
-          localDataSource: gh<_i895.ProfileLocalDataSource>(),
-          authRepository: gh<_i144.AuthRepository>(),
-        ));
     gh.factory<_i551.LoginUseCase>(
         () => _i551.LoginUseCase(gh<_i551.LoginRepository>()));
     gh.factory<_i179.DownloadDocumentUseCase>(
@@ -349,6 +343,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
           getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
           getPatrolProgress: gh<_i820.GetPatrolProgress>(),
+        ));
+    gh.lazySingleton<_i252.ProfileRepository>(() => _i422.ProfileRepositoryImpl(
+          remoteDataSource: gh<_i220.ProfileRemoteDataSource>(),
+          localDataSource: gh<_i895.ProfileLocalDataSource>(),
+          authRepository: gh<_i144.AuthRepository>(),
         ));
     gh.factory<_i311.AttendanceRepository>(() => _i289.AttendanceRepositoryImpl(
           remoteDataSource: gh<_i109.AttendanceRemoteDataSource>(),

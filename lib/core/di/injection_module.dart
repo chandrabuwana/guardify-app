@@ -6,6 +6,7 @@ import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/login_use_case.dart';
 import '../constants/app_constants.dart';
+import '../security/security_manager.dart';
 
 /// Injection Module - Centralized Dependency Registration
 /// Semua dependencies diregister di sini untuk memudahkan maintenance
@@ -44,7 +45,21 @@ abstract class InjectionModule {
       'Accept': 'application/json',
     };
     
-    // Interceptors (optional: untuk logging, auth token, dll)
+    // Add Auth Token Interceptor
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          // Add authentication token from secure storage
+          final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          handler.next(options);
+        },
+      ),
+    );
+    
+    // Logging Interceptor (for debugging)
     dio.interceptors.add(
       LogInterceptor(
         requestBody: true,
