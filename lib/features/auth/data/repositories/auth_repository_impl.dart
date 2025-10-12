@@ -32,7 +32,7 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
       }
 
       final data = response.data!;
-      
+
       // Convert to entities
       final token = data.authToken.toEntity();
 
@@ -54,6 +54,30 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
         data.user.id,
       );
 
+      // Save username to secure storage
+      await SecurityManager.storeSecurely(
+        'user_username',
+        data.user.username,
+      );
+
+      // Save full name to secure storage
+      await SecurityManager.storeSecurely(
+        'user_fullname',
+        data.user.fullName,
+      );
+
+      // Save primary role ID to secure storage
+      await SecurityManager.storeSecurely(
+        'user_role_id',
+        data.user.primaryRoleId,
+      );
+
+      // Save primary role name to secure storage
+      await SecurityManager.storeSecurely(
+        'user_role_name',
+        data.user.primaryRoleName,
+      );
+
       // Create use case AuthToken from entity
       final useCaseToken = AuthToken(
         accessToken: token.accessToken,
@@ -63,11 +87,21 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
         issuedAt: token.issuedAt,
       );
 
-      return LoginResult.success(useCaseToken);
+      // Create LoginUser from response
+      final loginUser = LoginUser(
+        id: data.user.id,
+        username: data.user.username,
+        fullName: data.user.fullName,
+        email: data.user.mail,
+        roleIds: data.user.role.map((r) => r.id).toList(),
+        roleNames: data.user.role.map((r) => r.nama).toList(),
+      );
+
+      return LoginResult.success(useCaseToken, loginUser);
     } on DioException catch (e) {
       // Tangkap semua DioException (termasuk error 404, 400, 401, 403)
       final statusCode = e.response?.statusCode;
-      
+
       // Semua error authentication (4xx) tampilkan pesan yang sama
       // Untuk keamanan dan UX yang lebih baik
       if (statusCode != null && statusCode >= 400 && statusCode < 500) {
@@ -75,7 +109,7 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
           AuthenticationFailure('Username atau password salah'),
         );
       }
-      
+
       // Error server (5xx) atau network error
       return LoginResult.failure(
         ServerFailure('Terjadi kesalahan pada server. Silakan coba lagi.'),
@@ -105,10 +139,14 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
   @override
   Future<LogoutResult> logout() async {
     try {
-      // Clear tokens and user ID from secure storage
+      // Clear tokens and user data from secure storage
       await SecurityManager.deleteSecurely(AppConstants.tokenKey);
       await SecurityManager.deleteSecurely(AppConstants.refreshTokenKey);
       await SecurityManager.deleteSecurely(AppConstants.userIdKey);
+      await SecurityManager.deleteSecurely('user_username');
+      await SecurityManager.deleteSecurely('user_fullname');
+      await SecurityManager.deleteSecurely('user_role_id');
+      await SecurityManager.deleteSecurely('user_role_name');
       return LogoutResult.success();
     } catch (e) {
       return LogoutResult.failure(

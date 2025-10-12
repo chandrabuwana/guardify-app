@@ -146,21 +146,43 @@ class LoginUseCase {
   }
 }
 
+// User data from login
+class LoginUser {
+  final String id;
+  final String username;
+  final String fullName;
+  final String email;
+  final List<String> roleIds;
+  final List<String> roleNames;
+
+  const LoginUser({
+    required this.id,
+    required this.username,
+    required this.fullName,
+    required this.email,
+    required this.roleIds,
+    required this.roleNames,
+  });
+}
+
 // Login Result
 class LoginResult {
   final AuthToken? token;
+  final LoginUser? user;
   final Failure? failure;
   final bool isSuccess;
 
   const LoginResult._({
     this.token,
+    this.user,
     this.failure,
     required this.isSuccess,
   });
 
-  factory LoginResult.success(AuthToken token) {
+  factory LoginResult.success(AuthToken token, LoginUser user) {
     return LoginResult._(
       token: token,
+      user: user,
       isSuccess: true,
     );
   }

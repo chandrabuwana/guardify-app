@@ -1,25 +1,29 @@
 /// Global enums used across the application
 
 /// Enum untuk role/jabatan user dalam sistem
+/// ID sesuai dengan database: ADM, AGT, DPT, PGW, PJO
 enum UserRole {
+  /// Admin
+  admin('ADM', 'Admin'),
+
   /// Anggota biasa
-  anggota('anggota', 'Anggota'),
+  anggota('AGT', 'Anggota'),
 
-  /// Komandan Regu (Danton)
-  danton('danton', 'Danton'),
-
-  /// Petugas Jaga (PJO)
-  pjo('pjo', 'PJO'),
-
-  /// Wakil/Deputy
-  deputy('deputy', 'Deputy'),
+  /// Deputy/Wakil
+  deputy('DPT', 'Deputy'),
 
   /// Pengawas
-  pengawas('pengawas', 'Pengawas');
+  pengawas('PGW', 'Pengawas'),
+
+  /// Petugas Jaga (PJO)
+  pjo('PJO', 'PJO'),
+
+  /// Komandan Regu (Danton) - kept for backward compatibility
+  danton('danton', 'Danton');
 
   const UserRole(this.value, this.displayName);
 
-  /// Value untuk database/API
+  /// Value untuk database/API (ID dari database)
   final String value;
 
   /// Nama yang ditampilkan ke user
@@ -31,7 +35,7 @@ enum UserRole {
   /// Check apakah role memiliki akses tingkat tinggi (non-anggota)
   bool get isHighAccess => !isAnggota;
 
-  /// Get role berdasarkan value string
+  /// Get role berdasarkan value string (ID dari database)
   static UserRole fromValue(String value) {
     return UserRole.values.firstWhere(
       (role) => role.value == value,
@@ -41,6 +45,7 @@ enum UserRole {
 
   /// Get semua role dengan akses tinggi (non-anggota)
   static List<UserRole> get highAccessRoles => [
+        UserRole.admin,
         UserRole.danton,
         UserRole.pjo,
         UserRole.deputy,
