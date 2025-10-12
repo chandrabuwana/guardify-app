@@ -10,6 +10,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<HomeInitialEvent>(_onHomeInitial);
     on<BottomNavigationTappedEvent>(_onBottomNavigationTapped);
     on<ShowSnackbarEvent>(_onShowSnackbar);
+    on<ClearNavigationEvent>(_onClearNavigation);
     on<PanicButtonPressedEvent>(_onPanicButtonPressed);
 
     // Attendance Events
@@ -29,6 +30,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<NavigateToPatrolEvent>(_onNavigateToPatrol);
     on<NavigateToEmergencyHistoryEvent>(_onNavigateToEmergencyHistory);
     on<NavigateToDisasterInfoEvent>(_onNavigateToDisasterInfo);
+    on<NavigateToNewsEvent>(_onNavigateToNews);
 
     // Tasks Events
     on<LoadTodayTasksEvent>(_onLoadTodayTasks);
@@ -73,18 +75,20 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final currentState = state as HomeLoaded;
 
       String message;
+      String? navigationRoute;
       switch (event.index) {
         case 0:
           message = 'Beranda';
           break;
         case 1:
-          message = 'Pesan';
+          message = 'Kalender';
           break;
         case 2:
-          message = 'Notifikasi';
+          message = 'Pesan';
+          navigationRoute = '/chat';
           break;
         case 3:
-          message = 'Profil';
+          message = 'Notifikasi';
           break;
         default:
           message = 'Menu';
@@ -93,6 +97,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(currentState.copyWith(
         currentBottomNavIndex: event.index,
         snackbarMessage: message,
+        navigationRoute: navigationRoute,
       ));
     }
   }
@@ -101,6 +106,15 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       emit(currentState.copyWith(snackbarMessage: event.message));
+    }
+  }
+
+  void _onClearNavigation(ClearNavigationEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        navigationRoute: null,
+      ));
     }
   }
 
@@ -241,8 +255,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       // Determine role from position
-      final userRole = _getUserRoleFromPosition(currentState.userProfile.position);
-      
+      final userRole =
+          _getUserRoleFromPosition(currentState.userProfile.position);
+
       emit(currentState.copyWith(
         snackbarMessage: 'Navigating to Hasil Ujian...',
         navigationRoute: '/test-result',
@@ -253,10 +268,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       ));
     }
   }
-  
+
   UserRole _getUserRoleFromPosition(String position) {
     // Simple mapping from position string to UserRole enum
-    if (position.toLowerCase().contains('pjo') || position.toLowerCase().contains('deputy')) {
+    if (position.toLowerCase().contains('pjo') ||
+        position.toLowerCase().contains('deputy')) {
       return UserRole.pjo;
     } else if (position.toLowerCase().contains('danton')) {
       return UserRole.danton;
@@ -317,6 +333,15 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(currentState.copyWith(
         snackbarMessage: 'Navigating to Informasi Bencana...',
         navigationRoute: '/disaster-info',
+      ));
+    }
+  }
+
+  void _onNavigateToNews(NavigateToNewsEvent event, Emitter<HomeState> emit) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        navigationRoute: '/news',
       ));
     }
   }

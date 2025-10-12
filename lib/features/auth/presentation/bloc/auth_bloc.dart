@@ -9,7 +9,7 @@ part 'auth_state.dart';
 @injectable
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUseCase loginUseCase;
-  
+
   AuthBloc(this.loginUseCase) : super(AuthState.initial()) {
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
@@ -39,15 +39,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
 
-      if (result.isSuccess && result.token != null) {
-        // Login berhasil, token sudah otomatis tersimpan di secure storage
-        // Buat user object dari data yang tersedia
-        // Note: User data sebenarnya ada di result tapi LoginResult hanya return token
-        // Untuk sekarang gunakan data dari token atau buat placeholder
+      if (result.isSuccess && result.token != null && result.user != null) {
+        // Login berhasil, token dan user data sudah tersimpan di secure storage
+        // Buat user object dari LoginUser
+        final loginUser = result.user!;
         final user = User(
-          id: 'user_id', // TODO: Parse dari JWT token
-          email: event.email, // event.email berisi NRP
-          name: 'User', // TODO: Get dari API response
+          id: loginUser.id,
+          email: loginUser.email,
+          name: loginUser.fullName,
           phoneNumber: null,
         );
 
@@ -55,7 +54,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } else {
         // Login gagal
         final errorMessage = result.failure?.message ?? 'Login gagal';
-        
+
         // Emit error state dengan message
         emit(AuthState.error(errorMessage));
       }

@@ -29,6 +29,10 @@ class ShowSnackbarEvent extends HomeEvent {
   List<Object> get props => [message];
 }
 
+class ClearNavigationEvent extends HomeEvent {
+  const ClearNavigationEvent();
+}
+
 class PanicButtonPressedEvent extends HomeEvent {
   const PanicButtonPressedEvent();
 }
@@ -89,6 +93,10 @@ class NavigateToEmergencyHistoryEvent extends HomeEvent {
 
 class NavigateToDisasterInfoEvent extends HomeEvent {
   const NavigateToDisasterInfoEvent();
+}
+
+class NavigateToNewsEvent extends HomeEvent {
+  const NavigateToNewsEvent();
 }
 
 // Tasks Events

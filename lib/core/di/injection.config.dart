@@ -61,6 +61,12 @@ import 'package:guardify_app/features/bmi/domain/usecases/search_user_profiles.d
     as _i708;
 import 'package:guardify_app/features/bmi/presentation/bloc/bmi_bloc.dart'
     as _i21;
+import 'package:guardify_app/features/chat/data/repositories/chat_repository_impl.dart'
+    as _i255;
+import 'package:guardify_app/features/chat/domain/repositories/chat_repository.dart'
+    as _i523;
+import 'package:guardify_app/features/chat/presentation/bloc/chat_bloc.dart'
+    as _i313;
 import 'package:guardify_app/features/company_regulations/data/datasources/document_local_datasource.dart'
     as _i313;
 import 'package:guardify_app/features/company_regulations/data/datasources/document_remote_datasource.dart'
@@ -119,6 +125,16 @@ import 'package:guardify_app/features/laporan_kegiatan/domain/usecases/update_st
     as _i189;
 import 'package:guardify_app/features/laporan_kegiatan/presentation/bloc/laporan_kegiatan_bloc.dart'
     as _i945;
+import 'package:guardify_app/features/news/data/datasources/news_remote_datasource.dart'
+    as _i606;
+import 'package:guardify_app/features/news/data/datasources/news_remote_datasource_impl.dart'
+    as _i116;
+import 'package:guardify_app/features/news/data/repositories/news_repository_impl.dart'
+    as _i203;
+import 'package:guardify_app/features/news/domain/repositories/news_repository.dart'
+    as _i54;
+import 'package:guardify_app/features/news/presentation/bloc/news_bloc.dart'
+    as _i505;
 import 'package:guardify_app/features/panic_button/data/datasources/panic_button_datasource.dart'
     as _i460;
 import 'package:guardify_app/features/panic_button/data/datasources/panic_button_local_datasource.dart'
@@ -209,11 +225,14 @@ extension GetItInjectableX on _i174.GetIt {
     );
     final injectionModule = _$InjectionModule();
     gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc());
+    gh.factory<_i255.ChatRepositoryImpl>(() => _i255.ChatRepositoryImpl());
     await gh.lazySingletonAsync<_i460.SharedPreferences>(
       () => injectionModule.sharedPreferences,
       preResolve: true,
     );
     gh.lazySingleton<_i361.Dio>(() => injectionModule.dio);
+    gh.lazySingleton<_i523.ChatRepository>(
+        () => injectionModule.chatRepository());
     gh.lazySingleton<_i220.ProfileRemoteDataSource>(
         () => _i1020.ProfileRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i460.PanicButtonDataSource>(
@@ -222,6 +241,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i652.TestResultRemoteDataSourceImpl());
     gh.lazySingleton<_i228.PanicButtonRepository>(() =>
         _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
+    gh.lazySingleton<_i606.NewsRemoteDataSource>(
+        () => _i116.NewsRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i783.CutiRemoteDataSource>(
         () => _i783.CutiRemoteDataSourceImpl());
     gh.factory<_i1037.PatrolRemoteDataSource>(
@@ -241,6 +262,8 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i945.ProfileRemoteDataSourceMock(),
       instanceName: 'mock',
     );
+    gh.factory<_i313.ChatBloc>(
+        () => injectionModule.chatBloc(gh<_i523.ChatRepository>()));
     gh.lazySingleton<_i125.DocumentRemoteDataSource>(
         () => _i125.DocumentRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i826.BMILocalDataSource>(
@@ -251,6 +274,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i369.PatrolRepositoryImpl(gh<_i1037.PatrolRemoteDataSource>()));
     gh.lazySingleton<_i895.ProfileLocalDataSource>(
         () => _i895.ProfileLocalDataSourceImpl(gh<_i460.SharedPreferences>()));
+    gh.lazySingleton<_i54.NewsRepository>(
+        () => _i203.NewsRepositoryImpl(gh<_i606.NewsRemoteDataSource>()));
     gh.factory<_i930.GetMemberTestResultsUseCase>(() =>
         _i930.GetMemberTestResultsUseCase(gh<_i422.TestResultRepository>()));
     gh.factory<_i743.GetMyTestResultsUseCase>(
@@ -283,6 +308,8 @@ extension GetItInjectableX on _i174.GetIt {
         ));
     gh.factory<_i814.BMIRepository>(
         () => _i989.BMIRepositoryImpl(gh<_i826.BMILocalDataSource>()));
+    gh.factory<_i505.NewsBloc>(
+        () => injectionModule.newsBloc(gh<_i54.NewsRepository>()));
     gh.lazySingleton<_i695.DocumentRepository>(
         () => _i117.DocumentRepositoryImpl(
               remoteDataSource: gh<_i125.DocumentRemoteDataSource>(),

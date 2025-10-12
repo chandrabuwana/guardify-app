@@ -24,6 +24,10 @@ import '../../../patrol/domain/entities/patrol_route.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
 import '../../../profile/presentation/pages/profile_screen.dart';
 import '../../../test_result/presentation/pages/test_result_page.dart';
+import '../../../chat/presentation/pages/chat_list_page.dart';
+import '../../../chat/presentation/bloc/chat_bloc.dart';
+import '../../../news/presentation/pages/news_list_page.dart';
+import '../../../news/presentation/bloc/news_bloc.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
@@ -234,10 +238,38 @@ class __HomePageViewState extends State<_HomePageView> {
                   MaterialPageRoute(
                     builder: (context) => TestResultPage(
                       userId: state.navigationArguments?['userId'] ?? 'user_1',
-                      userRole: state.navigationArguments?['userRole'] as UserRole? ?? UserRole.anggota,
+                      userRole:
+                          state.navigationArguments?['userRole'] as UserRole? ??
+                              UserRole.anggota,
                     ),
                   ),
                 );
+                break;
+              case '/chat':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider(
+                      create: (context) => getIt<ChatBloc>(),
+                      child: const ChatListPage(),
+                    ),
+                  ),
+                );
+                // Clear navigation route after navigation
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/news':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider(
+                      create: (context) => getIt<NewsBloc>(),
+                      child: const NewsListPage(),
+                    ),
+                  ),
+                );
+                // Clear navigation route after navigation
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               default:
                 // For other routes, show snackbar instead of navigating
@@ -592,6 +624,13 @@ class __HomePageViewState extends State<_HomePageView> {
         onTap: () =>
             context.read<HomeBloc>().add(const NavigateToDisasterInfoEvent()),
       ),
+      MenuItem(
+        id: 'news',
+        title: 'Berita',
+        icon: Icons.article,
+        hasNotification: true,
+        onTap: () => context.read<HomeBloc>().add(const NavigateToNewsEvent()),
+      ),
     ];
   }
 
@@ -720,9 +759,9 @@ class __HomePageViewState extends State<_HomePageView> {
   void _navigateToProfile(BuildContext context, UserProfile userProfile) async {
     // Get user ID from secure storage
     final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
-    
+
     if (!context.mounted) return;
-    
+
     if (userId == null || userId.isEmpty) {
       // If no user ID, show error and logout
       ScaffoldMessenger.of(context).showSnackBar(
@@ -735,7 +774,7 @@ class __HomePageViewState extends State<_HomePageView> {
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       return;
     }
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(

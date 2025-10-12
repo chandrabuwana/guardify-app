@@ -21,6 +21,10 @@ import 'features/cuti/presentation/pages/form_ajuan_cuti_page.dart';
 import 'features/cuti/presentation/pages/detail_cuti_page.dart';
 import 'features/laporan_kegiatan/presentation/pages/laporan_kegiatan_page.dart';
 import 'features/laporan_kegiatan/presentation/bloc/laporan_kegiatan_bloc.dart';
+import 'features/chat/presentation/pages/chat_list_page.dart';
+import 'features/chat/presentation/bloc/chat_bloc.dart';
+import 'features/news/presentation/pages/news_list_page.dart';
+import 'features/news/presentation/bloc/news_bloc.dart';
 import 'core/constants/enums.dart';
 import 'core/di/injection.dart';
 
@@ -139,6 +143,14 @@ class GuardifyApp extends StatelessWidget {
                 showActions: arguments['showActions'] as bool? ?? false,
               );
             },
+            '/chat': (context) => BlocProvider(
+                  create: (context) => getIt<ChatBloc>(),
+                  child: const ChatListPage(),
+                ),
+            '/news': (context) => BlocProvider(
+                  create: (context) => getIt<NewsBloc>(),
+                  child: const NewsListPage(),
+                ),
           },
           initialRoute: '/',
         );

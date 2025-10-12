@@ -75,6 +75,7 @@ class _CutiPageState extends State<CutiPage>
       case UserRole.deputy:
         return 3; // Ajuan Anggota, Kuota Cuti, Ajuan Saya
       case UserRole.pengawas:
+      case UserRole.admin:
         return 2; // Ajuan Cuti, Rekap Ajuan Cuti
     }
   }
@@ -95,6 +96,7 @@ class _CutiPageState extends State<CutiPage>
           Tab(text: 'Ajuan Saya'),
         ];
       case UserRole.pengawas:
+      case UserRole.admin:
         return [
           Tab(text: 'Ajuan Cuti'),
           Tab(text: 'Rekap Ajuan Cuti'),
@@ -113,6 +115,7 @@ class _CutiPageState extends State<CutiPage>
         _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
         break;
       case UserRole.pengawas:
+      case UserRole.admin:
         _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
         break;
     }
@@ -184,6 +187,7 @@ class _CutiPageState extends State<CutiPage>
           _buildAjuanSayaTab(),
         ];
       case UserRole.pengawas:
+      case UserRole.admin:
         return [
           _buildAjuanCutiPengawasTab(),
           _buildRekapAjuanCutiTab(),
@@ -212,6 +216,7 @@ class _CutiPageState extends State<CutiPage>
         }
         break;
       case UserRole.pengawas:
+      case UserRole.admin:
         if (index == 0) {
           _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
         } else if (index == 1) {

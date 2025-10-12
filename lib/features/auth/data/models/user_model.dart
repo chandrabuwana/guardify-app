@@ -8,16 +8,16 @@ part 'user_model.g.dart';
 class UserModel {
   @JsonKey(name: 'Id')
   final String id;
-  
+
   @JsonKey(name: 'Role')
   final List<RoleModel> role;
-  
+
   @JsonKey(name: 'Username')
   final String username;
-  
+
   @JsonKey(name: 'FullName')
   final String fullName;
-  
+
   @JsonKey(name: 'Mail')
   final String mail;
 
@@ -46,7 +46,13 @@ class UserModel {
       createdAt: DateTime.now(),
       lastLoginAt: DateTime.now(),
       username: username,
-      roles: role.map((r) => r.nama).toList(),
+      roles: role.map((r) => r.id).toList(), // Use role ID instead of nama
     );
   }
+
+  /// Get primary role ID (first role in the list)
+  String get primaryRoleId => role.isNotEmpty ? role.first.id : 'AGT';
+
+  /// Get primary role name (first role in the list)
+  String get primaryRoleName => role.isNotEmpty ? role.first.nama : 'Anggota';
 }
