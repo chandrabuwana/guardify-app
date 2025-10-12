@@ -6,6 +6,7 @@ import '../../domain/repositories/document_repository.dart';
 import '../datasources/document_local_datasource.dart';
 import '../datasources/document_remote_datasource.dart';
 import '../models/document_model.dart';
+import '../models/company_rule_list_request.dart';
 
 /// Implementasi repository untuk mengelola data dokumen
 ///
@@ -22,34 +23,59 @@ class DocumentRepositoryImpl implements DocumentRepository {
   });
 
   @override
-  Future<Either<Failure, List<DocumentEntity>>> getAllDocuments() async {
+  Future<Either<Failure, List<DocumentEntity>>> getDocuments({
+    int start = 0,
+    int length = 10,
+    String? searchQuery,
+  }) async {
     try {
-      // Coba ambil dari remote terlebih dahulu
+      // Ensure start and length are valid (internally 0-based, will be converted to 1-based in request)
+      final validStart = start < 0 ? 0 : start;
+      final validLength = length <= 0 ? 10 : length;
+
+      // Create request
+      final request = searchQuery != null && searchQuery.isNotEmpty
+          ? CompanyRuleListRequest(
+              filter: [
+                CompanyRuleFilterItem(field: 'Name', search: searchQuery),
+              ],
+              sort: const CompanyRuleSortItem(field: 'CreateDate', type: 1),
+              start: validStart,
+              length: validLength,
+            )
+          : CompanyRuleListRequest(
+              filter: const [
+                CompanyRuleFilterItem(field: '', search: ''),
+              ],
+              sort: const CompanyRuleSortItem(field: 'CreateDate', type: 1),
+              start: validStart,
+              length: validLength,
+            );
+
+      final response = await remoteDataSource.getDocumentsList(request);
+      final entities = response.list.map((model) => model.toEntity()).toList();
+
+      return Right(entities);
+    } catch (e) {
+      // Fallback to cache if remote fails
       try {
-        final remoteDocuments = await remoteDataSource.getAllDocuments();
-        final entities =
-            remoteDocuments.map((model) => model.toEntity()).toList();
-
-        // Cache data ke local storage
-        await localDataSource.cacheDocuments(remoteDocuments);
-
-        return Right(entities);
-      } catch (e) {
-        // Jika remote gagal, coba ambil dari cache
         final cachedDocuments = await localDataSource.getCachedDocuments();
         if (cachedDocuments.isNotEmpty) {
           final entities =
               cachedDocuments.map((model) => model.toEntity()).toList();
           return Right(entities);
         }
+      } catch (_) {}
 
-        // Jika cache juga kosong, buat dummy data untuk development
-        await localDataSource.createDummyData();
-        final dummyDocuments = await localDataSource.getCachedDocuments();
-        final entities =
-            dummyDocuments.map((model) => model.toEntity()).toList();
-        return Right(entities);
-      }
+      return Left(ServerFailure('Failed to get documents: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<DocumentEntity>>> getAllDocuments() async {
+    try {
+      // Use pagination to get all documents (with high limit)
+      return await getDocuments(start: 0, length: 100);
     } catch (e) {
       return Left(ServerFailure('Failed to get documents: $e'));
     }

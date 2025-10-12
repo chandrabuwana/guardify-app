@@ -624,13 +624,6 @@ class __HomePageViewState extends State<_HomePageView> {
         onTap: () =>
             context.read<HomeBloc>().add(const NavigateToDisasterInfoEvent()),
       ),
-      MenuItem(
-        id: 'news',
-        title: 'Berita',
-        icon: Icons.article,
-        hasNotification: true,
-        onTap: () => context.read<HomeBloc>().add(const NavigateToNewsEvent()),
-      ),
     ];
   }
 
