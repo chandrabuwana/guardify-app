@@ -30,7 +30,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<NavigateToPatrolEvent>(_onNavigateToPatrol);
     on<NavigateToEmergencyHistoryEvent>(_onNavigateToEmergencyHistory);
     on<NavigateToDisasterInfoEvent>(_onNavigateToDisasterInfo);
-    on<NavigateToNewsEvent>(_onNavigateToNews);
 
     // Tasks Events
     on<LoadTodayTasksEvent>(_onLoadTodayTasks);
@@ -332,15 +331,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final currentState = state as HomeLoaded;
       emit(currentState.copyWith(
         snackbarMessage: 'Navigating to Informasi Bencana...',
-        navigationRoute: '/disaster-info',
-      ));
-    }
-  }
-
-  void _onNavigateToNews(NavigateToNewsEvent event, Emitter<HomeState> emit) {
-    if (state is HomeLoaded) {
-      final currentState = state as HomeLoaded;
-      emit(currentState.copyWith(
         navigationRoute: '/news',
       ));
     }

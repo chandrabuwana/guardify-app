@@ -95,10 +95,6 @@ class NavigateToDisasterInfoEvent extends HomeEvent {
   const NavigateToDisasterInfoEvent();
 }
 
-class NavigateToNewsEvent extends HomeEvent {
-  const NavigateToNewsEvent();
-}
-
 // Tasks Events
 class LoadTodayTasksEvent extends HomeEvent {
   const LoadTodayTasksEvent();

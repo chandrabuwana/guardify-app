@@ -14,6 +14,11 @@ class LoadDocumentsEvent extends DocumentEvent {
   const LoadDocumentsEvent();
 }
 
+/// Event untuk load more dokumen (pagination)
+class LoadMoreDocumentsEvent extends DocumentEvent {
+  const LoadMoreDocumentsEvent();
+}
+
 /// Event untuk reload/refresh dokumen
 class RefreshDocumentsEvent extends DocumentEvent {
   const RefreshDocumentsEvent();
