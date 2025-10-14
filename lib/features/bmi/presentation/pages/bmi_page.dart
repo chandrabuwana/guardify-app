@@ -44,11 +44,19 @@ class _BMIDetailWrapper extends StatefulWidget {
 }
 
 class _BMIDetailWrapperState extends State<_BMIDetailWrapper> {
+  bool _hasRequested = false;
+
   @override
-  void initState() {
-    super.initState();
-    // Load user profile untuk anggota
-    context.read<BMIBloc>().add(BMIGetUserProfile(widget.userId));
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bloc = context.read<BMIBloc>();
+    final state = bloc.state;
+    if (!_hasRequested &&
+        state.currentUserProfile == null &&
+        !state.isLoading) {
+      bloc.add(BMIGetUserProfile(widget.userId));
+      _hasRequested = true;
+    }
   }
 
   @override

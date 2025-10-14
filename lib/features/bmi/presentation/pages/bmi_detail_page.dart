@@ -34,55 +34,44 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
     _bmiBloc.add(BMILoadHistory(widget.userProfile.id));
   }
 
-  Color _getBMIStatusColor(BMIStatus? status) {
-    if (status == null) return neutral50;
-
-    switch (status) {
-      case BMIStatus.underweight:
-        return const Color(0xFF2196F3);
-      case BMIStatus.normal:
-        return successColor;
-      case BMIStatus.overweight:
-        return const Color(0xFFFF9800);
-      case BMIStatus.obese:
-        return errorColor;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: white,
       appBar: AppBar(
         title: Text(
-          'Detail BMI',
+          'Detail Body Mass Index',
           style: TS.titleLarge.copyWith(
             fontWeight: FontWeight.bold,
-            color: white,
+            color: neutral90,
           ),
         ),
-        backgroundColor: primaryColor,
-        foregroundColor: white,
+        backgroundColor: white,
+        foregroundColor: neutral90,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: BlocBuilder<BMIBloc, BMIState>(
         builder: (context, state) {
           return SingleChildScrollView(
-            padding: REdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // User Profile Card
+                // User Profile Card with BMI Info
                 _buildUserProfileCard(),
-
-                20.verticalSpace,
-
-                // Action Button
-                _buildActionButton(),
 
                 24.verticalSpace,
 
                 // BMI History Section
-                _buildBMIHistorySection(state.bmiHistory),
+                Padding(
+                  padding: REdgeInsets.symmetric(horizontal: 16),
+                  child: _buildBMIHistorySection(state.bmiHistory),
+                ),
+
+                24.verticalSpace,
               ],
             ),
           );
@@ -95,206 +84,186 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
     final userProfile = widget.userProfile;
     final hasData = userProfile.currentBMI != null;
     final bmiStatus = userProfile.currentBMIStatus;
-    final statusColor = _getBMIStatusColor(bmiStatus);
 
     return Container(
       width: double.infinity,
-      padding: REdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: hasData
             ? LinearGradient(
                 colors: [
-                  statusColor.withOpacity(0.1),
-                  statusColor.withOpacity(0.05)
+                  const Color(0xFFFFF5F5),
+                  const Color(0xFFFFF9F9),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               )
             : LinearGradient(
                 colors: [neutral10, neutral5],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: hasData ? statusColor.withOpacity(0.3) : neutral30,
-          width: 1.5,
-        ),
       ),
       child: Column(
         children: [
-          // Profile Header
-          Row(
-            children: [
-              Container(
-                width: 80.w,
-                height: 80.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: primaryColor.withOpacity(0.1),
-                  border: Border.all(
-                      color: primaryColor.withOpacity(0.3), width: 2),
-                ),
-                child: userProfile.profileImageUrl != null
-                    ? ClipOval(
-                        child: Image.network(
-                          userProfile.profileImageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              Icons.person,
-                              size: 40.w,
-                              color: primaryColor,
-                            );
-                          },
-                        ),
-                      )
-                    : Icon(
-                        Icons.person,
-                        size: 40.w,
-                        color: primaryColor,
-                      ),
-              ),
-              20.horizontalSpace,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      userProfile.name,
-                      style: TS.headlineSmall.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: neutral90,
-                      ),
-                    ),
-                    8.verticalSpace,
-                    Container(
-                      padding:
-                          REdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border:
-                            Border.all(color: primaryColor.withOpacity(0.3)),
-                      ),
-                      child: Text(
-                        userProfile.role.displayName,
-                        style: TS.labelMedium.copyWith(
-                          color: primaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          24.verticalSpace,
-
+          32.verticalSpace,
           if (hasData) ...[
-            // BMI Status Badge
+            // Profile Photo
             Container(
-              padding: REdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              width: 120.w,
+              height: 120.w,
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(24.r),
-                border:
-                    Border.all(color: statusColor.withOpacity(0.4), width: 1.5),
+                shape: BoxShape.circle,
+                border: Border.all(color: white, width: 4),
+                boxShadow: [
+                  BoxShadow(
+                    color: neutral50.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: Text(
-                bmiStatus!.label.toUpperCase(),
-                style: TS.titleMedium.copyWith(
-                  color: statusColor,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: userProfile.profileImageUrl != null
+                  ? ClipOval(
+                      child: Image.network(
+                        userProfile.profileImageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: neutral20,
+                            child: Icon(
+                              Icons.person,
+                              size: 60.w,
+                              color: neutral50,
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : Container(
+                      color: neutral20,
+                      child: Icon(
+                        Icons.person,
+                        size: 60.w,
+                        color: neutral50,
+                      ),
+                    ),
+            ),
+
+            24.verticalSpace,
+
+            // BMI Status
+            Text(
+              bmiStatus!.label.toUpperCase(),
+              style: TS.headlineMedium.copyWith(
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF2C5F7C),
+                letterSpacing: 1.2,
               ),
             ),
 
-            20.verticalSpace,
+            16.verticalSpace,
 
             // BMI Value
-            Text(
-              'BMI ${userProfile.currentBMI!.toStringAsFixed(1)} Kg/M2',
-              style: TS.displaySmall.copyWith(
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
+            RichText(
+              text: TextSpan(
+                style: TS.titleLarge.copyWith(
+                  color: const Color(0xFFB71C1C),
+                ),
+                children: [
+                  const TextSpan(text: 'Your BMI is '),
+                  TextSpan(
+                    text: userProfile.currentBMI!.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const TextSpan(text: ' Kg/M2'),
+                ],
               ),
             ),
 
-            20.verticalSpace,
+            32.verticalSpace,
 
-            // Weight and Height Info
-            Container(
-              padding: REdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: white.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: statusColor.withOpacity(0.2)),
-              ),
+            // Height, Weight, Updated Info
+            Padding(
+              padding: REdgeInsets.symmetric(horizontal: 32),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   Expanded(
-                    child: _buildInfoItem(
-                      'Berat Badan',
-                      '${userProfile.currentWeight!.toStringAsFixed(1)} KG',
-                      Icons.monitor_weight_outlined,
-                      statusColor,
+                    child: _buildInfoColumn(
+                      'Height',
+                      '${userProfile.height!.toStringAsFixed(0)} CM',
                     ),
                   ),
                   Container(
-                    width: 2,
+                    width: 1,
                     height: 60.h,
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(1.r),
-                    ),
-                    margin: REdgeInsets.symmetric(horizontal: 20),
+                    color: const Color(0xFFB71C1C).withOpacity(0.3),
                   ),
                   Expanded(
-                    child: _buildInfoItem(
-                      'Tinggi Badan',
-                      '${userProfile.height!.toStringAsFixed(0)} CM',
-                      Icons.height_outlined,
-                      statusColor,
+                    child: _buildInfoColumn(
+                      'Weight',
+                      '${userProfile.currentWeight!.toStringAsFixed(0)} KG',
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 60.h,
+                    color: const Color(0xFFB71C1C).withOpacity(0.3),
+                  ),
+                  Expanded(
+                    child: _buildInfoColumn(
+                      'Updated',
+                      userProfile.lastUpdated != null
+                          ? _formatDateShort(userProfile.lastUpdated!)
+                          : '-',
                     ),
                   ),
                 ],
               ),
             ),
 
-            if (userProfile.lastUpdated != null) ...[
-              20.verticalSpace,
-              Container(
-                padding: REdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(color: statusColor.withOpacity(0.2)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.update_outlined,
-                      size: 16.w,
-                      color: statusColor,
-                    ),
-                    8.horizontalSpace,
-                    Text(
-                      'Terakhir diperbarui: ${_formatDate(userProfile.lastUpdated!)}',
-                      style: TS.bodyMedium.copyWith(
-                        color: statusColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+            32.verticalSpace,
+
+            // Recommendation Section
+            Container(
+              width: double.infinity,
+              margin: REdgeInsets.symmetric(horizontal: 16),
+              padding: REdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF5F5),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: const Color(0xFFB71C1C).withOpacity(0.2),
                 ),
               ),
-            ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Recommendation',
+                    style: TS.titleMedium.copyWith(
+                      color: const Color(0xFF2C5F7C),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  12.verticalSpace,
+                  Text(
+                    _getRecommendation(bmiStatus),
+                    style: TS.bodyMedium.copyWith(
+                      color: const Color(0xFFB71C1C),
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            24.verticalSpace,
           ] else ...[
             // No Data State
+            32.verticalSpace,
             Icon(
               Icons.scale_outlined,
               size: 64.w,
@@ -316,296 +285,211 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
               ),
               textAlign: TextAlign.center,
             ),
+            32.verticalSpace,
           ],
         ],
       ),
     );
   }
 
-  Widget _buildInfoItem(
-      String label, String value, IconData icon, Color color) {
+  Widget _buildInfoColumn(String label, String value) {
     return Column(
       children: [
-        Container(
-          padding: REdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            size: 24.w,
-            color: color,
-          ),
-        ),
-        12.verticalSpace,
         Text(
           label,
           style: TS.bodyMedium.copyWith(
-            color: neutral70,
+            color: const Color(0xFF2C5F7C),
             fontWeight: FontWeight.w500,
           ),
         ),
-        6.verticalSpace,
+        8.verticalSpace,
         Text(
           value,
           style: TS.titleLarge.copyWith(
             fontWeight: FontWeight.bold,
-            color: neutral90,
+            color: const Color(0xFFB71C1C),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildActionButton() {
-    // Removed BMI calculation since data comes from API
-    // Just show a placeholder or remove the button entirely
-    return const SizedBox.shrink();
+  String _getRecommendation(BMIStatus? status) {
+    if (status == null) return '';
+
+    switch (status) {
+      case BMIStatus.underweight:
+        return 'Increase calorie intake with nutritious foods. Consider consulting a nutritionist for a healthy weight gain plan.';
+      case BMIStatus.normal:
+        return 'Stay healthy, keep strong, happy tummy happy me. running, tanning, swimming, Let\'s exercise :)';
+      case BMIStatus.overweight:
+        return 'Maintain a balanced diet and regular exercise. Consider consulting a healthcare professional for personalized advice.';
+      case BMIStatus.obese:
+        return 'It\'s important to consult with a healthcare professional. Focus on gradual lifestyle changes with proper guidance.';
+    }
+  }
+
+  String _formatDateShort(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   Widget _buildBMIHistorySection(List bmiHistory) {
+    if (bmiHistory.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Riwayat BMI',
-                style: TS.titleLarge.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: neutral90,
-                ),
-              ),
-            ),
-            if (bmiHistory.isNotEmpty)
-              Text(
-                '${bmiHistory.length} catatan',
-                style: TS.bodyMedium.copyWith(
-                  color: neutral50,
-                ),
-              ),
-          ],
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: bmiHistory.length > 1 ? bmiHistory.length - 1 : 0,
+          separatorBuilder: (context, index) => 0.verticalSpace,
+          itemBuilder: (context, index) {
+            // Skip the first item (index 0) as it's shown in the main card
+            final record = bmiHistory[index + 1];
+            return _buildBMIHistoryItem(record);
+          },
         ),
-        16.verticalSpace,
-        if (bmiHistory.isEmpty) ...[
-          Container(
-            width: double.infinity,
-            padding: REdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: neutral10,
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: neutral30),
-            ),
-            child: Column(
+      ],
+    );
+  }
+
+  Widget _buildBMIHistoryItem(dynamic record) {
+    return Container(
+      margin: REdgeInsets.only(bottom: 0),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF5F5),
+        border: Border(
+          top: BorderSide(
+            color: neutral30,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: REdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
               children: [
-                Icon(
-                  Icons.history_outlined,
-                  size: 64.w,
-                  color: neutral50,
+                // Left Section - Status and Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        record.status.label,
+                        style: TS.titleMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF2C5F7C),
+                        ),
+                      ),
+                      8.verticalSpace,
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 50.w,
+                            child: Text(
+                              'Height',
+                              style: TS.bodySmall.copyWith(
+                                color: const Color(0xFFB71C1C),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${record.height.toStringAsFixed(0)} CM',
+                            style: TS.bodyMedium.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFB71C1C),
+                            ),
+                          ),
+                        ],
+                      ),
+                      4.verticalSpace,
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 50.w,
+                            child: Text(
+                              'Weight',
+                              style: TS.bodySmall.copyWith(
+                                color: const Color(0xFFB71C1C),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${record.weight.toStringAsFixed(0)} Kg',
+                            style: TS.bodyMedium.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFB71C1C),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                20.verticalSpace,
+
+                // Right Section - BMI Value
                 Text(
-                  'Belum ada riwayat BMI',
+                  '${record.bmi.toStringAsFixed(1)} Kg/M2',
                   style: TS.titleMedium.copyWith(
-                    color: neutral70,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFB71C1C),
                   ),
-                ),
-                12.verticalSpace,
-                Text(
-                  'Mulai hitung BMI untuk melihat riwayat perkembangan',
-                  style: TS.bodyMedium.copyWith(
-                    color: neutral50,
-                  ),
-                  textAlign: TextAlign.center,
                 ),
               ],
             ),
           ),
-        ] else ...[
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: bmiHistory.length,
-            separatorBuilder: (context, index) => 16.verticalSpace,
-            itemBuilder: (context, index) {
-              final record = bmiHistory[index];
-              return _buildBMIHistoryItem(record, index == 0);
-            },
-          ),
-        ],
-      ],
-    );
-  }
 
-  Widget _buildBMIHistoryItem(dynamic record, bool isLatest) {
-    final statusColor = _getBMIStatusColor(record.status);
-
-    return Container(
-      padding: REdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: isLatest ? primaryColor.withOpacity(0.3) : neutral30,
-          width: isLatest ? 2 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isLatest
-                ? primaryColor.withOpacity(0.1)
-                : neutral50.withOpacity(0.05),
-            blurRadius: isLatest ? 8 : 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header
-          Row(
-            children: [
-              // Status Indicator
-              Container(
-                width: 6.w,
-                height: 50.h,
-                decoration: BoxDecoration(
-                  color: statusColor,
-                  borderRadius: BorderRadius.circular(3.r),
-                ),
-              ),
-
-              16.horizontalSpace,
-
-              // BMI Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'BMI ${record.bmi.toStringAsFixed(1)}',
-                          style: TS.titleLarge.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: primaryColor,
-                          ),
-                        ),
-                        12.horizontalSpace,
-                        Container(
-                          padding: REdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border:
-                                Border.all(color: statusColor.withOpacity(0.3)),
-                          ),
-                          child: Text(
-                            record.status.label,
-                            style: TS.labelMedium.copyWith(
-                              color: statusColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        if (isLatest) ...[
-                          8.horizontalSpace,
-                          Container(
-                            padding: REdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: Text(
-                              'TERBARU',
-                              style: TS.labelSmall.copyWith(
-                                color: primaryColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    8.verticalSpace,
-                    Text(
-                      '${record.weight.toStringAsFixed(1)} kg • ${record.height.toStringAsFixed(0)} cm',
-                      style: TS.bodyLarge.copyWith(
-                        color: neutral70,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Date
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _formatDate(record.recordedAt),
-                    style: TS.bodyMedium.copyWith(
-                      color: neutral50,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  4.verticalSpace,
-                  Text(
-                    _formatTime(record.recordedAt),
-                    style: TS.bodySmall.copyWith(
-                      color: neutral50,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-
-          if (record.notes != null && record.notes.isNotEmpty) ...[
-            16.verticalSpace,
-            Container(
-              width: double.infinity,
-              padding: REdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: neutral10,
-                borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(color: neutral30),
-              ),
-              child: Text(
-                record.notes,
-                style: TS.bodyMedium.copyWith(
-                  color: neutral70,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
+          // Recommendation Section
+          Container(
+            width: double.infinity,
+            padding: REdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: white,
             ),
-          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Recommendation',
+                  style: TS.bodyMedium.copyWith(
+                    color: const Color(0xFF2C5F7C),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                8.verticalSpace,
+                Text(
+                  _getRecommendation(record.status),
+                  style: TS.bodySmall.copyWith(
+                    color: const Color(0xFFB71C1C),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Updated Date
+          Container(
+            width: double.infinity,
+            padding: REdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: white,
+            ),
+            child: Text(
+              'Updated ${_formatDateShort(record.recordedAt)}',
+              style: TS.bodySmall.copyWith(
+                color: neutral50,
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ),
         ],
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Hari ini';
-    } else if (difference.inDays == 1) {
-      return 'Kemarin';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} hari lalu';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
-  }
-
-  String _formatTime(DateTime date) {
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }

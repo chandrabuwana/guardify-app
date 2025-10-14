@@ -110,6 +110,7 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 );
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/bmi':
                 Navigator.push(
@@ -125,6 +126,8 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 );
+                // Clear navigation route after navigation
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/panic-verification':
                 Navigator.push(
@@ -136,6 +139,7 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 );
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/regulations':
                 Navigator.push(
@@ -147,6 +151,7 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 );
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/patrol':
                 // Create mock patrol route data
@@ -217,9 +222,11 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 );
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/cuti':
                 Navigator.pushNamed(context, '/cuti');
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/laporan-kegiatan':
                 Navigator.pushNamed(
@@ -231,6 +238,7 @@ class __HomePageViewState extends State<_HomePageView> {
                         state.navigationArguments?['userRole'] ?? 'anggota',
                   },
                 );
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/test-result':
                 Navigator.push(
@@ -244,6 +252,7 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 );
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/chat':
                 Navigator.push(

@@ -15,6 +15,12 @@ abstract class BMIRepository {
   /// Get semua user profiles (untuk role non-anggota)
   Future<Either<Failure, List<UserProfile>>> getAllUserProfiles();
 
+  /// Get user profiles dengan pagination (untuk role non-anggota)
+  Future<Either<Failure, List<UserProfile>>> getUserProfilesPaginated({
+    required int page,
+    required int pageSize,
+  });
+
   /// Get pinned user profiles dari local storage
   Future<Either<Failure, List<UserProfile>>> getPinnedUserProfiles();
 

@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/constants/enums.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/security/security_manager.dart';
 import 'home_event.dart';
 import 'home_state.dart';
 
@@ -235,15 +237,24 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }
   }
 
-  void _onNavigateToBMI(NavigateToBMIEvent event, Emitter<HomeState> emit) {
+  Future<void> _onNavigateToBMI(
+      NavigateToBMIEvent event, Emitter<HomeState> emit) async {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
+
+      // Get user ID and role from secure storage
+      final userId =
+          await SecurityManager.readSecurely(AppConstants.userIdKey) ??
+              'unknown';
+      final userRoleId =
+          await SecurityManager.readSecurely('user_role_id') ?? 'AGT';
+
       emit(currentState.copyWith(
         snackbarMessage: 'Navigating to BMI Calculator...',
         navigationRoute: '/bmi',
         navigationArguments: {
-          'userId': '2',
-          'userRole': 'danton',
+          'userId': userId,
+          'userRole': userRoleId,
         },
       ));
     }
