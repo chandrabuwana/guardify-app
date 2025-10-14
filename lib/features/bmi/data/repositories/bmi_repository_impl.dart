@@ -7,40 +7,48 @@ import '../../domain/entities/bmi_record.dart';
 import '../../domain/entities/bmi_input.dart';
 import '../../domain/repositories/bmi_repository.dart';
 import '../datasources/bmi_local_data_source.dart';
-import '../models/user_profile_model.dart';
+import '../datasources/bmi_remote_data_source.dart';
 import '../models/bmi_record_model.dart';
+import '../models/bmi_api_response_model.dart';
+import '../mappers/bmi_mapper.dart';
 
 @Injectable(as: BMIRepository)
 class BMIRepositoryImpl implements BMIRepository {
   final BMILocalDataSource localDataSource;
+  final BmiRemoteDataSource remoteDataSource;
 
-  BMIRepositoryImpl(this.localDataSource);
+  BMIRepositoryImpl(this.localDataSource, this.remoteDataSource);
 
   @override
   Future<Either<Failure, UserProfile>> getUserProfile(String userId) async {
     try {
-      // Try to get from cache first
-      UserProfileModel? profile =
-          await localDataSource.getCachedUserProfile(userId);
+      // Call API to get user's BMI data
+      final request = BmiListRequestModel(
+        filter: [
+          FilterModel(field: 'UserId', search: userId),
+        ],
+        sort: SortModel(field: '', type: 0),
+        start: 1,
+        length: 1, // Get 1 record for specific user
+      );
 
-      // If not in cache, generate mock data and try again
-      if (profile == null) {
-        await localDataSource.generateMockData();
-        profile = await localDataSource.getCachedUserProfile(userId);
+      final response = await remoteDataSource.getBmiList(request);
+
+      if (!response.succeeded || response.list.isEmpty) {
+        return Left(ServerFailure('User BMI data not found'));
       }
 
-      if (profile == null) {
-        return Left(ServerFailure('User profile not found'));
-      }
+      // Convert to UserProfile using mapper
+      final userProfile = BmiMapper.toUserProfile(response.list.first);
 
       // Check if user is pinned
       final pinnedIds = await localDataSource.getPinnedUserIds();
       final updatedProfile =
-          profile.copyWith(isPinned: pinnedIds.contains(userId));
+          userProfile.copyWith(isPinned: pinnedIds.contains(userId));
 
-      return Right(updatedProfile.toEntity());
+      return Right(updatedProfile);
     } catch (e) {
-      return Left(CacheFailure());
+      return Left(ServerFailure(e.toString()));
     }
   }
 
@@ -48,54 +56,118 @@ class BMIRepositoryImpl implements BMIRepository {
   Future<Either<Failure, List<UserProfile>>> searchUserProfiles(
       String query) async {
     try {
-      final profiles = await localDataSource.getCachedUserProfiles();
+      // Call API to get all BMI data
+      final request = BmiListRequestModel(
+        filter: [
+          FilterModel(field: '', search: ''),
+        ],
+        sort: SortModel(field: '', type: 0),
+        start: 1,
+        length: 100,
+      );
 
-      if (profiles.isEmpty) {
-        await localDataSource.generateMockData();
-        final newProfiles = await localDataSource.getCachedUserProfiles();
-        return Right(newProfiles.map((p) => p.toEntity()).toList());
+      final response = await remoteDataSource.getBmiList(request);
+
+      if (!response.succeeded) {
+        return Left(ServerFailure(response.message));
       }
 
-      // Filter profiles by query
-      final filteredProfiles = profiles.where((profile) {
-        return profile.name.toLowerCase().contains(query.toLowerCase()) ||
-            profile.role.displayName
-                .toLowerCase()
-                .contains(query.toLowerCase());
-      }).toList();
+      // Convert to list of UserProfile using mapper
+      var userProfiles = BmiMapper.toUserProfileList(response.list);
+
+      // Filter profiles by query (client-side filtering)
+      if (query.isNotEmpty) {
+        userProfiles = userProfiles.where((profile) {
+          return profile.name.toLowerCase().contains(query.toLowerCase()) ||
+              profile.role.displayName
+                  .toLowerCase()
+                  .contains(query.toLowerCase());
+        }).toList();
+      }
 
       // Get pinned IDs and update profiles
       final pinnedIds = await localDataSource.getPinnedUserIds();
-      final updatedProfiles = filteredProfiles.map((profile) {
+      final updatedProfiles = userProfiles.map((profile) {
         return profile.copyWith(isPinned: pinnedIds.contains(profile.id));
       }).toList();
 
-      return Right(updatedProfiles.map((p) => p.toEntity()).toList());
+      return Right(updatedProfiles);
     } catch (e) {
-      return Left(CacheFailure());
+      return Left(ServerFailure(e.toString()));
     }
   }
 
   @override
   Future<Either<Failure, List<UserProfile>>> getAllUserProfiles() async {
     try {
-      final profiles = await localDataSource.getCachedUserProfiles();
+      // Call API to get all BMI data
+      final request = BmiListRequestModel(
+        filter: [
+          FilterModel(field: '', search: ''),
+        ],
+        sort: SortModel(field: '', type: 0),
+        start: 1,
+        length: 100, // Get up to 100 records
+      );
 
-      if (profiles.isEmpty) {
-        await localDataSource.generateMockData();
-        final newProfiles = await localDataSource.getCachedUserProfiles();
-        return Right(newProfiles.map((p) => p.toEntity()).toList());
+      final response = await remoteDataSource.getBmiList(request);
+
+      if (!response.succeeded) {
+        return Left(ServerFailure(response.message));
       }
+
+      // Convert to list of UserProfile using mapper
+      final userProfiles = BmiMapper.toUserProfileList(response.list);
 
       // Get pinned IDs and update profiles
       final pinnedIds = await localDataSource.getPinnedUserIds();
-      final updatedProfiles = profiles.map((profile) {
+      final updatedProfiles = userProfiles.map((profile) {
         return profile.copyWith(isPinned: pinnedIds.contains(profile.id));
       }).toList();
 
-      return Right(updatedProfiles.map((p) => p.toEntity()).toList());
+      return Right(updatedProfiles);
     } catch (e) {
-      return Left(CacheFailure());
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<UserProfile>>> getUserProfilesPaginated({
+    required int page,
+    required int pageSize,
+  }) async {
+    try {
+      // Calculate start position (API uses 1-based indexing)
+      final start = ((page - 1) * pageSize) + 1;
+
+      // Call API to get paginated BMI data
+      final request = BmiListRequestModel(
+        filter: [
+          FilterModel(field: '', search: ''),
+        ],
+        sort: SortModel(field: '', type: 0),
+        start: start,
+        length: pageSize,
+      );
+
+      final response = await remoteDataSource.getBmiList(request);
+
+      if (!response.succeeded) {
+        return Left(ServerFailure(response.message));
+      }
+
+      // Convert to list of UserProfile using mapper
+      final userProfiles = BmiMapper.toUserProfileList(response.list);
+
+      // Get pinned IDs and update profiles
+      final pinnedIds = await localDataSource.getPinnedUserIds();
+      final updatedProfiles = userProfiles.map((profile) {
+        return profile.copyWith(isPinned: pinnedIds.contains(profile.id));
+      }).toList();
+
+      return Right(updatedProfiles);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
     }
   }
 
@@ -133,10 +205,28 @@ class BMIRepositoryImpl implements BMIRepository {
   @override
   Future<Either<Failure, List<BMIRecord>>> getBMIHistory(String userId) async {
     try {
-      final records = await localDataSource.getBMIRecords(userId);
-      return Right(records.map((r) => r.toEntity()).toList());
+      // Call API to get user's BMI history
+      final request = BmiListRequestModel(
+        filter: [
+          FilterModel(field: 'UserId', search: userId),
+        ],
+        sort: SortModel(field: '', type: 0),
+        start: 1,
+        length: 0, // Get all records
+      );
+
+      final response = await remoteDataSource.getBmiList(request);
+
+      if (!response.succeeded) {
+        return Left(ServerFailure(response.message));
+      }
+
+      // Convert to list of BMIRecord using mapper
+      final records = BmiMapper.toBMIRecordList(response.list);
+
+      return Right(records);
     } catch (e) {
-      return Left(CacheFailure());
+      return Left(ServerFailure(e.toString()));
     }
   }
 

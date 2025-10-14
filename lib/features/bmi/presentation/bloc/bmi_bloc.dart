@@ -5,6 +5,7 @@ import '../../domain/entities/bmi_record.dart';
 import '../../domain/entities/bmi_input.dart';
 import '../../domain/usecases/get_user_profile.dart';
 import '../../domain/usecases/search_user_profiles.dart';
+import '../../domain/usecases/get_user_profiles_paginated.dart';
 import '../../domain/usecases/manage_pinned_profiles.dart';
 import '../../domain/usecases/calculate_bmi.dart';
 import '../../domain/usecases/get_bmi_history.dart';
@@ -16,6 +17,7 @@ part 'bmi_state.dart';
 class BMIBloc extends Bloc<BMIEvent, BMIState> {
   final GetUserProfile getUserProfile;
   final SearchUserProfiles searchUserProfiles;
+  final GetUserProfilesPaginated getUserProfilesPaginated;
   final ManagePinnedProfiles managePinnedProfiles;
   final CalculateBMI calculateBMI;
   final GetBMIHistory getBMIHistory;
@@ -23,6 +25,7 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
   BMIBloc({
     required this.getUserProfile,
     required this.searchUserProfiles,
+    required this.getUserProfilesPaginated,
     required this.managePinnedProfiles,
     required this.calculateBMI,
     required this.getBMIHistory,
@@ -30,6 +33,7 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     on<BMIGetUserProfile>(_onGetUserProfile);
     on<BMISearchUsers>(_onSearchUsers);
     on<BMILoadAllUsers>(_onLoadAllUsers);
+    on<BMILoadMoreUsers>(_onLoadMoreUsers);
     on<BMITogglePin>(_onTogglePin);
     on<BMILoadPinnedUsers>(_onLoadPinnedUsers);
     on<BMICalculate>(_onCalculate);
@@ -85,9 +89,15 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     BMILoadAllUsers event,
     Emitter<BMIState> emit,
   ) async {
-    emit(state.copyWith(isSearching: true, error: null));
+    emit(state.copyWith(
+      isSearching: true,
+      error: null,
+      currentPage: 1,
+      searchResults: [],
+      hasMoreData: true,
+    ));
 
-    final result = await searchUserProfiles('');
+    final result = await getUserProfilesPaginated(page: 1, pageSize: 10);
 
     result.fold(
       (failure) => emit(state.copyWith(
@@ -97,8 +107,41 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
       (userProfiles) => emit(state.copyWith(
         isSearching: false,
         searchResults: userProfiles,
+        currentPage: 1,
+        hasMoreData: userProfiles.length >= 10,
         error: null,
       )),
+    );
+  }
+
+  Future<void> _onLoadMoreUsers(
+    BMILoadMoreUsers event,
+    Emitter<BMIState> emit,
+  ) async {
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    emit(state.copyWith(isLoadingMore: true, error: null));
+
+    final nextPage = state.currentPage + 1;
+    final result = await getUserProfilesPaginated(page: nextPage, pageSize: 10);
+
+    result.fold(
+      (failure) => emit(state.copyWith(
+        isLoadingMore: false,
+        error: _mapFailureToMessage(failure),
+      )),
+      (userProfiles) {
+        final updatedList = List<UserProfile>.from(state.searchResults)
+          ..addAll(userProfiles);
+
+        emit(state.copyWith(
+          isLoadingMore: false,
+          searchResults: updatedList,
+          currentPage: nextPage,
+          hasMoreData: userProfiles.length >= 10,
+          error: null,
+        ));
+      },
     );
   }
 

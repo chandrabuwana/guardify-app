@@ -16,6 +16,8 @@ class BMISearchUsers extends BMIEvent {
 
 class BMILoadAllUsers extends BMIEvent {}
 
+class BMILoadMoreUsers extends BMIEvent {}
+
 // Pin Events
 class BMITogglePin extends BMIEvent {
   final String userId;

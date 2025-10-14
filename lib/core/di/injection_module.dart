@@ -5,6 +5,7 @@ import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/login_use_case.dart';
+import '../../features/bmi/data/datasources/bmi_remote_data_source.dart';
 import '../../features/chat/data/repositories/chat_repository_impl.dart';
 import '../../features/chat/domain/repositories/chat_repository.dart';
 import '../../features/chat/presentation/bloc/chat_bloc.dart';
@@ -128,6 +129,16 @@ abstract class InjectionModule {
   @injectable
   NewsBloc newsBloc(NewsRepository newsRepository) {
     return NewsBloc(newsRepository);
+  }
+
+  // ========================================
+  // BMI Feature Dependencies
+  // ========================================
+
+  /// BMI Remote Data Source
+  @lazySingleton
+  BmiRemoteDataSource bmiRemoteDataSource(Dio dio) {
+    return BmiRemoteDataSource(dio);
   }
 
   // ========================================

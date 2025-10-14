@@ -45,6 +45,8 @@ import 'package:guardify_app/features/auth/presentation/bloc/auth_bloc.dart'
     as _i296;
 import 'package:guardify_app/features/bmi/data/datasources/bmi_local_data_source.dart'
     as _i826;
+import 'package:guardify_app/features/bmi/data/datasources/bmi_remote_data_source.dart'
+    as _i163;
 import 'package:guardify_app/features/bmi/data/repositories/bmi_repository_impl.dart'
     as _i989;
 import 'package:guardify_app/features/bmi/domain/repositories/bmi_repository.dart'
@@ -55,6 +57,8 @@ import 'package:guardify_app/features/bmi/domain/usecases/get_bmi_history.dart'
     as _i817;
 import 'package:guardify_app/features/bmi/domain/usecases/get_user_profile.dart'
     as _i283;
+import 'package:guardify_app/features/bmi/domain/usecases/get_user_profiles_paginated.dart'
+    as _i1059;
 import 'package:guardify_app/features/bmi/domain/usecases/manage_pinned_profiles.dart'
     as _i572;
 import 'package:guardify_app/features/bmi/domain/usecases/search_user_profiles.dart'
@@ -224,8 +228,8 @@ extension GetItInjectableX on _i174.GetIt {
       environmentFilter,
     );
     final injectionModule = _$InjectionModule();
-    gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc());
     gh.factory<_i255.ChatRepositoryImpl>(() => _i255.ChatRepositoryImpl());
+    gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc());
     await gh.lazySingletonAsync<_i460.SharedPreferences>(
       () => injectionModule.sharedPreferences,
       preResolve: true,
@@ -255,6 +259,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i590.LaporanKegiatanRemoteDataSourceImpl());
     gh.lazySingleton<_i650.AuthRemoteDataSource>(
         () => injectionModule.authRemoteDataSource(gh<_i361.Dio>()));
+    gh.lazySingleton<_i163.BmiRemoteDataSource>(
+        () => injectionModule.bmiRemoteDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i422.TestResultRepository>(() =>
         _i717.TestResultRepositoryImpl(
             remoteDataSource: gh<_i652.TestResultRemoteDataSource>()));
@@ -306,8 +312,6 @@ extension GetItInjectableX on _i174.GetIt {
           getMemberResultsUseCase: gh<_i930.GetMemberTestResultsUseCase>(),
           getSummaryUseCase: gh<_i227.GetTestSummaryUseCase>(),
         ));
-    gh.factory<_i814.BMIRepository>(
-        () => _i989.BMIRepositoryImpl(gh<_i826.BMILocalDataSource>()));
     gh.factory<_i505.NewsBloc>(
         () => injectionModule.newsBloc(gh<_i54.NewsRepository>()));
     gh.lazySingleton<_i695.DocumentRepository>(
@@ -357,6 +361,10 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i718.GetDocumentsUseCase(gh<_i695.DocumentRepository>()));
     gh.factory<_i1020.SearchDocumentsUseCase>(
         () => _i1020.SearchDocumentsUseCase(gh<_i695.DocumentRepository>()));
+    gh.factory<_i814.BMIRepository>(() => _i989.BMIRepositoryImpl(
+          gh<_i826.BMILocalDataSource>(),
+          gh<_i163.BmiRemoteDataSource>(),
+        ));
     gh.factory<_i215.CutiBloc>(() => _i215.CutiBloc(
           getCutiKuota: gh<_i1067.GetCutiKuota>(),
           getDaftarCutiSaya: gh<_i1023.GetDaftarCutiSaya>(),
@@ -392,6 +400,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i817.GetBMIHistory(gh<_i814.BMIRepository>()));
     gh.factory<_i283.GetUserProfile>(
         () => _i283.GetUserProfile(gh<_i814.BMIRepository>()));
+    gh.factory<_i1059.GetUserProfilesPaginated>(
+        () => _i1059.GetUserProfilesPaginated(gh<_i814.BMIRepository>()));
     gh.factory<_i572.ManagePinnedProfiles>(
         () => _i572.ManagePinnedProfiles(gh<_i814.BMIRepository>()));
     gh.factory<_i708.SearchUserProfiles>(
@@ -434,6 +444,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i21.BMIBloc>(() => _i21.BMIBloc(
           getUserProfile: gh<_i283.GetUserProfile>(),
           searchUserProfiles: gh<_i708.SearchUserProfiles>(),
+          getUserProfilesPaginated: gh<_i1059.GetUserProfilesPaginated>(),
           managePinnedProfiles: gh<_i572.ManagePinnedProfiles>(),
           calculateBMI: gh<_i283.CalculateBMI>(),
           getBMIHistory: gh<_i817.GetBMIHistory>(),

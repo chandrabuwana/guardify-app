@@ -5,7 +5,6 @@ import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
-import '../../../../shared/widgets/TextInput/input_primary.dart';
 import '../bloc/bmi_bloc.dart';
 import 'bmi_detail_page.dart';
 
@@ -51,10 +50,6 @@ class _BMIListPageState extends State<BMIListPage> {
     }
   }
 
-  void _togglePin(String userId, bool isPinned) {
-    _bmiBloc.add(BMITogglePin(userId, !isPinned));
-  }
-
   void _navigateToDetail(dynamic userProfile) {
     Navigator.push(
       context,
@@ -70,44 +65,25 @@ class _BMIListPageState extends State<BMIListPage> {
     );
   }
 
-  Color _getBMIStatusColor(BMIStatus? status) {
-    if (status == null) return neutral50;
-
-    switch (status) {
-      case BMIStatus.underweight:
-        return const Color(0xFF2196F3);
-      case BMIStatus.normal:
-        return successColor;
-      case BMIStatus.overweight:
-        return const Color(0xFFFF9800);
-      case BMIStatus.obese:
-        return errorColor;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: white,
       appBar: AppBar(
         title: Text(
           'Body Mass Index',
           style: TS.titleLarge.copyWith(
             fontWeight: FontWeight.bold,
-            color: white,
+            color: neutral90,
           ),
         ),
-        backgroundColor: primaryColor,
-        foregroundColor: white,
+        backgroundColor: white,
+        foregroundColor: neutral90,
         elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () {
-              // Show filter dialog
-              _showFilterDialog();
-            },
-            icon: const Icon(Icons.filter_list_outlined),
-          ),
-        ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: BlocBuilder<BMIBloc, BMIState>(
         builder: (context, state) {
@@ -115,6 +91,8 @@ class _BMIListPageState extends State<BMIListPage> {
             children: [
               // Search Section
               _buildSearchSection(),
+
+              16.verticalSpace,
 
               // Content
               Expanded(
@@ -128,41 +106,75 @@ class _BMIListPageState extends State<BMIListPage> {
   }
 
   Widget _buildSearchSection() {
-    return Container(
-      padding: REdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: primaryColor,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(20.r),
-          bottomRight: Radius.circular(20.r),
-        ),
-      ),
-      child: Column(
+    return Padding(
+      padding: REdgeInsets.symmetric(horizontal: 16),
+      child: Row(
         children: [
-          InputPrimary(
-            controller: _searchController,
-            hint: 'Cari nama atau jabatan...',
-            prefixIcon: Icon(
-              Icons.search_outlined,
-              color: neutral50,
-              size: 20.w,
+          Expanded(
+            child: Container(
+              height: 50.h,
+              decoration: BoxDecoration(
+                color: white,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: const Color(0xFFB71C1C),
+                  width: 2,
+                ),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: _performSearch,
+                style: TS.bodyMedium.copyWith(color: neutral90),
+                decoration: InputDecoration(
+                  hintText: 'Cari',
+                  hintStyle: TS.bodyMedium.copyWith(
+                    color: const Color(0xFFB71C1C),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: const Color(0xFFB71C1C),
+                    size: 24.w,
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          onPressed: () {
+                            _searchController.clear();
+                            _performSearch('');
+                            setState(() {});
+                          },
+                          icon: Icon(
+                            Icons.clear,
+                            color: neutral50,
+                            size: 20.w,
+                          ),
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: REdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+              ),
             ),
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    onPressed: () {
-                      _searchController.clear();
-                      _performSearch('');
-                    },
-                    icon: Icon(
-                      Icons.clear,
-                      color: neutral50,
-                      size: 20.w,
-                    ),
-                  )
-                : null,
-            onChanged: _performSearch,
-            textStyle: TS.bodyMedium.copyWith(color: neutral90),
-            hintStyle: TS.bodyMedium.copyWith(color: neutral50),
+          ),
+          16.horizontalSpace,
+          Container(
+            width: 50.w,
+            height: 50.h,
+            decoration: BoxDecoration(
+              color: const Color(0xFFB71C1C),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: IconButton(
+              onPressed: _showFilterDialog,
+              icon: Icon(
+                Icons.filter_list,
+                color: white,
+                size: 24.w,
+              ),
+              padding: EdgeInsets.zero,
+            ),
           ),
         ],
       ),
@@ -232,205 +244,177 @@ class _BMIListPageState extends State<BMIListPage> {
     return RefreshIndicator(
       onRefresh: () async => _loadData(),
       color: primaryColor,
-      child: ListView.separated(
-        padding: REdgeInsets.all(16),
-        itemCount: combinedList.length,
-        separatorBuilder: (context, index) => 12.verticalSpace,
-        itemBuilder: (context, index) {
-          final userProfile = combinedList[index];
-          return _buildUserProfileCard(userProfile);
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (ScrollNotification scrollInfo) {
+          if (!state.isLoadingMore &&
+              state.hasMoreData &&
+              scrollInfo.metrics.pixels >=
+                  scrollInfo.metrics.maxScrollExtent - 200) {
+            _bmiBloc.add(BMILoadMoreUsers());
+          }
+          return false;
         },
+        child: GridView.builder(
+          padding: REdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12.w,
+            mainAxisSpacing: 12.h,
+            childAspectRatio: 0.68,
+          ),
+          itemCount: combinedList.length + (state.isLoadingMore ? 2 : 0),
+          itemBuilder: (context, index) {
+            if (index >= combinedList.length) {
+              return _buildLoadingCard();
+            }
+            final userProfile = combinedList[index];
+            return _buildUserProfileCard(userProfile);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: neutral50.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: CircularProgressIndicator(
+          color: primaryColor,
+          strokeWidth: 2,
+        ),
       ),
     );
   }
 
   Widget _buildUserProfileCard(dynamic userProfile) {
     final hasData = userProfile.currentBMI != null;
-    final bmiStatus = userProfile.currentBMIStatus;
-    final statusColor = _getBMIStatusColor(bmiStatus);
 
     return GestureDetector(
       onTap: () => _navigateToDetail(userProfile),
       child: Container(
-        padding: REdgeInsets.all(16),
         decoration: BoxDecoration(
           color: white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: userProfile.isPinned
-                ? primaryColor.withOpacity(0.3)
-                : neutral30,
-            width: userProfile.isPinned ? 2 : 1,
-          ),
+          borderRadius: BorderRadius.circular(16.r),
           boxShadow: [
             BoxShadow(
-              color: neutral50.withOpacity(0.1),
-              blurRadius: 4,
+              color: neutral50.withOpacity(0.15),
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Column(
+        child: Stack(
           children: [
-            // Header with Pin button
-            Row(
-              children: [
-                // Profile Image
-                Container(
-                  width: 50.w,
-                  height: 50.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: primaryColor.withOpacity(0.1),
-                    border: Border.all(color: primaryColor.withOpacity(0.3)),
-                  ),
-                  child: userProfile.profileImageUrl != null
-                      ? ClipOval(
-                          child: Image.network(
-                            userProfile.profileImageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Icon(
-                                Icons.person,
-                                size: 24.w,
-                                color: primaryColor,
-                              );
-                            },
-                          ),
-                        )
-                      : Icon(
-                          Icons.person,
-                          size: 24.w,
-                          color: primaryColor,
-                        ),
-                ),
+            Padding(
+              padding: REdgeInsets.all(12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  8.verticalSpace,
 
-                16.horizontalSpace,
-
-                // User Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              userProfile.name,
-                              style: TS.titleMedium.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: neutral90,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                  // Profile Photo
+                  Container(
+                    width: 70.w,
+                    height: 70.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: neutral20,
+                      border: Border.all(color: neutral30, width: 2),
+                    ),
+                    child: userProfile.profileImageUrl != null
+                        ? ClipOval(
+                            child: Image.network(
+                              userProfile.profileImageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.person,
+                                  size: 35.w,
+                                  color: neutral50,
+                                );
+                              },
                             ),
+                          )
+                        : Icon(
+                            Icons.person,
+                            size: 35.w,
+                            color: neutral50,
                           ),
-                          if (userProfile.isPinned) ...[
-                            8.horizontalSpace,
-                            Icon(
-                              Icons.push_pin,
-                              size: 16.w,
-                              color: primaryColor,
-                            ),
-                          ],
-                        ],
+                  ),
+
+                  10.verticalSpace,
+
+                  // Name
+                  Flexible(
+                    child: Text(
+                      userProfile.name,
+                      style: TS.titleSmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: neutral90,
+                        fontSize: 14.sp,
                       ),
-                      4.verticalSpace,
-                      Text(
-                        userProfile.role.displayName,
-                        style: TS.bodyMedium.copyWith(
-                          color: neutral70,
-                        ),
-                      ),
-                    ],
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
 
-                // Pin Toggle Button
-                IconButton(
-                  onPressed: () =>
-                      _togglePin(userProfile.id, userProfile.isPinned),
-                  icon: Icon(
-                    userProfile.isPinned
-                        ? Icons.push_pin
-                        : Icons.push_pin_outlined,
-                    color: userProfile.isPinned ? primaryColor : neutral50,
-                    size: 20.w,
-                  ),
-                  style: IconButton.styleFrom(
-                    backgroundColor: userProfile.isPinned
-                        ? primaryColor.withOpacity(0.1)
-                        : neutral10,
-                    padding: REdgeInsets.all(8),
-                  ),
-                ),
-              ],
-            ),
+                  if (hasData) ...[
+                    8.verticalSpace,
 
-            if (hasData) ...[
-              16.verticalSpace,
-
-              // BMI Info
-              Container(
-                padding: REdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(color: statusColor.withOpacity(0.2)),
-                ),
-                child: Row(
-                  children: [
                     // BMI Value
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'BMI ${userProfile.currentBMI!.toStringAsFixed(1)}',
-                            style: TS.titleMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: primaryColor,
-                            ),
-                          ),
-                          4.verticalSpace,
-                          Container(
-                            padding: REdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: Text(
-                              bmiStatus!.label,
-                              style: TS.labelSmall.copyWith(
-                                color: statusColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
+                    Text(
+                      '${userProfile.currentBMI!.toStringAsFixed(1)} Kg/m2',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFB71C1C),
+                        fontSize: 16.sp,
                       ),
                     ),
 
-                    // Weight & Height
-                    Expanded(
-                      flex: 3,
+                    10.verticalSpace,
+
+                    // Weight and Height Info with striped background
+                    Container(
+                      padding:
+                          REdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.yellow.withOpacity(0.3),
+                        border: Border.all(color: Colors.black, width: 1),
+                      ),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Expanded(
                             child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   'Berat',
-                                  style:
-                                      TS.bodySmall.copyWith(color: neutral50),
+                                  style: TextStyle(
+                                    color: neutral90,
+                                    fontSize: 10.sp,
+                                  ),
                                 ),
                                 2.verticalSpace,
                                 Text(
-                                  '${userProfile.currentWeight!.toStringAsFixed(1)} KG',
-                                  style: TS.bodyMedium.copyWith(
-                                    fontWeight: FontWeight.w600,
+                                  '${userProfile.currentWeight!.toStringAsFixed(0)} KG',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
                                     color: neutral90,
+                                    fontSize: 11.sp,
                                   ),
                                 ),
                               ],
@@ -438,23 +422,27 @@ class _BMIListPageState extends State<BMIListPage> {
                           ),
                           Container(
                             width: 1,
-                            height: 30.h,
-                            color: statusColor.withOpacity(0.3),
+                            height: 25.h,
+                            color: neutral30,
                           ),
                           Expanded(
                             child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   'Tinggi',
-                                  style:
-                                      TS.bodySmall.copyWith(color: neutral50),
+                                  style: TextStyle(
+                                    color: neutral90,
+                                    fontSize: 10.sp,
+                                  ),
                                 ),
                                 2.verticalSpace,
                                 Text(
                                   '${userProfile.height!.toStringAsFixed(0)} CM',
-                                  style: TS.bodyMedium.copyWith(
-                                    fontWeight: FontWeight.w600,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
                                     color: neutral90,
+                                    fontSize: 11.sp,
                                   ),
                                 ),
                               ],
@@ -463,51 +451,45 @@ class _BMIListPageState extends State<BMIListPage> {
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              if (userProfile.lastUpdated != null) ...[
-                8.verticalSpace,
-                Text(
-                  'Diperbarui: ${_formatDate(userProfile.lastUpdated!)}',
-                  style: TS.bodySmall.copyWith(
-                    color: neutral50,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ] else ...[
-              16.verticalSpace,
-
-              // No Data State
-              Container(
-                width: double.infinity,
-                padding: REdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: neutral10,
-                  borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(color: neutral30),
-                ),
-                child: Column(
-                  children: [
+                  ] else ...[
+                    10.verticalSpace,
                     Icon(
                       Icons.scale_outlined,
-                      size: 32.w,
+                      size: 24.w,
                       color: neutral50,
                     ),
-                    8.verticalSpace,
+                    4.verticalSpace,
                     Text(
-                      'Belum ada data BMI',
-                      style: TS.bodyMedium.copyWith(
-                        color: neutral70,
-                        fontWeight: FontWeight.w600,
+                      'Belum ada data',
+                      style: TS.bodySmall.copyWith(
+                        color: neutral50,
+                        fontSize: 11.sp,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
+                ],
+              ),
+            ),
+
+            // Pin icon at top left
+            if (userProfile.isPinned)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: REdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB71C1C),
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                  child: Icon(
+                    Icons.push_pin,
+                    size: 14.w,
+                    color: white,
+                  ),
                 ),
               ),
-            ],
           ],
         ),
       ),
@@ -562,20 +544,5 @@ class _BMIListPageState extends State<BMIListPage> {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Hari ini';
-    } else if (difference.inDays == 1) {
-      return 'Kemarin';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} hari lalu';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
   }
 }
