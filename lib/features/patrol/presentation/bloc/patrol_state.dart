@@ -53,3 +53,9 @@ class PatrolError extends PatrolState {
 
   const PatrolError(this.message);
 }
+
+class PatrolLocationAdded extends PatrolState {
+  final String routeId;
+
+  const PatrolLocationAdded(this.routeId);
+}

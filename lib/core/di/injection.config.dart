@@ -378,11 +378,6 @@ extension GetItInjectableX on _i174.GetIt {
           getDetailCuti: gh<_i505.GetDetailCuti>(),
           getRekapCuti: gh<_i515.GetRekapCuti>(),
         ));
-    gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
-          getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
-          getPatrolRoutesPaginated: gh<_i238.GetPatrolRoutesPaginated>(),
-          getPatrolProgress: gh<_i820.GetPatrolProgress>(),
-        ));
     gh.lazySingleton<_i252.ProfileRepository>(() => _i422.ProfileRepositoryImpl(
           remoteDataSource: gh<_i220.ProfileRemoteDataSource>(),
           localDataSource: gh<_i895.ProfileLocalDataSource>(),
@@ -426,6 +421,12 @@ extension GetItInjectableX on _i174.GetIt {
         _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i890.HomeBloc>(
         () => _i890.HomeBloc(gh<_i238.GetPatrolRoutesPaginated>()));
+    gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
+          getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
+          getPatrolRoutesPaginated: gh<_i238.GetPatrolRoutesPaginated>(),
+          getPatrolProgress: gh<_i820.GetPatrolProgress>(),
+          addPatrolLocation: gh<_i198.AddPatrolLocation>(),
+        ));
     gh.factory<_i945.LaporanKegiatanBloc>(() => _i945.LaporanKegiatanBloc(
           getLaporanList: gh<_i970.GetLaporanList>(),
           getLaporanDetail: gh<_i272.GetLaporanDetail>(),

@@ -25,6 +25,12 @@ abstract class PatrolApiClient {
   Future<RouteDetailListResponse> getRouteDetailList(
     @Body() RouteDetailListRequest request,
   );
+
+  @POST('/RouteDetail/add')
+  @DioResponseType(ResponseType.json)
+  Future<dynamic> addRouteDetail(
+    @Body() Map<String, dynamic> request,
+  );
 }
 
 @Injectable(as: PatrolRemoteDataSource)
@@ -157,7 +163,13 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
   Future<PatrolRouteModel> getPatrolRouteById(String id) async {
     try {
       final routes = await getPatrolRoutes();
-      return routes.firstWhere((route) => route.id == id);
+      final routeIndex = routes.indexWhere((route) => route.id == id);
+
+      if (routeIndex == -1) {
+        throw Exception('Route with id $id not found');
+      }
+
+      return routes[routeIndex];
     } catch (e) {
       throw Exception('Failed to load patrol route: $e');
     }
@@ -215,13 +227,33 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
   Future<PatrolLocationModel> addPatrolLocation(
       String routeId, PatrolLocationModel location) async {
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      final request = {
+        'IdRoute': routeId,
+        'Latitude': location.latitude,
+        'Longitude': location.longitude,
+        'Name': location.name,
+        'Radius': 100, // Default radius 100 meters
+      };
+
+      print('[PatrolRemoteDataSource] Adding location: $request');
+
+      final response = await apiClient.addRouteDetail(request);
+
+      print('[PatrolRemoteDataSource] Add location response: $response');
+
+      // Return the location with updated data from response if available
+      String locationId = DateTime.now().millisecondsSinceEpoch.toString();
+
+      if (response != null && response is Map) {
+        locationId = response['id']?.toString() ?? locationId;
+      }
 
       return location.copyWith(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: locationId,
         isAdditional: true,
       );
     } catch (e) {
+      print('[PatrolRemoteDataSource] Error adding location: $e');
       throw Exception('Failed to add patrol location: $e');
     }
   }
