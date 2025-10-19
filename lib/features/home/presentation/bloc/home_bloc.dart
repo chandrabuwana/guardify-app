@@ -3,12 +3,16 @@ import 'package:injectable/injectable.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../patrol/domain/usecases/get_patrol_routes_paginated.dart';
+import '../../../patrol/domain/entities/patrol_location.dart';
 import 'home_event.dart';
 import 'home_state.dart';
 
 @injectable
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
-  HomeBloc() : super(const HomeInitial()) {
+  final GetPatrolRoutesPaginated _getPatrolRoutesPaginated;
+
+  HomeBloc(this._getPatrolRoutesPaginated) : super(const HomeInitial()) {
     on<HomeInitialEvent>(_onHomeInitial);
     on<BottomNavigationTappedEvent>(_onBottomNavigationTapped);
     on<ShowSnackbarEvent>(_onShowSnackbar);
@@ -35,6 +39,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
     // Tasks Events
     on<LoadTodayTasksEvent>(_onLoadTodayTasks);
+    on<LoadPatrolTasksEvent>(_onLoadPatrolTasks);
     on<TaskProgressUpdateEvent>(_onTaskProgressUpdate);
 
     // Profile Events
@@ -42,7 +47,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<UpdateUserProfileEvent>(_onUpdateUserProfile);
   }
 
-  void _onHomeInitial(HomeInitialEvent event, Emitter<HomeState> emit) {
+  void _onHomeInitial(HomeInitialEvent event, Emitter<HomeState> emit) async {
     // Initialize with default data
     final userProfile = UserProfile(
       name: 'Arsyada Rahmasyah',
@@ -58,14 +63,16 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       date: DateTime.now(),
     );
 
-    final todayTasks = _getInitialTasks();
-
     emit(HomeLoaded(
       currentBottomNavIndex: 0,
       userProfile: userProfile,
       attendanceInfo: attendanceInfo,
-      todayTasks: todayTasks,
+      todayTasks: [],
+      isLoadingPatrolTasks: true,
     ));
+
+    // Load patrol tasks from API
+    add(const LoadPatrolTasksEvent());
   }
 
   void _onBottomNavigationTapped(
@@ -356,6 +363,82 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(currentState.copyWith(
         todayTasks: tasks,
         snackbarMessage: 'Tugas hari ini berhasil dimuat',
+      ));
+    }
+  }
+
+  Future<void> _onLoadPatrolTasks(
+      LoadPatrolTasksEvent event, Emitter<HomeState> emit) async {
+    if (state is! HomeLoaded) return;
+
+    final currentState = state as HomeLoaded;
+
+    try {
+      // Set loading state
+      emit(currentState.copyWith(isLoadingPatrolTasks: true));
+
+      // Fetch patrol routes from API
+      final result = await _getPatrolRoutesPaginated.call(
+        page: 1,
+        pageSize: 10,
+      );
+
+      result.fold(
+        (failure) {
+          print('Failed to load patrol tasks: ${failure.message}');
+          // On failure, use fallback tasks
+          emit(currentState.copyWith(
+            todayTasks: _getInitialTasks(),
+            isLoadingPatrolTasks: false,
+          ));
+        },
+        (paginatedResponse) {
+          print(
+              'Successfully loaded ${paginatedResponse.data.length} patrol routes');
+
+          // Store patrol routes
+          final patrolRoutes = paginatedResponse.data;
+
+          // Convert patrol routes to task items
+          final patrolTasks = paginatedResponse.data.map((route) {
+            final totalLocations =
+                route.locations.length + route.additionalLocations.length;
+            final completedLocations = route.locations
+                    .where(
+                        (loc) => loc.status == PatrolLocationStatus.completed)
+                    .length +
+                route.additionalLocations
+                    .where(
+                        (loc) => loc.status == PatrolLocationStatus.completed)
+                    .length;
+            final progress =
+                totalLocations > 0 ? completedLocations / totalLocations : 0.0;
+
+            return TaskItem(
+              id: 'patrol_${route.id}',
+              title: route.name,
+              subtitle: '$totalLocations Lokasi',
+              progress: progress,
+              completedTasks: completedLocations,
+              totalTasks: totalLocations,
+            );
+          }).toList();
+
+          print('Converted to ${patrolTasks.length} task items');
+
+          emit(currentState.copyWith(
+            todayTasks: patrolTasks,
+            isLoadingPatrolTasks: false,
+            patrolRoutes: patrolRoutes,
+          ));
+        },
+      );
+    } catch (e) {
+      print('Error loading patrol tasks: $e');
+      // On error, use fallback tasks
+      emit(currentState.copyWith(
+        todayTasks: _getInitialTasks(),
+        isLoadingPatrolTasks: false,
       ));
     }
   }

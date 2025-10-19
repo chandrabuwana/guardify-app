@@ -1,24 +1,94 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
+import 'package:retrofit/retrofit.dart';
 import 'dart:math';
 import '../models/patrol_route_model.dart';
 import '../models/patrol_location_model.dart';
 import '../models/patrol_attendance_model.dart';
+import '../models/route_detail_api_response.dart';
+import '../models/route_list_api_response.dart';
 import '../../domain/entities/patrol_location.dart';
 import 'patrol_remote_data_source.dart';
 
+part 'patrol_remote_data_source_impl.g.dart';
+
+@RestApi()
+abstract class PatrolApiClient {
+  factory PatrolApiClient(Dio dio, {String baseUrl}) = _PatrolApiClient;
+
+  @POST('/Route/list')
+  Future<RouteListResponse> getRouteList(
+    @Body() RouteListRequest request,
+  );
+
+  @POST('/RouteDetail/list')
+  Future<RouteDetailListResponse> getRouteDetailList(
+    @Body() RouteDetailListRequest request,
+  );
+}
+
 @Injectable(as: PatrolRemoteDataSource)
 class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
-  final Dio dio;
+  final PatrolApiClient apiClient;
 
-  PatrolRemoteDataSourceImpl(this.dio);
+  PatrolRemoteDataSourceImpl(Dio dio) : apiClient = PatrolApiClient(dio);
+
+  @override
+  Future<RouteListResponse> getRouteList({
+    required int start,
+    required int length,
+    List<FilterModel>? filter,
+    SortModel? sort,
+  }) async {
+    try {
+      final request = RouteListRequest(
+        filter: filter ?? [],
+        sort: sort ?? SortModel(field: '', type: 0),
+        start: start,
+        length: length,
+      );
+
+      final response = await apiClient.getRouteList(request);
+      print(
+          '[PatrolRemoteDataSource] Route List API Response: Count=${response.count}, Filtered=${response.filtered}, List length=${response.list.length}');
+      return response;
+    } catch (e) {
+      print('[PatrolRemoteDataSource] Error: $e');
+      throw Exception('Failed to load route list: $e');
+    }
+  }
+
+  @override
+  Future<RouteDetailListResponse> getRouteDetailList({
+    required int start,
+    required int length,
+    List<FilterModel>? filter,
+    SortModel? sort,
+  }) async {
+    try {
+      final request = RouteDetailListRequest(
+        filter: filter ?? [],
+        sort: sort ?? SortModel(field: 'Name', type: 1),
+        start: start,
+        length: length,
+      );
+
+      final response = await apiClient.getRouteDetailList(request);
+      print(
+          '[PatrolRemoteDataSource] API Response: Count=${response.count}, Filtered=${response.filtered}, List length=${response.list.length}');
+      return response;
+    } catch (e) {
+      print('[PatrolRemoteDataSource] Error: $e');
+      throw Exception('Failed to load route detail list: $e');
+    }
+  }
 
   @override
   Future<List<PatrolRouteModel>> getPatrolRoutes() async {
     try {
       // Mock data for development - replace with actual API call
       await Future.delayed(const Duration(seconds: 1));
-      
+
       return [
         PatrolRouteModel(
           id: '1',
@@ -116,7 +186,7 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
     try {
       // Simulate API call
       await Future.delayed(const Duration(seconds: 2));
-      
+
       // Mock success response
       return true;
     } catch (e) {
@@ -125,13 +195,15 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
   }
 
   @override
-  Future<bool> verifyLocation(double currentLat, double currentLng, double targetLat, double targetLng) async {
+  Future<bool> verifyLocation(double currentLat, double currentLng,
+      double targetLat, double targetLng) async {
     try {
       await Future.delayed(const Duration(seconds: 1));
-      
+
       // Calculate distance between current and target location
-      final distance = _calculateDistance(currentLat, currentLng, targetLat, targetLng);
-      
+      final distance =
+          _calculateDistance(currentLat, currentLng, targetLat, targetLng);
+
       // Return true if within 100 meters
       return distance <= 100;
     } catch (e) {
@@ -140,10 +212,11 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
   }
 
   @override
-  Future<PatrolLocationModel> addPatrolLocation(String routeId, PatrolLocationModel location) async {
+  Future<PatrolLocationModel> addPatrolLocation(
+      String routeId, PatrolLocationModel location) async {
     try {
       await Future.delayed(const Duration(seconds: 1));
-      
+
       return location.copyWith(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         isAdditional: true,
@@ -157,7 +230,7 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
   Future<String> uploadProofImage(String imagePath) async {
     try {
       await Future.delayed(const Duration(seconds: 2));
-      
+
       // Mock upload response
       return 'uploaded_image_${DateTime.now().millisecondsSinceEpoch}.jpg';
     } catch (e) {
@@ -166,18 +239,21 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
   }
 
   // Helper method to calculate distance between two coordinates
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
     const double earthRadius = 6371000; // Earth radius in meters
-    
+
     final double dLat = _degreesToRadians(lat2 - lat1);
     final double dLon = _degreesToRadians(lon2 - lon1);
-    
+
     final double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_degreesToRadians(lat1)) * cos(_degreesToRadians(lat2)) *
-        sin(dLon / 2) * sin(dLon / 2);
-    
+        cos(_degreesToRadians(lat1)) *
+            cos(_degreesToRadians(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+
     final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    
+
     return earthRadius * c;
   }
 

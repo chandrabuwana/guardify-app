@@ -6,6 +6,8 @@ abstract class PatrolEvent {
 
 class LoadPatrolRoutes extends PatrolEvent {}
 
+class LoadMorePatrolRoutes extends PatrolEvent {}
+
 class LoadPatrolProgress extends PatrolEvent {
   final String routeId;
 

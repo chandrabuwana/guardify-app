@@ -167,6 +167,8 @@ import 'package:guardify_app/features/patrol/domain/usecases/get_patrol_progress
     as _i820;
 import 'package:guardify_app/features/patrol/domain/usecases/get_patrol_routes.dart'
     as _i759;
+import 'package:guardify_app/features/patrol/domain/usecases/get_patrol_routes_paginated.dart'
+    as _i238;
 import 'package:guardify_app/features/patrol/domain/usecases/submit_attendance.dart'
     as _i861;
 import 'package:guardify_app/features/patrol/domain/usecases/verify_location.dart'
@@ -229,7 +231,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     final injectionModule = _$InjectionModule();
     gh.factory<_i255.ChatRepositoryImpl>(() => _i255.ChatRepositoryImpl());
-    gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc());
     await gh.lazySingletonAsync<_i460.SharedPreferences>(
       () => injectionModule.sharedPreferences,
       preResolve: true,
@@ -347,6 +348,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i820.GetPatrolProgress(gh<_i824.PatrolRepository>()));
     gh.factory<_i759.GetPatrolRoutes>(
         () => _i759.GetPatrolRoutes(gh<_i824.PatrolRepository>()));
+    gh.factory<_i238.GetPatrolRoutesPaginated>(
+        () => _i238.GetPatrolRoutesPaginated(gh<_i824.PatrolRepository>()));
     gh.factory<_i861.SubmitAttendance>(
         () => _i861.SubmitAttendance(gh<_i824.PatrolRepository>()));
     gh.factory<_i9.VerifyLocation>(
@@ -377,6 +380,7 @@ extension GetItInjectableX on _i174.GetIt {
         ));
     gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
           getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
+          getPatrolRoutesPaginated: gh<_i238.GetPatrolRoutesPaginated>(),
           getPatrolProgress: gh<_i820.GetPatrolProgress>(),
         ));
     gh.lazySingleton<_i252.ProfileRepository>(() => _i422.ProfileRepositoryImpl(
@@ -420,6 +424,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i974.SubmitAttendanceUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i601.ValidateAttendanceUseCase>(() =>
         _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i890.HomeBloc>(
+        () => _i890.HomeBloc(gh<_i238.GetPatrolRoutesPaginated>()));
     gh.factory<_i945.LaporanKegiatanBloc>(() => _i945.LaporanKegiatanBloc(
           getLaporanList: gh<_i970.GetLaporanList>(),
           getLaporanDetail: gh<_i272.GetLaporanDetail>(),
