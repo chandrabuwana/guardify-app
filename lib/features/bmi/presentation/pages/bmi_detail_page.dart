@@ -31,7 +31,13 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
   }
 
   void _loadBMIHistory() {
-    _bmiBloc.add(BMILoadHistory(widget.userProfile.id));
+    // Hanya load history jika belum ada data atau data kosong
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = _bmiBloc.state;
+      if (state.bmiHistory.isEmpty && !state.isLoading) {
+        _bmiBloc.add(BMILoadHistory(widget.userProfile.id));
+      }
+    });
   }
 
   @override
@@ -250,7 +256,8 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                   ),
                   12.verticalSpace,
                   Text(
-                    _getRecommendation(bmiStatus),
+                    // Prioritas: 1. Dari API, 2. Fallback ke default recommendation
+                    userProfile.recommendation ?? _getRecommendation(bmiStatus),
                     style: TS.bodyMedium.copyWith(
                       color: const Color(0xFFB71C1C),
                       height: 1.5,
@@ -463,7 +470,8 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                 ),
                 8.verticalSpace,
                 Text(
-                  _getRecommendation(record.status),
+                  // Prioritas: 1. Dari notes (API), 2. Fallback ke default
+                  record.notes ?? _getRecommendation(record.status),
                   style: TS.bodySmall.copyWith(
                     color: const Color(0xFFB71C1C),
                     height: 1.4,

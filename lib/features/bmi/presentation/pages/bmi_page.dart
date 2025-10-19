@@ -44,19 +44,18 @@ class _BMIDetailWrapper extends StatefulWidget {
 }
 
 class _BMIDetailWrapperState extends State<_BMIDetailWrapper> {
-  bool _hasRequested = false;
-
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final bloc = context.read<BMIBloc>();
-    final state = bloc.state;
-    if (!_hasRequested &&
-        state.currentUserProfile == null &&
-        !state.isLoading) {
-      bloc.add(BMIGetUserProfile(widget.userId));
-      _hasRequested = true;
-    }
+  void initState() {
+    super.initState();
+    // Load user profile hanya sekali saat pertama kali dibuat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final bloc = context.read<BMIBloc>();
+      final state = bloc.state;
+      // Hanya load jika belum ada data dan tidak sedang loading
+      if (state.currentUserProfile == null && !state.isLoading) {
+        bloc.add(BMIGetUserProfile(widget.userId));
+      }
+    });
   }
 
   @override

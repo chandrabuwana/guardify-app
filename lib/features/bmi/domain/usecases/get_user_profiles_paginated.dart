@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../shared/entities/failure.dart';
 import '../entities/user_profile.dart';
+import '../entities/paginated_response.dart';
 import '../repositories/bmi_repository.dart';
 
 @injectable
@@ -10,7 +11,7 @@ class GetUserProfilesPaginated {
 
   GetUserProfilesPaginated(this.repository);
 
-  Future<Either<Failure, List<UserProfile>>> call({
+  Future<Either<Failure, PaginatedResponse<UserProfile>>> call({
     required int page,
     int pageSize = 10,
   }) async {

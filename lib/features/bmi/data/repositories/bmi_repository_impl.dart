@@ -5,6 +5,7 @@ import '../../../../core/constants/enums.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/entities/bmi_record.dart';
 import '../../domain/entities/bmi_input.dart';
+import '../../domain/entities/paginated_response.dart';
 import '../../domain/repositories/bmi_repository.dart';
 import '../datasources/bmi_local_data_source.dart';
 import '../datasources/bmi_remote_data_source.dart';
@@ -132,25 +133,44 @@ class BMIRepositoryImpl implements BMIRepository {
   }
 
   @override
-  Future<Either<Failure, List<UserProfile>>> getUserProfilesPaginated({
+  Future<Either<Failure, PaginatedResponse<UserProfile>>>
+      getUserProfilesPaginated({
     required int page,
     required int pageSize,
   }) async {
     try {
-      // Calculate start position (API uses 1-based indexing)
-      final start = ((page - 1) * pageSize) + 1;
-
       // Call API to get paginated BMI data
+      // API menggunakan Start (page number) dan Length (items per page)
       final request = BmiListRequestModel(
         filter: [
           FilterModel(field: '', search: ''),
         ],
         sort: SortModel(field: '', type: 0),
-        start: start,
+        start: page,
         length: pageSize,
       );
 
       final response = await remoteDataSource.getBmiList(request);
+
+      // Debug logging
+      print('═══════════════════════════════════════');
+      print('📡 BMI API Response Debug');
+      print('═══════════════════════════════════════');
+      print('✅ Succeeded: ${response.succeeded}');
+      print('📊 Count (total): ${response.count}');
+      print('🔍 Filtered: ${response.filtered}');
+      print('📋 List length (received): ${response.list.length}');
+      print('───────────────────────────────────────');
+
+      for (var i = 0; i < response.list.length; i++) {
+        final item = response.list[i];
+        final userId = item.user?.id ?? item.userId;
+        final userName = item.user?.fullname ?? item.fullname ?? 'N/A';
+        print('[$i] UserId: $userId');
+        print('    Name: $userName');
+        print('    BMI: ${item.bmi.toStringAsFixed(1)}');
+      }
+      print('═══════════════════════════════════════\n');
 
       if (!response.succeeded) {
         return Left(ServerFailure(response.message));
@@ -159,14 +179,36 @@ class BMIRepositoryImpl implements BMIRepository {
       // Convert to list of UserProfile using mapper
       final userProfiles = BmiMapper.toUserProfileList(response.list);
 
+      print('� Unique users after mapping: ${userProfiles.length}');
+      for (var i = 0; i < userProfiles.length; i++) {
+        print('  [$i] ${userProfiles[i].name} (${userProfiles[i].id})');
+      }
+      print('───────────────────────────────────────\n');
+
       // Get pinned IDs and update profiles
       final pinnedIds = await localDataSource.getPinnedUserIds();
       final updatedProfiles = userProfiles.map((profile) {
         return profile.copyWith(isPinned: pinnedIds.contains(profile.id));
       }).toList();
 
-      return Right(updatedProfiles);
-    } catch (e) {
+      // Calculate if there's more data
+      // Assuming filtered count represents total matching records
+      final totalPages = (response.filtered / pageSize).ceil();
+      final hasMore = page < totalPages;
+
+      final paginatedResponse = PaginatedResponse<UserProfile>(
+        data: updatedProfiles,
+        totalCount: response.count,
+        filteredCount: response.filtered,
+        currentPage: page,
+        pageSize: pageSize,
+        hasMore: hasMore,
+      );
+
+      return Right(paginatedResponse);
+    } catch (e, stackTrace) {
+      print('❌ Error in getUserProfilesPaginated: $e');
+      print('Stack trace: $stackTrace');
       return Left(ServerFailure(e.toString()));
     }
   }

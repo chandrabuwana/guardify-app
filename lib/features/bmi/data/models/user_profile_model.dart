@@ -14,6 +14,7 @@ class UserProfileModel extends UserProfile {
     super.currentBMIStatus,
     super.lastUpdated,
     super.isPinned,
+    super.recommendation,
   });
 
   /// Convert dari JSON
@@ -36,6 +37,7 @@ class UserProfileModel extends UserProfile {
           ? DateTime.parse(json['last_updated'] as String)
           : null,
       isPinned: json['is_pinned'] as bool? ?? false,
+      recommendation: json['recommendation'] as String?,
     );
   }
 
@@ -52,6 +54,7 @@ class UserProfileModel extends UserProfile {
       'current_bmi_status': currentBMIStatus?.value,
       'last_updated': lastUpdated?.toIso8601String(),
       'is_pinned': isPinned,
+      'recommendation': recommendation,
     };
   }
 
@@ -68,6 +71,7 @@ class UserProfileModel extends UserProfile {
       currentBMIStatus: entity.currentBMIStatus,
       lastUpdated: entity.lastUpdated,
       isPinned: entity.isPinned,
+      recommendation: entity.recommendation,
     );
   }
 
@@ -84,6 +88,7 @@ class UserProfileModel extends UserProfile {
       currentBMIStatus: currentBMIStatus,
       lastUpdated: lastUpdated,
       isPinned: isPinned,
+      recommendation: recommendation,
     );
   }
 
@@ -99,6 +104,7 @@ class UserProfileModel extends UserProfile {
     BMIStatus? currentBMIStatus,
     DateTime? lastUpdated,
     bool? isPinned,
+    String? recommendation,
   }) {
     return UserProfileModel(
       id: id ?? this.id,
@@ -111,6 +117,7 @@ class UserProfileModel extends UserProfile {
       currentBMIStatus: currentBMIStatus ?? this.currentBMIStatus,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       isPinned: isPinned ?? this.isPinned,
+      recommendation: recommendation ?? this.recommendation,
     );
   }
 }
