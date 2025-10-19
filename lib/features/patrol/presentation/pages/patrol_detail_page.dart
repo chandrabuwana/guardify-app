@@ -5,10 +5,9 @@ import '../../../../core/design/colors.dart';
 import '../../domain/entities/patrol_route.dart';
 import '../../domain/entities/patrol_location.dart';
 import '../bloc/patrol_bloc.dart';
-import '../bloc/attendance_bloc.dart';
 import '../widgets/patrol_progress_widget.dart';
-import 'attendance_form_page.dart';
 import '../widgets/add_patrol_location_dialog.dart';
+import '../widgets/patrol_attendance_dialog.dart';
 
 class PatrolDetailPage extends StatelessWidget {
   final PatrolRoute route;
@@ -170,12 +169,15 @@ class PatrolDetailPage extends StatelessWidget {
                       location: location,
                       locationNumber: index + 1,
                       onAbsenTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BlocProvider(
-                              create: (_) => getIt<PatrolAttendanceBloc>(),
-                              child: AttendanceFormPage(location: location),
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (dialogContext) => BlocProvider.value(
+                            value: context.read<PatrolBloc>(),
+                            child: PatrolAttendanceDialog(
+                              routeId: route.id,
+                              locations: route.locations,
+                              currentLocation: location,
                             ),
                           ),
                         );
@@ -208,12 +210,16 @@ class PatrolDetailPage extends StatelessWidget {
                         location: location,
                         locationNumber: route.locations.length + entry.key + 1,
                         onAbsenTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => BlocProvider(
-                                create: (_) => getIt<PatrolAttendanceBloc>(),
-                                child: AttendanceFormPage(location: location),
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (dialogContext) => BlocProvider.value(
+                              value: context.read<PatrolBloc>(),
+                              child: PatrolAttendanceDialog(
+                                routeId: route.id,
+                                locations:
+                                    route.locations + route.additionalLocations,
+                                currentLocation: location,
                               ),
                             ),
                           );
