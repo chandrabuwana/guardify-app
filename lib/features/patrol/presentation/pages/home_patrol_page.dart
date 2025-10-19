@@ -147,11 +147,15 @@ class _HomePatrolPageState extends State<HomePatrolPage> {
                                 child: PatrolRouteCard(
                                   route: route,
                                   onTap: () {
+                                    final patrolBloc =
+                                        context.read<PatrolBloc>();
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) =>
-                                            PatrolDetailPage(route: route),
+                                        builder: (_) => PatrolDetailPage(
+                                          route: route,
+                                          bloc: patrolBloc,
+                                        ),
                                       ),
                                     );
                                   },
