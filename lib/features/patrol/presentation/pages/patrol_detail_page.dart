@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/design/colors.dart';
 import '../../domain/entities/patrol_route.dart';
 import '../../domain/entities/patrol_location.dart';
 import '../bloc/patrol_bloc.dart';
@@ -33,7 +34,7 @@ class PatrolDetailPage extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          backgroundColor: const Color(0xFF8B1538),
+          backgroundColor: primaryColor,
           iconTheme: const IconThemeData(color: Colors.white),
           elevation: 0,
         ),
@@ -42,7 +43,7 @@ class PatrolDetailPage extends StatelessWidget {
             if (state is PatrolLoading) {
               return const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFF8B1538),
+                  color: primaryColor,
                 ),
               );
             }
@@ -110,7 +111,7 @@ class PatrolDetailPage extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF8B1538),
+                            color: primaryColor,
                           ),
                         ),
                       ],
@@ -180,7 +181,8 @@ class PatrolDetailPage extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 16),
                         child: _LocationCard(
                           location: location,
-                          locationNumber: route.locations.length + entry.key + 1,
+                          locationNumber:
+                              route.locations.length + entry.key + 1,
                           onAbsenTap: () {
                             Navigator.push(
                               context,
@@ -206,12 +208,13 @@ class PatrolDetailPage extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => AddPatrolLocationPage(routeId: route.id),
+                            builder: (_) =>
+                                AddPatrolLocationPage(routeId: route.id),
                           ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B1538),
+                        backgroundColor: primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -269,36 +272,9 @@ class _LocationCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header with location and status
           Row(
-            children: [
-              // Status indicator
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: location.status == PatrolLocationStatus.completed
-                      ? Colors.blue[50]
-                      : Colors.grey[100],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  location.status == PatrolLocationStatus.completed
-                      ? 'Selesai'
-                      : 'Belum',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: location.status == PatrolLocationStatus.completed
-                        ? Colors.blue[600]
-                        : Colors.grey[600],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Column(
@@ -307,12 +283,12 @@ class _LocationCard extends StatelessWidget {
                     Text(
                       'Lokasi $locationNumber',
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       location.name,
                       style: const TextStyle(
@@ -321,7 +297,45 @@ class _LocationCard extends StatelessWidget {
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+              // Status indicator
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                decoration: BoxDecoration(
+                  color: location.status == PatrolLocationStatus.completed
+                      ? const Color(0xFFE8EAF6)
+                      : const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  location.status == PatrolLocationStatus.completed
+                      ? 'Selesai'
+                      : 'Belum',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: location.status == PatrolLocationStatus.completed
+                        ? const Color(0xFF5C6BC0)
+                        : const Color(0xFFE57373),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Info and Button Section
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Row(
                       children: [
                         Expanded(
@@ -331,10 +345,12 @@ class _LocationCard extends StatelessWidget {
                               const Text(
                                 'Jam Patroli',
                                 style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black87,
+                                  fontSize: 13,
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
+                              const SizedBox(height: 4),
                               Text(
                                 location.completedAt != null
                                     ? '${location.completedAt!.hour.toString().padLeft(2, '0')}.${location.completedAt!.minute.toString().padLeft(2, '0')} WIB'
@@ -348,6 +364,7 @@ class _LocationCard extends StatelessWidget {
                             ],
                           ),
                         ),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,10 +372,12 @@ class _LocationCard extends StatelessWidget {
                               const Text(
                                 'Bukti Patroli',
                                 style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black87,
+                                  fontSize: 13,
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
+                              const SizedBox(height: 4),
                               Text(
                                 location.proofImagePath != null
                                     ? location.proofImagePath!
@@ -367,9 +386,11 @@ class _LocationCard extends StatelessWidget {
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: location.proofImagePath != null
-                                      ? const Color(0xFF8B1538)
+                                      ? primaryColor
                                       : Colors.black87,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -379,22 +400,28 @@ class _LocationCard extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
+              const SizedBox(width: 12),
+
               // Absen Button
               ElevatedButton(
                 onPressed: location.status == PatrolLocationStatus.completed
                     ? null
                     : onAbsenTap,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: location.status == PatrolLocationStatus.completed
-                      ? Colors.grey[400]
-                      : const Color(0xFF8B1538),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  backgroundColor:
+                      location.status == PatrolLocationStatus.completed
+                          ? Colors.grey[400]
+                          : primaryColor,
+                  disabledBackgroundColor: Colors.grey[400],
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(24),
                   ),
+                  elevation: 0,
                 ),
-                child: Text(
+                child: const Text(
                   'Absen',
                   style: TextStyle(
                     color: Colors.white,

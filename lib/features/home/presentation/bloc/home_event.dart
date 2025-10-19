@@ -100,6 +100,10 @@ class LoadTodayTasksEvent extends HomeEvent {
   const LoadTodayTasksEvent();
 }
 
+class LoadPatrolTasksEvent extends HomeEvent {
+  const LoadPatrolTasksEvent();
+}
+
 class TaskProgressUpdateEvent extends HomeEvent {
   final String taskId;
   final double progress;

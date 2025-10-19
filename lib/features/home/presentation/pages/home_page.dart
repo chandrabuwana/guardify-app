@@ -12,6 +12,7 @@ import '../bloc/home_event.dart';
 import '../bloc/home_state.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/design/colors.dart';
+import '../../../../core/utils/user_role_helper.dart';
 import '../../../attendance/presentation/pages/check_in_page.dart';
 import '../../../bmi/presentation/pages/bmi_navigation_page.dart';
 import '../../../panic_button/presentation/pages/panic_verification_page.dart';
@@ -19,9 +20,6 @@ import '../../../panic_button/presentation/bloc/panic_button_bloc.dart';
 import '../../../company_regulations/presentation/pages/company_regulations_page.dart';
 import '../../../company_regulations/presentation/bloc/document_bloc.dart';
 import '../../../patrol/presentation/pages/patrol_detail_page.dart';
-import '../../../patrol/presentation/bloc/patrol_bloc.dart';
-import '../../../patrol/domain/entities/patrol_route.dart';
-import '../../../patrol/domain/entities/patrol_location.dart';
 import '../../../profile/presentation/pages/profile_screen.dart';
 import '../../../test_result/presentation/pages/test_result_page.dart';
 import '../../../chat/presentation/pages/chat_list_page.dart';
@@ -154,72 +152,13 @@ class __HomePageViewState extends State<_HomePageView> {
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/patrol':
-                // Create mock patrol route data
-                final mockPatrolRoute = PatrolRoute(
-                  id: '1',
-                  name: 'Patroli Rute A',
-                  description: '4 Lokasi',
-                  date: DateTime.now(),
-                  locations: const [
-                    PatrolLocation(
-                      id: '1',
-                      name: 'Pos Macan',
-                      description: 'Lokasi 1',
-                      latitude: -6.2088,
-                      longitude: 106.8456,
-                      address: 'Jl. Sudirman No. 1',
-                      status: PatrolLocationStatus.pending,
-                    ),
-                    PatrolLocation(
-                      id: '2',
-                      name: 'Pos Macan',
-                      description: 'Lokasi 2',
-                      latitude: -6.2089,
-                      longitude: 106.8457,
-                      address: 'Jl. Sudirman No. 2',
-                      status: PatrolLocationStatus.completed,
-                      proofImagePath: 'bukti.jpg',
-                    ),
-                    PatrolLocation(
-                      id: '3',
-                      name: 'Pos Macan',
-                      description: 'Lokasi 3',
-                      latitude: -6.2090,
-                      longitude: 106.8458,
-                      address: 'Jl. Sudirman No. 3',
-                      status: PatrolLocationStatus.pending,
-                    ),
-                    PatrolLocation(
-                      id: '4',
-                      name: 'Pos Macan',
-                      description: 'Lokasi 4',
-                      latitude: -6.2091,
-                      longitude: 106.8459,
-                      address: 'Jl. Sudirman No. 4',
-                      status: PatrolLocationStatus.pending,
-                    ),
-                  ],
-                  additionalLocations: const [
-                    PatrolLocation(
-                      id: 'add1',
-                      name: 'Patroli Tambahan',
-                      description: '1 Lokasi',
-                      latitude: -6.2092,
-                      longitude: 106.8460,
-                      address: 'Jl. Tambahan No. 1',
-                      status: PatrolLocationStatus.pending,
-                      isAdditional: true,
-                    ),
-                  ],
-                );
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BlocProvider(
-                      create: (context) => getIt<PatrolBloc>(),
-                      child: PatrolDetailPage(route: mockPatrolRoute),
-                    ),
+                // Patrol tasks are shown in "Tugas Hari Ini" section
+                // No need to navigate to separate page
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tugas patroli tersedia di "Tugas Hari Ini"'),
+                    backgroundColor: primaryColor,
+                    behavior: SnackBarBehavior.floating,
                   ),
                 );
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
@@ -404,8 +343,14 @@ class __HomePageViewState extends State<_HomePageView> {
                         24.verticalSpace,
 
                         // Menu Grid
-                        MenuGrid(
-                          menuItems: _buildMenuItems(),
+                        FutureBuilder<UserRole>(
+                          future: UserRoleHelper.getUserRole(),
+                          builder: (context, snapshot) {
+                            final userRole = snapshot.data ?? UserRole.anggota;
+                            return MenuGrid(
+                              menuItems: _buildMenuItems(userRole),
+                            );
+                          },
                         ),
 
                         24.verticalSpace,
@@ -547,26 +492,95 @@ class __HomePageViewState extends State<_HomePageView> {
             ),
           ),
           16.verticalSpace,
-          ...tasks.map((task) => TaskCard(
-                task: task,
-                onTap: () {
-                  // Handle patrol task navigation
-                  if (task.id.startsWith('patrol')) {
-                    context.read<HomeBloc>().add(const NavigateToPatrolEvent());
-                  } else {
-                    context.read<HomeBloc>().add(
-                          ShowSnackbarEvent('Membuka tugas: ${task.title}'),
-                        );
-                  }
-                },
-              )),
+          BlocBuilder<HomeBloc, HomeState>(
+            builder: (context, state) {
+              if (state is HomeLoaded && state.isLoadingPatrolTasks) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24.h),
+                    child: const CircularProgressIndicator(color: primaryColor),
+                  ),
+                );
+              }
+
+              if (tasks.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24.h),
+                    child: Text(
+                      'Tidak ada tugas hari ini',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: neutral70,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: tasks
+                    .map((task) => TaskCard(
+                          task: task,
+                          onTap: () {
+                            // Navigate to patrol detail page for patrol tasks
+                            if (task.id.startsWith('patrol_')) {
+                              // Get the route ID from task ID (format: patrol_xxx)
+                              final routeId =
+                                  task.id.replaceFirst('patrol_', '');
+
+                              // Get the patrol route from state
+                              final homeState = context.read<HomeBloc>().state;
+                              if (homeState is HomeLoaded) {
+                                // Check if patrolRoutes is not empty
+                                if (homeState.patrolRoutes.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Data rute patroli tidak tersedia'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                // Find route by ID
+                                final routeIndex =
+                                    homeState.patrolRoutes.indexWhere(
+                                  (r) => r.id == routeId,
+                                );
+
+                                // If route not found, use first route
+                                final route = routeIndex != -1
+                                    ? homeState.patrolRoutes[routeIndex]
+                                    : homeState.patrolRoutes.first;
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        PatrolDetailPage(route: route),
+                                  ),
+                                );
+                              }
+                            } else {
+                              context.read<HomeBloc>().add(
+                                    ShowSnackbarEvent('Tugas: ${task.title}'),
+                                  );
+                            }
+                          },
+                        ))
+                    .toList(),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  List<MenuItem> _buildMenuItems() {
-    return [
+  List<MenuItem> _buildMenuItems(UserRole userRole) {
+    final items = [
       MenuItem(
         id: 'incident',
         title: 'Insiden Kejadian',
@@ -634,6 +648,8 @@ class __HomePageViewState extends State<_HomePageView> {
             context.read<HomeBloc>().add(const NavigateToDisasterInfoEvent()),
       ),
     ];
+
+    return items;
   }
 
   List<String> _getTeamMembersImages() {

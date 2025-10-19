@@ -5,7 +5,7 @@ import '../../../../core/constants/enums.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/entities/bmi_record.dart';
 import '../../domain/entities/bmi_input.dart';
-import '../../domain/entities/paginated_response.dart';
+import '../../../../core/domain/entities/paginated_response.dart';
 import '../../domain/repositories/bmi_repository.dart';
 import '../datasources/bmi_local_data_source.dart';
 import '../datasources/bmi_remote_data_source.dart';

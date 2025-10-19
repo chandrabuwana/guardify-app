@@ -1,12 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/design/colors.dart';
 import '../bloc/patrol_bloc.dart';
 import '../widgets/patrol_route_card.dart';
 import 'patrol_detail_page.dart';
 
-class HomePatrolPage extends StatelessWidget {
+class HomePatrolPage extends StatefulWidget {
   const HomePatrolPage({super.key});
+
+  @override
+  State<HomePatrolPage> createState() => _HomePatrolPageState();
+}
+
+class _HomePatrolPageState extends State<HomePatrolPage> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      context.read<PatrolBloc>().add(LoadMorePatrolRoutes());
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    return currentScroll >= (maxScroll * 0.9);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,13 +49,13 @@ class HomePatrolPage extends StatelessWidget {
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
           title: const Text(
-            'Patroli Hari Ini',
+            'Daftar Rute Patroli',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
-          backgroundColor: const Color(0xFF8B1538),
+          backgroundColor: primaryColor,
           elevation: 0,
         ),
         body: BlocBuilder<PatrolBloc, PatrolState>(
@@ -30,7 +63,7 @@ class HomePatrolPage extends StatelessWidget {
             if (state is PatrolLoading) {
               return const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFF8B1538),
+                  color: primaryColor,
                 ),
               );
             }
@@ -60,7 +93,7 @@ class HomePatrolPage extends StatelessWidget {
                         context.read<PatrolBloc>().add(RefreshPatrolData());
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B1538),
+                        backgroundColor: primaryColor,
                       ),
                       child: const Text('Coba Lagi'),
                     ),
@@ -70,162 +103,86 @@ class HomePatrolPage extends StatelessWidget {
             }
 
             if (state is PatrolLoaded) {
+              if (state.routes.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.route_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Belum ada rute patroli',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
               return RefreshIndicator(
                 onRefresh: () async {
                   context.read<PatrolBloc>().add(RefreshPatrolData());
                 },
-                child: SingleChildScrollView(
+                child: CustomScrollView(
+                  controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // User Greeting
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF8B1538),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor: Colors.white,
-                              child: Icon(
-                                Icons.person,
-                                color: const Color(0xFF8B1538),
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Selamat Pagi',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w300,
-                                    ),
-                                  ),
-                                  const Text(
-                                    'Security Guard',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Date and Shift Info
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
-                              spreadRadius: 1,
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF8B1538),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Senin, 22 September 2025',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey[800],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Shift Pagi - Pos Gajah',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                // Navigate to calendar or schedule
-                              },
-                              child: const Text(
-                                'Hadir',
-                                style: TextStyle(
-                                  color: Color(0xFF8B1538),
-                                  fontWeight: FontWeight.w600,
+                  slivers: [
+                    // Patrol Routes List
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            if (index < state.routes.length) {
+                              final route = state.routes[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: PatrolRouteCard(
+                                  route: route,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            PatrolDetailPage(route: route),
+                                      ),
+                                    );
+                                  },
                                 ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Today's Tasks Section
-                      const Text(
-                        'Tugas Hari Ini',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Patrol Routes
-                      ...state.routes.map((route) => Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: PatrolRouteCard(
-                          route: route,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PatrolDetailPage(route: route),
-                              ),
-                            );
+                              );
+                            }
+                            return null;
                           },
+                          childCount: state.routes.length,
                         ),
-                      )),
+                      ),
+                    ),
 
-                      const SizedBox(height: 80), // Bottom padding
-                    ],
-                  ),
+                    // Loading More Indicator
+                    if (state.hasMore && state.isLoadingMore)
+                      const SliverPadding(
+                        padding: EdgeInsets.all(16),
+                        sliver: SliverToBoxAdapter(
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: primaryColor,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // Bottom Padding
+                    const SliverPadding(
+                      padding: EdgeInsets.only(bottom: 80),
+                    ),
+                  ],
                 ),
               );
             }
