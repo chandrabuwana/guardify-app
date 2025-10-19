@@ -38,8 +38,16 @@ class _BMIListPageState extends State<BMIListPage> {
   }
 
   void _loadData() {
-    _bmiBloc.add(BMILoadAllUsers());
-    _bmiBloc.add(BMILoadPinnedUsers());
+    // Hanya load data jika belum ada atau kosong
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = _bmiBloc.state;
+      if (state.searchResults.isEmpty && !state.isSearching) {
+        _bmiBloc.add(BMILoadAllUsers());
+      }
+      if (state.pinnedUsers.isEmpty) {
+        _bmiBloc.add(BMILoadPinnedUsers());
+      }
+    });
   }
 
   void _performSearch(String query) {

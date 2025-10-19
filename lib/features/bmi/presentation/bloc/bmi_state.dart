@@ -10,10 +10,13 @@ class BMIState {
   final List<UserProfile> searchResults;
   final List<UserProfile> pinnedUsers;
   final List<BMIRecord> bmiHistory;
+  final String? bmiHistoryUserId; // Track userId untuk history
   final BMIRecord? latestBMIRecord;
   final Map<String, dynamic>? statistics;
   final int currentPage;
   final bool hasMoreData;
+  final int totalCount; // Total jumlah data dari server
+  final int filteredCount; // Total data setelah filter
 
   const BMIState({
     this.isLoading = false,
@@ -25,10 +28,13 @@ class BMIState {
     this.searchResults = const [],
     this.pinnedUsers = const [],
     this.bmiHistory = const [],
+    this.bmiHistoryUserId,
     this.latestBMIRecord,
     this.statistics,
     this.currentPage = 1,
     this.hasMoreData = true,
+    this.totalCount = 0,
+    this.filteredCount = 0,
   });
 
   BMIState copyWith({
@@ -41,10 +47,13 @@ class BMIState {
     List<UserProfile>? searchResults,
     List<UserProfile>? pinnedUsers,
     List<BMIRecord>? bmiHistory,
+    String? bmiHistoryUserId,
     BMIRecord? latestBMIRecord,
     Map<String, dynamic>? statistics,
     int? currentPage,
     bool? hasMoreData,
+    int? totalCount,
+    int? filteredCount,
   }) {
     return BMIState(
       isLoading: isLoading ?? this.isLoading,
@@ -56,10 +65,13 @@ class BMIState {
       searchResults: searchResults ?? this.searchResults,
       pinnedUsers: pinnedUsers ?? this.pinnedUsers,
       bmiHistory: bmiHistory ?? this.bmiHistory,
+      bmiHistoryUserId: bmiHistoryUserId ?? this.bmiHistoryUserId,
       latestBMIRecord: latestBMIRecord ?? this.latestBMIRecord,
       statistics: statistics ?? this.statistics,
       currentPage: currentPage ?? this.currentPage,
       hasMoreData: hasMoreData ?? this.hasMoreData,
+      totalCount: totalCount ?? this.totalCount,
+      filteredCount: filteredCount ?? this.filteredCount,
     );
   }
 

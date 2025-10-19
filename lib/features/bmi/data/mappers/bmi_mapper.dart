@@ -6,11 +6,17 @@ import '../models/bmi_api_response_model.dart';
 /// Mapper untuk convert API model ke domain entities
 class BmiMapper {
   /// Convert BmiDataModel ke UserProfile
-  static UserProfile toUserProfile(BmiDataModel bmiData) {
+  /// Menggunakan kombinasi BMI Record ID dan User ID untuk unique identification
+  static UserProfile toUserProfile(BmiDataModel bmiData,
+      {bool useRecordId = false}) {
     final user = bmiData.user;
 
+    // Jika useRecordId true, gunakan bmiData.id sebagai identifier
+    // Ini untuk case dimana kita mau tampilkan multiple BMI records dari user yang sama
+    final profileId = useRecordId ? bmiData.id : (user?.id ?? bmiData.userId);
+
     return UserProfile(
-      id: user?.id ?? bmiData.userId,
+      id: profileId,
       name: user?.fullname ?? bmiData.fullname ?? 'Unknown',
       profileImageUrl: null, // API doesn't provide profile image
       role: UserRole
@@ -21,6 +27,7 @@ class BmiMapper {
       currentBMIStatus: bmiData.bmiStatus,
       lastUpdated: bmiData.updateDate,
       isPinned: false, // Will be managed locally
+      recommendation: bmiData.recommendation, // Ambil dari API
     );
   }
 
@@ -40,29 +47,41 @@ class BmiMapper {
   }
 
   /// Convert list of BmiDataModel to list of UserProfile
+  /// Tidak melakukan grouping - setiap BMI record jadi satu UserProfile entry
+  /// Menggunakan BMI Record ID sebagai identifier untuk menghindari duplicate
   static List<UserProfile> toUserProfileList(List<BmiDataModel> bmiDataList) {
-    // Group by user ID and get the latest BMI for each user
-    final Map<String, BmiDataModel> latestBmiByUser = {};
+    print('\n🔄 BmiMapper.toUserProfileList START');
+    print('   Input: ${bmiDataList.length} BMI records');
 
-    for (final bmiData in bmiDataList) {
+    // Convert setiap BMI record langsung ke UserProfile tanpa grouping
+    // Gunakan useRecordId=true agar setiap record punya ID unik
+    final profiles = <UserProfile>[];
+
+    for (var i = 0; i < bmiDataList.length; i++) {
+      final bmiData = bmiDataList[i];
       final userId = bmiData.user?.id ?? bmiData.userId;
-      final existing = latestBmiByUser[userId];
+      final userName = bmiData.user?.fullname ?? bmiData.fullname ?? 'Unknown';
 
-      if (existing == null) {
-        latestBmiByUser[userId] = bmiData;
-      } else {
-        final existingDate = existing.updateDate ?? existing.createDate;
-        final currentDate = bmiData.updateDate ?? bmiData.createDate;
-
-        if (currentDate != null && existingDate != null) {
-          if (currentDate.isAfter(existingDate)) {
-            latestBmiByUser[userId] = bmiData;
-          }
-        }
+      // Skip jika userId kosong
+      if (userId.isEmpty) {
+        print('   [$i] ⚠️ SKIPPED: $userName (Empty userId)');
+        continue;
       }
+
+      // Gunakan BMI Record ID sebagai identifier unik
+      final profile = toUserProfile(bmiData, useRecordId: true);
+      profiles.add(profile);
+
+      final updateDate =
+          bmiData.updateDate?.toString().substring(0, 10) ?? 'N/A';
+      print(
+          '   [$i] ✅ ADDED: $userName (BMI: ${bmiData.bmi.toStringAsFixed(1)}, Date: $updateDate)');
     }
 
-    return latestBmiByUser.values.map(toUserProfile).toList();
+    print('   Output: ${profiles.length} BMI record entries');
+    print('🔄 BmiMapper.toUserProfileList END\n');
+
+    return profiles;
   }
 
   /// Convert list of BmiDataModel for a single user to BMIRecord list (history)

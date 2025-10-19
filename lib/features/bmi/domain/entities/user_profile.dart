@@ -12,6 +12,7 @@ class UserProfile {
   final BMIStatus? currentBMIStatus;
   final DateTime? lastUpdated;
   final bool isPinned; // untuk fitur pin di role non-anggota
+  final String? recommendation; // rekomendasi dari API
 
   const UserProfile({
     required this.id,
@@ -24,6 +25,7 @@ class UserProfile {
     this.currentBMIStatus,
     this.lastUpdated,
     this.isPinned = false,
+    this.recommendation,
   });
 
   /// Calculate BMI from weight and height
@@ -54,6 +56,7 @@ class UserProfile {
     BMIStatus? currentBMIStatus,
     DateTime? lastUpdated,
     bool? isPinned,
+    String? recommendation,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -66,6 +69,7 @@ class UserProfile {
       currentBMIStatus: currentBMIStatus ?? this.currentBMIStatus,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       isPinned: isPinned ?? this.isPinned,
+      recommendation: recommendation ?? this.recommendation,
     );
   }
 
@@ -82,7 +86,8 @@ class UserProfile {
         other.currentBMI == currentBMI &&
         other.currentBMIStatus == currentBMIStatus &&
         other.lastUpdated == lastUpdated &&
-        other.isPinned == isPinned;
+        other.isPinned == isPinned &&
+        other.recommendation == recommendation;
   }
 
   @override
@@ -98,11 +103,12 @@ class UserProfile {
       currentBMIStatus,
       lastUpdated,
       isPinned,
+      recommendation,
     );
   }
 
   @override
   String toString() {
-    return 'UserProfile(id: $id, name: $name, role: $role, currentWeight: $currentWeight, height: $height, currentBMI: $currentBMI, currentBMIStatus: $currentBMIStatus, lastUpdated: $lastUpdated, isPinned: $isPinned)';
+    return 'UserProfile(id: $id, name: $name, role: $role, currentWeight: $currentWeight, height: $height, currentBMI: $currentBMI, currentBMIStatus: $currentBMIStatus, lastUpdated: $lastUpdated, isPinned: $isPinned, recommendation: $recommendation)';
   }
 }

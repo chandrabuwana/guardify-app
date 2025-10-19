@@ -47,7 +47,8 @@ class BMICalculate extends BMIEvent {
 // History Events
 class BMILoadHistory extends BMIEvent {
   final String userId;
-  BMILoadHistory(this.userId);
+  final bool forceRefresh; // Flag untuk force refresh data
+  BMILoadHistory(this.userId, {this.forceRefresh = false});
 }
 
 class BMIDeleteRecord extends BMIEvent {
