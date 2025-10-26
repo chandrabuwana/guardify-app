@@ -184,7 +184,7 @@ class __HomePageViewState extends State<_HomePageView> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => TestResultPage(
-                      userId: state.navigationArguments?['userId'] ?? 'user_1',
+                      userId: state.navigationArguments?['userId'], // Null jika tidak ada, akan dibaca dari secure storage
                       userRole:
                           state.navigationArguments?['userRole'] as UserRole? ??
                               UserRole.anggota,
@@ -216,6 +216,12 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 );
+                // Clear navigation route after navigation
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/schedule':
+                // Navigate to Schedule feature via named route
+                Navigator.pushNamed(context, '/schedule');
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;

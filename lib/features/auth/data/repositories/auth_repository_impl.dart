@@ -36,23 +36,57 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
       // Convert to entities
       final token = data.authToken.toEntity();
 
+      print('🔐 ========================================');
+      print('🔐 LOGIN SUCCESS - SAVING USER DATA');
+      print('🔐 ========================================');
+      print('🔐 User ID from API: ${data.user.id}');
+      print('🔐 Username: ${data.user.username}');
+      print('🔐 Full Name: ${data.user.fullName}');
+      print('🔐 Email: ${data.user.mail}');
+
+      // Clear old data first to prevent conflicts
+      print('🔐 Clearing old data...');
+      await SecurityManager.deleteSecurely(AppConstants.userIdKey);
+      await SecurityManager.deleteSecurely('user_username');
+      await SecurityManager.deleteSecurely('user_fullname');
+      await SecurityManager.deleteSecurely('user_role_id');
+      await SecurityManager.deleteSecurely('user_role_name');
+      print('🔐 Old data cleared!');
+
       // Save token to secure storage with key "token_guardify"
       await SecurityManager.storeSecurely(
         AppConstants.tokenKey,
         data.rawToken,
       );
+      print('✅ Saved token');
 
       // Save refresh token
       await SecurityManager.storeSecurely(
         AppConstants.refreshTokenKey,
         data.refreshToken,
       );
+      print('✅ Saved refresh token');
 
       // Save user ID to secure storage for profile API
       await SecurityManager.storeSecurely(
         AppConstants.userIdKey,
         data.user.id,
       );
+      print('✅ Saved user ID: ${data.user.id}');
+
+      // Verify data tersimpan dengan benar
+      final savedUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      print('🔍 VERIFICATION - Read back user ID: $savedUserId');
+      
+      if (savedUserId == null || savedUserId.isEmpty) {
+        print('❌ ERROR: User ID tidak tersimpan dengan benar!');
+      } else if (savedUserId != data.user.id) {
+        print('❌ ERROR: User ID tidak match! Expected: ${data.user.id}, Got: $savedUserId');
+      } else {
+        print('✅ VERIFIED: User ID tersimpan dengan benar!');
+      }
+      print('🔐 ========================================');
+      print('');
 
       // Save username to secure storage
       await SecurityManager.storeSecurely(

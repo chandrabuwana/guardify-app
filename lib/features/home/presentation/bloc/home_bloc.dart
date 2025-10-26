@@ -89,7 +89,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           message = 'Beranda';
           break;
         case 1:
-          message = 'Kalender';
+          message = 'Jadwal';
+          navigationRoute = '/schedule';
           break;
         case 2:
           message = 'Pesan';

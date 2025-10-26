@@ -201,6 +201,22 @@ import 'package:guardify_app/features/profile/domain/usecases/update_profile_pho
     as _i508;
 import 'package:guardify_app/features/profile/presentation/bloc/profile_bloc.dart'
     as _i641;
+import 'package:guardify_app/features/schedule/data/datasources/schedule_remote_data_source.dart'
+    as _i563;
+import 'package:guardify_app/features/schedule/data/repositories/schedule_repository_impl.dart'
+    as _i343;
+import 'package:guardify_app/features/schedule/domain/repositories/schedule_repository.dart'
+    as _i752;
+import 'package:guardify_app/features/schedule/domain/usecases/get_daily_agenda.dart'
+    as _i369;
+import 'package:guardify_app/features/schedule/domain/usecases/get_monthly_schedule.dart'
+    as _i1034;
+import 'package:guardify_app/features/schedule/domain/usecases/get_shift_detail.dart'
+    as _i947;
+import 'package:guardify_app/features/schedule/presentation/bloc/schedule_bloc.dart'
+    as _i1003;
+import 'package:guardify_app/features/test_result/data/datasources/test_result_api_data_source.dart'
+    as _i836;
 import 'package:guardify_app/features/test_result/data/datasources/test_result_remote_data_source.dart'
     as _i652;
 import 'package:guardify_app/features/test_result/data/repositories/test_result_repository_impl.dart'
@@ -242,14 +258,14 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i1020.ProfileRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i460.PanicButtonDataSource>(
         () => _i754.PanicButtonLocalDataSource());
-    gh.lazySingleton<_i652.TestResultRemoteDataSource>(
-        () => _i652.TestResultRemoteDataSourceImpl());
     gh.lazySingleton<_i228.PanicButtonRepository>(() =>
         _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
     gh.lazySingleton<_i606.NewsRemoteDataSource>(
         () => _i116.NewsRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i783.CutiRemoteDataSource>(
         () => _i783.CutiRemoteDataSourceImpl());
+    gh.factory<_i563.ScheduleRemoteDataSource>(
+        () => _i563.ScheduleRemoteDataSourceImpl());
     gh.factory<_i1037.PatrolRemoteDataSource>(
         () => _i681.PatrolRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.factory<_i491.ActivatePanicButtonUseCase>(() =>
@@ -262,9 +278,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => injectionModule.authRemoteDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i163.BmiRemoteDataSource>(
         () => injectionModule.bmiRemoteDataSource(gh<_i361.Dio>()));
-    gh.lazySingleton<_i422.TestResultRepository>(() =>
-        _i717.TestResultRepositoryImpl(
-            remoteDataSource: gh<_i652.TestResultRemoteDataSource>()));
+    gh.lazySingleton<_i836.TestResultApiDataSource>(
+        () => injectionModule.testResultApiDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i220.ProfileRemoteDataSource>(
       () => _i945.ProfileRemoteDataSourceMock(),
       instanceName: 'mock',
@@ -273,6 +288,9 @@ extension GetItInjectableX on _i174.GetIt {
         () => injectionModule.chatBloc(gh<_i523.ChatRepository>()));
     gh.lazySingleton<_i125.DocumentRemoteDataSource>(
         () => _i125.DocumentRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
+    gh.lazySingleton<_i652.TestResultRemoteDataSource>(() =>
+        _i652.TestResultRemoteDataSourceImpl(
+            gh<_i836.TestResultApiDataSource>()));
     gh.factory<_i826.BMILocalDataSource>(
         () => _i826.BMILocalDataSource(gh<_i460.SharedPreferences>()));
     gh.lazySingleton<_i825.CutiRepository>(() => _i591.CutiRepositoryImpl(
@@ -283,12 +301,6 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i895.ProfileLocalDataSourceImpl(gh<_i460.SharedPreferences>()));
     gh.lazySingleton<_i54.NewsRepository>(
         () => _i203.NewsRepositoryImpl(gh<_i606.NewsRemoteDataSource>()));
-    gh.factory<_i930.GetMemberTestResultsUseCase>(() =>
-        _i930.GetMemberTestResultsUseCase(gh<_i422.TestResultRepository>()));
-    gh.factory<_i743.GetMyTestResultsUseCase>(
-        () => _i743.GetMyTestResultsUseCase(gh<_i422.TestResultRepository>()));
-    gh.factory<_i227.GetTestSummaryUseCase>(
-        () => _i227.GetTestSummaryUseCase(gh<_i422.TestResultRepository>()));
     gh.lazySingleton<_i352.LaporanKegiatanRepository>(() =>
         _i713.LaporanKegiatanRepositoryImpl(
             remoteDataSource: gh<_i590.LaporanKegiatanRemoteDataSource>()));
@@ -308,13 +320,25 @@ extension GetItInjectableX on _i174.GetIt {
         () => injectionModule.authRepository(gh<_i650.AuthRemoteDataSource>()));
     gh.lazySingleton<_i551.LoginRepository>(() =>
         injectionModule.loginRepository(gh<_i650.AuthRemoteDataSource>()));
-    gh.factory<_i1060.TestResultBloc>(() => _i1060.TestResultBloc(
-          getMyResultsUseCase: gh<_i743.GetMyTestResultsUseCase>(),
-          getMemberResultsUseCase: gh<_i930.GetMemberTestResultsUseCase>(),
-          getSummaryUseCase: gh<_i227.GetTestSummaryUseCase>(),
-        ));
+    gh.lazySingleton<_i752.ScheduleRepository>(() =>
+        _i343.ScheduleRepositoryImpl(
+            remoteDataSource: gh<_i563.ScheduleRemoteDataSource>()));
     gh.factory<_i505.NewsBloc>(
         () => injectionModule.newsBloc(gh<_i54.NewsRepository>()));
+    gh.lazySingleton<_i422.TestResultRepository>(() =>
+        _i717.TestResultRepositoryImpl(
+            remoteDataSource: gh<_i652.TestResultRemoteDataSource>()));
+    gh.factory<_i369.GetDailyAgenda>(
+        () => _i369.GetDailyAgenda(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i1034.GetMonthlySchedule>(
+        () => _i1034.GetMonthlySchedule(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i947.GetShiftDetail>(
+        () => _i947.GetShiftDetail(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i1003.ScheduleBloc>(() => _i1003.ScheduleBloc(
+          getMonthlySchedule: gh<_i1034.GetMonthlySchedule>(),
+          getShiftDetail: gh<_i947.GetShiftDetail>(),
+          getDailyAgenda: gh<_i369.GetDailyAgenda>(),
+        ));
     gh.lazySingleton<_i695.DocumentRepository>(
         () => _i117.DocumentRepositoryImpl(
               remoteDataSource: gh<_i125.DocumentRemoteDataSource>(),
@@ -378,6 +402,12 @@ extension GetItInjectableX on _i174.GetIt {
           getDetailCuti: gh<_i505.GetDetailCuti>(),
           getRekapCuti: gh<_i515.GetRekapCuti>(),
         ));
+    gh.factory<_i930.GetMemberTestResultsUseCase>(() =>
+        _i930.GetMemberTestResultsUseCase(gh<_i422.TestResultRepository>()));
+    gh.factory<_i743.GetMyTestResultsUseCase>(
+        () => _i743.GetMyTestResultsUseCase(gh<_i422.TestResultRepository>()));
+    gh.factory<_i227.GetTestSummaryUseCase>(
+        () => _i227.GetTestSummaryUseCase(gh<_i422.TestResultRepository>()));
     gh.lazySingleton<_i252.ProfileRepository>(() => _i422.ProfileRepositoryImpl(
           remoteDataSource: gh<_i220.ProfileRemoteDataSource>(),
           localDataSource: gh<_i895.ProfileLocalDataSource>(),
@@ -426,6 +456,11 @@ extension GetItInjectableX on _i174.GetIt {
           getPatrolRoutesPaginated: gh<_i238.GetPatrolRoutesPaginated>(),
           getPatrolProgress: gh<_i820.GetPatrolProgress>(),
           addPatrolLocation: gh<_i198.AddPatrolLocation>(),
+        ));
+    gh.factory<_i1060.TestResultBloc>(() => _i1060.TestResultBloc(
+          getMyResultsUseCase: gh<_i743.GetMyTestResultsUseCase>(),
+          getMemberResultsUseCase: gh<_i930.GetMemberTestResultsUseCase>(),
+          getSummaryUseCase: gh<_i227.GetTestSummaryUseCase>(),
         ));
     gh.factory<_i945.LaporanKegiatanBloc>(() => _i945.LaporanKegiatanBloc(
           getLaporanList: gh<_i970.GetLaporanList>(),

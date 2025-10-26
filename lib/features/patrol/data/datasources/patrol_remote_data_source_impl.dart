@@ -81,7 +81,7 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
 
       final response = await apiClient.getRouteDetailList(request);
       print(
-          '[PatrolRemoteDataSource] API Response: Count=${response.count}, Filtered=${response.filtered}, List length=${response.list.length}');
+          '[PatrolRemoteDataSource] API Response: Count=${response.count}, Filtered=${response.filtered}, List length=${response.list?.length}');
       return response;
     } catch (e) {
       print('[PatrolRemoteDataSource] Error: $e');

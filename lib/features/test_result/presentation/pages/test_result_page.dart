@@ -6,6 +6,8 @@ import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
+import '../../../../core/security/security_manager.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../bloc/test_result_bloc.dart';
 import '../widgets/test_result_header_widget.dart';
 import '../widgets/test_result_card_widget.dart';
@@ -17,7 +19,7 @@ import '../widgets/test_result_table_widget.dart';
 /// - Danton: Tab bar dengan "Test Saya" & "Test Anggota"
 /// - Anggota: Hanya Tab "Test Saya"
 class TestResultPage extends StatefulWidget {
-  final String userId;
+  final String? userId;
   final UserRole userRole;
 
   const TestResultPage({
@@ -35,27 +37,41 @@ class _TestResultPageState extends State<TestResultPage>
   late TabController _tabController;
   late TestResultBloc _bloc;
   final TextEditingController _searchController = TextEditingController();
+  String? _resolvedUserId;
 
   @override
   void initState() {
     super.initState();
     _bloc = getIt<TestResultBloc>();
-    
+
     // Initialize tab controller berdasarkan role
     final tabLength = _getTabLength();
     _tabController = TabController(length: tabLength, vsync: this);
-    
-    // Load data
-    _bloc.add(FetchTestResultEvent(
-      userId: widget.userId,
-      role: widget.userRole,
-    ));
+
+  // Load data - jika userId tidak diberikan, ambil dari secure storage
+  _initAndFetch();
 
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         _bloc.add(SwitchTestTabEvent(_tabController.index));
       }
     });
+  }
+
+  Future<void> _initAndFetch() async {
+    String? userId = widget.userId;
+    if (userId == null || userId.isEmpty) {
+      userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      print('📱 Test Result: userId from secure storage = $userId');
+    } else {
+      print('📱 Test Result: userId from parameter = $userId');
+    }
+
+    _resolvedUserId = userId;
+
+    final idToSend = _resolvedUserId ?? '';
+    print('📱 Test Result: Fetching with userId = $idToSend');
+    _bloc.add(FetchTestResultEvent(userId: idToSend, role: widget.userRole));
   }
 
   @override
@@ -83,6 +99,7 @@ class _TestResultPageState extends State<TestResultPage>
     return BlocProvider<TestResultBloc>(
       create: (context) => _bloc,
       child: AppScaffold(
+        enableScrolling: false,
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
           backgroundColor: primaryColor,
@@ -151,63 +168,100 @@ class _TestResultPageState extends State<TestResultPage>
     );
   }
 
-  /// Tab "Test Saya"
+  /// Tab "Test Saya" - Untuk Anggota dengan Search & Filter
   Widget _buildMyResultsTab(TestResultLoaded state) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        _bloc.add(RefreshTestResultEvent(
-          userId: widget.userId,
-          role: widget.userRole,
-        ));
-      },
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Summary Header (dengan atau tanpa Jml Lulus/Tidak Lulus)
-            if (state.summary != null)
-              TestResultHeaderWidget(
-                summary: state.summary!,
-                userRole: widget.userRole,
-              ),
-
-            16.verticalSpace,
-
-            // List Hasil Test Saya
-            Padding(
-              padding: REdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Daftar Hasil Test',
-                    style: TS.titleMedium.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: neutral90,
-                    ),
+    return Column(
+      children: [
+        // Search & Filter Bar untuk Anggota
+        16.verticalSpace,
+        Padding(
+          padding: REdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(color: primaryColor, width: 1.5),
                   ),
-                  12.verticalSpace,
-                  if (state.myResults.isEmpty)
-                    _buildEmptyState('Belum ada hasil Test')
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: state.myResults.length,
-                      itemBuilder: (context, index) {
-                        final result = state.myResults[index];
-                        return TestResultCardWidget(result: result);
-                      },
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Cari',
+                      hintStyle: TS.bodyMedium.copyWith(color: neutral50),
+                      prefixIcon: const Icon(Icons.search, color: primaryColor),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: neutral50),
+                              onPressed: () {
+                                _searchController.clear();
+                                _bloc.add(const SearchMyTestEvent(''));
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: REdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
-                ],
+                    onChanged: (query) {
+                      _bloc.add(SearchMyTestEvent(query));
+                    },
+                  ),
+                ),
               ),
-            ),
-
-            24.verticalSpace,
-          ],
+              12.horizontalSpace,
+              Container(
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.filter_list, color: Colors.white),
+                  onPressed: () => _showMyTestFilterDialog(state),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+
+        16.verticalSpace,
+
+        // List Hasil Test Saya
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              _bloc.add(RefreshTestResultEvent(
+                userId: _resolvedUserId ?? '',
+                role: widget.userRole,
+              ));
+            },
+            child: state.filteredMyResults.isEmpty
+                ? SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.5,
+                      child: _buildEmptyState(
+                        state.searchQuery != null || state.selectedMyTestFilter != null
+                            ? 'Tidak ada data yang sesuai'
+                            : 'Belum ada hasil Test',
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: REdgeInsets.symmetric(horizontal: 16),
+                    itemCount: state.filteredMyResults.length,
+                    itemBuilder: (context, index) {
+                      final result = state.filteredMyResults[index];
+                      return TestResultCardWidget(result: result);
+                    },
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -344,7 +398,7 @@ class _TestResultPageState extends State<TestResultPage>
             ElevatedButton(
               onPressed: () {
                 _bloc.add(RefreshTestResultEvent(
-                  userId: widget.userId,
+                  userId: _resolvedUserId ?? '',
                   role: widget.userRole,
                 ));
               },
@@ -422,6 +476,73 @@ class _TestResultPageState extends State<TestResultPage>
                 groupValue: state.selectedJabatan,
                 onChanged: (value) {
                   _bloc.add(FilterTestByJabatanEvent(value));
+                  Navigator.pop(dialogContext);
+                },
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMyTestFilterDialog(TestResultLoaded state) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          'Filter Berdasarkan',
+          style: TS.titleLarge.copyWith(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Semua'),
+              leading: Radio<String?>(
+                value: null,
+                groupValue: state.selectedMyTestFilter,
+                onChanged: (value) {
+                  _bloc.add(FilterMyTestEvent(value));
+                  Navigator.pop(dialogContext);
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Lulus'),
+              leading: Radio<String?>(
+                value: 'lulus',
+                groupValue: state.selectedMyTestFilter,
+                onChanged: (value) {
+                  _bloc.add(FilterMyTestEvent(value));
+                  Navigator.pop(dialogContext);
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Tidak Lulus'),
+              leading: Radio<String?>(
+                value: 'tidak_lulus',
+                groupValue: state.selectedMyTestFilter,
+                onChanged: (value) {
+                  _bloc.add(FilterMyTestEvent(value));
+                  Navigator.pop(dialogContext);
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Belum Dinilai'),
+              leading: Radio<String?>(
+                value: 'belum_dinilai',
+                groupValue: state.selectedMyTestFilter,
+                onChanged: (value) {
+                  _bloc.add(FilterMyTestEvent(value));
                   Navigator.pop(dialogContext);
                 },
               ),
