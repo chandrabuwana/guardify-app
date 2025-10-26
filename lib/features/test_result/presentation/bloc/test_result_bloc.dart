@@ -28,6 +28,8 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
     on<FilterTestByJabatanEvent>(_onFilterByJabatan);
     on<RefreshTestResultEvent>(_onRefreshTestResult);
     on<SwitchTestTabEvent>(_onSwitchTab);
+    on<SearchMyTestEvent>(_onSearchMyTest);
+    on<FilterMyTestEvent>(_onFilterMyTest);
   }
 
   Future<void> _onFetchTestResult(
@@ -66,6 +68,7 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
 
         emit(TestResultLoaded(
           myResults: myResults,
+          filteredMyResults: myResults,
           memberResults: memberResults,
           filteredMemberResults: memberResults,
           summary: summary,
@@ -84,6 +87,7 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
 
         emit(TestResultLoaded(
           myResults: myResults,
+          filteredMyResults: myResults,
           memberResults: const [],
           filteredMemberResults: const [],
           summary: summary,
@@ -168,6 +172,96 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
       final currentState = state as TestResultLoaded;
       emit(currentState.copyWith(currentTabIndex: event.tabIndex));
     }
+  }
+
+  void _onSearchMyTest(
+    SearchMyTestEvent event,
+    Emitter<TestResultState> emit,
+  ) {
+    if (state is TestResultLoaded) {
+      final currentState = state as TestResultLoaded;
+      final query = event.query.toLowerCase();
+
+      if (query.isEmpty) {
+        // Reset to all results, apply current filter if exists
+        var filtered = currentState.myResults;
+        if (currentState.selectedMyTestFilter != null) {
+          filtered = _filterMyResultsByStatus(filtered, currentState.selectedMyTestFilter!);
+        }
+        
+        emit(currentState.copyWith(
+          filteredMyResults: filtered,
+          searchQuery: null,
+        ));
+        return;
+      }
+
+      // Search in results, then apply filter if exists
+      var filtered = currentState.myResults.where((result) {
+        return result.namaTest.toLowerCase().contains(query) ||
+            result.id.toLowerCase().contains(query);
+      }).toList();
+
+      if (currentState.selectedMyTestFilter != null) {
+        filtered = _filterMyResultsByStatus(filtered, currentState.selectedMyTestFilter!);
+      }
+
+      emit(currentState.copyWith(
+        filteredMyResults: filtered,
+        searchQuery: query,
+      ));
+    }
+  }
+
+  void _onFilterMyTest(
+    FilterMyTestEvent event,
+    Emitter<TestResultState> emit,
+  ) {
+    if (state is TestResultLoaded) {
+      final currentState = state as TestResultLoaded;
+
+      if (event.status == null || event.status!.isEmpty) {
+        // Reset filter, apply search if exists
+        var filtered = currentState.myResults;
+        if (currentState.searchQuery != null && currentState.searchQuery!.isNotEmpty) {
+          final query = currentState.searchQuery!.toLowerCase();
+          filtered = filtered.where((result) {
+            return result.namaTest.toLowerCase().contains(query) ||
+                result.id.toLowerCase().contains(query);
+          }).toList();
+        }
+        
+        emit(currentState.copyWith(
+          filteredMyResults: filtered,
+          selectedMyTestFilter: null,
+        ));
+        return;
+      }
+
+      // Apply status filter
+      var filtered = _filterMyResultsByStatus(currentState.myResults, event.status!);
+
+      // Apply search if exists
+      if (currentState.searchQuery != null && currentState.searchQuery!.isNotEmpty) {
+        final query = currentState.searchQuery!.toLowerCase();
+        filtered = filtered.where((result) {
+          return result.namaTest.toLowerCase().contains(query) ||
+              result.id.toLowerCase().contains(query);
+        }).toList();
+      }
+
+      emit(currentState.copyWith(
+        filteredMyResults: filtered,
+        selectedMyTestFilter: event.status,
+      ));
+    }
+  }
+
+  List<TestResultEntity> _filterMyResultsByStatus(
+    List<TestResultEntity> results,
+    String status,
+  ) {
+    return results.where((result) => result.status.value == status).toList();
   }
 
   /// Helper untuk check apakah role bisa lihat member results

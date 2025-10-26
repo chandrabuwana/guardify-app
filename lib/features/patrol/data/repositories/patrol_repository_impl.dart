@@ -76,7 +76,7 @@ class PatrolRepositoryImpl implements PatrolRepository {
         ],
       );
 
-      if (response.list.isEmpty) {
+      if (response.list == null || response.list!.isEmpty) {
         return Left(ServerFailure('Route not found'));
       }
 

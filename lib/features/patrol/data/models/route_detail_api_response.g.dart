@@ -13,12 +13,12 @@ RouteDetailListResponse _$RouteDetailListResponseFromJson(
       json,
       ($checkedConvert) {
         final val = RouteDetailListResponse(
-          count: $checkedConvert('Count', (v) => (v as num).toInt()),
-          filtered: $checkedConvert('Filtered', (v) => (v as num).toInt()),
+          count: $checkedConvert('Count', (v) => (v as num?)?.toInt()),
+          filtered: $checkedConvert('Filtered', (v) => (v as num?)?.toInt()),
           list: $checkedConvert(
               'List',
-              (v) => (v as List<dynamic>)
-                  .map((e) =>
+              (v) => (v as List<dynamic>?)
+                  ?.map((e) =>
                       RouteDetailModel.fromJson(e as Map<String, dynamic>))
                   .toList()),
           code: $checkedConvert('Code', (v) => (v as num).toInt()),
@@ -44,7 +44,7 @@ Map<String, dynamic> _$RouteDetailListResponseToJson(
     <String, dynamic>{
       'Count': instance.count,
       'Filtered': instance.filtered,
-      'List': instance.list.map((e) => e.toJson()).toList(),
+      'List': instance.list?.map((e) => e.toJson()).toList(),
       'Code': instance.code,
       'Succeeded': instance.succeeded,
       'Message': instance.message,

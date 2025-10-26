@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../domain/entities/test_result_entity.dart';
 
@@ -16,137 +15,140 @@ class TestResultCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _getStatusColor(result.status);
-    final statusText = _getStatusText(result.status);
+  final statusColor = _getStatusColor(result.status);
+  final statusText = _getStatusText(result.status);
 
     return Container(
-      margin: REdgeInsets.only(bottom: 12),
+      margin: REdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: statusColor.withOpacity(0.3),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(8.r),
+        // border: Border(
+        //   // left: BorderSide(color: borderColor, width: 5),
+        //   // top: BorderSide(color: const Color(0xFFE0E0E0), width: 1),
+        //   // right: BorderSide(color: const Color(0xFFE0E0E0), width: 1),
+        //   // bottom: BorderSide(color: const Color(0xFFE0E0E0), width: 1),
+        // ),
+        // boxShadow: [
+        //   BoxShadow(
+        //     // color: Colors.black.withOpacity(0.08),
+        //     blurRadius: 8,
+        //     offset: const Offset(0, 2),
+        //   ),
+        // ],
       ),
       child: Padding(
-        padding: REdgeInsets.all(16),
+        padding: REdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header dengan ID & Tipe
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: REdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: neutral20,
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                  child: Text(
-                    'ID: ${result.id}',
-                    style: TS.caption.copyWith(
-                      color: neutral70,
-                      fontFamily: 'monospace',
-                    ),
+                Text(
+                  'ID : ${result.id}',
+                  style: TS.bodyMedium.copyWith(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-                const Spacer(),
                 if (result.tipeTest != null)
                   Text(
-                    result.tipeTest!,
-                    style: TS.caption.copyWith(
-                      color: neutral70,
+                    'Tipe : ${result.tipeTest}',
+                    style: TS.bodyMedium.copyWith(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
               ],
             ),
 
-            12.verticalSpace,
+            8.verticalSpace,
 
-            // Nama Test
-            Text(
-              result.namaTest,
-              style: TS.titleMedium.copyWith(
-                fontWeight: FontWeight.bold,
-                color: neutral90,
+            // Nama Ujian
+            RichText(
+              text: TextSpan(
+                style: TS.bodyMedium.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w400,
+                ),
+                children: [
+                  const TextSpan(text: 'Nama Ujian        : '),
+                  TextSpan(
+                    text: result.namaTest,
+                    style: const TextStyle(fontWeight: FontWeight.w400),
+                  ),
+                ],
+              ),
+            ),
+
+            4.verticalSpace,
+
+            // Tanggal Ujian
+            RichText(
+              text: TextSpan(
+                style: TS.bodyMedium.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w400,
+                ),
+                children: [
+                  const TextSpan(text: 'Tanggal Ujian   : '),
+                  TextSpan(
+                    text: DateFormat('dd MMMM yyyy', 'id').format(result.tanggalTest),
+                  ),
+                ],
+              ),
+            ),
+
+            4.verticalSpace,
+
+            // Nilai Ujian
+            RichText(
+              text: TextSpan(
+                style: TS.bodyMedium.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w400,
+                ),
+                children: [
+                  const TextSpan(text: 'Nilai Ujian        : '),
+                  TextSpan(
+                    text: result.status == TestKelulusanStatus.belumDinilai 
+                        ? '-'
+                        : '${result.nilaiTest}',
+                  ),
+                ],
+              ),
+            ),
+
+            4.verticalSpace,
+
+            // Nilai KKM
+            RichText(
+              text: TextSpan(
+                style: TS.bodyMedium.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w400,
+                ),
+                children: [
+                  const TextSpan(text: 'Nilai KKM         : '),
+                  TextSpan(text: '${result.nilaiKKM}'),
+                ],
               ),
             ),
 
             8.verticalSpace,
 
-            // Tanggal Test
-            Row(
-              children: [
-                Icon(Icons.calendar_today, size: 14.w, color: neutral70),
-                6.horizontalSpace,
-                Text(
-                  'Tanggal Test: ${DateFormat('dd MMMM yyyy', 'id').format(result.tanggalTest)}',
-                  style: TS.bodySmall.copyWith(color: neutral70),
-                ),
-              ],
-            ),
-
-            12.verticalSpace,
-
-            // Nilai
-            Row(
-              children: [
-                Expanded(
-                  child: _buildInfoItem(
-                    label: 'Nilai Test',
-                    value: result.nilaiTest.toString(),
-                    valueColor: result.isLulus ? successColor : errorColor,
-                  ),
-                ),
-                16.horizontalSpace,
-                Expanded(
-                  child: _buildInfoItem(
-                    label: 'Nilai KKM',
-                    value: result.nilaiKKM.toString(),
-                    valueColor: neutral70,
-                  ),
-                ),
-              ],
-            ),
-
-            12.verticalSpace,
-
             // Status
-            Container(
-              padding: REdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(
-                  color: statusColor.withOpacity(0.3),
-                  width: 1,
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'Status : $statusText',
+                style: TS.bodyMedium.copyWith(
+                  color: statusColor,
+                  fontWeight: FontWeight.w600,
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _getStatusIcon(result.status),
-                    size: 16.w,
-                    color: statusColor,
-                  ),
-                  8.horizontalSpace,
-                  Text(
-                    'Status: $statusText',
-                    style: TS.bodySmall.copyWith(
-                      color: statusColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
               ),
             ),
           ],
@@ -155,40 +157,14 @@ class TestResultCardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoItem({
-    required String label,
-    required String value,
-    required Color valueColor,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TS.caption.copyWith(
-            color: neutral70,
-          ),
-        ),
-        4.verticalSpace,
-        Text(
-          value,
-          style: TS.headlineSmall.copyWith(
-            fontWeight: FontWeight.bold,
-            color: valueColor,
-          ),
-        ),
-      ],
-    );
-  }
-
   Color _getStatusColor(TestKelulusanStatus status) {
     switch (status) {
       case TestKelulusanStatus.lulus:
-        return successColor;
+        return const Color(0xFF4CAF50); // Green untuk text status
       case TestKelulusanStatus.tidakLulus:
-        return errorColor;
+        return const Color(0xFFE53935); // Red untuk text status
       case TestKelulusanStatus.belumDinilai:
-        return const Color(0xFFFF9800);
+        return Colors.black87; // Black untuk text status
     }
   }
 
@@ -200,17 +176,6 @@ class TestResultCardWidget extends StatelessWidget {
         return 'Tidak Lulus';
       case TestKelulusanStatus.belumDinilai:
         return 'Belum Dinilai';
-    }
-  }
-
-  IconData _getStatusIcon(TestKelulusanStatus status) {
-    switch (status) {
-      case TestKelulusanStatus.lulus:
-        return Icons.check_circle;
-      case TestKelulusanStatus.tidakLulus:
-        return Icons.cancel;
-      case TestKelulusanStatus.belumDinilai:
-        return Icons.schedule;
     }
   }
 }

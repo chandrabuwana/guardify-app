@@ -10,18 +10,21 @@ class RouteDetailMapper {
     int currentPage,
     int pageSize,
   ) {
-    final routes = _groupRouteDetails(response.list);
+    final routeDetailList = response.list ?? [];
+    final routes = _groupRouteDetails(routeDetailList);
+    final totalCount = response.count ?? 0;
+    final filteredCount = response.filtered ?? 0;
 
     print(
-        '[RouteDetailMapper] Converted ${response.list.length} route details to ${routes.length} patrol routes');
+        '[RouteDetailMapper] Converted ${routeDetailList.length} route details to ${routes.length} patrol routes');
 
     return PaginatedResponse(
       data: routes,
-      totalCount: response.count,
-      filteredCount: response.filtered,
+      totalCount: totalCount,
+      filteredCount: filteredCount,
       currentPage: currentPage,
       pageSize: pageSize,
-      hasMore: (currentPage * pageSize) < response.filtered,
+      hasMore: (currentPage * pageSize) < filteredCount,
     );
   }
 

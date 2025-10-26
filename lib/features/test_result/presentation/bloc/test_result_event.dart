@@ -66,3 +66,23 @@ class SwitchTestTabEvent extends TestResultEvent {
   List<Object?> get props => [tabIndex];
 }
 
+/// Event untuk search My Test results (untuk anggota)
+class SearchMyTestEvent extends TestResultEvent {
+  final String query;
+
+  const SearchMyTestEvent(this.query);
+
+  @override
+  List<Object?> get props => [query];
+}
+
+/// Event untuk filter My Test results berdasarkan status
+class FilterMyTestEvent extends TestResultEvent {
+  final String? status;
+
+  const FilterMyTestEvent(this.status);
+
+  @override
+  List<Object?> get props => [status];
+}
+

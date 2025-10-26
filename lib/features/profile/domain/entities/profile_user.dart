@@ -3,11 +3,11 @@ import 'package:equatable/equatable.dart';
 /// Entity untuk data profil user
 class ProfileUser extends Equatable {
   final String id;
+  final String name;
   final String nrp;
   final String noKtp;
-  final String name;
   final String tempatLahir;
-  final DateTime tanggalLahir;
+  final DateTime? tanggalLahir;
   final String jenisKelamin;
   final String pendidikan;
   final String teleponPribadi;
@@ -15,8 +15,8 @@ class ProfileUser extends Equatable {
   final String site;
   final String jabatan;
   final String atasan;
-  final DateTime tglPenerimaanKaryawan;
-  final DateTime masaBerlakuPermit;
+  final DateTime? tglPenerimaanKaryawan;
+  final DateTime? masaBerlakuPermit;
   final String kompetensiPekerjaan;
   final String wargaNegara;
   final String provinsi;
@@ -29,11 +29,11 @@ class ProfileUser extends Equatable {
 
   const ProfileUser({
     required this.id,
+    required this.name,
     required this.nrp,
     required this.noKtp,
-    required this.name,
     required this.tempatLahir,
-    required this.tanggalLahir,
+    this.tanggalLahir,
     required this.jenisKelamin,
     required this.pendidikan,
     required this.teleponPribadi,
@@ -41,8 +41,8 @@ class ProfileUser extends Equatable {
     required this.site,
     required this.jabatan,
     required this.atasan,
-    required this.tglPenerimaanKaryawan,
-    required this.masaBerlakuPermit,
+    this.tglPenerimaanKaryawan,
+    this.masaBerlakuPermit,
     required this.kompetensiPekerjaan,
     required this.wargaNegara,
     required this.provinsi,
@@ -85,9 +85,9 @@ class ProfileUser extends Equatable {
   /// Copy with method untuk membuat instance baru dengan perubahan tertentu
   ProfileUser copyWith({
     String? id,
+    String? name,
     String? nrp,
     String? noKtp,
-    String? name,
     String? tempatLahir,
     DateTime? tanggalLahir,
     String? jenisKelamin,
@@ -111,9 +111,9 @@ class ProfileUser extends Equatable {
   }) {
     return ProfileUser(
       id: id ?? this.id,
+      name: name ?? this.name,
       nrp: nrp ?? this.nrp,
       noKtp: noKtp ?? this.noKtp,
-      name: name ?? this.name,
       tempatLahir: tempatLahir ?? this.tempatLahir,
       tanggalLahir: tanggalLahir ?? this.tanggalLahir,
       jenisKelamin: jenisKelamin ?? this.jenisKelamin,

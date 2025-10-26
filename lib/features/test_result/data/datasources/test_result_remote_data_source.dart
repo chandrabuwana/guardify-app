@@ -3,6 +3,7 @@ import '../models/test_result_model.dart';
 import '../models/test_summary_model.dart';
 import '../models/test_member_result_model.dart';
 import '../../domain/entities/test_result_entity.dart';
+import 'test_result_api_data_source.dart';
 
 /// Remote data source untuk Test Result
 abstract class TestResultRemoteDataSource {
@@ -19,50 +20,134 @@ abstract class TestResultRemoteDataSource {
   });
 }
 
-/// Implementation dengan mock data
+/// Implementation dengan Real API
 @LazySingleton(as: TestResultRemoteDataSource)
 class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
+  final TestResultApiDataSource _apiDataSource;
+
+  TestResultRemoteDataSourceImpl(this._apiDataSource);
+
+  @override
+  Future<List<TestResultModel>> fetchMyResults(String userId) async {
+    try {
+      print('');
+      print('🌐 ========================================');
+      print('🌐 API Test Result: START FETCH');
+      print('🌐 ========================================');
+      print('🌐 Received userId parameter: "$userId"');
+      print('🌐 userId length: ${userId.length}');
+      print('🌐 userId isEmpty: ${userId.isEmpty}');
+      
+      // Build request body sesuai API spec
+      final requestBody = {
+        "Filter": [
+          {
+            "Field": "UserId",
+            "Search": userId,
+          }
+        ],
+        "Sort": {
+          "Field": "",
+          "Type": 0,
+        },
+        "Start": 0,
+        "Length": 0,
+      };
+
+      print('🌐 Request Body:');
+      print('🌐 ${requestBody.toString()}');
+      final filterList = requestBody["Filter"] as List?;
+      if (filterList != null && filterList.isNotEmpty) {
+        final firstFilter = filterList[0] as Map?;
+        print('🌐 Search value in Filter: "${firstFilter?["Search"]}"');
+      }
+      print('🌐 ========================================');
+      print('');
+
+      final response = await _apiDataSource.fetchAssessmentDetails(requestBody);
+
+      if (!response.succeeded) {
+        throw Exception(response.message);
+      }
+
+      // Convert API response ke TestResultModel
+      return response.list.map((item) => item.toTestResultModel()).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<TestMemberResultModel>> fetchMemberResults({
+    String? examId,
+    String? jabatan,
+  }) async {
+    // TODO: Implement when API for member results is available
+    await Future.delayed(const Duration(milliseconds: 500));
+    return [];
+  }
+
+  @override
+  Future<TestSummaryModel> fetchExamSummary({
+    String? userId,
+    String? examId,
+  }) async {
+    // TODO: Implement when API for summary is available
+    await Future.delayed(const Duration(milliseconds: 500));
+    return const TestSummaryModel(
+      jumlahPesertaLulus: 0,
+      jumlahPesertaTidakLulus: 0,
+      nilaiRataRata: 0,
+      nilaiMinimal: 0,
+    );
+  }
+}
+
+/// Implementation dengan mock data (untuk development/testing)
+// Uncomment @LazySingleton jika ingin pakai mock data
+// @LazySingleton(as: TestResultRemoteDataSource)
+class TestResultRemoteDataSourceMockImpl implements TestResultRemoteDataSource {
   // Mock data untuk hasil Test
   final List<TestResultModel> _mockMyResults = [
     TestResultModel(
-      id: 'PNCR2872',
+      id: 'PNC09272',
       userId: 'user_1',
       namaTest: 'Pengetahuan Umum',
       tanggalTest: DateTime(2025, 9, 12),
-      nilaiTest: 80,
+      nilaiTest: 0, // Will show as "-" for belum dinilai
       nilaiKKM: 78,
       status: TestKelulusanStatus.belumDinilai,
-      tipeTest: 'Test Tahunan',
+      tipeTest: 'Ujian Tahunan',
     ),
     TestResultModel(
-      id: 'PNCR2871',
+      id: 'PNC09272',
       userId: 'user_1',
       namaTest: 'Pengetahuan Umum',
       tanggalTest: DateTime(2025, 9, 12),
       nilaiTest: 80,
       nilaiKKM: 78,
       status: TestKelulusanStatus.lulus,
-      tipeTest: 'Test Tahunan',
+      tipeTest: 'Ujian Tahunan',
     ),
     TestResultModel(
-      id: 'PNCR2870',
+      id: 'PNC09272',
       userId: 'user_1',
       namaTest: 'Pengetahuan Umum',
       tanggalTest: DateTime(2025, 9, 12),
       nilaiTest: 65,
       nilaiKKM: 78,
       status: TestKelulusanStatus.tidakLulus,
-      tipeTest: 'Test Tahunan',
+      tipeTest: 'Ujian Tahunan',
     ),
     TestResultModel(
-      id: 'PNCR2869',
+      id: 'PNC09272',
       userId: 'user_1',
       namaTest: 'Pengetahuan Umum',
       tanggalTest: DateTime(2025, 9, 12),
       nilaiTest: 80,
       nilaiKKM: 78,
       status: TestKelulusanStatus.lulus,
-      tipeTest: 'Test Tahunan',
+      tipeTest: 'Ujian Tahunan',
     ),
   ];
 

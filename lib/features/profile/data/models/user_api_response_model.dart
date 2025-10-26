@@ -32,29 +32,116 @@ class UserApiDataModel {
   @JsonKey(name: 'Username')
   final String username;
 
+  @JsonKey(name: 'Password')
+  final String? password;
+
   @JsonKey(name: 'Fullname')
   final String fullname;
 
-  @JsonKey(name: 'Mail')
-  final String mail;
+  @JsonKey(name: 'Email')
+  final String? email;
 
-  @JsonKey(name: 'Token')
-  final String token;
+  @JsonKey(name: 'Mail')
+  final String? mail;
 
   @JsonKey(name: 'PhoneNumber')
-  final String phoneNumber;
+  final String? phoneNumber;
+
+  @JsonKey(name: 'NoNrp')
+  final String? noNrp;
+
+  @JsonKey(name: 'NoKtp')
+  final String? noKtp;
+
+  @JsonKey(name: 'TempatLahir')
+  final String? tempatLahir;
+
+  @JsonKey(name: 'TanggalLahir')
+  final String? tanggalLahir;
+
+  @JsonKey(name: 'JenisKelamin')
+  final String? jenisKelamin;
+
+  @JsonKey(name: 'Pendidikan')
+  final String? pendidikan;
+
+  @JsonKey(name: 'TeleponPribadi')
+  final String? teleponPribadi;
+
+  @JsonKey(name: 'TeleponDarurat')
+  final String? teleponDarurat;
+
+  @JsonKey(name: 'Site')
+  final String? site;
+
+  @JsonKey(name: 'Jabatan')
+  final String? jabatan;
+
+  @JsonKey(name: 'IdAtasan')
+  final String? idAtasan;
+
+  @JsonKey(name: 'TanggalPenerimaan')
+  final String? tanggalPenerimaan;
+
+  @JsonKey(name: 'MasaBerlakuPermit')
+  final String? masaBerlakuPermit;
+
+  @JsonKey(name: 'KompetensiPekerjaan')
+  final String? kompetensiPekerjaan;
+
+  @JsonKey(name: 'UrlKtp')
+  final String? urlKtp;
+
+  @JsonKey(name: 'UrlKta')
+  final String? urlKta;
+
+  @JsonKey(name: 'UrlFoto')
+  final String? urlFoto;
+
+  @JsonKey(name: 'P3tdK3lh')
+  final String? p3tdK3lh;
+
+  @JsonKey(name: 'P3tdSecurity')
+  final String? p3tdSecurity;
+
+  @JsonKey(name: 'UrlPernyataanTidakMerokok')
+  final String? urlPernyataanTidakMerokok;
+
+  @JsonKey(name: 'WargaNegara')
+  final String? wargaNegara;
+
+  @JsonKey(name: 'Provinsi')
+  final String? provinsi;
+
+  @JsonKey(name: 'KotaKabupaten')
+  final String? kotaKabupaten;
+
+  @JsonKey(name: 'Kecamatan')
+  final String? kecamatan;
+
+  @JsonKey(name: 'Kelurahan')
+  final String? kelurahan;
+
+  @JsonKey(name: 'AlamatDomisili')
+  final String? alamatDomisili;
+
+  @JsonKey(name: 'Feedback')
+  final String? feedback;
 
   @JsonKey(name: 'Status')
   final String status;
 
+  @JsonKey(name: 'Token')
+  final String token;
+
+  @JsonKey(name: 'IsLockout')
+  final bool isLockout;
+
   @JsonKey(name: 'AccessFailedCount')
   final int accessFailedCount;
 
-  @JsonKey(name: 'Roles')
-  final List<RoleApiModel> roles;
-
-  @JsonKey(name: 'LastSynchronize')
-  final String lastSynchronize;
+  @JsonKey(name: 'Active')
+  final bool active;
 
   @JsonKey(name: 'CreateBy')
   final String createBy;
@@ -63,26 +150,67 @@ class UserApiDataModel {
   final String createDate;
 
   @JsonKey(name: 'UpdateBy')
-  final String updateBy;
+  final String? updateBy;
 
   @JsonKey(name: 'UpdateDate')
-  final String updateDate;
+  final String? updateDate;
+
+  @JsonKey(name: 'Nrk')
+  final String? nrk;
+
+  @JsonKey(name: 'PersonnelNo')
+  final String? personnelNo;
+
+  @JsonKey(name: 'Roles')
+  final List<RoleApiModel> roles;
 
   const UserApiDataModel({
     required this.id,
     required this.username,
+    this.password,
     required this.fullname,
-    required this.mail,
-    required this.token,
-    required this.phoneNumber,
+    this.email,
+    this.mail,
+    this.phoneNumber,
+    this.noNrp,
+    this.noKtp,
+    this.tempatLahir,
+    this.tanggalLahir,
+    this.jenisKelamin,
+    this.pendidikan,
+    this.teleponPribadi,
+    this.teleponDarurat,
+    this.site,
+    this.jabatan,
+    this.idAtasan,
+    this.tanggalPenerimaan,
+    this.masaBerlakuPermit,
+    this.kompetensiPekerjaan,
+    this.urlKtp,
+    this.urlKta,
+    this.urlFoto,
+    this.p3tdK3lh,
+    this.p3tdSecurity,
+    this.urlPernyataanTidakMerokok,
+    this.wargaNegara,
+    this.provinsi,
+    this.kotaKabupaten,
+    this.kecamatan,
+    this.kelurahan,
+    this.alamatDomisili,
+    this.feedback,
     required this.status,
+    required this.token,
+    required this.isLockout,
     required this.accessFailedCount,
-    required this.roles,
-    required this.lastSynchronize,
+    required this.active,
     required this.createBy,
     required this.createDate,
-    required this.updateBy,
-    required this.updateDate,
+    this.updateBy,
+    this.updateDate,
+    this.nrk,
+    this.personnelNo,
+    required this.roles,
   });
 
   factory UserApiDataModel.fromJson(Map<String, dynamic> json) =>
@@ -90,34 +218,68 @@ class UserApiDataModel {
 
   Map<String, dynamic> toJson() => _$UserApiDataModelToJson(this);
 
-  /// Convert to ProfileUserModel
-  /// Note: API ini hanya return basic info, jadi field lain menggunakan placeholder
+  /// Convert to ProfileUserModel with proper null handling
   ProfileUserModel toProfileUserModel() {
+    DateTime? parsedTanggalLahir;
+    DateTime? parsedTanggalPenerimaan;
+    DateTime? parsedMasaBerlakuPermit;
+
+    try {
+      if (tanggalLahir != null && tanggalLahir!.isNotEmpty) {
+        parsedTanggalLahir = DateTime.parse(tanggalLahir!);
+      }
+    } catch (e) {
+      // Ignore parse error
+    }
+
+    try {
+      if (tanggalPenerimaan != null && tanggalPenerimaan!.isNotEmpty) {
+        parsedTanggalPenerimaan = DateTime.parse(tanggalPenerimaan!);
+      }
+    } catch (e) {
+      // Ignore parse error
+    }
+
+    try {
+      if (masaBerlakuPermit != null && masaBerlakuPermit!.isNotEmpty) {
+        parsedMasaBerlakuPermit = DateTime.parse(masaBerlakuPermit!);
+      }
+    } catch (e) {
+      // Ignore parse error
+    }
+
     return ProfileUserModel(
       id: id,
-      nrp: username, // Menggunakan username sebagai NRP
-      noKtp: '', // Tidak ada di API response
+      nrp: noNrp ?? username,
+      noKtp: noKtp ?? '-',
       name: fullname,
-      tempatLahir: '', // Tidak ada di API response
-      tanggalLahir: DateTime.now(), // Placeholder
-      jenisKelamin: '', // Tidak ada di API response
-      pendidikan: '', // Tidak ada di API response
-      teleponPribadi: phoneNumber,
-      teleponDarurat: '', // Tidak ada di API response
-      site: '', // Tidak ada di API response
-      jabatan: roles.isNotEmpty ? roles.first.nama : '', // Menggunakan role sebagai jabatan
-      atasan: '', // Tidak ada di API response
-      tglPenerimaanKaryawan: DateTime.parse(createDate),
-      masaBerlakuPermit: DateTime.now().add(const Duration(days: 365)), // Placeholder
-      kompetensiPekerjaan: '', // Tidak ada di API response
-      wargaNegara: '', // Tidak ada di API response
-      provinsi: '', // Tidak ada di API response
-      kotaKabupaten: '', // Tidak ada di API response
-      kecamatan: '', // Tidak ada di API response
-      kelurahan: '', // Tidak ada di API response
-      alamatDomisili: '', // Tidak ada di API response
-      profileImageUrl: null,
-      documents: null,
+      tempatLahir: tempatLahir ?? '-',
+      tanggalLahir: parsedTanggalLahir ?? DateTime.now(),
+      jenisKelamin: jenisKelamin ?? '-',
+      pendidikan: pendidikan ?? '-',
+      teleponPribadi: teleponPribadi ?? phoneNumber ?? '-',
+      teleponDarurat: teleponDarurat ?? '-',
+      site: site ?? '-',
+      jabatan: jabatan ?? (roles.isNotEmpty ? roles.first.nama : '-'),
+      atasan: idAtasan ?? '-',
+      tglPenerimaanKaryawan: parsedTanggalPenerimaan ?? DateTime.parse(createDate),
+      masaBerlakuPermit: parsedMasaBerlakuPermit ?? DateTime.now().add(const Duration(days: 365)),
+      kompetensiPekerjaan: kompetensiPekerjaan ?? '-',
+      wargaNegara: wargaNegara ?? '-',
+      provinsi: provinsi ?? '-',
+      kotaKabupaten: kotaKabupaten ?? '-',
+      kecamatan: kecamatan ?? '-',
+      kelurahan: kelurahan ?? '-',
+      alamatDomisili: alamatDomisili ?? '-',
+      profileImageUrl: urlFoto,
+      documents: {
+        'ktp': urlKtp ?? '',
+        'kta': urlKta ?? '',
+        'foto': urlFoto ?? '',
+        'p3td_k3lh': p3tdK3lh ?? '',
+        'p3td_security': p3tdSecurity ?? '',
+        'pernyataan_tidak_merokok': urlPernyataanTidakMerokok ?? '',
+      },
     );
   }
 }

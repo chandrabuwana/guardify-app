@@ -4,11 +4,11 @@ import '../../domain/entities/profile_user.dart';
 class ProfileUserModel extends ProfileUser {
   const ProfileUserModel({
     required super.id,
+    required super.name,
     required super.nrp,
     required super.noKtp,
-    required super.name,
     required super.tempatLahir,
-    required super.tanggalLahir,
+    super.tanggalLahir,
     required super.jenisKelamin,
     required super.pendidikan,
     required super.teleponPribadi,
@@ -16,8 +16,8 @@ class ProfileUserModel extends ProfileUser {
     required super.site,
     required super.jabatan,
     required super.atasan,
-    required super.tglPenerimaanKaryawan,
-    required super.masaBerlakuPermit,
+    super.tglPenerimaanKaryawan,
+    super.masaBerlakuPermit,
     required super.kompetensiPekerjaan,
     required super.wargaNegara,
     required super.provinsi,
@@ -31,13 +31,41 @@ class ProfileUserModel extends ProfileUser {
 
   /// Create ProfileUserModel dari JSON
   factory ProfileUserModel.fromJson(Map<String, dynamic> json) {
+    DateTime? tanggalLahir;
+    DateTime? tglPenerimaanKaryawan;
+    DateTime? masaBerlakuPermit;
+
+    try {
+      if (json['tanggal_lahir'] != null) {
+        tanggalLahir = DateTime.parse(json['tanggal_lahir'] as String);
+      }
+    } catch (e) {
+      // Ignore parse error
+    }
+
+    try {
+      if (json['tgl_penerimaan_karyawan'] != null) {
+        tglPenerimaanKaryawan = DateTime.parse(json['tgl_penerimaan_karyawan'] as String);
+      }
+    } catch (e) {
+      // Ignore parse error
+    }
+
+    try {
+      if (json['masa_berlaku_permit'] != null) {
+        masaBerlakuPermit = DateTime.parse(json['masa_berlaku_permit'] as String);
+      }
+    } catch (e) {
+      // Ignore parse error
+    }
+
     return ProfileUserModel(
       id: json['id'] as String,
+      name: json['name'] as String,
       nrp: json['nrp'] as String,
       noKtp: json['no_ktp'] as String,
-      name: json['name'] as String,
       tempatLahir: json['tempat_lahir'] as String,
-      tanggalLahir: DateTime.parse(json['tanggal_lahir'] as String),
+      tanggalLahir: tanggalLahir,
       jenisKelamin: json['jenis_kelamin'] as String,
       pendidikan: json['pendidikan'] as String,
       teleponPribadi: json['telepon_pribadi'] as String,
@@ -45,8 +73,8 @@ class ProfileUserModel extends ProfileUser {
       site: json['site'] as String,
       jabatan: json['jabatan'] as String,
       atasan: json['atasan'] as String,
-      tglPenerimaanKaryawan: DateTime.parse(json['tgl_penerimaan_karyawan'] as String),
-      masaBerlakuPermit: DateTime.parse(json['masa_berlaku_permit'] as String),
+      tglPenerimaanKaryawan: tglPenerimaanKaryawan,
+      masaBerlakuPermit: masaBerlakuPermit,
       kompetensiPekerjaan: json['kompetensi_pekerjaan'] as String,
       wargaNegara: json['warga_negara'] as String,
       provinsi: json['provinsi'] as String,
@@ -65,11 +93,11 @@ class ProfileUserModel extends ProfileUser {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'name': name,
       'nrp': nrp,
       'no_ktp': noKtp,
-      'name': name,
       'tempat_lahir': tempatLahir,
-      'tanggal_lahir': tanggalLahir.toIso8601String(),
+      'tanggal_lahir': tanggalLahir?.toIso8601String(),
       'jenis_kelamin': jenisKelamin,
       'pendidikan': pendidikan,
       'telepon_pribadi': teleponPribadi,
@@ -77,8 +105,8 @@ class ProfileUserModel extends ProfileUser {
       'site': site,
       'jabatan': jabatan,
       'atasan': atasan,
-      'tgl_penerimaan_karyawan': tglPenerimaanKaryawan.toIso8601String(),
-      'masa_berlaku_permit': masaBerlakuPermit.toIso8601String(),
+      'tgl_penerimaan_karyawan': tglPenerimaanKaryawan?.toIso8601String(),
+      'masa_berlaku_permit': masaBerlakuPermit?.toIso8601String(),
       'kompetensi_pekerjaan': kompetensiPekerjaan,
       'warga_negara': wargaNegara,
       'provinsi': provinsi,
@@ -95,9 +123,9 @@ class ProfileUserModel extends ProfileUser {
   factory ProfileUserModel.fromEntity(ProfileUser entity) {
     return ProfileUserModel(
       id: entity.id,
+      name: entity.name,
       nrp: entity.nrp,
       noKtp: entity.noKtp,
-      name: entity.name,
       tempatLahir: entity.tempatLahir,
       tanggalLahir: entity.tanggalLahir,
       jenisKelamin: entity.jenisKelamin,
@@ -125,9 +153,9 @@ class ProfileUserModel extends ProfileUser {
   ProfileUser toEntity() {
     return ProfileUser(
       id: id,
+      name: name,
       nrp: nrp,
       noKtp: noKtp,
-      name: name,
       tempatLahir: tempatLahir,
       tanggalLahir: tanggalLahir,
       jenisKelamin: jenisKelamin,

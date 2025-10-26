@@ -21,6 +21,7 @@ class TestResultLoading extends TestResultState {
 /// Loaded state dengan semua data
 class TestResultLoaded extends TestResultState {
   final List<TestResultEntity> myResults;
+  final List<TestResultEntity> filteredMyResults;
   final List<TestMemberResultEntity> memberResults;
   final List<TestMemberResultEntity> filteredMemberResults;
   final TestSummaryEntity? summary;
@@ -28,9 +29,11 @@ class TestResultLoaded extends TestResultState {
   final int currentTabIndex;
   final String? searchQuery;
   final String? selectedJabatan;
+  final String? selectedMyTestFilter;
 
   const TestResultLoaded({
     required this.myResults,
+    required this.filteredMyResults,
     required this.memberResults,
     required this.filteredMemberResults,
     this.summary,
@@ -38,10 +41,12 @@ class TestResultLoaded extends TestResultState {
     this.currentTabIndex = 0,
     this.searchQuery,
     this.selectedJabatan,
+    this.selectedMyTestFilter,
   });
 
   TestResultLoaded copyWith({
     List<TestResultEntity>? myResults,
+    List<TestResultEntity>? filteredMyResults,
     List<TestMemberResultEntity>? memberResults,
     List<TestMemberResultEntity>? filteredMemberResults,
     TestSummaryEntity? summary,
@@ -49,9 +54,11 @@ class TestResultLoaded extends TestResultState {
     int? currentTabIndex,
     String? searchQuery,
     String? selectedJabatan,
+    String? selectedMyTestFilter,
   }) {
     return TestResultLoaded(
       myResults: myResults ?? this.myResults,
+      filteredMyResults: filteredMyResults ?? this.filteredMyResults,
       memberResults: memberResults ?? this.memberResults,
       filteredMemberResults: filteredMemberResults ?? this.filteredMemberResults,
       summary: summary ?? this.summary,
@@ -59,12 +66,14 @@ class TestResultLoaded extends TestResultState {
       currentTabIndex: currentTabIndex ?? this.currentTabIndex,
       searchQuery: searchQuery ?? this.searchQuery,
       selectedJabatan: selectedJabatan ?? this.selectedJabatan,
+      selectedMyTestFilter: selectedMyTestFilter ?? this.selectedMyTestFilter,
     );
   }
 
   @override
   List<Object?> get props => [
         myResults,
+        filteredMyResults,
         memberResults,
         filteredMemberResults,
         summary,
@@ -72,6 +81,7 @@ class TestResultLoaded extends TestResultState {
         currentTabIndex,
         searchQuery,
         selectedJabatan,
+        selectedMyTestFilter,
       ];
 }
 

@@ -11,6 +11,10 @@ import '../../features/chat/domain/repositories/chat_repository.dart';
 import '../../features/chat/presentation/bloc/chat_bloc.dart';
 import '../../features/news/domain/repositories/news_repository.dart';
 import '../../features/news/presentation/bloc/news_bloc.dart';
+import '../../features/test_result/data/datasources/test_result_api_data_source.dart';
+import '../../features/schedule/data/datasources/schedule_remote_data_source.dart';
+import '../../features/schedule/data/repositories/schedule_repository_impl.dart';
+import '../../features/schedule/domain/repositories/schedule_repository.dart';
 import '../constants/app_constants.dart';
 import '../security/security_manager.dart';
 
@@ -61,7 +65,38 @@ abstract class InjectionModule {
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          
+          // Log khusus untuk AssessmentDetail endpoint
+          if (options.path.contains('AssesmentDetail')) {
+            print('🎯 === ASSESSMENT DETAIL REQUEST ===');
+            print('🎯 URL: ${options.uri}');
+            print('🎯 Method: ${options.method}');
+            print('🎯 Headers: ${options.headers}');
+            print('🎯 Request Body: ${options.data}');
+            print('🎯 ===================================');
+          }
+          
           handler.next(options);
+        },
+        onResponse: (response, handler) async {
+          // Log response untuk AssessmentDetail
+          if (response.requestOptions.path.contains('AssesmentDetail')) {
+            print('✅ === ASSESSMENT DETAIL RESPONSE ===');
+            print('✅ Status Code: ${response.statusCode}');
+            print('✅ Response Data: ${response.data}');
+            print('✅ ===================================');
+          }
+          handler.next(response);
+        },
+        onError: (error, handler) async {
+          // Log error untuk AssessmentDetail
+          if (error.requestOptions.path.contains('AssesmentDetail')) {
+            print('❌ === ASSESSMENT DETAIL ERROR ===');
+            print('❌ Error: ${error.message}');
+            print('❌ Response: ${error.response?.data}');
+            print('❌ ===================================');
+          }
+          handler.next(error);
         },
       ),
     );
@@ -140,6 +175,27 @@ abstract class InjectionModule {
   BmiRemoteDataSource bmiRemoteDataSource(Dio dio) {
     return BmiRemoteDataSource(dio);
   }
+
+  // ========================================
+  // Test Result Feature Dependencies
+  // ========================================
+
+  /// Test Result API Data Source
+  @lazySingleton
+  TestResultApiDataSource testResultApiDataSource(Dio dio) {
+    return TestResultApiDataSource(dio);
+  }
+
+  // TestResultRemoteDataSource is auto-registered by @LazySingleton annotation
+  // No manual registration needed here
+
+  // ========================================
+  // Schedule Feature Dependencies
+  // ========================================
+
+  // ScheduleRemoteDataSource, ScheduleRepository, use cases, and BLoC
+  // are all auto-registered with @Injectable/@LazySingleton annotations
+  // No manual registration needed
 
   // ========================================
   // Tambahkan dependencies feature lain di sini

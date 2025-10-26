@@ -6,13 +6,13 @@ part 'route_detail_api_response.g.dart';
 @JsonSerializable()
 class RouteDetailListResponse {
   @JsonKey(name: 'Count')
-  final int count;
+  final int? count;
 
   @JsonKey(name: 'Filtered')
-  final int filtered;
+  final int? filtered;
 
   @JsonKey(name: 'List')
-  final List<RouteDetailModel> list;
+  final List<RouteDetailModel>? list;
 
   @JsonKey(name: 'Code')
   final int code;
@@ -27,9 +27,9 @@ class RouteDetailListResponse {
   final String? description;
 
   RouteDetailListResponse({
-    required this.count,
-    required this.filtered,
-    required this.list,
+    this.count,
+    this.filtered,
+    this.list,
     required this.code,
     required this.succeeded,
     required this.message,

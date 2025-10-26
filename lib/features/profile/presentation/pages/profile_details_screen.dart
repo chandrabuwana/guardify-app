@@ -273,7 +273,12 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
           ),
 
           ProfileDetailItem(
-            label: 'NRP',
+            label: 'Username',
+            value: profile.nrp,
+          ),
+
+          ProfileDetailItem(
+            label: 'No NRP',
             value: profile.nrp,
           ),
 
@@ -287,10 +292,11 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
             value: profile.tempatLahir,
           ),
 
-          ProfileDetailItem(
-            label: 'Tanggal Lahir',
-            value: _formatDate(profile.tanggalLahir),
-          ),
+          if (profile.tanggalLahir != null)
+            ProfileDetailItem(
+              label: 'Tanggal Lahir',
+              value: _formatDate(profile.tanggalLahir!),
+            ),
 
           ProfileDetailItem(
             label: 'Jenis Kelamin',
@@ -327,15 +333,17 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
             value: profile.atasan,
           ),
 
-          ProfileDetailItem(
-            label: 'Tgl Penerimaan Karyawan',
-            value: _formatDate(profile.tglPenerimaanKaryawan),
-          ),
+          if (profile.tglPenerimaanKaryawan != null)
+            ProfileDetailItem(
+              label: 'Tgl Penerimaan Karyawan',
+              value: _formatDate(profile.tglPenerimaanKaryawan!),
+            ),
 
-          ProfileDetailItem(
-            label: 'Masa Berlaku Permit',
-            value: _formatDate(profile.masaBerlakuPermit),
-          ),
+          if (profile.masaBerlakuPermit != null)
+            ProfileDetailItem(
+              label: 'Masa Berlaku Permit',
+              value: _formatDate(profile.masaBerlakuPermit!),
+            ),
 
           ProfileDetailItem(
             label: 'Kompetensi Pekerjaan',
@@ -379,44 +387,52 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
 
   /// Build tab dokumen
   Widget _buildDokumenTab(dynamic profile) {
+    final documents = profile.documents as Map<String, String>?;
+    
     return SingleChildScrollView(
       padding: EdgeInsets.all(20.w),
       child: Column(
         children: [
           _buildDocumentItem(
             'KTP',
-            'KTP_${profile.name.replaceAll(' ', '_')}',
+            documents?['ktp'] ?? 'Belum diupload',
             () => _uploadDocument('KTP'),
+            hasDocument: documents?['ktp']?.isNotEmpty ?? false,
           ),
           SizedBox(height: 16.h),
           _buildDocumentItem(
             'KTA',
-            'KTA_${profile.name.replaceAll(' ', '_')}',
+            documents?['kta'] ?? 'Belum diupload',
             () => _uploadDocument('KTA'),
+            hasDocument: documents?['kta']?.isNotEmpty ?? false,
           ),
           SizedBox(height: 16.h),
           _buildDocumentItem(
             'Foto',
-            'Foto_${profile.name.replaceAll(' ', '_')}',
+            documents?['foto'] ?? 'Belum diupload',
             () => _uploadDocument('Foto'),
+            hasDocument: documents?['foto']?.isNotEmpty ?? false,
           ),
           SizedBox(height: 16.h),
           _buildDocumentItem(
             'P3TD K3LH',
-            'P3TD_K3LH_${profile.name.replaceAll(' ', '_')}',
+            documents?['p3td_k3lh'] ?? 'Belum diupload',
             () => _uploadDocument('P3TD_K3LH'),
+            hasDocument: documents?['p3td_k3lh']?.isNotEmpty ?? false,
           ),
           SizedBox(height: 16.h),
           _buildDocumentItem(
             'P3TD Security',
-            'P3TD_Sec_${profile.name.replaceAll(' ', '_')}',
+            documents?['p3td_security'] ?? 'Belum diupload',
             () => _uploadDocument('P3TD_Security'),
+            hasDocument: documents?['p3td_security']?.isNotEmpty ?? false,
           ),
           SizedBox(height: 16.h),
           _buildDocumentItem(
             'Pernyataan Tidak Merokok',
-            'Tidak_Merokok_${profile.name.replaceAll(' ', '_')}',
+            documents?['pernyataan_tidak_merokok'] ?? 'Belum diupload',
             () => _uploadDocument('Tidak_Merokok'),
+            hasDocument: documents?['pernyataan_tidak_merokok']?.isNotEmpty ?? false,
           ),
         ],
       ),
@@ -425,19 +441,29 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
 
   /// Build document item widget
   Widget _buildDocumentItem(
-      String title, String filename, VoidCallback onUpload) {
+    String title, 
+    String filename, 
+    VoidCallback onUpload,
+    {bool hasDocument = false}
+  ) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: Colors.grey.shade300,
+          color: hasDocument ? primaryColor.withOpacity(0.3) : Colors.grey.shade300,
           width: 1,
         ),
       ),
       child: Row(
         children: [
+          Icon(
+            hasDocument ? Icons.check_circle : Icons.upload_file,
+            color: hasDocument ? Colors.green : Colors.grey.shade400,
+            size: 24.w,
+          ),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,8 +478,10 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
                 Text(
                   filename,
                   style: TS.bodySmall.copyWith(
-                    color: primaryColor,
+                    color: hasDocument ? Colors.green : Colors.grey.shade600,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
