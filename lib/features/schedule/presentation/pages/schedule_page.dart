@@ -9,6 +9,21 @@ import '../../domain/entities/shift_schedule.dart';
 import '../bloc/schedule_bloc.dart';
 import 'shift_detail_page.dart';
 
+/// Schedule Page - Jadwal Kerja (Untuk Anggota & Danton)
+/// 
+/// Fitur ini menampilkan jadwal kerja shift untuk security personnel
+/// dengan dua tab: "Jadwal Saya" dan "Jadwal Anggota"
+/// 
+/// **Accessible by roles:**
+/// - Anggota (AGT): Dapat melihat jadwal shift pribadi
+/// - Danton: Dapat melihat jadwal shift pribadi dan anggota tim
+/// 
+/// **Note**: PJO dan Deputy menggunakan `SchedulePJODeputyPage` dengan UI berbeda
+/// 
+/// **Features:**
+/// - Calendar view dengan informasi shift per hari
+/// - Detail shift dengan lokasi patroli dan tim jaga
+/// - Agenda esok hari untuk persiapan
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
 
@@ -53,34 +68,36 @@ class _SchedulePageState extends State<SchedulePage> {
           ),
         ),
       ),
-      body: BlocBuilder<ScheduleBloc, ScheduleState>(
-        builder: (context, state) {
-          // Load schedule when first built
-          if (!_hasLoadedInitialData && !state.isLoading) {
-            _hasLoadedInitialData = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _loadSchedule(context);
-            });
-          }
+      body: Builder(
+        builder: (builderContext) {
+          return BlocBuilder<ScheduleBloc, ScheduleState>(
+            builder: (context, state) {
+              // Load schedule when first built
+              if (!_hasLoadedInitialData && !state.isLoading) {
+                _hasLoadedInitialData = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _loadSchedule(context);
+                });
+              }
           
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Agenda Esok Hari Section
-                Padding(
-                  padding: EdgeInsets.all(16.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Agenda Esok Hari',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
-                      ),
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Agenda Esok Hari Section
+                    Padding(
+                      padding: EdgeInsets.all(16.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Agenda Esok Hari',
+                            style: TextStyle(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                          ),
                       SizedBox(height: 12.h),
                       _buildAgendaCard(state),
                     ],
@@ -114,6 +131,8 @@ class _SchedulePageState extends State<SchedulePage> {
                 SizedBox(height: 100.h),
               ],
             ),
+          );
+            },
           );
         },
       ),

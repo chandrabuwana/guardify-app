@@ -86,3 +86,14 @@ class FilterMyTestEvent extends TestResultEvent {
   List<Object?> get props => [status];
 }
 
+/// Event untuk fetch member tests (untuk Danton)
+/// Menggunakan IdPic sebagai filter
+class FetchMemberTestsEvent extends TestResultEvent {
+  final String picId; // ID Danton sebagai PIC
+
+  const FetchMemberTestsEvent(this.picId);
+
+  @override
+  List<Object?> get props => [picId];
+}
+

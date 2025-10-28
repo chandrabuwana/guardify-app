@@ -101,13 +101,13 @@ class AssessmentDetailItemModel {
     TestKelulusanStatus parseStatus;
     if (status.toLowerCase() == 'lulus') {
       parseStatus = TestKelulusanStatus.lulus;
-    } else if (status.toLowerCase() == 'tidak lulus') {
+    } else if (status.toLowerCase() == 'tidak lulus' || status.toLowerCase() == 'tidaklulus') {
       parseStatus = TestKelulusanStatus.tidakLulus;
     } else {
       parseStatus = TestKelulusanStatus.belumDinilai;
     }
 
-    // Parse tanggal assessment
+    // Parse tanggal assessment - gunakan AssesmentDate dari nested object
     DateTime tanggalTest;
     if (assessment?.assessmentDate != null) {
       try {
@@ -125,15 +125,21 @@ class AssessmentDetailItemModel {
       tanggalTest = DateTime.now();
     }
 
+    // Ambil nama assessment dari nested object atau gunakan default
+    String namaTest = assessment?.name ?? 'Assessment';
+    
+    // Generate ID pendek dari full UUID (ambil 8 karakter pertama + huruf acak)
+    String shortId = 'PNC${id.substring(0, 5).toUpperCase()}';
+
     return TestResultModel(
-      id: id,
+      id: shortId, // ID pendek untuk display
       userId: userId,
-      namaTest: 'Pengetahuan Umum', // Default name, could be from assessment category
+      namaTest: namaTest, // Nama dari Assessment.Name
       tanggalTest: tanggalTest,
-      nilaiTest: grade,
-      nilaiKKM: assessment?.minValue ?? 80,
+      nilaiTest: grade, // Grade dari response
+      nilaiKKM: assessment?.minValue ?? 80, // MinValue dari Assessment
       status: parseStatus,
-      tipeTest: assessment?.status,
+      tipeTest: 'Ujian Tahunan', // Hardcode karena tidak ada di API
       keterangan: createBy,
     );
   }
@@ -175,6 +181,12 @@ class AssessmentInfoModel {
   @JsonKey(name: 'UpdateDate')
   final String? updateDate;
 
+  @JsonKey(name: 'Pic')
+  final dynamic pic;
+
+  @JsonKey(name: 'Name')
+  final String? name;
+
   const AssessmentInfoModel({
     required this.id,
     this.assessmentDate,
@@ -187,6 +199,8 @@ class AssessmentInfoModel {
     this.status,
     this.updateBy,
     this.updateDate,
+    this.pic,
+    this.name,
   });
 
   factory AssessmentInfoModel.fromJson(Map<String, dynamic> json) =>

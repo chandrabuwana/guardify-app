@@ -225,6 +225,8 @@ import 'package:guardify_app/features/test_result/domain/repositories/test_resul
     as _i422;
 import 'package:guardify_app/features/test_result/domain/usecases/get_member_test_results_usecase.dart'
     as _i930;
+import 'package:guardify_app/features/test_result/domain/usecases/get_member_tests_by_pic_usecase.dart'
+    as _i332;
 import 'package:guardify_app/features/test_result/domain/usecases/get_my_test_results_usecase.dart'
     as _i743;
 import 'package:guardify_app/features/test_result/domain/usecases/get_test_summary_usecase.dart'
@@ -402,6 +404,8 @@ extension GetItInjectableX on _i174.GetIt {
           getDetailCuti: gh<_i505.GetDetailCuti>(),
           getRekapCuti: gh<_i515.GetRekapCuti>(),
         ));
+    gh.factory<_i332.GetMemberTestsByPicUseCase>(() =>
+        _i332.GetMemberTestsByPicUseCase(gh<_i422.TestResultRepository>()));
     gh.factory<_i930.GetMemberTestResultsUseCase>(() =>
         _i930.GetMemberTestResultsUseCase(gh<_i422.TestResultRepository>()));
     gh.factory<_i743.GetMyTestResultsUseCase>(
@@ -457,11 +461,6 @@ extension GetItInjectableX on _i174.GetIt {
           getPatrolProgress: gh<_i820.GetPatrolProgress>(),
           addPatrolLocation: gh<_i198.AddPatrolLocation>(),
         ));
-    gh.factory<_i1060.TestResultBloc>(() => _i1060.TestResultBloc(
-          getMyResultsUseCase: gh<_i743.GetMyTestResultsUseCase>(),
-          getMemberResultsUseCase: gh<_i930.GetMemberTestResultsUseCase>(),
-          getSummaryUseCase: gh<_i227.GetTestSummaryUseCase>(),
-        ));
     gh.factory<_i945.LaporanKegiatanBloc>(() => _i945.LaporanKegiatanBloc(
           getLaporanList: gh<_i970.GetLaporanList>(),
           getLaporanDetail: gh<_i272.GetLaporanDetail>(),
@@ -490,6 +489,12 @@ extension GetItInjectableX on _i174.GetIt {
           managePinnedProfiles: gh<_i572.ManagePinnedProfiles>(),
           calculateBMI: gh<_i283.CalculateBMI>(),
           getBMIHistory: gh<_i817.GetBMIHistory>(),
+        ));
+    gh.factory<_i1060.TestResultBloc>(() => _i1060.TestResultBloc(
+          getMyResultsUseCase: gh<_i743.GetMyTestResultsUseCase>(),
+          getMemberResultsUseCase: gh<_i930.GetMemberTestResultsUseCase>(),
+          getSummaryUseCase: gh<_i227.GetTestSummaryUseCase>(),
+          getMemberTestsByPicUseCase: gh<_i332.GetMemberTestsByPicUseCase>(),
         ));
     gh.factory<_i908.AttendanceBloc>(() => _i908.AttendanceBloc(
           checkInUseCase: gh<_i865.CheckInUseCase>(),

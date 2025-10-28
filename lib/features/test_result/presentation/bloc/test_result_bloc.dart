@@ -8,6 +8,7 @@ import '../../domain/entities/test_member_result_entity.dart';
 import '../../domain/usecases/get_my_test_results_usecase.dart';
 import '../../domain/usecases/get_member_test_results_usecase.dart';
 import '../../domain/usecases/get_test_summary_usecase.dart';
+import '../../domain/usecases/get_member_tests_by_pic_usecase.dart';
 
 part 'test_result_event.dart';
 part 'test_result_state.dart';
@@ -17,11 +18,13 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
   final GetMyTestResultsUseCase getMyResultsUseCase;
   final GetMemberTestResultsUseCase getMemberResultsUseCase;
   final GetTestSummaryUseCase getSummaryUseCase;
+  final GetMemberTestsByPicUseCase getMemberTestsByPicUseCase;
 
   TestResultBloc({
     required this.getMyResultsUseCase,
     required this.getMemberResultsUseCase,
     required this.getSummaryUseCase,
+    required this.getMemberTestsByPicUseCase,
   }) : super(const TestResultInitial()) {
     on<FetchTestResultEvent>(_onFetchTestResult);
     on<SearchTestEvent>(_onSearchTest);
@@ -30,6 +33,7 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
     on<SwitchTestTabEvent>(_onSwitchTab);
     on<SearchMyTestEvent>(_onSearchMyTest);
     on<FilterMyTestEvent>(_onFilterMyTest);
+    on<FetchMemberTestsEvent>(_onFetchMemberTests);
   }
 
   Future<void> _onFetchTestResult(
@@ -39,6 +43,23 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
     emit(const TestResultLoading());
 
     try {
+      // Validasi userId tidak boleh kosong
+      if (event.userId.isEmpty) {
+        print('❌ TestResultBloc: userId is empty, cannot fetch results');
+        emit(const TestResultError('User ID tidak ditemukan. Silakan login kembali.'));
+        return;
+      }
+
+      print('');
+      print('🔵 ========================================');
+      print('🔵 TEST RESULT BLOC: FETCH EVENT');
+      print('🔵 ========================================');
+      print('🔵 Event userId: "${event.userId}"');
+      print('🔵 Event userId length: ${event.userId.length}');
+      print('🔵 User role: ${event.role.displayName}');
+      print('🔵 ========================================');
+      print('');
+
       // Get summary untuk semua role
       final summaryResult = await getSummaryUseCase(userId: event.userId);
       
@@ -254,6 +275,55 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
         filteredMyResults: filtered,
         selectedMyTestFilter: event.status,
       ));
+    }
+  }
+
+  Future<void> _onFetchMemberTests(
+    FetchMemberTestsEvent event,
+    Emitter<TestResultState> emit,
+  ) async {
+    if (state is TestResultLoaded) {
+      final currentState = state as TestResultLoaded;
+      
+      // Emit loading state for member results only
+      emit(currentState.copyWith(isLoadingMemberResults: true));
+      
+      try {
+        print('');
+        print('🔵 ========================================');
+        print('🔵 FETCH MEMBER TESTS BY PIC');
+        print('🔵 ========================================');
+        print('🔵 PIC ID: "${event.picId}"');
+        print('🔵 ========================================');
+        print('');
+
+        final memberTestsResult = await getMemberTestsByPicUseCase(event.picId);
+
+        memberTestsResult.fold(
+          (failure) {
+            print('❌ Failed to fetch member tests: ${failure.message}');
+            emit(currentState.copyWith(
+              isLoadingMemberResults: false,
+              memberTestsError: failure.message,
+            ));
+          },
+          (memberTests) {
+            print('✅ Successfully fetched ${memberTests.length} member tests');
+            emit(currentState.copyWith(
+              memberTests: memberTests,
+              filteredMemberTests: memberTests,
+              isLoadingMemberResults: false,
+              memberTestsError: null,
+            ));
+          },
+        );
+      } catch (e) {
+        print('❌ Exception: $e');
+        emit(currentState.copyWith(
+          isLoadingMemberResults: false,
+          memberTestsError: 'Terjadi kesalahan: ${e.toString()}',
+        ));
+      }
     }
   }
 

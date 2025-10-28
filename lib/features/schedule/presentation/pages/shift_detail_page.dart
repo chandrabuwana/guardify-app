@@ -5,6 +5,19 @@ import 'package:intl/intl.dart';
 import '../bloc/schedule_bloc.dart';
 import '../../domain/entities/shift_schedule.dart';
 
+/// Shift Detail Page - Detail Jadwal Shift
+/// 
+/// Halaman detail yang menampilkan informasi lengkap shift termasuk:
+/// - Informasi shift (nama, jam kerja, lokasi)
+/// - Detail lokasi patroli (Pos Merak, Pos Gajah, Pos Merpati, dll)
+/// - Daftar anggota tim jaga dengan pembagian rute
+/// - Fitur "Kirim Pesan" untuk koordinasi tim
+/// 
+/// **Accessible by roles:**
+/// - Anggota (AGT): Dapat melihat detail shift pribadi
+/// - Danton: Dapat melihat detail shift tim
+/// - PJO (Petugas Jaga): Dapat melihat detail shift operasional
+/// - Deputy (DPT): Dapat melihat detail shift tim
 class ShiftDetailPage extends StatefulWidget {
   final String userId;
   final DateTime date;

@@ -59,5 +59,17 @@ class TestResultRepositoryImpl implements TestResultRepository {
       return Left(ServerFailure('Failed to get exam summary: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, List<TestResultEntity>>> getMemberTestsByPic(
+      String picId) async {
+    try {
+      final results = await remoteDataSource.fetchMemberTestsByPic(picId);
+      final entities = results.map((model) => model.toEntity()).toList();
+      return Right(entities);
+    } catch (e) {
+      return Left(ServerFailure('Failed to get member tests: $e'));
+    }
+  }
 }
 

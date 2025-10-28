@@ -18,6 +18,9 @@ abstract class TestResultRemoteDataSource {
     String? userId,
     String? examId,
   });
+  
+  /// Fetch member tests menggunakan IdPic filter (untuk Danton)
+  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId);
 }
 
 /// Implementation dengan Real API
@@ -38,12 +41,18 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
       print('🌐 userId length: ${userId.length}');
       print('🌐 userId isEmpty: ${userId.isEmpty}');
       
+      // Validasi userId tidak boleh kosong
+      if (userId.isEmpty) {
+        print('❌ ERROR: UserId is empty! Cannot fetch test results.');
+        throw Exception('UserId cannot be empty');
+      }
+      
       // Build request body sesuai API spec
       final requestBody = {
         "Filter": [
           {
             "Field": "UserId",
-            "Search": userId,
+            "Search": userId,  // Gunakan userId yang sudah tervalidasi
           }
         ],
         "Sort": {
@@ -61,6 +70,56 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
         final firstFilter = filterList[0] as Map?;
         print('🌐 Search value in Filter: "${firstFilter?["Search"]}"');
       }
+      print('🌐 ========================================');
+      print('');
+
+      final response = await _apiDataSource.fetchAssessmentDetails(requestBody);
+
+      if (!response.succeeded) {
+        throw Exception(response.message);
+      }
+
+      // Convert API response ke TestResultModel
+      return response.list.map((item) => item.toTestResultModel()).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId) async {
+    try {
+      print('');
+      print('🌐 ========================================');
+      print('🌐 API Test Result: FETCH MEMBER TESTS BY PIC');
+      print('🌐 ========================================');
+      print('🌐 Received PIC ID parameter: "$picId"');
+      print('🌐 PIC ID length: ${picId.length}');
+      
+      // Validasi picId tidak boleh kosong
+      if (picId.isEmpty) {
+        print('❌ ERROR: PIC ID is empty! Cannot fetch member tests.');
+        throw Exception('PIC ID cannot be empty');
+      }
+      
+      // Build request body dengan filter IdPic
+      final requestBody = {
+        "Filter": [
+          {
+            "Field": "IdPic",
+            "Search": picId,
+          }
+        ],
+        "Sort": {
+          "Field": "",
+          "Type": 0,
+        },
+        "Start": 0,
+        "Length": 0,
+      };
+
+      print('🌐 Request Body (IdPic filter):');
+      print('🌐 ${requestBody.toString()}');
       print('🌐 ========================================');
       print('');
 
@@ -217,6 +276,15 @@ class TestResultRemoteDataSourceMockImpl implements TestResultRemoteDataSource {
     
     // Filter by userId
     return _mockMyResults.where((r) => r.userId == userId).toList();
+  }
+
+  @override
+  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId) async {
+    // Simulate API call
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Mock: return all results (in real API, filter by IdPic)
+    return _mockMyResults;
   }
 
   @override

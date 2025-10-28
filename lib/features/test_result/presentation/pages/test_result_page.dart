@@ -59,19 +59,47 @@ class _TestResultPageState extends State<TestResultPage>
   }
 
   Future<void> _initAndFetch() async {
+    print('');
+    print('📱 ========================================');
+    print('📱 TEST RESULT PAGE: INIT & FETCH');
+    print('📱 ========================================');
+    
     String? userId = widget.userId;
+    print('📱 Initial userId from widget: $userId');
+    
     if (userId == null || userId.isEmpty) {
+      print('📱 UserId is null/empty, reading from secure storage...');
       userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
-      print('📱 Test Result: userId from secure storage = $userId');
+      print('📱 UserId from secure storage: $userId');
     } else {
-      print('📱 Test Result: userId from parameter = $userId');
+      print('📱 Using userId from parameter: $userId');
+    }
+
+    if (userId == null || userId.isEmpty) {
+      print('❌ ERROR: UserId still null/empty after reading from storage!');
+      print('📱 Available keys in secure storage:');
+      // Try to debug what's in secure storage
+      final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
+      print('📱 - Token exists: ${token != null && token.isNotEmpty}');
     }
 
     _resolvedUserId = userId;
 
     final idToSend = _resolvedUserId ?? '';
-    print('📱 Test Result: Fetching with userId = $idToSend');
+    print('📱 Final userId to send to API: "$idToSend"');
+    print('📱 UserId length: ${idToSend.length}');
+    print('📱 User role: ${widget.userRole.displayName}');
+    print('📱 ========================================');
+    print('');
+    
+    // Fetch initial data
     _bloc.add(FetchTestResultEvent(userId: idToSend, role: widget.userRole));
+    
+    // For Danton role, also fetch member tests
+    if (widget.userRole == UserRole.danton && idToSend.isNotEmpty) {
+      print('🔵 Fetching member tests for Danton with PIC ID: $idToSend');
+      _bloc.add(FetchMemberTestsEvent(idToSend));
+    }
   }
 
   @override
@@ -267,6 +295,12 @@ class _TestResultPageState extends State<TestResultPage>
 
   /// Tab "Test Anggota"
   Widget _buildMemberResultsTab(TestResultLoaded state) {
+    // For Danton role, show card-based view like "Test Saya"
+    if (widget.userRole == UserRole.danton) {
+      return _buildDantonMemberTestsView(state);
+    }
+    
+    // For other roles (PJO, Deputy, Pengawas), show table view
     return Column(
       children: [
         // Summary Header
@@ -343,6 +377,95 @@ class _TestResultPageState extends State<TestResultPage>
               : TestResultTableWidget(
                   results: state.filteredMemberResults,
                 ),
+        ),
+      ],
+    );
+  }
+
+  /// View khusus untuk Danton - menampilkan test anggota dalam bentuk card
+  Widget _buildDantonMemberTestsView(TestResultLoaded state) {
+    return Column(
+      children: [
+        16.verticalSpace,
+        
+        // Search bar
+        Padding(
+          padding: REdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: primaryColor, width: 1.5),
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Cari',
+                hintStyle: TS.bodyMedium.copyWith(color: neutral50),
+                prefixIcon: const Icon(Icons.search, color: primaryColor),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: neutral50),
+                        onPressed: () {
+                          _searchController.clear();
+                          // TODO: Add search event for member tests
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: REdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              onChanged: (query) {
+                // TODO: Add search event for member tests
+              },
+            ),
+          ),
+        ),
+
+        16.verticalSpace,
+
+        // List Hasil Test Anggota
+        Expanded(
+          child: state.isLoadingMemberResults
+              ? const Center(
+                  child: CircularProgressIndicator(color: primaryColor),
+                )
+              : state.memberTestsError != null
+                  ? _buildErrorWidget(state.memberTestsError!)
+                  : state.filteredMemberTests.isEmpty
+                      ? RefreshIndicator(
+                          onRefresh: () async {
+                            if (_resolvedUserId != null) {
+                              _bloc.add(FetchMemberTestsEvent(_resolvedUserId!));
+                            }
+                          },
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.5,
+                              child: _buildEmptyState('Belum ada hasil test anggota'),
+                            ),
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () async {
+                            if (_resolvedUserId != null) {
+                              _bloc.add(FetchMemberTestsEvent(_resolvedUserId!));
+                            }
+                          },
+                          child: ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: REdgeInsets.symmetric(horizontal: 16),
+                            itemCount: state.filteredMemberTests.length,
+                            itemBuilder: (context, index) {
+                              final result = state.filteredMemberTests[index];
+                              return TestResultCardWidget(result: result);
+                            },
+                          ),
+                        ),
         ),
       ],
     );
