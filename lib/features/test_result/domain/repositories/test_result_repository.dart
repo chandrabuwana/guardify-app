@@ -20,5 +20,8 @@ abstract class TestResultRepository {
     String? userId,
     String? examId,
   });
-}
 
+  /// Get hasil Test anggota berdasarkan PIC ID (untuk Danton)
+  Future<Either<Failure, List<TestResultEntity>>> getMemberTestsByPic(
+      String picId);
+}

@@ -26,8 +26,10 @@ import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/news/presentation/pages/news_list_page.dart';
 import 'features/news/presentation/bloc/news_bloc.dart';
 import 'features/schedule/presentation/pages/schedule_page.dart';
+import 'features/schedule/presentation/pages/schedule_pjo_deputy_page.dart';
 import 'features/schedule/presentation/bloc/schedule_bloc.dart';
 import 'core/constants/enums.dart';
+import 'core/security/security_manager.dart';
 import 'core/di/injection.dart';
 
 void main() async {
@@ -153,10 +155,31 @@ class GuardifyApp extends StatelessWidget {
                   create: (context) => getIt<NewsBloc>(),
                   child: const NewsListPage(),
                 ),
-            '/schedule': (context) => BlocProvider(
-                  create: (context) => getIt<ScheduleBloc>(),
-                  child: const SchedulePage(),
+            '/schedule': (context) {
+              return BlocProvider(
+                create: (context) => getIt<ScheduleBloc>(),
+                child: FutureBuilder<String?>(
+                  future: SecurityManager.readSecurely('user_role_id'),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    
+                    final roleId = snapshot.data ?? 'AGT';
+                    
+                    // PJO dan Deputy menggunakan halaman schedule khusus
+                    if (roleId == 'PJO' || roleId == 'DPT') {
+                      return const SchedulePJODeputyPage();
+                    }
+                    
+                    // Anggota dan Danton menggunakan halaman schedule asli
+                    return const SchedulePage();
+                  },
                 ),
+              );
+            },
           },
           initialRoute: '/',
         );

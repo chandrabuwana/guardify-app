@@ -122,6 +122,8 @@ AssessmentInfoModel _$AssessmentInfoModelFromJson(Map<String, dynamic> json) =>
           status: $checkedConvert('Status', (v) => v as String?),
           updateBy: $checkedConvert('UpdateBy', (v) => v as String?),
           updateDate: $checkedConvert('UpdateDate', (v) => v as String?),
+          pic: $checkedConvert('Pic', (v) => v),
+          name: $checkedConvert('Name', (v) => v as String?),
         );
         return val;
       },
@@ -136,7 +138,9 @@ AssessmentInfoModel _$AssessmentInfoModelFromJson(Map<String, dynamic> json) =>
         'minValue': 'MinValue',
         'status': 'Status',
         'updateBy': 'UpdateBy',
-        'updateDate': 'UpdateDate'
+        'updateDate': 'UpdateDate',
+        'pic': 'Pic',
+        'name': 'Name'
       },
     );
 
@@ -154,4 +158,6 @@ Map<String, dynamic> _$AssessmentInfoModelToJson(
       'Status': instance.status,
       'UpdateBy': instance.updateBy,
       'UpdateDate': instance.updateDate,
+      'Pic': instance.pic,
+      'Name': instance.name,
     };

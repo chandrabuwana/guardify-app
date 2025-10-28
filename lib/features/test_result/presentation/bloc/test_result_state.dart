@@ -30,6 +30,12 @@ class TestResultLoaded extends TestResultState {
   final String? searchQuery;
   final String? selectedJabatan;
   final String? selectedMyTestFilter;
+  
+  // Fields for Danton feature (member tests by PIC)
+  final List<TestResultEntity> memberTests;
+  final List<TestResultEntity> filteredMemberTests;
+  final bool isLoadingMemberResults;
+  final String? memberTestsError;
 
   const TestResultLoaded({
     required this.myResults,
@@ -42,6 +48,10 @@ class TestResultLoaded extends TestResultState {
     this.searchQuery,
     this.selectedJabatan,
     this.selectedMyTestFilter,
+    this.memberTests = const [],
+    this.filteredMemberTests = const [],
+    this.isLoadingMemberResults = false,
+    this.memberTestsError,
   });
 
   TestResultLoaded copyWith({
@@ -55,6 +65,10 @@ class TestResultLoaded extends TestResultState {
     String? searchQuery,
     String? selectedJabatan,
     String? selectedMyTestFilter,
+    List<TestResultEntity>? memberTests,
+    List<TestResultEntity>? filteredMemberTests,
+    bool? isLoadingMemberResults,
+    String? memberTestsError,
   }) {
     return TestResultLoaded(
       myResults: myResults ?? this.myResults,
@@ -67,6 +81,10 @@ class TestResultLoaded extends TestResultState {
       searchQuery: searchQuery ?? this.searchQuery,
       selectedJabatan: selectedJabatan ?? this.selectedJabatan,
       selectedMyTestFilter: selectedMyTestFilter ?? this.selectedMyTestFilter,
+      memberTests: memberTests ?? this.memberTests,
+      filteredMemberTests: filteredMemberTests ?? this.filteredMemberTests,
+      isLoadingMemberResults: isLoadingMemberResults ?? this.isLoadingMemberResults,
+      memberTestsError: memberTestsError,
     );
   }
 
@@ -82,6 +100,10 @@ class TestResultLoaded extends TestResultState {
         searchQuery,
         selectedJabatan,
         selectedMyTestFilter,
+        memberTests,
+        filteredMemberTests,
+        isLoadingMemberResults,
+        memberTestsError,
       ];
 }
 

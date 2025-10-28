@@ -269,9 +269,22 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   void _onNavigateToTestResult(
-      NavigateToTestResultEvent event, Emitter<HomeState> emit) {
+      NavigateToTestResultEvent event, Emitter<HomeState> emit) async {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
+      
+      // Get real user ID from secure storage
+      final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      
+      print('');
+      print('🏠 ========================================');
+      print('🏠 HOME BLOC: NAVIGATE TO TEST RESULT');
+      print('🏠 ========================================');
+      print('🏠 UserId from secure storage: $userId');
+      print('🏠 User position: ${currentState.userProfile.position}');
+      print('🏠 ========================================');
+      print('');
+      
       // Determine role from position
       final userRole =
           _getUserRoleFromPosition(currentState.userProfile.position);
@@ -280,7 +293,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         snackbarMessage: 'Navigating to Hasil Ujian...',
         navigationRoute: '/test-result',
         navigationArguments: {
-          'userId': 'user_1', // Mock user ID
+          'userId': userId, // Real user ID from secure storage
           'userRole': userRole,
         },
       ));
