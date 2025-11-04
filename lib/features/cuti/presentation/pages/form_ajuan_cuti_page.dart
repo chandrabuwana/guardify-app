@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../../../../shared/widgets/custom_dropdown.dart';
@@ -70,175 +69,210 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<CutiBloc>(),
-      child: AppScaffold(
-        appBar: AppBar(
-          title: const Text('Buat Ajuan Cuti'),
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
+    return AppScaffold(
+      appBar: AppBar(
+        title: const Text('Buat Ajuan Cuti'),
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        child: SingleChildScrollView(
-          padding: REdgeInsets.all(16),
-          child: BlocListener<CutiBloc, CutiState>(
-            listener: (context, state) {
-              if (state is AjuanCutiCreated) {
-                _showSuccessDialog();
-              } else if (state is CutiError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Form Fields
-                  CustomDropdown<CutiType>(
-                    label: 'Tipe Cuti',
-                    hint: 'Pilih tipe cuti',
-                    value: _selectedTipeCuti,
-                    items: _tipeCutiOptions,
-                    isRequired: true,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedTipeCuti = value;
-                      });
-                    },
-                  ),
+      ),
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: REdgeInsets.all(16),
+            child: BlocListener<CutiBloc, CutiState>(
+              listener: (context, state) {
+                if (state is AjuanCutiCreated) {
+                  _showSuccessDialog();
+                } else if (state is CutiError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Form Fields
+                    CustomDropdown<CutiType>(
+                      label: 'Tipe Cuti',
+                      hint: 'Pilih tipe cuti',
+                      value: _selectedTipeCuti,
+                      items: _tipeCutiOptions,
+                      isRequired: true,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedTipeCuti = value;
+                        });
+                      },
+                    ),
 
-                  20.verticalSpace,
+                    20.verticalSpace,
 
-                  // Tanggal Mulai
-                  _buildDateField(
-                    label: 'Tanggal Mulai',
-                    hint: 'Pilih tanggal mulai cuti',
-                    selectedDate: _tanggalMulai,
-                    onDateSelected: (date) {
-                      setState(() {
-                        _tanggalMulai = date;
-                        if (_tanggalSelesai != null &&
-                            date != null &&
-                            _tanggalSelesai!.isBefore(date)) {
+                    // Tanggal Mulai
+                    _buildDateField(
+                      label: 'Tanggal Mulai',
+                      hint: 'Pilih tanggal mulai cuti',
+                      selectedDate: _tanggalMulai,
+                      onDateSelected: (date) {
+                        setState(() {
+                          _tanggalMulai = date;
+                          if (_tanggalSelesai != null &&
+                              date != null &&
+                              _tanggalSelesai!.isBefore(date)) {
+                            _tanggalSelesai = date;
+                          }
+                          _calculateJumlahHari();
+                        });
+                      },
+                      isRequired: true,
+                    ),
+
+                    20.verticalSpace,
+
+                    // Tanggal Selesai
+                    _buildDateField(
+                      label: 'Tanggal Selesai',
+                      hint: 'Pilih tanggal selesai cuti',
+                      selectedDate: _tanggalSelesai,
+                      onDateSelected: (date) {
+                        setState(() {
                           _tanggalSelesai = date;
-                        }
-                        _calculateJumlahHari();
-                      });
-                    },
-                    isRequired: true,
-                  ),
+                          _calculateJumlahHari();
+                        });
+                      },
+                      isRequired: true,
+                      firstDate: _tanggalMulai,
+                    ),
 
-                  20.verticalSpace,
-
-                  // Tanggal Selesai
-                  _buildDateField(
-                    label: 'Tanggal Selesai',
-                    hint: 'Pilih tanggal selesai cuti',
-                    selectedDate: _tanggalSelesai,
-                    onDateSelected: (date) {
-                      setState(() {
-                        _tanggalSelesai = date;
-                        _calculateJumlahHari();
-                      });
-                    },
-                    isRequired: true,
-                    firstDate: _tanggalMulai,
-                  ),
-
-                  if (_jumlahHari > 0) ...[
-                    16.verticalSpace,
-                    Container(
-                      width: double.infinity,
-                      padding: REdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: primaryColor.withOpacity(0.2),
-                          width: 1,
+                    if (_jumlahHari > 0) ...[
+                      16.verticalSpace,
+                      Container(
+                        width: double.infinity,
+                        padding: REdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: primaryColor.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: primaryColor,
+                              size: 20.sp,
+                            ),
+                            12.horizontalSpace,
+                            Text(
+                              'Total durasi cuti: $_jumlahHari hari',
+                              style: TS.bodyMedium.copyWith(
+                                color: primaryColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: primaryColor,
-                            size: 20.sp,
-                          ),
-                          12.horizontalSpace,
-                          Text(
-                            'Total durasi cuti: $_jumlahHari hari',
-                            style: TS.bodyMedium.copyWith(
-                              color: primaryColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
+                    ],
+
+                    20.verticalSpace,
+
+                    // Alasan
+                    InputPrimary(
+                      controller: _alasanController,
+                      label: 'Alasan Cuti',
+                      hint: 'Jelaskan alasan mengajukan cuti',
+                      isRequired: true,
+                      maxLines: 4,
+                      maxLength: 500,
+                      validation: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Alasan cuti harus diisi';
+                        }
+                        if (value.trim().length < 10) {
+                          return 'Alasan cuti minimal 10 karakter';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    32.verticalSpace,
+
+                    // Submit Button
+                    BlocBuilder<CutiBloc, CutiState>(
+                      builder: (context, state) {
+                        return UIButton(
+                          text: 'Ajukan Cuti',
+                          fullWidth: true,
+                          size: UIButtonSize.large,
+                          isLoading: state is CutiLoading,
+                          onPressed: state is CutiLoading ? null : _submitForm,
+                        );
+                      },
+                    ),
+
+                    16.verticalSpace,
+
+                    UIButton(
+                      text: 'Batal',
+                      fullWidth: true,
+                      size: UIButtonSize.large,
+                      buttonType: UIButtonType.outline,
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
-
-                  20.verticalSpace,
-
-                  // Alasan
-                  InputPrimary(
-                    controller: _alasanController,
-                    label: 'Alasan Cuti',
-                    hint: 'Jelaskan alasan mengajukan cuti',
-                    isRequired: true,
-                    maxLines: 4,
-                    maxLength: 500,
-                    validation: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Alasan cuti harus diisi';
-                      }
-                      if (value.trim().length < 10) {
-                        return 'Alasan cuti minimal 10 karakter';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  32.verticalSpace,
-
-                  // Submit Button
-                  BlocBuilder<CutiBloc, CutiState>(
-                    builder: (context, state) {
-                      return UIButton(
-                        text: 'Ajukan Cuti',
-                        fullWidth: true,
-                        size: UIButtonSize.large,
-                        isLoading: state is CutiLoading,
-                        onPressed: state is CutiLoading ? null : _submitForm,
-                      );
-                    },
-                  ),
-
-                  16.verticalSpace,
-
-                  UIButton(
-                    text: 'Batal',
-                    fullWidth: true,
-                    size: UIButtonSize.large,
-                    buttonType: UIButtonType.outline,
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+          // Loading Overlay
+          BlocBuilder<CutiBloc, CutiState>(
+            builder: (context, state) {
+              if (state is CutiLoading) {
+                return Container(
+                  color: Colors.black.withOpacity(0.3),
+                  child: Center(
+                    child: Card(
+                      child: Padding(
+                        padding: REdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(primaryColor),
+                            ),
+                            16.verticalSpace,
+                            Text(
+                              'Mengirim ajuan cuti...',
+                              style: TS.titleSmall.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
       ),
     );
   }

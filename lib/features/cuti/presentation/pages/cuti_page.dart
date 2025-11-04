@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/security/security_manager.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../bloc/cuti_bloc.dart';
@@ -33,21 +35,35 @@ class CutiPage extends StatefulWidget {
 
 class _CutiPageState extends State<CutiPage>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  late String _currentUserId;
-  late UserRole _currentUserRole;
+  TabController? _tabController;
+  String? _currentUserId;
+  UserRole? _currentUserRole;
   late CutiBloc _cutiBloc;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Use passed parameters or defaults
-    _currentUserId = widget.userId ?? 'user_1';
-    _currentUserRole = widget.userRole ?? UserRole.anggota;
-
     // Initialize bloc
     _cutiBloc = getIt<CutiBloc>();
+
+    // Load user data from secure storage
+    _initializeUserData();
+  }
+
+  Future<void> _initializeUserData() async {
+    // Get userId from secure storage
+    final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+    _currentUserId = widget.userId ?? userId ?? 'user_1';
+
+    // Get user role from secure storage
+    final roleId = await SecurityManager.readSecurely('user_role_id');
+    _currentUserRole = widget.userRole ??
+        (roleId != null ? UserRole.fromValue(roleId) : UserRole.anggota);
+
+    print(
+        '🔐 Initialized Cuti page with userId: $_currentUserId, role: $_currentUserRole');
 
     // Initialize tab controller based on user role
     _tabController = TabController(
@@ -57,17 +73,25 @@ class _CutiPageState extends State<CutiPage>
 
     // Load initial data
     _loadInitialData();
+
+    // Refresh UI after loading user data
+    if (mounted) {
+      setState(() {
+        _isInitialized = true;
+      });
+    }
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     _cutiBloc.close();
     super.dispose();
   }
 
   int _getTabCount() {
-    switch (_currentUserRole) {
+    final role = _currentUserRole ?? UserRole.anggota;
+    switch (role) {
       case UserRole.anggota:
       case UserRole.danton:
         return 2; // Kuota Cuti, Ajuan Cuti
@@ -81,7 +105,8 @@ class _CutiPageState extends State<CutiPage>
   }
 
   List<Tab> _getTabs() {
-    switch (_currentUserRole) {
+    final role = _currentUserRole ?? UserRole.anggota;
+    switch (role) {
       case UserRole.anggota:
       case UserRole.danton:
         return [
@@ -105,10 +130,13 @@ class _CutiPageState extends State<CutiPage>
   }
 
   void _loadInitialData() {
-    switch (_currentUserRole) {
+    final role = _currentUserRole ?? UserRole.anggota;
+    final userId = _currentUserId ?? 'user_1';
+
+    switch (role) {
       case UserRole.anggota:
       case UserRole.danton:
-        _cutiBloc.add(GetCutiKuotaEvent(_currentUserId));
+        _cutiBloc.add(GetCutiKuotaEvent(userId));
         break;
       case UserRole.pjo:
       case UserRole.deputy:
@@ -123,6 +151,21 @@ class _CutiPageState extends State<CutiPage>
 
   @override
   Widget build(BuildContext context) {
+    // Show loading while initializing
+    if (!_isInitialized || _tabController == null) {
+      return AppScaffold(
+        appBar: AppBar(
+          title: const Text('Pengajuan Cuti'),
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return BlocProvider.value(
       value: _cutiBloc,
       child: AppScaffold(
@@ -139,7 +182,7 @@ class _CutiPageState extends State<CutiPage>
             Container(
               color: Colors.white,
               child: TabBar(
-                controller: _tabController,
+                controller: _tabController!,
                 labelColor: primaryColor,
                 unselectedLabelColor: Colors.grey,
                 indicatorColor: primaryColor,
@@ -160,7 +203,7 @@ class _CutiPageState extends State<CutiPage>
             // Tab Bar View
             Expanded(
               child: TabBarView(
-                controller: _tabController,
+                controller: _tabController!,
                 children: _getTabViews(),
               ),
             ),
@@ -172,7 +215,8 @@ class _CutiPageState extends State<CutiPage>
   }
 
   List<Widget> _getTabViews() {
-    switch (_currentUserRole) {
+    final role = _currentUserRole ?? UserRole.anggota;
+    switch (role) {
       case UserRole.anggota:
       case UserRole.danton:
         return [
@@ -196,13 +240,16 @@ class _CutiPageState extends State<CutiPage>
   }
 
   void _onTabChanged(int index) {
-    switch (_currentUserRole) {
+    final role = _currentUserRole ?? UserRole.anggota;
+    final userId = _currentUserId ?? 'user_1';
+
+    switch (role) {
       case UserRole.anggota:
       case UserRole.danton:
         if (index == 0) {
-          _cutiBloc.add(GetCutiKuotaEvent(_currentUserId));
+          _cutiBloc.add(GetCutiKuotaEvent(userId));
         } else if (index == 1) {
-          _cutiBloc.add(GetDaftarCutiSayaEvent(_currentUserId));
+          _cutiBloc.add(GetDaftarCutiSayaEvent(userId));
         }
         break;
       case UserRole.pjo:
@@ -210,9 +257,9 @@ class _CutiPageState extends State<CutiPage>
         if (index == 0) {
           _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
         } else if (index == 1) {
-          _cutiBloc.add(GetCutiKuotaEvent(_currentUserId));
+          _cutiBloc.add(GetCutiKuotaEvent(userId));
         } else if (index == 2) {
-          _cutiBloc.add(GetDaftarCutiSayaEvent(_currentUserId));
+          _cutiBloc.add(GetDaftarCutiSayaEvent(userId));
         }
         break;
       case UserRole.pengawas:
@@ -228,13 +275,18 @@ class _CutiPageState extends State<CutiPage>
 
   bool _shouldShowFab() {
     // Show FAB for anggota/danton and PJO/Deputy (for their personal leave)
-    return _currentUserRole == UserRole.anggota ||
-        _currentUserRole == UserRole.danton ||
-        (_currentUserRole == UserRole.pjo && _tabController.index == 2) ||
-        (_currentUserRole == UserRole.deputy && _tabController.index == 2);
+    final role = _currentUserRole ?? UserRole.anggota;
+    final tabIndex = _tabController?.index ?? 0;
+
+    return role == UserRole.anggota ||
+        role == UserRole.danton ||
+        (role == UserRole.pjo && tabIndex == 2) ||
+        (role == UserRole.deputy && tabIndex == 2);
   }
 
   Widget _buildFab() {
+    final userId = _currentUserId ?? 'user_1';
+
     return FloatingActionButton(
       backgroundColor: primaryColor,
       foregroundColor: Colors.white,
@@ -242,9 +294,12 @@ class _CutiPageState extends State<CutiPage>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => FormAjuanCutiPage(
-              userId: _currentUserId,
-              userName: 'Current User', // TODO: Get from auth
+            builder: (context) => BlocProvider.value(
+              value: _cutiBloc,
+              child: FormAjuanCutiPage(
+                userId: userId,
+                userName: 'Current User', // TODO: Get from auth
+              ),
             ),
           ),
         );
@@ -454,10 +509,13 @@ class _CutiPageState extends State<CutiPage>
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DetailCutiPage(
-                    cutiId: cuti.id,
-                    showActions: showActions,
-                    currentUserRole: _currentUserRole,
+                  builder: (context) => BlocProvider.value(
+                    value: _cutiBloc,
+                    child: DetailCutiPage(
+                      cutiId: cuti.id,
+                      showActions: showActions,
+                      currentUserRole: _currentUserRole ?? UserRole.anggota,
+                    ),
                   ),
                 ),
               );
