@@ -59,11 +59,12 @@ class RefreshTestResultEvent extends TestResultEvent {
 /// Event untuk switch tab
 class SwitchTestTabEvent extends TestResultEvent {
   final int tabIndex;
+  final String? userId; // Optional userId untuk fetch member tests saat switch ke tab Test Anggota
 
-  const SwitchTestTabEvent(this.tabIndex);
+  const SwitchTestTabEvent(this.tabIndex, {this.userId});
 
   @override
-  List<Object?> get props => [tabIndex];
+  List<Object?> get props => [tabIndex, userId];
 }
 
 /// Event untuk search My Test results (untuk anggota)

@@ -18,8 +18,8 @@ enum UserRole {
   /// Petugas Jaga (PJO)
   pjo('PJO', 'PJO'),
 
-  /// Komandan Regu (Danton) - kept for backward compatibility
-  danton('danton', 'Danton');
+  /// Komandan Regu (Danton)
+  danton('DTN', 'Danton');
 
   const UserRole(this.value, this.displayName);
 

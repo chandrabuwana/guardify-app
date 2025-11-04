@@ -95,6 +95,7 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
       print('🌐 ========================================');
       print('🌐 Received PIC ID parameter: "$picId"');
       print('🌐 PIC ID length: ${picId.length}');
+      print('🌐 PIC ID isEmpty: ${picId.isEmpty}');
       
       // Validasi picId tidak boleh kosong
       if (picId.isEmpty) {
@@ -120,18 +121,36 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
 
       print('🌐 Request Body (IdPic filter):');
       print('🌐 ${requestBody.toString()}');
+      print('🌐 About to call API endpoint: /AssesmentDetail/list');
       print('🌐 ========================================');
       print('');
 
       final response = await _apiDataSource.fetchAssessmentDetails(requestBody);
+
+      print('');
+      print('🌐 ========================================');
+      print('🌐 API RESPONSE RECEIVED');
+      print('🌐 ========================================');
+      print('🌐 Response succeeded: ${response.succeeded}');
+      print('🌐 Response message: ${response.message}');
+      print('🌐 Response data count: ${response.list.length}');
+      if (response.list.isNotEmpty) {
+        print('🌐 First item sample: ${response.list.first.toString()}');
+      }
+      print('🌐 ========================================');
+      print('');
 
       if (!response.succeeded) {
         throw Exception(response.message);
       }
 
       // Convert API response ke TestResultModel
-      return response.list.map((item) => item.toTestResultModel()).toList();
+      final convertedResults = response.list.map((item) => item.toTestResultModel()).toList();
+      print('🌐 Converted ${convertedResults.length} items to TestResultModel');
+      
+      return convertedResults;
     } catch (e) {
+      print('❌ Exception in fetchMemberTestsByPic: $e');
       rethrow;
     }
   }

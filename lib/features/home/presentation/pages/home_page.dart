@@ -107,7 +107,9 @@ class __HomePageViewState extends State<_HomePageView> {
                           state.navigationArguments?['userName'] ?? 'User',
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/bmi':
@@ -123,7 +125,9 @@ class __HomePageViewState extends State<_HomePageView> {
                       },
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -136,7 +140,9 @@ class __HomePageViewState extends State<_HomePageView> {
                       child: const PanicVerificationPage(),
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/regulations':
@@ -148,7 +154,9 @@ class __HomePageViewState extends State<_HomePageView> {
                       child: const CompanyRegulationsPage(),
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/patrol':
@@ -164,7 +172,9 @@ class __HomePageViewState extends State<_HomePageView> {
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/cuti':
-                Navigator.pushNamed(context, '/cuti');
+                Navigator.pushNamed(context, '/cuti').then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/laporan-kegiatan':
@@ -176,7 +186,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     'userRole':
                         state.navigationArguments?['userRole'] ?? 'anggota',
                   },
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/test-result':
@@ -190,7 +202,9 @@ class __HomePageViewState extends State<_HomePageView> {
                               UserRole.anggota,
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/chat':
@@ -202,7 +216,9 @@ class __HomePageViewState extends State<_HomePageView> {
                       child: const ChatListPage(),
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -215,13 +231,18 @@ class __HomePageViewState extends State<_HomePageView> {
                       child: const NewsListPage(),
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/schedule':
                 // Navigate to Schedule feature via named route
-                Navigator.pushNamed(context, '/schedule');
+                Navigator.pushNamed(context, '/schedule').then((_) {
+                  // After returning from schedule, reset bottom nav to home
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
