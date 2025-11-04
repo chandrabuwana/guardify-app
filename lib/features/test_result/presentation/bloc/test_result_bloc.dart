@@ -189,10 +189,42 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
     SwitchTestTabEvent event,
     Emitter<TestResultState> emit,
   ) {
+    print('');
+    print('🔄 ========================================');
+    print('🔄 SWITCH TAB EVENT');
+    print('🔄 ========================================');
+    print('🔄 Tab index: ${event.tabIndex}');
+    print('🔄 UserId from event: ${event.userId}');
+    print('🔄 Current state type: ${state.runtimeType}');
+    
     if (state is TestResultLoaded) {
       final currentState = state as TestResultLoaded;
+      print('🔄 Current memberTests count: ${currentState.memberTests.length}');
+      print('🔄 Is loading member results: ${currentState.isLoadingMemberResults}');
+      
       emit(currentState.copyWith(currentTabIndex: event.tabIndex));
+      
+      // Fetch member tests when switching to "Test Anggota" tab (index 1)
+      // and data hasn't been loaded yet or userId is available
+      if (event.tabIndex == 1) {
+        print('🔄 Switched to Test Anggota tab');
+        
+        if (event.userId == null || event.userId!.isEmpty) {
+          print('❌ ERROR: UserId is null/empty, cannot fetch member tests');
+        } else if (currentState.memberTests.isNotEmpty) {
+          print('ℹ️ Member tests already loaded (${currentState.memberTests.length} items)');
+        } else if (currentState.isLoadingMemberResults) {
+          print('ℹ️ Member tests are already being loaded');
+        } else {
+          print('🔵 Fetching member tests with PIC ID: ${event.userId}');
+          add(FetchMemberTestsEvent(event.userId!));
+        }
+      }
+    } else {
+      print('❌ ERROR: State is not TestResultLoaded, cannot switch tab');
     }
+    print('🔄 ========================================');
+    print('');
   }
 
   void _onSearchMyTest(
@@ -309,12 +341,25 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
           },
           (memberTests) {
             print('✅ Successfully fetched ${memberTests.length} member tests');
+            print('✅ First item details:');
+            if (memberTests.isNotEmpty) {
+              final first = memberTests.first;
+              print('   - ID: ${first.id}');
+              print('   - Name: ${first.namaTest}');
+              print('   - Grade: ${first.nilaiTest}');
+              print('   - Status: ${first.status.displayName}');
+              print('   - User ID: ${first.userId}');
+            }
+            
             emit(currentState.copyWith(
               memberTests: memberTests,
               filteredMemberTests: memberTests,
               isLoadingMemberResults: false,
               memberTestsError: null,
             ));
+            
+            print('✅ State updated - memberTests count: ${memberTests.length}');
+            print('✅ State updated - filteredMemberTests count: ${memberTests.length}');
           },
         );
       } catch (e) {

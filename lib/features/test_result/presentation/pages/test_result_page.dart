@@ -48,13 +48,16 @@ class _TestResultPageState extends State<TestResultPage>
     final tabLength = _getTabLength();
     _tabController = TabController(length: tabLength, vsync: this);
 
-  // Load data - jika userId tidak diberikan, ambil dari secure storage
-  _initAndFetch();
-
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        _bloc.add(SwitchTestTabEvent(_tabController.index));
-      }
+    // Load data - jika userId tidak diberikan, ambil dari secure storage
+    _initAndFetch().then((_) {
+      // Setup tab listener SETELAH _resolvedUserId ter-set
+      _tabController.addListener(() {
+        if (!_tabController.indexIsChanging) {
+          print('🔄 Tab switching to index: ${_tabController.index}');
+          print('🔄 Resolved userId: $_resolvedUserId');
+          _bloc.add(SwitchTestTabEvent(_tabController.index, userId: _resolvedUserId));
+        }
+      });
     });
   }
 
@@ -89,17 +92,36 @@ class _TestResultPageState extends State<TestResultPage>
     print('📱 Final userId to send to API: "$idToSend"');
     print('📱 UserId length: ${idToSend.length}');
     print('📱 User role: ${widget.userRole.displayName}');
+    print('📱 User role value: ${widget.userRole.value}');
+    print('📱 Is Danton? ${widget.userRole == UserRole.danton}');
+    print('📱 Is Pengawas? ${widget.userRole == UserRole.pengawas}');
+    print('📱 Can view member results? ${_canViewMemberResults()}');
+    print('📱 Tab length: ${_getTabLength()}');
+    
+    // Debug: Print all available secure storage keys
+    try {
+      final allKeys = [
+        AppConstants.tokenKey,
+        AppConstants.userIdKey,
+        'roleId',
+        'user_role',
+      ];
+      for (final key in allKeys) {
+        final value = await SecurityManager.readSecurely(key);
+        print('📱 Storage[$key]: ${value != null ? '"${value.substring(0, value.length > 20 ? 20 : value.length)}..."' : 'null'}');
+      }
+    } catch (e) {
+      print('📱 Error reading storage keys: $e');
+    }
+    
     print('📱 ========================================');
     print('');
     
-    // Fetch initial data
+    // Fetch initial data (my test results)
     _bloc.add(FetchTestResultEvent(userId: idToSend, role: widget.userRole));
     
-    // For Danton role, also fetch member tests
-    if (widget.userRole == UserRole.danton && idToSend.isNotEmpty) {
-      print('🔵 Fetching member tests for Danton with PIC ID: $idToSend');
-      _bloc.add(FetchMemberTestsEvent(idToSend));
-    }
+    // Note: Member tests akan di-fetch otomatis saat user switch ke tab "Test Anggota"
+    // Lihat _tabController.addListener dan SwitchTestTabEvent handler di BLoC
   }
 
   @override
@@ -295,12 +317,66 @@ class _TestResultPageState extends State<TestResultPage>
 
   /// Tab "Test Anggota"
   Widget _buildMemberResultsTab(TestResultLoaded state) {
+    print('');
+    print('📺 ========================================');
+    print('📺 BUILD MEMBER RESULTS TAB');
+    print('📺 ========================================');
+    print('📺 User role: ${widget.userRole.displayName}');
+    print('📺 Is Danton: ${widget.userRole == UserRole.danton}');
+    print('📺 Member tests count: ${state.memberTests.length}');
+    print('📺 Filtered member tests count: ${state.filteredMemberTests.length}');
+    print('📺 Is loading member results: ${state.isLoadingMemberResults}');
+    print('📺 Member tests error: ${state.memberTestsError}');
+    print('📺 Member results count (table): ${state.filteredMemberResults.length}');
+    print('📺 ========================================');
+    print('');
+    
     // For Danton role, show card-based view like "Test Saya"
     if (widget.userRole == UserRole.danton) {
       return _buildDantonMemberTestsView(state);
     }
     
-    // For other roles (PJO, Deputy, Pengawas), show table view
+    // For other roles (PJO, Deputy, Pengawas)
+    // Prefer showing fetched member tests (IdPic) as cards when available; fallback to table view
+    if (state.filteredMemberTests.isNotEmpty || state.isLoadingMemberResults || state.memberTestsError != null) {
+      print('📺 Showing card view for member tests');
+      
+      return Column(
+        children: [
+          16.verticalSpace,
+          Expanded(
+            child: state.isLoadingMemberResults
+                ? const Center(
+                    child: CircularProgressIndicator(color: primaryColor),
+                  )
+                : state.memberTestsError != null
+                    ? _buildErrorWidget(state.memberTestsError!)
+                    : state.filteredMemberTests.isEmpty
+                        ? _buildEmptyState('Belum ada hasil test anggota')
+                        : RefreshIndicator(
+                            onRefresh: () async {
+                              if (_resolvedUserId != null) {
+                                _bloc.add(FetchMemberTestsEvent(_resolvedUserId!));
+                              }
+                            },
+                            child: ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: REdgeInsets.symmetric(horizontal: 16),
+                              itemCount: state.filteredMemberTests.length,
+                              itemBuilder: (context, index) {
+                                final result = state.filteredMemberTests[index];
+                                return TestResultCardWidget(result: result);
+                              },
+                            ),
+                          ),
+          ),
+        ],
+      );
+    }
+
+    print('📺 Showing table view fallback');
+    
+    // Fallback: show table view (uses TestMemberResultEntity)
     return Column(
       children: [
         // Summary Header

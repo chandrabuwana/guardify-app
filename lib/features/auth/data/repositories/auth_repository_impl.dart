@@ -101,16 +101,32 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
       );
 
       // Save primary role ID to secure storage
+      final roleId = data.user.primaryRoleId;
+      print('🔐 Saving role ID: $roleId');
       await SecurityManager.storeSecurely(
         'user_role_id',
-        data.user.primaryRoleId,
+        roleId,
       );
+      print('✅ Saved role ID');
+      
+      // Verify role ID was saved correctly
+      final verifyRoleId = await SecurityManager.readSecurely('user_role_id');
+      print('🔍 VERIFICATION - Read back role ID: $verifyRoleId');
+      if (verifyRoleId == roleId) {
+        print('✅ VERIFIED: Role ID tersimpan dengan benar!');
+      } else {
+        print('❌ ERROR: Role ID tidak tersimpan dengan benar!');
+        print('❌ Expected: $roleId, Got: $verifyRoleId');
+      }
 
       // Save primary role name to secure storage
+      final roleName = data.user.primaryRoleName;
+      print('🔐 Saving role name: $roleName');
       await SecurityManager.storeSecurely(
         'user_role_name',
-        data.user.primaryRoleName,
+        roleName,
       );
+      print('✅ Saved role name');
 
       // Create use case AuthToken from entity
       final useCaseToken = AuthToken(

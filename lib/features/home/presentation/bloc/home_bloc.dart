@@ -85,10 +85,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       String message;
       String? navigationRoute;
       switch (event.index) {
-        case 0:
-          message = 'Beranda';
-          break;
-        case 1:
+              case 0:
+                message = 'Beranda';
+                navigationRoute = '/';
+                break;        case 1:
           message = 'Jadwal';
           navigationRoute = '/schedule';
           break;
@@ -273,21 +273,28 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       
-      // Get real user ID from secure storage
+      // Get real user ID and role ID from secure storage
       final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      final roleId = await SecurityManager.readSecurely('user_role_id');
       
       print('');
       print('🏠 ========================================');
       print('🏠 HOME BLOC: NAVIGATE TO TEST RESULT');
       print('🏠 ========================================');
       print('🏠 UserId from secure storage: $userId');
+      print('🏠 RoleId from secure storage: $roleId');
       print('🏠 User position: ${currentState.userProfile.position}');
       print('🏠 ========================================');
       print('');
       
-      // Determine role from position
-      final userRole =
-          _getUserRoleFromPosition(currentState.userProfile.position);
+      // Get UserRole from role ID (DTN, AGT, PJO, etc.)
+      final userRole = roleId != null 
+          ? UserRole.fromValue(roleId)
+          : _getUserRoleFromPosition(currentState.userProfile.position);
+      
+      print('🏠 Resolved UserRole: ${userRole.displayName} (${userRole.value})');
+      print('🏠 ========================================');
+      print('');
 
       emit(currentState.copyWith(
         snackbarMessage: 'Navigating to Hasil Ujian...',
