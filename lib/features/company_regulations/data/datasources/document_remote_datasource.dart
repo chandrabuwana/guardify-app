@@ -1,9 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../models/document_model.dart';
+import '../models/company_rule_list_request.dart';
+import '../models/company_rule_list_response.dart';
 
 /// Abstract class untuk remote data source dokumen
 abstract class DocumentRemoteDataSource {
+  /// Get documents with pagination
+  Future<CompanyRuleListResponse> getDocumentsList(
+      CompanyRuleListRequest request);
+
   Future<List<DocumentModel>> getAllDocuments();
   Future<List<DocumentModel>> searchDocuments(String query);
   Future<List<DocumentModel>> filterDocumentsByCategory(String category);
@@ -25,20 +31,51 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
   DocumentRemoteDataSourceImpl({required this.dio});
 
   @override
-  Future<List<DocumentModel>> getAllDocuments() async {
+  Future<CompanyRuleListResponse> getDocumentsList(
+      CompanyRuleListRequest request) async {
     try {
-      final response = await dio.get('/api/v1/documents');
+      final response = await dio.post(
+        '/CompanyRule/list',
+        data: request.toJson(),
+      );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
-        return data.map((json) => DocumentModel.fromJson(json)).toList();
-      }
+        final companyRuleResponse =
+            CompanyRuleListResponse.fromJson(response.data);
 
-      throw Exception('Failed to fetch documents: ${response.statusCode}');
+        if (!companyRuleResponse.succeeded) {
+          throw Exception(companyRuleResponse.message);
+        }
+
+        return companyRuleResponse;
+      } else {
+        throw Exception(
+            'Failed to load company rules: ${response.statusMessage}');
+      }
     } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(
+            'API Error: ${e.response?.data['Message'] ?? e.message}');
+      }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
-      throw Exception('Unexpected error: $e');
+      throw Exception('Failed to load company rules: $e');
+    }
+  }
+
+  @override
+  Future<List<DocumentModel>> getAllDocuments() async {
+    try {
+      final request = CompanyRuleListRequest.initial(length: 100);
+      final response = await getDocumentsList(request);
+
+      // Convert CompanyRuleModel to DocumentModel
+      return response.list.map((rule) {
+        final entity = rule.toEntity();
+        return DocumentModel.fromEntity(entity);
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to fetch documents: $e');
     }
   }
 

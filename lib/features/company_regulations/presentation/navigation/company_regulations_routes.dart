@@ -13,7 +13,7 @@ class CompanyRegulationsRoutes {
         regulationsList: (context) => const CompanyRegulationsPage(),
         documentDetail: (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
-          
+
           if (args is DocumentEntity) {
             return DocumentDetailPage(document: args);
           } else if (args is Map<String, dynamic>) {
@@ -22,7 +22,7 @@ class CompanyRegulationsRoutes {
               document: args['document'] as DocumentEntity?,
             );
           }
-          
+
           // Fallback: redirect ke list page
           Navigator.of(context).pushReplacementNamed(regulationsList);
           return const SizedBox.shrink();
@@ -37,11 +37,11 @@ class CompanyRegulationsRoutes {
           page: const CompanyRegulationsPage(),
           settings: settings,
         );
-      
+
       case documentDetail:
         final args = settings.arguments;
         Widget page;
-        
+
         if (args is DocumentEntity) {
           page = DocumentDetailPage(document: args);
         } else if (args is Map<String, dynamic>) {
@@ -56,13 +56,13 @@ class CompanyRegulationsRoutes {
             settings: settings,
           );
         }
-        
+
         return _createSlideRoute(
           page: page,
           settings: settings,
           direction: SlideDirection.fromRight,
         );
-      
+
       default:
         return null;
     }
@@ -91,7 +91,7 @@ Route<T> _createSlideRoute<T>({
     pageBuilder: (context, animation, secondaryAnimation) => page,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       Offset begin;
-      
+
       switch (direction) {
         case SlideDirection.fromRight:
           begin = const Offset(1.0, 0.0);
@@ -106,20 +106,20 @@ Route<T> _createSlideRoute<T>({
           begin = const Offset(0.0, 1.0);
           break;
       }
-      
+
       const end = Offset.zero;
       final curve = Curves.easeInOutCubic;
-      
+
       final slideTween = Tween(begin: begin, end: end);
       final curvedAnimation = CurvedAnimation(
         parent: animation,
         curve: curve,
       );
-      
+
       // Fade animation untuk smooth transition
       final fadeTween = Tween<double>(begin: 0.0, end: 1.0);
       final fadeAnimation = fadeTween.animate(curvedAnimation);
-      
+
       return SlideTransition(
         position: slideTween.animate(curvedAnimation),
         child: FadeTransition(
@@ -132,6 +132,7 @@ Route<T> _createSlideRoute<T>({
 }
 
 /// Helper untuk membuat fade transition
+// ignore: unused_element
 Route<T> _createFadeRoute<T>({
   required Widget page,
   required RouteSettings settings,
@@ -148,7 +149,7 @@ Route<T> _createFadeRoute<T>({
         parent: animation,
         curve: curve,
       );
-      
+
       return FadeTransition(
         opacity: curvedAnimation,
         child: child,
@@ -158,6 +159,7 @@ Route<T> _createFadeRoute<T>({
 }
 
 /// Helper untuk membuat scale transition
+// ignore: unused_element
 Route<T> _createScaleRoute<T>({
   required Widget page,
   required RouteSettings settings,
@@ -174,10 +176,10 @@ Route<T> _createScaleRoute<T>({
         parent: animation,
         curve: curve,
       );
-      
+
       final scaleTween = Tween<double>(begin: 0.8, end: 1.0);
       final fadeTween = Tween<double>(begin: 0.0, end: 1.0);
-      
+
       return ScaleTransition(
         scale: scaleTween.animate(curvedAnimation),
         child: FadeTransition(

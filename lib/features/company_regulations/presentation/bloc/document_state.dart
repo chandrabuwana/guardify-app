@@ -30,6 +30,9 @@ class DocumentLoaded extends DocumentState {
   final DateTime? currentEndDate;
   final bool isSearchMode;
   final bool isFilterMode;
+  final bool isLoadingMore;
+  final bool hasReachedMax;
+  final int currentPage;
 
   const DocumentLoaded({
     required this.documents,
@@ -41,6 +44,9 @@ class DocumentLoaded extends DocumentState {
     this.currentEndDate,
     this.isSearchMode = false,
     this.isFilterMode = false,
+    this.isLoadingMore = false,
+    this.hasReachedMax = false,
+    this.currentPage = 0,
   });
 
   @override
@@ -54,6 +60,9 @@ class DocumentLoaded extends DocumentState {
         currentEndDate,
         isSearchMode,
         isFilterMode,
+        isLoadingMore,
+        hasReachedMax,
+        currentPage,
       ];
 
   /// Copy with method untuk membuat state baru dengan perubahan tertentu
@@ -67,6 +76,9 @@ class DocumentLoaded extends DocumentState {
     DateTime? currentEndDate,
     bool? isSearchMode,
     bool? isFilterMode,
+    bool? isLoadingMore,
+    bool? hasReachedMax,
+    int? currentPage,
   }) {
     return DocumentLoaded(
       documents: documents ?? this.documents,
@@ -79,6 +91,9 @@ class DocumentLoaded extends DocumentState {
       currentEndDate: currentEndDate ?? this.currentEndDate,
       isSearchMode: isSearchMode ?? this.isSearchMode,
       isFilterMode: isFilterMode ?? this.isFilterMode,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
+      currentPage: currentPage ?? this.currentPage,
     );
   }
 
@@ -94,6 +109,9 @@ class DocumentLoaded extends DocumentState {
       currentEndDate: currentEndDate,
       isSearchMode: false,
       isFilterMode: isFilterMode,
+      isLoadingMore: false,
+      hasReachedMax: false,
+      currentPage: 0,
     );
   }
 
@@ -108,6 +126,9 @@ class DocumentLoaded extends DocumentState {
       currentEndDate: null,
       isSearchMode: isSearchMode,
       isFilterMode: false,
+      isLoadingMore: false,
+      hasReachedMax: false,
+      currentPage: 0,
     );
   }
 }

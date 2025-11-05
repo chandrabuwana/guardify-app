@@ -1,3 +1,5 @@
+import 'package:injectable/injectable.dart';
+
 // Error classes
 abstract class Failure {
   final String message;
@@ -18,12 +20,22 @@ class AuthenticationFailure extends Failure {
 
 // Validators
 class Validators {
-  static String? validateEmail(String? email) {
-    if (email == null || email.isEmpty) {
-      return 'Email tidak boleh kosong';
+  static String? validateNrp(String? nrp) {
+    if (nrp == null || nrp.isEmpty) {
+      return 'NRP tidak boleh kosong';
     }
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
-      return 'Format email tidak valid';
+    if (nrp.length < 3) {
+      return 'NRP minimal 3 karakter';
+    }
+    return null;
+  }
+
+  static String? validateUsername(String? username) {
+    if (username == null || username.isEmpty) {
+      return 'Username tidak boleh kosong';
+    }
+    if (username.length < 3) {
+      return 'Username minimal 3 karakter';
     }
     return null;
   }
@@ -32,8 +44,8 @@ class Validators {
     if (password == null || password.isEmpty) {
       return 'Password tidak boleh kosong';
     }
-    if (password.length < 8) {
-      return 'Password minimal 8 karakter';
+    if (password.length < 3) {
+      return 'Password minimal 3 karakter';
     }
     return null;
   }
@@ -89,29 +101,30 @@ class AuthToken {
   });
 }
 
-// Repository interface
-abstract class AuthRepository {
+// Login Repository Interface - Specific for LoginUseCase
+abstract class LoginRepository {
   Future<LoginResult> login({
-    required String email,
+    required String username,
     required String password,
   });
 }
 
 // Login Use Case
+@injectable
 class LoginUseCase {
-  final AuthRepository repository;
+  final LoginRepository repository;
 
   const LoginUseCase(this.repository);
 
   Future<LoginResult> call({
-    required String email,
+    required String username,
     required String password,
   }) async {
     try {
-      // Validate input
-      final emailValidation = Validators.validateEmail(email);
-      if (emailValidation != null) {
-        return LoginResult.failure(ValidationFailure(emailValidation));
+      // Validate input - NRP adalah free text, tidak perlu validasi email
+      final usernameValidation = Validators.validateUsername(username);
+      if (usernameValidation != null) {
+        return LoginResult.failure(ValidationFailure(usernameValidation));
       }
 
       final passwordValidation = Validators.validatePassword(password);
@@ -121,7 +134,7 @@ class LoginUseCase {
 
       // Perform login
       final result = await repository.login(
-        email: email.trim().toLowerCase(),
+        username: username.trim(),
         password: password,
       );
 
@@ -133,21 +146,43 @@ class LoginUseCase {
   }
 }
 
+// User data from login
+class LoginUser {
+  final String id;
+  final String username;
+  final String fullName;
+  final String email;
+  final List<String> roleIds;
+  final List<String> roleNames;
+
+  const LoginUser({
+    required this.id,
+    required this.username,
+    required this.fullName,
+    required this.email,
+    required this.roleIds,
+    required this.roleNames,
+  });
+}
+
 // Login Result
 class LoginResult {
   final AuthToken? token;
+  final LoginUser? user;
   final Failure? failure;
   final bool isSuccess;
 
   const LoginResult._({
     this.token,
+    this.user,
     this.failure,
     required this.isSuccess,
   });
 
-  factory LoginResult.success(AuthToken token) {
+  factory LoginResult.success(AuthToken token, LoginUser user) {
     return LoginResult._(
       token: token,
+      user: user,
       isSuccess: true,
     );
   }

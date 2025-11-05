@@ -3,6 +3,7 @@ import '../../../../shared/entities/failure.dart';
 import '../entities/user_profile.dart';
 import '../entities/bmi_record.dart';
 import '../entities/bmi_input.dart';
+import '../../../../core/domain/entities/paginated_response.dart';
 
 /// Repository interface untuk BMI feature
 abstract class BMIRepository {
@@ -14,6 +15,13 @@ abstract class BMIRepository {
 
   /// Get semua user profiles (untuk role non-anggota)
   Future<Either<Failure, List<UserProfile>>> getAllUserProfiles();
+
+  /// Get user profiles dengan pagination (untuk role non-anggota)
+  Future<Either<Failure, PaginatedResponse<UserProfile>>>
+      getUserProfilesPaginated({
+    required int page,
+    required int pageSize,
+  });
 
   /// Get pinned user profiles dari local storage
   Future<Either<Failure, List<UserProfile>>> getPinnedUserProfiles();

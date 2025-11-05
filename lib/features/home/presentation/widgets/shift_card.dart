@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:guardify_app/core/design/colors.dart';
 import 'package:guardify_app/features/home/presentation/bloc/home_state.dart';
 
@@ -86,42 +87,47 @@ class ShiftCard extends StatelessWidget {
 
           // Attendance Time Row
           Row(
-            children: [
-              const Icon(
-                Icons.access_time,
-                color: neutral50,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Jam Absen: ${attendanceInfo.currentTime}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: neutral70,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Team Members Row
-          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Tim Jaga',
+                    'Jam Absen: ',
                     style: TextStyle(
                       fontSize: 14,
                       color: neutral70,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  _buildTeamAvatars(),
+                  Text(
+                    attendanceInfo.currentTime,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: neutral70,
+                    ),
+                  ),
+                ],
+              ),
+              6.horizontalSpace,
+              // Team Members Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Tim Jaga',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: neutral70,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTeamAvatars(),
+                    ],
+                  ),
                 ],
               ),
             ],

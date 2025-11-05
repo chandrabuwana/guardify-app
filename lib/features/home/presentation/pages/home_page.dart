@@ -12,16 +12,23 @@ import '../bloc/home_event.dart';
 import '../bloc/home_state.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/design/colors.dart';
-import '../../../attendance/presentation/pages/attendance_screen.dart';
+import '../../../../core/utils/user_role_helper.dart';
+import '../../../attendance/presentation/pages/check_in_page.dart';
 import '../../../bmi/presentation/pages/bmi_navigation_page.dart';
 import '../../../panic_button/presentation/pages/panic_verification_page.dart';
 import '../../../panic_button/presentation/bloc/panic_button_bloc.dart';
 import '../../../company_regulations/presentation/pages/company_regulations_page.dart';
 import '../../../company_regulations/presentation/bloc/document_bloc.dart';
 import '../../../patrol/presentation/pages/patrol_detail_page.dart';
-import '../../../patrol/presentation/bloc/patrol_bloc.dart';
-import '../../../patrol/domain/entities/patrol_route.dart';
-import '../../../patrol/domain/entities/patrol_location.dart';
+import '../../../profile/presentation/pages/profile_screen.dart';
+import '../../../test_result/presentation/pages/test_result_page.dart';
+import '../../../chat/presentation/pages/chat_list_page.dart';
+import '../../../chat/presentation/bloc/chat_bloc.dart';
+import '../../../news/presentation/pages/news_list_page.dart';
+import '../../../news/presentation/bloc/news_bloc.dart';
+import '../../../../core/constants/enums.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/security/security_manager.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -94,13 +101,16 @@ class __HomePageViewState extends State<_HomePageView> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AttendanceScreen(
+                    builder: (context) => CheckInPage(
                       userId: state.navigationArguments?['userId'] ?? '1',
-                      userName:
+                      namaPersonil:
                           state.navigationArguments?['userName'] ?? 'User',
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/bmi':
                 Navigator.push(
@@ -115,7 +125,11 @@ class __HomePageViewState extends State<_HomePageView> {
                       },
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
+                // Clear navigation route after navigation
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/panic-verification':
                 Navigator.push(
@@ -126,7 +140,10 @@ class __HomePageViewState extends State<_HomePageView> {
                       child: const PanicVerificationPage(),
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/regulations':
                 Navigator.push(
@@ -137,77 +154,97 @@ class __HomePageViewState extends State<_HomePageView> {
                       child: const CompanyRegulationsPage(),
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/patrol':
-                // Create mock patrol route data
-                final mockPatrolRoute = PatrolRoute(
-                  id: '1',
-                  name: 'Patroli Rute A',
-                  description: '4 Lokasi',
-                  date: DateTime.now(),
-                  locations: const [
-                    PatrolLocation(
-                      id: '1',
-                      name: 'Pos Macan',
-                      description: 'Lokasi 1',
-                      latitude: -6.2088,
-                      longitude: 106.8456,
-                      address: 'Jl. Sudirman No. 1',
-                      status: PatrolLocationStatus.pending,
-                    ),
-                    PatrolLocation(
-                      id: '2',
-                      name: 'Pos Macan',
-                      description: 'Lokasi 2',
-                      latitude: -6.2089,
-                      longitude: 106.8457,
-                      address: 'Jl. Sudirman No. 2',
-                      status: PatrolLocationStatus.completed,
-                      proofImagePath: 'bukti.jpg',
-                    ),
-                    PatrolLocation(
-                      id: '3',
-                      name: 'Pos Macan',
-                      description: 'Lokasi 3',
-                      latitude: -6.2090,
-                      longitude: 106.8458,
-                      address: 'Jl. Sudirman No. 3',
-                      status: PatrolLocationStatus.pending,
-                    ),
-                    PatrolLocation(
-                      id: '4',
-                      name: 'Pos Macan',
-                      description: 'Lokasi 4',
-                      latitude: -6.2091,
-                      longitude: 106.8459,
-                      address: 'Jl. Sudirman No. 4',
-                      status: PatrolLocationStatus.pending,
-                    ),
-                  ],
-                  additionalLocations: const [
-                    PatrolLocation(
-                      id: 'add1',
-                      name: 'Patroli Tambahan',
-                      description: '1 Lokasi',
-                      latitude: -6.2092,
-                      longitude: 106.8460,
-                      address: 'Jl. Tambahan No. 1',
-                      status: PatrolLocationStatus.pending,
-                      isAdditional: true,
-                    ),
-                  ],
+                // Patrol tasks are shown in "Tugas Hari Ini" section
+                // No need to navigate to separate page
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tugas patroli tersedia di "Tugas Hari Ini"'),
+                    backgroundColor: primaryColor,
+                    behavior: SnackBarBehavior.floating,
+                  ),
                 );
-
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/cuti':
+                Navigator.pushNamed(context, '/cuti').then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/laporan-kegiatan':
+                Navigator.pushNamed(
+                  context,
+                  '/laporan-kegiatan',
+                  arguments: {
+                    'userId': state.navigationArguments?['userId'] ?? 'user_1',
+                    'userRole':
+                        state.navigationArguments?['userRole'] ?? 'anggota',
+                  },
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/test-result':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TestResultPage(
+                      userId: state.navigationArguments?['userId'], // Null jika tidak ada, akan dibaca dari secure storage
+                      userRole:
+                          state.navigationArguments?['userRole'] as UserRole? ??
+                              UserRole.anggota,
+                    ),
+                  ),
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/chat':
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => BlocProvider(
-                      create: (context) => getIt<PatrolBloc>(),
-                      child: PatrolDetailPage(route: mockPatrolRoute),
+                      create: (context) => getIt<ChatBloc>(),
+                      child: const ChatListPage(),
                     ),
                   ),
-                );
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
+                // Clear navigation route after navigation
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/news':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider(
+                      create: (context) => getIt<NewsBloc>(),
+                      child: const NewsListPage(),
+                    ),
+                  ),
+                ).then((_) {
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
+                // Clear navigation route after navigation
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/schedule':
+                // Navigate to Schedule feature via named route
+                Navigator.pushNamed(context, '/schedule').then((_) {
+                  // After returning from schedule, reset bottom nav to home
+                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                });
+                // Clear navigation route after navigation
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               default:
                 // For other routes, show snackbar instead of navigating
@@ -306,13 +343,13 @@ class __HomePageViewState extends State<_HomePageView> {
                           teamMembersImages: _getTeamMembersImages(),
                           onWorkButtonPressed: () {
                             if (!state.attendanceInfo.isCheckedIn) {
-                              // Navigate to attendance screen for check-in
+                              // Navigate directly to check-in form (mulai bekerja)
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => AttendanceScreen(
+                                  builder: (context) => CheckInPage(
                                     userId: '1',
-                                    userName: state.userProfile.name,
+                                    namaPersonil: state.userProfile.name,
                                   ),
                                 ),
                               );
@@ -333,8 +370,14 @@ class __HomePageViewState extends State<_HomePageView> {
                         24.verticalSpace,
 
                         // Menu Grid
-                        MenuGrid(
-                          menuItems: _buildMenuItems(),
+                        FutureBuilder<UserRole>(
+                          future: UserRoleHelper.getUserRole(),
+                          builder: (context, snapshot) {
+                            final userRole = snapshot.data ?? UserRole.anggota;
+                            return MenuGrid(
+                              menuItems: _buildMenuItems(userRole),
+                            );
+                          },
                         ),
 
                         24.verticalSpace,
@@ -378,7 +421,7 @@ class __HomePageViewState extends State<_HomePageView> {
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: primaryColor,
-       borderRadius: BorderRadius.only(
+        borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(24.r),
           bottomRight: Radius.circular(24.r),
         ),
@@ -400,19 +443,30 @@ class __HomePageViewState extends State<_HomePageView> {
               ),
 
               // Profile Avatar
-              CircleAvatar(
-                radius: 20.r,
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
-                backgroundImage: userProfile.profileImageUrl != null
-                    ? NetworkImage(userProfile.profileImageUrl!)
-                    : null,
-                child: userProfile.profileImageUrl == null
-                    ? Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 24.sp,
-                      )
-                    : null,
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20.r),
+                  onTap: () => _navigateToProfile(context, userProfile),
+                  child: Container(
+                    padding: EdgeInsets.all(
+                        2.r), // Small padding for better tap area
+                    child: CircleAvatar(
+                      radius: 20.r,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      backgroundImage: userProfile.profileImageUrl != null
+                          ? NetworkImage(userProfile.profileImageUrl!)
+                          : null,
+                      child: userProfile.profileImageUrl == null
+                          ? Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 24.sp,
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -465,26 +519,95 @@ class __HomePageViewState extends State<_HomePageView> {
             ),
           ),
           16.verticalSpace,
-          ...tasks.map((task) => TaskCard(
-                task: task,
-                onTap: () {
-                  // Handle patrol task navigation
-                  if (task.id.startsWith('patrol')) {
-                    context.read<HomeBloc>().add(const NavigateToPatrolEvent());
-                  } else {
-                    context.read<HomeBloc>().add(
-                          ShowSnackbarEvent('Membuka tugas: ${task.title}'),
-                        );
-                  }
-                },
-              )),
+          BlocBuilder<HomeBloc, HomeState>(
+            builder: (context, state) {
+              if (state is HomeLoaded && state.isLoadingPatrolTasks) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24.h),
+                    child: const CircularProgressIndicator(color: primaryColor),
+                  ),
+                );
+              }
+
+              if (tasks.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24.h),
+                    child: Text(
+                      'Tidak ada tugas hari ini',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: neutral70,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: tasks
+                    .map((task) => TaskCard(
+                          task: task,
+                          onTap: () {
+                            // Navigate to patrol detail page for patrol tasks
+                            if (task.id.startsWith('patrol_')) {
+                              // Get the route ID from task ID (format: patrol_xxx)
+                              final routeId =
+                                  task.id.replaceFirst('patrol_', '');
+
+                              // Get the patrol route from state
+                              final homeState = context.read<HomeBloc>().state;
+                              if (homeState is HomeLoaded) {
+                                // Check if patrolRoutes is not empty
+                                if (homeState.patrolRoutes.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Data rute patroli tidak tersedia'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                // Find route by ID
+                                final routeIndex =
+                                    homeState.patrolRoutes.indexWhere(
+                                  (r) => r.id == routeId,
+                                );
+
+                                // If route not found, use first route
+                                final route = routeIndex != -1
+                                    ? homeState.patrolRoutes[routeIndex]
+                                    : homeState.patrolRoutes.first;
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        PatrolDetailPage(route: route),
+                                  ),
+                                );
+                              }
+                            } else {
+                              context.read<HomeBloc>().add(
+                                    ShowSnackbarEvent('Tugas: ${task.title}'),
+                                  );
+                            }
+                          },
+                        ))
+                    .toList(),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  List<MenuItem> _buildMenuItems() {
-    return [
+  List<MenuItem> _buildMenuItems(UserRole userRole) {
+    final items = [
       MenuItem(
         id: 'incident',
         title: 'Insiden Kejadian',
@@ -552,6 +675,8 @@ class __HomePageViewState extends State<_HomePageView> {
             context.read<HomeBloc>().add(const NavigateToDisasterInfoEvent()),
       ),
     ];
+
+    return items;
   }
 
   List<String> _getTeamMembersImages() {
@@ -672,6 +797,36 @@ class __HomePageViewState extends State<_HomePageView> {
           ),
         );
       },
+    );
+  }
+
+  /// Navigate to Profile screen when profile avatar is tapped
+  void _navigateToProfile(BuildContext context, UserProfile userProfile) async {
+    // Get user ID from secure storage
+    final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+
+    if (!context.mounted) return;
+
+    if (userId == null || userId.isEmpty) {
+      // If no user ID, show error and logout
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User ID tidak ditemukan. Silakan login kembali.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      // Navigate to login
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfileScreen(
+          userId: userId, // Real user ID from secure storage
+        ),
+      ),
     );
   }
 }
