@@ -47,8 +47,15 @@ class _BMIDetailWrapperState extends State<_BMIDetailWrapper> {
   @override
   void initState() {
     super.initState();
-    // Load user profile untuk anggota
-    context.read<BMIBloc>().add(BMIGetUserProfile(widget.userId));
+    // Load user profile hanya sekali saat pertama kali dibuat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final bloc = context.read<BMIBloc>();
+      final state = bloc.state;
+      // Hanya load jika belum ada data dan tidak sedang loading
+      if (state.currentUserProfile == null && !state.isLoading) {
+        bloc.add(BMIGetUserProfile(widget.userId));
+      }
+    });
   }
 
   @override

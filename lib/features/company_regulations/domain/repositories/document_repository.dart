@@ -8,6 +8,22 @@ import '../entities/document_entity.dart';
 /// error handling yang konsisten. Left menandakan error/failure,
 /// Right menandakan sukses dengan data.
 abstract class DocumentRepository {
+  /// Mengambil dokumen dengan pagination
+  ///
+  /// Parameters:
+  /// - [start]: Starting index for pagination (0-based internally)
+  /// - [length]: Number of items to fetch
+  /// - [searchQuery]: Optional search query
+  ///
+  /// Returns:
+  /// - Left(Failure): Jika terjadi error saat mengambil data
+  /// - Right(List<DocumentEntity>): List dokumen yang berhasil diambil
+  Future<Either<Failure, List<DocumentEntity>>> getDocuments({
+    int start = 0,
+    int length = 10,
+    String? searchQuery,
+  });
+
   /// Mengambil semua dokumen yang tersedia
   ///
   /// Returns:

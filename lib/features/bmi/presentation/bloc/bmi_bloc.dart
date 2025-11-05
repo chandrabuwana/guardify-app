@@ -5,6 +5,7 @@ import '../../domain/entities/bmi_record.dart';
 import '../../domain/entities/bmi_input.dart';
 import '../../domain/usecases/get_user_profile.dart';
 import '../../domain/usecases/search_user_profiles.dart';
+import '../../domain/usecases/get_user_profiles_paginated.dart';
 import '../../domain/usecases/manage_pinned_profiles.dart';
 import '../../domain/usecases/calculate_bmi.dart';
 import '../../domain/usecases/get_bmi_history.dart';
@@ -16,6 +17,7 @@ part 'bmi_state.dart';
 class BMIBloc extends Bloc<BMIEvent, BMIState> {
   final GetUserProfile getUserProfile;
   final SearchUserProfiles searchUserProfiles;
+  final GetUserProfilesPaginated getUserProfilesPaginated;
   final ManagePinnedProfiles managePinnedProfiles;
   final CalculateBMI calculateBMI;
   final GetBMIHistory getBMIHistory;
@@ -23,6 +25,7 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
   BMIBloc({
     required this.getUserProfile,
     required this.searchUserProfiles,
+    required this.getUserProfilesPaginated,
     required this.managePinnedProfiles,
     required this.calculateBMI,
     required this.getBMIHistory,
@@ -30,6 +33,7 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     on<BMIGetUserProfile>(_onGetUserProfile);
     on<BMISearchUsers>(_onSearchUsers);
     on<BMILoadAllUsers>(_onLoadAllUsers);
+    on<BMILoadMoreUsers>(_onLoadMoreUsers);
     on<BMITogglePin>(_onTogglePin);
     on<BMILoadPinnedUsers>(_onLoadPinnedUsers);
     on<BMICalculate>(_onCalculate);
@@ -43,6 +47,11 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     BMIGetUserProfile event,
     Emitter<BMIState> emit,
   ) async {
+    // Skip jika sudah ada data user yang sama dan tidak ada error
+    if (state.currentUserProfile?.id == event.userId && !state.hasError) {
+      return;
+    }
+
     emit(state.copyWith(isLoading: true, error: null));
 
     final result = await getUserProfile(event.userId);
@@ -85,20 +94,63 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     BMILoadAllUsers event,
     Emitter<BMIState> emit,
   ) async {
-    emit(state.copyWith(isSearching: true, error: null));
+    emit(state.copyWith(
+      isSearching: true,
+      error: null,
+      currentPage: 1,
+      searchResults: [],
+      hasMoreData: true,
+    ));
 
-    final result = await searchUserProfiles('');
+    final result = await getUserProfilesPaginated(page: 1, pageSize: 10);
 
     result.fold(
       (failure) => emit(state.copyWith(
         isSearching: false,
         error: _mapFailureToMessage(failure),
       )),
-      (userProfiles) => emit(state.copyWith(
+      (paginatedResponse) => emit(state.copyWith(
         isSearching: false,
-        searchResults: userProfiles,
+        searchResults: paginatedResponse.data,
+        currentPage: paginatedResponse.currentPage,
+        hasMoreData: paginatedResponse.hasMore,
+        totalCount: paginatedResponse.totalCount,
+        filteredCount: paginatedResponse.filteredCount,
         error: null,
       )),
+    );
+  }
+
+  Future<void> _onLoadMoreUsers(
+    BMILoadMoreUsers event,
+    Emitter<BMIState> emit,
+  ) async {
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    emit(state.copyWith(isLoadingMore: true, error: null));
+
+    final nextPage = state.currentPage + 1;
+    final result = await getUserProfilesPaginated(page: nextPage, pageSize: 10);
+
+    result.fold(
+      (failure) => emit(state.copyWith(
+        isLoadingMore: false,
+        error: _mapFailureToMessage(failure),
+      )),
+      (paginatedResponse) {
+        final updatedList = List<UserProfile>.from(state.searchResults)
+          ..addAll(paginatedResponse.data);
+
+        emit(state.copyWith(
+          isLoadingMore: false,
+          searchResults: updatedList,
+          currentPage: paginatedResponse.currentPage,
+          hasMoreData: paginatedResponse.hasMore,
+          totalCount: paginatedResponse.totalCount,
+          filteredCount: paginatedResponse.filteredCount,
+          error: null,
+        ));
+      },
     );
   }
 
@@ -173,11 +225,19 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
         isCalculating: false,
         error: _mapFailureToMessage(failure),
       )),
-      (bmiRecord) => emit(state.copyWith(
-        isCalculating: false,
-        latestBMIRecord: bmiRecord,
-        error: null,
-      )),
+      (bmiRecord) {
+        // Clear history cache agar di-refresh dengan data baru
+        emit(state.copyWith(
+          isCalculating: false,
+          latestBMIRecord: bmiRecord,
+          bmiHistory: [],
+          bmiHistoryUserId: null,
+          error: null,
+        ));
+
+        // Reload history setelah calculation berhasil
+        add(BMILoadHistory(event.userId));
+      },
     );
   }
 
@@ -185,6 +245,14 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     BMILoadHistory event,
     Emitter<BMIState> emit,
   ) async {
+    // Skip jika sudah ada history untuk user yang sama dan tidak force refresh
+    if (!event.forceRefresh &&
+        state.bmiHistoryUserId == event.userId &&
+        state.bmiHistory.isNotEmpty &&
+        !state.hasError) {
+      return;
+    }
+
     emit(state.copyWith(isLoading: true, error: null));
 
     final result = await getBMIHistory(event.userId);
@@ -197,6 +265,7 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
       (bmiHistory) => emit(state.copyWith(
         isLoading: false,
         bmiHistory: bmiHistory,
+        bmiHistoryUserId: event.userId,
         error: null,
       )),
     );

@@ -4,14 +4,15 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API Configuration
-  static const String baseUrl = 'https://your-api-url.com/api/v1';
+  static const String baseUrl = 'https://api-guardify.abb-apps.com/api/v1';
   static const int connectTimeout = 30000;
   static const int receiveTimeout = 30000;
 
   // Storage Keys
-  static const String tokenKey = 'auth_token';
+  static const String tokenKey = 'token_guardify';
   static const String refreshTokenKey = 'refresh_token';
   static const String userDataKey = 'user_data';
+  static const String userIdKey = 'user_id';
   static const String biometricEnabledKey = 'biometric_enabled';
   static const String pinKey = 'user_pin';
 

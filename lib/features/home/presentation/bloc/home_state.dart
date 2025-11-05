@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../patrol/domain/entities/patrol_route.dart';
 
 // Task Model
 class TaskItem {
@@ -127,6 +128,8 @@ class HomeLoaded extends HomeState {
   final List<TaskItem> todayTasks;
   final String? navigationRoute;
   final Map<String, dynamic>? navigationArguments;
+  final bool isLoadingPatrolTasks;
+  final List<PatrolRoute> patrolRoutes;
 
   const HomeLoaded({
     required this.currentBottomNavIndex,
@@ -137,6 +140,8 @@ class HomeLoaded extends HomeState {
     this.showPanicDialog = false,
     this.navigationRoute,
     this.navigationArguments,
+    this.isLoadingPatrolTasks = false,
+    this.patrolRoutes = const [],
   });
 
   HomeLoaded copyWith({
@@ -148,6 +153,8 @@ class HomeLoaded extends HomeState {
     List<TaskItem>? todayTasks,
     String? navigationRoute,
     Map<String, dynamic>? navigationArguments,
+    bool? isLoadingPatrolTasks,
+    List<PatrolRoute>? patrolRoutes,
     bool clearSnackbar = false,
     bool clearNavigation = false,
   }) {
@@ -165,6 +172,8 @@ class HomeLoaded extends HomeState {
       navigationArguments: clearNavigation
           ? null
           : (navigationArguments ?? this.navigationArguments),
+      isLoadingPatrolTasks: isLoadingPatrolTasks ?? this.isLoadingPatrolTasks,
+      patrolRoutes: patrolRoutes ?? this.patrolRoutes,
     );
   }
 
@@ -178,6 +187,8 @@ class HomeLoaded extends HomeState {
         todayTasks,
         navigationRoute ?? '',
         navigationArguments ?? {},
+        isLoadingPatrolTasks,
+        patrolRoutes,
       ];
 }
 

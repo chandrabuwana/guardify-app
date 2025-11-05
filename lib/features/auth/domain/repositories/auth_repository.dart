@@ -2,7 +2,7 @@ import '../usecases/login_use_case.dart';
 
 abstract class AuthRepository {
   Future<LoginResult> login({
-    required String email,
+    required String username,
     required String password,
   });
 

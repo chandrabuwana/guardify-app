@@ -34,35 +34,53 @@ class PanicButtonWidget extends StatelessWidget {
           GestureDetector(
             onTap: onPressed,
             child: Container(
-              width: 80.w,
-              height: 80.w,
+              width: 100.w,
+              height: 100.w,
               decoration: BoxDecoration(
-                gradient: Gradients.primary(),
+                color: const Color(0xFF8B1A1A), // Dark red color
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: primaryColor.withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 25,
+                    offset: const Offset(0, 10),
+                    spreadRadius: 5,
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF8B1A1A).withValues(alpha: 0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
                   ),
                 ],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Icon(
-                    Icons.warning_rounded,
-                    color: Colors.white,
-                    size: 32.sp,
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    'SOS',
-                    style: TextStyle(
+                  // White triangle background
+                  Container(
+                    width: 50.w,
+                    height: 50.w,
+                    decoration: const BoxDecoration(
                       color: Colors.white,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.warning,
+                      color: const Color(0xFF8B1A1A),
+                      size: 40.sp,
+                    ),
+                  ),
+                  // SOS text at bottom
+                  Positioned(
+                    bottom: 4.h,
+                    child: Text(
+                      'SOS',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
                     ),
                   ),
                 ],

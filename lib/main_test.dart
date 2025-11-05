@@ -67,7 +67,7 @@ class TestPage extends StatelessWidget {
 
   void _testValidation(BuildContext context) {
     // Test the validators from our use case
-    final emailValidation = Validators.validateEmail('test@example.com');
+    final emailValidation = Validators.validateNrp('test@example.com');
     final passwordValidation = Validators.validatePassword('password123');
 
     String message = 'Validation Test:\n';
