@@ -12,7 +12,6 @@ import '../bloc/home_event.dart';
 import '../bloc/home_state.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/design/colors.dart';
-import '../../../../core/utils/user_role_helper.dart';
 import '../../../attendance/presentation/pages/check_in_page.dart';
 import '../../../bmi/presentation/pages/bmi_navigation_page.dart';
 import '../../../panic_button/presentation/pages/panic_verification_page.dart';
@@ -26,17 +25,38 @@ import '../../../chat/presentation/pages/chat_list_page.dart';
 import '../../../chat/presentation/bloc/chat_bloc.dart';
 import '../../../news/presentation/pages/news_list_page.dart';
 import '../../../news/presentation/bloc/news_bloc.dart';
+import '../../../personnel/presentation/pages/personnel_list_page.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late HomeBloc _bloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc = getIt<HomeBloc>();
+    _bloc.add(const HomeInitialEvent());
+  }
+
+  @override
+  void dispose() {
+    _bloc.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<HomeBloc>()..add(const HomeInitialEvent()),
+    return BlocProvider.value(
+      value: _bloc,
       child: const _HomePageView(),
     );
   }
@@ -341,6 +361,7 @@ class __HomePageViewState extends State<_HomePageView> {
                         ShiftCard(
                           attendanceInfo: state.attendanceInfo,
                           teamMembersImages: _getTeamMembersImages(),
+                          userRole: state.userRole,
                           onWorkButtonPressed: () {
                             if (!state.attendanceInfo.isCheckedIn) {
                               // Navigate directly to check-in form (mulai bekerja)
@@ -360,24 +381,39 @@ class __HomePageViewState extends State<_HomePageView> {
                                   .add(const AttendanceToggleEvent());
                             }
                           },
+                          onTrackLocationPressed: state.userRole == UserRole.pengawas
+                              ? () {
+                                  context.read<HomeBloc>().add(
+                                        const ShowSnackbarEvent(
+                                            'Fitur Lacak Lokasi sedang dalam pengembangan'),
+                                      );
+                                }
+                              : null,
                         ),
 
                         24.verticalSpace,
 
-                        // Today's Tasks Section
-                        _buildTodayTasksSection(state.todayTasks),
-
-                        24.verticalSpace,
+                        // Komponen khusus untuk role Pengawas
+                        if (state.userRole == UserRole.pengawas)
+                          Column(
+                            children: [
+                              // Tim Jaga Hari Ini (khusus Pengawas)
+                              _buildTimJagaSection(),
+                              24.verticalSpace,
+                            ],
+                          )
+                        else
+                          // Today's Tasks Section untuk role lain
+                          Column(
+                            children: [
+                              _buildTodayTasksSection(state.todayTasks),
+                              24.verticalSpace,
+                            ],
+                          ),
 
                         // Menu Grid
-                        FutureBuilder<UserRole>(
-                          future: UserRoleHelper.getUserRole(),
-                          builder: (context, snapshot) {
-                            final userRole = snapshot.data ?? UserRole.anggota;
-                            return MenuGrid(
-                              menuItems: _buildMenuItems(userRole),
-                            );
-                          },
+                        MenuGrid(
+                          menuItems: _buildMenuItems(state.userRole),
                         ),
 
                         24.verticalSpace,
@@ -442,31 +478,60 @@ class __HomePageViewState extends State<_HomePageView> {
                 ),
               ),
 
-              // Profile Avatar
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20.r),
-                  onTap: () => _navigateToProfile(context, userProfile),
-                  child: Container(
-                    padding: EdgeInsets.all(
-                        2.r), // Small padding for better tap area
-                    child: CircleAvatar(
-                      radius: 20.r,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      backgroundImage: userProfile.profileImageUrl != null
-                          ? NetworkImage(userProfile.profileImageUrl!)
-                          : null,
-                      child: userProfile.profileImageUrl == null
-                          ? Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 24.sp,
-                            )
-                          : null,
+              Row(
+                children: [
+                  // Debug: Refresh button untuk reload role
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20.r),
+                      onTap: () {
+                        context.read<HomeBloc>().add(const HomeInitialEvent());
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Reloading home page...'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(8.r),
+                        child: Icon(
+                          Icons.refresh,
+                          color: Colors.white,
+                          size: 24.sp,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  8.horizontalSpace,
+                  // Profile Avatar
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20.r),
+                      onTap: () => _navigateToProfile(context, userProfile),
+                      child: Container(
+                        padding: EdgeInsets.all(
+                            2.r), // Small padding for better tap area
+                        child: CircleAvatar(
+                          radius: 20.r,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          backgroundImage: userProfile.profileImageUrl != null
+                              ? NetworkImage(userProfile.profileImageUrl!)
+                              : null,
+                          child: userProfile.profileImageUrl == null
+                              ? Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 24.sp,
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -497,6 +562,186 @@ class __HomePageViewState extends State<_HomePageView> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimJagaSection() {
+    // Mock data untuk tim jaga (nanti bisa diganti dengan data real dari API)
+    final List<Map<String, String>> timJaga = [
+      {
+        'nama': 'Aiman Hafiz',
+        'posisi': 'Pos Gajah',
+        'image': '',
+      },
+      {
+        'nama': 'Aiman Hafiz',
+        'posisi': 'Pos Gajah',
+        'image': '',
+      },
+      {
+        'nama': 'Aiman Hafiz',
+        'posisi': 'Pos Ayam',
+        'image': '',
+      },
+      {
+        'nama': 'Aiman Hafiz',
+        'posisi': 'Pos Ayam',
+        'image': '',
+      },
+    ];
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Tim Jaga Hari Ini',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: neutral90,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  context.read<HomeBloc>().add(
+                        const ShowSnackbarEvent(
+                            'Fitur Lihat Detail sedang dalam pengembangan'),
+                      );
+                },
+                child: Text(
+                  'Lihat Detail',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: primaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          12.verticalSpace,
+          
+          // Horizontal scrollable list of team members
+          SizedBox(
+            height: 200.h,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: timJaga.length,
+              itemBuilder: (context, index) {
+                final member = timJaga[index];
+                return Container(
+                  width: 120.w,
+                  margin: EdgeInsets.only(right: 12.w),
+                  decoration: BoxDecoration(
+                    color: babyBlueColor,
+                    borderRadius: BorderRadius.circular(12.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding: EdgeInsets.all(12.w),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Avatar with larger size
+                      CircleAvatar(
+                        radius: 35.r,
+                        backgroundColor: neutral30,
+                        backgroundImage: member['image']!.isNotEmpty
+                            ? NetworkImage(member['image']!)
+                            : null,
+                        child: member['image']!.isEmpty
+                            ? Icon(
+                                Icons.person,
+                                size: 35.sp,
+                                color: neutral50,
+                              )
+                            : null,
+                      ),
+                      10.verticalSpace,
+                      
+                      // Nama
+                      Text(
+                        member['nama']!,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: neutral90,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      6.verticalSpace,
+                      
+                      // Posisi Badge
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 4.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primaryColor,
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Text(
+                          member['posisi']!,
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      10.verticalSpace,
+                      
+                      // Kirim Pesan button (solid filled)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 32.h,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            context.read<HomeBloc>().add(
+                                  ShowSnackbarEvent(
+                                      'Kirim pesan ke ${member['nama']}'),
+                                );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.zero,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                          ),
+                          child: Text(
+                            'Kirim Pesan',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -607,7 +852,88 @@ class __HomePageViewState extends State<_HomePageView> {
   }
 
   List<MenuItem> _buildMenuItems(UserRole userRole) {
-    final items = [
+    // Menu khusus untuk role Pengawas
+    if (userRole == UserRole.pengawas) {
+      return [
+        MenuItem(
+          id: 'incident',
+          title: 'Insiden Kejadian',
+          icon: Icons.report_problem,
+          hasNotification: true,
+          onTap: () =>
+              context.read<HomeBloc>().add(const NavigateToIncidentReportEvent()),
+        ),
+        MenuItem(
+          id: 'personnel_list',
+          title: 'Daftar Personil',
+          icon: Icons.people,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PersonnelListPage(),
+              ),
+            ).then((_) {
+              context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+            });
+          },
+        ),
+        MenuItem(
+          id: 'activity_report',
+          title: 'Laporan Kegiatan',
+          icon: Icons.description,
+          onTap: () =>
+              context.read<HomeBloc>().add(const NavigateToActivityReportEvent()),
+        ),
+        MenuItem(
+          id: 'bmi',
+          title: 'Body Mass Index (BMI)',
+          icon: Icons.monitor_weight,
+          onTap: () => context.read<HomeBloc>().add(const NavigateToBMIEvent()),
+        ),
+        MenuItem(
+          id: 'test_result',
+          title: 'Hasil Ujian',
+          icon: Icons.quiz,
+          hasNotification: true,
+          onTap: () =>
+              context.read<HomeBloc>().add(const NavigateToTestResultEvent()),
+        ),
+        MenuItem(
+          id: 'leave_request',
+          title: 'Pengajuan Cuti',
+          icon: Icons.calendar_month,
+          onTap: () =>
+              context.read<HomeBloc>().add(const NavigateToLeaveRequestEvent()),
+        ),
+        MenuItem(
+          id: 'regulations',
+          title: 'Peraturan Perusahaan',
+          icon: Icons.gavel,
+          onTap: () =>
+              context.read<HomeBloc>().add(const NavigateToRegulationsEvent()),
+        ),
+        MenuItem(
+          id: 'emergency_history',
+          title: 'Riwayat Tombol Darurat',
+          icon: Icons.history,
+          onTap: () => context
+              .read<HomeBloc>()
+              .add(const NavigateToEmergencyHistoryEvent()),
+        ),
+        MenuItem(
+          id: 'disaster_info',
+          title: 'Informasi Bencana',
+          icon: Icons.info,
+          onTap: () =>
+              context.read<HomeBloc>().add(const NavigateToDisasterInfoEvent()),
+        ),
+      ];
+    }
+    
+    // Menu default untuk role lainnya (Anggota, Danton, PJO, Deputy, Admin)
+    print('✅ BUILDING DEFAULT MENU (With Rekapitulasi Kehadiran)');
+    return [
       MenuItem(
         id: 'incident',
         title: 'Insiden Kejadian',
@@ -675,8 +1001,6 @@ class __HomePageViewState extends State<_HomePageView> {
             context.read<HomeBloc>().add(const NavigateToDisasterInfoEvent()),
       ),
     ];
-
-    return items;
   }
 
   List<String> _getTeamMembersImages() {
