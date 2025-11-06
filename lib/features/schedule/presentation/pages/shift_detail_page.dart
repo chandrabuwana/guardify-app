@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/design/colors.dart';
 import '../bloc/schedule_bloc.dart';
 import '../../domain/entities/shift_schedule.dart';
 
 /// Shift Detail Page - Detail Jadwal Shift
-/// 
+///
 /// Halaman detail yang menampilkan informasi lengkap shift termasuk:
 /// - Informasi shift (nama, jam kerja, lokasi)
 /// - Detail lokasi patroli (Pos Merak, Pos Gajah, Pos Merpati, dll)
 /// - Daftar anggota tim jaga dengan pembagian rute
 /// - Fitur "Kirim Pesan" untuk koordinasi tim
-/// 
+///
 /// **Accessible by roles:**
 /// - Anggota (AGT): Dapat melihat detail shift pribadi
 /// - Danton: Dapat melihat detail shift tim
@@ -45,12 +46,12 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
             _hasLoadedData = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               context.read<ScheduleBloc>().add(LoadShiftDetail(
-                userId: widget.userId,
-                date: widget.date,
-              ));
+                    userId: widget.userId,
+                    date: widget.date,
+                  ));
             });
           }
-          
+
           if (state.isLoadingDetail) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -67,11 +68,11 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
 
   Widget _buildEmptyState() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF8B1E3F), Color(0xFFD62839)],
+          colors: [primary50, primary50.withOpacity(0.8)],
         ),
       ),
       child: SafeArea(
@@ -112,11 +113,11 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
 
   Widget _buildContent(ShiftSchedule shift) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF8B1E3F), Color(0xFFD62839)],
+          colors: [primary50, primary50.withOpacity(0.8)],
         ),
       ),
       child: SafeArea(
@@ -188,7 +189,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF8B1E3F),
+                          color: primary50,
                         ),
                       ),
                       SizedBox(height: 12.h),
@@ -202,7 +203,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF8B1E3F),
+                          color: primary50,
                         ),
                       ),
                       SizedBox(height: 12.h),
@@ -230,7 +231,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
               label,
               style: TextStyle(
                 fontSize: 14.sp,
-                color: const Color(0xFF8B1E3F),
+                color: primary50,
               ),
             ),
           ),
@@ -266,7 +267,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
               Icon(
                 Icons.home_outlined,
                 size: 32.w,
-                color: const Color(0xFF8B1E3F),
+                color: primary50,
               ),
               SizedBox(height: 8.h),
               Text(
@@ -303,8 +304,8 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
               CircleAvatar(
                 radius: 24.w,
                 backgroundColor: Colors.grey.shade300,
-                backgroundImage: member.photoUrl != null 
-                    ? NetworkImage(member.photoUrl!) 
+                backgroundImage: member.photoUrl != null
+                    ? NetworkImage(member.photoUrl!)
                     : null,
                 child: member.photoUrl == null
                     ? Icon(
@@ -315,7 +316,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
                     : null,
               ),
               SizedBox(height: 8.h),
-              
+
               // Name
               Text(
                 member.name,
@@ -329,20 +330,20 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
                 overflow: TextOverflow.ellipsis,
               ),
               SizedBox(height: 4.h),
-              
+
               // Position
               Text(
                 member.position,
                 style: TextStyle(
                   fontSize: 10.sp,
-                  color: const Color(0xFF8B1E3F),
+                  color: primary50,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               SizedBox(height: 8.h),
-              
+
               // Button Kirim Pesan
               SizedBox(
                 width: double.infinity,
@@ -351,7 +352,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
                     // TODO: Implement send message
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B1E3F),
+                    backgroundColor: primary50,
                     padding: EdgeInsets.symmetric(vertical: 6.h),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6.r),

@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/design/colors.dart';
 import '../bloc/schedule_bloc.dart';
 import '../../domain/entities/shift_schedule.dart';
 
 /// Shift Detail Page for PJO & Deputy
-/// 
+///
 /// Halaman detail shift khusus untuk PJO dan Deputy
 /// dengan tampilan:
 /// - Tab untuk Shift Pagi dan Shift Malam
@@ -25,7 +26,8 @@ class ShiftDetailPJODeputyPage extends StatefulWidget {
   });
 
   @override
-  State<ShiftDetailPJODeputyPage> createState() => _ShiftDetailPJODeputyPageState();
+  State<ShiftDetailPJODeputyPage> createState() =>
+      _ShiftDetailPJODeputyPageState();
 }
 
 class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
@@ -55,12 +57,12 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
             _hasLoadedData = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               context.read<ScheduleBloc>().add(LoadShiftDetail(
-                userId: widget.userId,
-                date: widget.date,
-              ));
+                    userId: widget.userId,
+                    date: widget.date,
+                  ));
             });
           }
-          
+
           if (state.isLoadingDetail) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -77,11 +79,11 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
 
   Widget _buildEmptyState() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF8B1E3F), Color(0xFFD62839)],
+          colors: [primary50, primary50.withOpacity(0.8)],
         ),
       ),
       child: SafeArea(
@@ -104,7 +106,8 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.calendar_today, size: 64.r, color: Colors.white70),
+                    Icon(Icons.calendar_today,
+                        size: 64.r, color: Colors.white70),
                     SizedBox(height: 16.h),
                     Text(
                       'Tidak ada jadwal shift',
@@ -126,11 +129,11 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
 
   Widget _buildContent(ShiftSchedule shift) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF8B1E3F), Color(0xFFD62839)],
+          colors: [primary50, primary50.withOpacity(0.8)],
         ),
       ),
       child: SafeArea(
@@ -158,7 +161,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
                   children: [
                     // Tabs
                     _buildTabs(),
-                    
+
                     // Tab Content
                     Expanded(
                       child: TabBarView(
@@ -230,9 +233,9 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
       margin: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
       child: TabBar(
         controller: _tabController,
-        labelColor: const Color(0xFFB71C1C),
+        labelColor: primary50,
         unselectedLabelColor: Colors.grey.shade600,
-        indicatorColor: const Color(0xFFB71C1C),
+        indicatorColor: primary50,
         indicatorWeight: 3,
         labelStyle: TextStyle(
           fontSize: 16.sp,
@@ -266,7 +269,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
             ],
           ),
           SizedBox(height: 12.h),
-          
+
           Row(
             children: [
               Expanded(
@@ -278,7 +281,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
               ),
             ],
           ),
-          
+
           SizedBox(height: 24.h),
 
           // Lokasi Sections
@@ -314,7 +317,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
           Text(
             value,
             style: TextStyle(
-              color: const Color(0xFFB71C1C),
+              color: primary50,
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -324,7 +327,8 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
     );
   }
 
-  Widget _buildLocationSection(PatrolLocation location, List<TeamMember> allMembers) {
+  Widget _buildLocationSection(
+      PatrolLocation location, List<TeamMember> allMembers) {
     // Filter team members untuk lokasi ini (simulasi)
     final locationMembers = allMembers.take(3).toList();
 
@@ -334,13 +338,13 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
         Text(
           'Lokasi : ${location.name}',
           style: TextStyle(
-            color: const Color(0xFFB71C1C),
+            color: primary50,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
         SizedBox(height: 12.h),
-        
+
         Text(
           'Tim Jaga',
           style: TextStyle(
@@ -383,9 +387,8 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
         children: [
           CircleAvatar(
             radius: 24.r,
-            backgroundImage: member.photoUrl != null
-                ? NetworkImage(member.photoUrl!)
-                : null,
+            backgroundImage:
+                member.photoUrl != null ? NetworkImage(member.photoUrl!) : null,
             backgroundColor: Colors.grey.shade300,
             child: member.photoUrl == null
                 ? Icon(Icons.person, size: 24.r, color: Colors.grey.shade600)
@@ -408,7 +411,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
             member.position,
             style: TextStyle(
               fontSize: 10.sp,
-              color: const Color(0xFFB71C1C),
+              color: primary50,
             ),
             textAlign: TextAlign.center,
           ),
@@ -420,7 +423,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
                 // TODO: Implement kirim pesan
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB71C1C),
+                backgroundColor: primary50,
                 padding: EdgeInsets.symmetric(vertical: 6.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6.r),
