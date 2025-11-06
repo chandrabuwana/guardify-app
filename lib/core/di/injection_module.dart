@@ -198,11 +198,21 @@ abstract class InjectionModule {
   // No manual registration needed
 
   // ========================================
+  // Personnel Feature Dependencies
+  // ========================================
+  
+  // All personnel dependencies are auto-registered with annotations:
+  // - PersonnelRemoteDataSource: @LazySingleton(as: PersonnelRemoteDataSource)
+  // - PersonnelRepository: @LazySingleton
+  // - Use cases: @Injectable
+  // - PersonnelBloc: @Injectable
+  
+  // ========================================
   // Tambahkan dependencies feature lain di sini
   // Contoh:
   // - Profile Feature
   // - Attendance Feature
   // - Patrol Feature
-  // - dll
+  // dll
   // ========================================
 }

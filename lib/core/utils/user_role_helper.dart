@@ -20,10 +20,30 @@ class UserRoleHelper {
   /// Returns UserRole.anggota sebagai default jika data tidak ditemukan
   static Future<UserRole> getUserRole() async {
     final roleId = await getUserRoleId();
+    
+    print('');
+    print('👤 ========================================');
+    print('👤 USER ROLE HELPER - GET USER ROLE');
+    print('👤 ========================================');
+    print('👤 Raw roleId from storage: "$roleId"');
+    print('👤 RoleId is null: ${roleId == null}');
+    print('👤 RoleId is empty: ${roleId?.isEmpty ?? true}');
+    
     if (roleId == null || roleId.isEmpty) {
+      print('👤 ⚠️ No role found, returning default: Anggota');
+      print('👤 ========================================');
+      print('');
       return UserRole.anggota;
     }
-    return UserRole.fromValue(roleId);
+    
+    final userRole = UserRole.fromValue(roleId);
+    print('👤 Mapped to UserRole: ${userRole.displayName}');
+    print('👤 UserRole value: ${userRole.value}');
+    print('👤 Is Pengawas: ${userRole == UserRole.pengawas}');
+    print('👤 ========================================');
+    print('');
+    
+    return userRole;
   }
 
   /// Get username dari secure storage

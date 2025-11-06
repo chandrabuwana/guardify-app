@@ -114,7 +114,14 @@ class _LoginPageState extends State<LoginPage> {
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state.status == AuthStatus.authenticated) {
+            print('');
+            print('🚀 ========================================');
+            print('🚀 AUTH SUCCESS - NAVIGATING TO HOME');
+            print('🚀 ========================================');
             Navigator.pushReplacementNamed(context, '/home');
+            print('🚀 Navigation to /home completed');
+            print('🚀 ========================================');
+            print('');
           } else if (state.status == AuthStatus.error) {
             // Tampilkan popup dialog untuk error
             _showErrorDialog(

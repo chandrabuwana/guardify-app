@@ -177,6 +177,22 @@ import 'package:guardify_app/features/patrol/presentation/bloc/attendance_bloc.d
     as _i849;
 import 'package:guardify_app/features/patrol/presentation/bloc/patrol_bloc.dart'
     as _i416;
+import 'package:guardify_app/features/personnel/data/datasources/personnel_remote_data_source.dart'
+    as _i599;
+import 'package:guardify_app/features/personnel/data/repositories/personnel_repository_impl.dart'
+    as _i1050;
+import 'package:guardify_app/features/personnel/domain/repositories/personnel_repository.dart'
+    as _i809;
+import 'package:guardify_app/features/personnel/domain/usecases/approve_personnel_use_case.dart'
+    as _i635;
+import 'package:guardify_app/features/personnel/domain/usecases/get_personnel_by_status_use_case.dart'
+    as _i917;
+import 'package:guardify_app/features/personnel/domain/usecases/get_personnel_detail_use_case.dart'
+    as _i184;
+import 'package:guardify_app/features/personnel/domain/usecases/revise_personnel_use_case.dart'
+    as _i136;
+import 'package:guardify_app/features/personnel/presentation/bloc/personnel_bloc.dart'
+    as _i672;
 import 'package:guardify_app/features/profile/data/datasources/profile_local_datasource.dart'
     as _i895;
 import 'package:guardify_app/features/profile/data/datasources/profile_remote_datasource.dart'
@@ -282,6 +298,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => injectionModule.bmiRemoteDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i836.TestResultApiDataSource>(
         () => injectionModule.testResultApiDataSource(gh<_i361.Dio>()));
+    gh.lazySingleton<_i599.PersonnelRemoteDataSource>(
+        () => _i599.PersonnelRemoteDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i220.ProfileRemoteDataSource>(
       () => _i945.ProfileRemoteDataSourceMock(),
       instanceName: 'mock',
@@ -299,6 +317,9 @@ extension GetItInjectableX on _i174.GetIt {
         remoteDataSource: gh<_i783.CutiRemoteDataSource>()));
     gh.factory<_i824.PatrolRepository>(
         () => _i369.PatrolRepositoryImpl(gh<_i1037.PatrolRemoteDataSource>()));
+    gh.lazySingleton<_i809.PersonnelRepository>(() =>
+        _i1050.PersonnelRepositoryImpl(
+            remoteDataSource: gh<_i599.PersonnelRemoteDataSource>()));
     gh.lazySingleton<_i895.ProfileLocalDataSource>(
         () => _i895.ProfileLocalDataSourceImpl(gh<_i460.SharedPreferences>()));
     gh.lazySingleton<_i54.NewsRepository>(
@@ -368,6 +389,14 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i515.GetRekapCuti(gh<_i825.CutiRepository>()));
     gh.factory<_i688.UpdateStatusCuti>(
         () => _i688.UpdateStatusCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i635.ApprovePersonnelUseCase>(
+        () => _i635.ApprovePersonnelUseCase(gh<_i809.PersonnelRepository>()));
+    gh.factory<_i917.GetPersonnelByStatusUseCase>(() =>
+        _i917.GetPersonnelByStatusUseCase(gh<_i809.PersonnelRepository>()));
+    gh.factory<_i184.GetPersonnelDetailUseCase>(
+        () => _i184.GetPersonnelDetailUseCase(gh<_i809.PersonnelRepository>()));
+    gh.factory<_i136.RevisePersonnelUseCase>(
+        () => _i136.RevisePersonnelUseCase(gh<_i809.PersonnelRepository>()));
     gh.factory<_i198.AddPatrolLocation>(
         () => _i198.AddPatrolLocation(gh<_i824.PatrolRepository>()));
     gh.factory<_i820.GetPatrolProgress>(
@@ -481,6 +510,12 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i409.UpdateProfileDetailsUseCase(gh<_i252.ProfileRepository>()));
     gh.factory<_i508.UpdateProfilePhotoUseCase>(
         () => _i508.UpdateProfilePhotoUseCase(gh<_i252.ProfileRepository>()));
+    gh.factory<_i672.PersonnelBloc>(() => _i672.PersonnelBloc(
+          getPersonnelByStatusUseCase: gh<_i917.GetPersonnelByStatusUseCase>(),
+          getPersonnelDetailUseCase: gh<_i184.GetPersonnelDetailUseCase>(),
+          approvePersonnelUseCase: gh<_i635.ApprovePersonnelUseCase>(),
+          revisePersonnelUseCase: gh<_i136.RevisePersonnelUseCase>(),
+        ));
     gh.factory<_i296.AuthBloc>(() => _i296.AuthBloc(gh<_i551.LoginUseCase>()));
     gh.factory<_i21.BMIBloc>(() => _i21.BMIBloc(
           getUserProfile: gh<_i283.GetUserProfile>(),
