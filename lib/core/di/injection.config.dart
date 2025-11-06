@@ -11,6 +11,7 @@
 import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:guardify_app/core/di/injection_module.dart' as _i381;
+import 'package:guardify_app/core/network/network_manager.dart' as _i39;
 import 'package:guardify_app/features/attendance/data/datasources/attendance_local_data_source.dart'
     as _i1007;
 import 'package:guardify_app/features/attendance/data/datasources/attendance_remote_data_source.dart'
@@ -91,6 +92,8 @@ import 'package:guardify_app/features/company_regulations/presentation/bloc/docu
     as _i286;
 import 'package:guardify_app/features/cuti/data/datasources/cuti_remote_datasource.dart'
     as _i783;
+import 'package:guardify_app/features/cuti/data/datasources/cuti_remote_datasource_impl.dart'
+    as _i222;
 import 'package:guardify_app/features/cuti/data/repositories/cuti_repository_impl.dart'
     as _i591;
 import 'package:guardify_app/features/cuti/domain/repositories/cuti_repository.dart'
@@ -272,6 +275,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i361.Dio>(() => injectionModule.dio);
     gh.lazySingleton<_i523.ChatRepository>(
         () => injectionModule.chatRepository());
+    gh.lazySingleton<_i39.NetworkManager>(() => _i39.NetworkManager());
     gh.lazySingleton<_i220.ProfileRemoteDataSource>(
         () => _i1020.ProfileRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i460.PanicButtonDataSource>(
@@ -280,10 +284,10 @@ extension GetItInjectableX on _i174.GetIt {
         _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
     gh.lazySingleton<_i606.NewsRemoteDataSource>(
         () => _i116.NewsRemoteDataSourceImpl(gh<_i361.Dio>()));
-    gh.lazySingleton<_i783.CutiRemoteDataSource>(
-        () => _i783.CutiRemoteDataSourceImpl());
     gh.factory<_i563.ScheduleRemoteDataSource>(
         () => _i563.ScheduleRemoteDataSourceImpl());
+    gh.lazySingleton<_i783.CutiRemoteDataSource>(
+        () => _i222.CutiRemoteDataSourceImpl(gh<_i39.NetworkManager>()));
     gh.factory<_i1037.PatrolRemoteDataSource>(
         () => _i681.PatrolRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.factory<_i491.ActivatePanicButtonUseCase>(() =>
