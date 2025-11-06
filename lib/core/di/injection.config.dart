@@ -284,8 +284,6 @@ extension GetItInjectableX on _i174.GetIt {
         _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
     gh.lazySingleton<_i606.NewsRemoteDataSource>(
         () => _i116.NewsRemoteDataSourceImpl(gh<_i361.Dio>()));
-    gh.factory<_i563.ScheduleRemoteDataSource>(
-        () => _i563.ScheduleRemoteDataSourceImpl());
     gh.lazySingleton<_i783.CutiRemoteDataSource>(
         () => _i222.CutiRemoteDataSourceImpl(gh<_i39.NetworkManager>()));
     gh.factory<_i1037.PatrolRemoteDataSource>(
@@ -304,6 +302,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => injectionModule.testResultApiDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i599.PersonnelRemoteDataSource>(
         () => _i599.PersonnelRemoteDataSource(gh<_i361.Dio>()));
+    gh.lazySingleton<_i563.ScheduleRemoteDataSource>(
+        () => _i563.ScheduleRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i220.ProfileRemoteDataSource>(
       () => _i945.ProfileRemoteDataSourceMock(),
       instanceName: 'mock',

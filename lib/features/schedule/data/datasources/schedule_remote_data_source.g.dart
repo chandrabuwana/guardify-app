@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'personnel_remote_data_source.dart';
+part of 'schedule_remote_data_source.dart';
 
 // **************************************************************************
 // RetrofitGenerator
@@ -8,8 +8,8 @@ part of 'personnel_remote_data_source.dart';
 
 // ignore_for_file: unnecessary_brace_in_string_interps,no_leading_underscores_for_local_identifiers,unused_element
 
-class _PersonnelRemoteDataSource implements PersonnelRemoteDataSource {
-  _PersonnelRemoteDataSource(
+class _ScheduleApiClient implements ScheduleApiClient {
+  _ScheduleApiClient(
     this._dio, {
     this.baseUrl,
     this.errorLogger,
@@ -22,21 +22,21 @@ class _PersonnelRemoteDataSource implements PersonnelRemoteDataSource {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<PersonnelListResponseModel> getPersonnelList(
+  Future<ShiftDetailResponseModel> getShiftDetailsByDate(
       Map<String, dynamic> body) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     final _data = <String, dynamic>{};
     _data.addAll(body);
-    final _options = _setStreamType<PersonnelListResponseModel>(Options(
+    final _options = _setStreamType<ShiftDetailResponseModel>(Options(
       method: 'POST',
       headers: _headers,
       extra: _extra,
     )
         .compose(
           _dio.options,
-          '/User/list',
+          '/ShiftDetail/list',
           queryParameters: queryParameters,
           data: _data,
         )
@@ -46,9 +46,9 @@ class _PersonnelRemoteDataSource implements PersonnelRemoteDataSource {
           baseUrl,
         )));
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late PersonnelListResponseModel _value;
+    late ShiftDetailResponseModel _value;
     try {
-      _value = PersonnelListResponseModel.fromJson(_result.data!);
+      _value = ShiftDetailResponseModel.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options);
       rethrow;
@@ -57,20 +57,54 @@ class _PersonnelRemoteDataSource implements PersonnelRemoteDataSource {
   }
 
   @override
-  Future<PersonnelDetailResponseModel> getPersonnelById(
-      String personnelId) async {
+  Future<ShiftCategoryResponseModel> getShiftCategories(
+      Map<String, dynamic> body) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
+    final _options = _setStreamType<ShiftCategoryResponseModel>(Options(
+      method: 'POST',
+      headers: _headers,
+      extra: _extra,
+    )
+        .compose(
+          _dio.options,
+          '/ShiftCategory/list',
+          queryParameters: queryParameters,
+          data: _data,
+        )
+        .copyWith(
+            baseUrl: _combineBaseUrls(
+          _dio.options.baseUrl,
+          baseUrl,
+        )));
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late ShiftCategoryResponseModel _value;
+    try {
+      _value = ShiftCategoryResponseModel.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<RouteResponseModel> getRouteById(String id) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<PersonnelDetailResponseModel>(Options(
+    final _options = _setStreamType<RouteResponseModel>(Options(
       method: 'GET',
       headers: _headers,
       extra: _extra,
     )
         .compose(
           _dio.options,
-          '/User/get/${personnelId}',
+          '/Route/get/${id}',
           queryParameters: queryParameters,
           data: _data,
         )
@@ -80,43 +114,14 @@ class _PersonnelRemoteDataSource implements PersonnelRemoteDataSource {
           baseUrl,
         )));
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late PersonnelDetailResponseModel _value;
+    late RouteResponseModel _value;
     try {
-      _value = PersonnelDetailResponseModel.fromJson(_result.data!);
+      _value = RouteResponseModel.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options);
       rethrow;
     }
     return _value;
-  }
-
-  @override
-  Future<HttpResponse<dynamic>> editUserInfo(Map<String, dynamic> body) async {
-    final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
-    final _headers = <String, dynamic>{};
-    final _data = <String, dynamic>{};
-    _data.addAll(body);
-    final _options = _setStreamType<HttpResponse<dynamic>>(Options(
-      method: 'POST',
-      headers: _headers,
-      extra: _extra,
-    )
-        .compose(
-          _dio.options,
-          '/User/edit_info',
-          queryParameters: queryParameters,
-          data: _data,
-        )
-        .copyWith(
-            baseUrl: _combineBaseUrls(
-          _dio.options.baseUrl,
-          baseUrl,
-        )));
-    final _result = await _dio.fetch(_options);
-    final _value = _result.data;
-    final httpResponse = HttpResponse(_value, _result);
-    return httpResponse;
   }
 
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {
