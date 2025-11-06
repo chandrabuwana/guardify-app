@@ -12,9 +12,6 @@ import '../../features/chat/presentation/bloc/chat_bloc.dart';
 import '../../features/news/domain/repositories/news_repository.dart';
 import '../../features/news/presentation/bloc/news_bloc.dart';
 import '../../features/test_result/data/datasources/test_result_api_data_source.dart';
-import '../../features/schedule/data/datasources/schedule_remote_data_source.dart';
-import '../../features/schedule/data/repositories/schedule_repository_impl.dart';
-import '../../features/schedule/domain/repositories/schedule_repository.dart';
 import '../constants/app_constants.dart';
 import '../security/security_manager.dart';
 
@@ -65,7 +62,7 @@ abstract class InjectionModule {
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
-          
+
           // Log khusus untuk AssessmentDetail endpoint
           if (options.path.contains('AssesmentDetail')) {
             print('🎯 === ASSESSMENT DETAIL REQUEST ===');
@@ -75,7 +72,7 @@ abstract class InjectionModule {
             print('🎯 Request Body: ${options.data}');
             print('🎯 ===================================');
           }
-          
+
           handler.next(options);
         },
         onResponse: (response, handler) async {
