@@ -50,7 +50,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           phoneNumber: null,
         );
 
+        print('');
+        print('✅ ========================================');
+        print('✅ AUTH BLOC - EMITTING AUTHENTICATED STATE');
+        print('✅ ========================================');
+        print('✅ User ID: ${user.id}');
+        print('✅ User Name: ${user.name}');
+        print('✅ User Email: ${user.email}');
+        print('✅ About to emit AuthState.authenticated...');
         emit(AuthState.authenticated(user));
+        print('✅ Authenticated state emitted!');
+        print('✅ ========================================');
+        print('');
       } else {
         // Login gagal
         final errorMessage = result.failure?.message ?? 'Login gagal';
