@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../../core/utils/user_role_helper.dart';
 import '../../../patrol/domain/usecases/get_patrol_routes_paginated.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
 import 'home_event.dart';
@@ -48,6 +49,19 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   void _onHomeInitial(HomeInitialEvent event, Emitter<HomeState> emit) async {
+    // Get user role from secure storage
+    final userRole = await UserRoleHelper.getUserRole();
+    
+    print('');
+    print('🏠 ========================================');
+    print('🏠 HOME BLOC - INITIALIZATION');
+    print('🏠 ========================================');
+    print('🏠 Loaded user role: ${userRole.displayName}');
+    print('🏠 User role value: ${userRole.value}');
+    print('🏠 Is Pengawas: ${userRole == UserRole.pengawas}');
+    print('🏠 ========================================');
+    print('');
+    
     // Initialize with default data
     final userProfile = UserProfile(
       name: 'Arsyada Rahmasyah',
@@ -69,6 +83,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       attendanceInfo: attendanceInfo,
       todayTasks: [],
       isLoadingPatrolTasks: true,
+      userRole: userRole, // Add user role to state
     ));
 
     // Load patrol tasks from API

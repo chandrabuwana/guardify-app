@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../../core/constants/enums.dart';
 import '../../../patrol/domain/entities/patrol_route.dart';
 
 // Task Model
@@ -130,6 +131,7 @@ class HomeLoaded extends HomeState {
   final Map<String, dynamic>? navigationArguments;
   final bool isLoadingPatrolTasks;
   final List<PatrolRoute> patrolRoutes;
+  final UserRole userRole; // Add user role to state
 
   const HomeLoaded({
     required this.currentBottomNavIndex,
@@ -142,6 +144,7 @@ class HomeLoaded extends HomeState {
     this.navigationArguments,
     this.isLoadingPatrolTasks = false,
     this.patrolRoutes = const [],
+    this.userRole = UserRole.anggota, // Default to anggota
   });
 
   HomeLoaded copyWith({
@@ -155,6 +158,7 @@ class HomeLoaded extends HomeState {
     Map<String, dynamic>? navigationArguments,
     bool? isLoadingPatrolTasks,
     List<PatrolRoute>? patrolRoutes,
+    UserRole? userRole,
     bool clearSnackbar = false,
     bool clearNavigation = false,
   }) {
@@ -174,6 +178,7 @@ class HomeLoaded extends HomeState {
           : (navigationArguments ?? this.navigationArguments),
       isLoadingPatrolTasks: isLoadingPatrolTasks ?? this.isLoadingPatrolTasks,
       patrolRoutes: patrolRoutes ?? this.patrolRoutes,
+      userRole: userRole ?? this.userRole,
     );
   }
 
@@ -189,6 +194,7 @@ class HomeLoaded extends HomeState {
         navigationArguments ?? {},
         isLoadingPatrolTasks,
         patrolRoutes,
+        userRole,
       ];
 }
 

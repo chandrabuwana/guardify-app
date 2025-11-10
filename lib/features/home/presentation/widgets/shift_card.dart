@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:guardify_app/core/design/colors.dart';
+import 'package:guardify_app/core/constants/enums.dart';
 import 'package:guardify_app/features/home/presentation/bloc/home_state.dart';
 
 class ShiftCard extends StatelessWidget {
   final AttendanceInfo attendanceInfo;
   final List<String> teamMembersImages;
   final VoidCallback onWorkButtonPressed;
+  final UserRole? userRole; // Optional parameter for role-based UI
+  final VoidCallback? onTrackLocationPressed; // Optional callback for Lacak Lokasi button
 
   const ShiftCard({
     super.key,
     required this.attendanceInfo,
     required this.teamMembersImages,
     required this.onWorkButtonPressed,
+    this.userRole,
+    this.onTrackLocationPressed,
   });
 
   @override
@@ -135,29 +140,54 @@ class ShiftCard extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Work Button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: onWorkButtonPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          // Buttons - Show "Lacak Lokasi" button for Pengawas role
+          if (userRole == UserRole.pengawas)
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: onTrackLocationPressed ?? () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
                 ),
-                elevation: 0,
+                child: const Text(
+                  'Lacak Lokasi',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-              child: Text(
-                isCheckedIn ? 'Akhiri Bekerja' : 'Mulai Bekerja',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+            )
+          else
+            // Work Button for other roles
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: onWorkButtonPressed,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  isCheckedIn ? 'Akhiri Bekerja' : 'Mulai Bekerja',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

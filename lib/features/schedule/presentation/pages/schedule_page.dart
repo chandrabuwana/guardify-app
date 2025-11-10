@@ -10,16 +10,16 @@ import '../bloc/schedule_bloc.dart';
 import 'shift_detail_page.dart';
 
 /// Schedule Page - Jadwal Kerja (Untuk Anggota & Danton)
-/// 
+///
 /// Fitur ini menampilkan jadwal kerja shift untuk security personnel
 /// dengan dua tab: "Jadwal Saya" dan "Jadwal Anggota"
-/// 
+///
 /// **Accessible by roles:**
 /// - Anggota (AGT): Dapat melihat jadwal shift pribadi
 /// - Danton: Dapat melihat jadwal shift pribadi dan anggota tim
-/// 
+///
 /// **Note**: PJO dan Deputy menggunakan `SchedulePJODeputyPage` dengan UI berbeda
-/// 
+///
 /// **Features:**
 /// - Calendar view dengan informasi shift per hari
 /// - Detail shift dengan lokasi patroli dan tim jaga
@@ -37,15 +37,16 @@ class _SchedulePageState extends State<SchedulePage> {
   bool _hasLoadedInitialData = false;
 
   void _loadSchedule(BuildContext context) async {
-    final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
-    
+    final userId =
+        await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
+
     if (!mounted) return;
-    
+
     context.read<ScheduleBloc>().add(LoadDailyAgenda(
-      userId: userId,
-      year: _focusedDay.year,
-      month: _focusedDay.month,
-    ));
+          userId: userId,
+          year: _focusedDay.year,
+          month: _focusedDay.month,
+        ));
   }
 
   @override
@@ -79,7 +80,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   _loadSchedule(context);
                 });
               }
-          
+
               return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,40 +99,40 @@ class _SchedulePageState extends State<SchedulePage> {
                               color: Colors.black,
                             ),
                           ),
-                      SizedBox(height: 12.h),
-                      _buildAgendaCard(state),
-                    ],
-                  ),
-                ),
-
-                // Calendar Section
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16.w),
-                  padding: EdgeInsets.all(16.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
+                          SizedBox(height: 12.h),
+                          _buildAgendaCard(state),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      _buildCalendarHeader(state),
-                      SizedBox(height: 16.h),
-                      _buildCalendar(state),
-                    ],
-                  ),
+                    ),
+
+                    // Calendar Section
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 16.w),
+                      padding: EdgeInsets.all(16.w),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _buildCalendarHeader(state),
+                          SizedBox(height: 16.h),
+                          _buildCalendar(state),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 100.h),
+                  ],
                 ),
-                
-                SizedBox(height: 100.h),
-              ],
-            ),
-          );
+              );
             },
           );
         },
@@ -142,25 +143,81 @@ class _SchedulePageState extends State<SchedulePage> {
   Widget _buildAgendaCard(ScheduleState state) {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     final agenda = state.dailyAgendas.firstWhere(
-      (a) => a.date.day == tomorrow.day && 
-             a.date.month == tomorrow.month && 
-             a.date.year == tomorrow.year,
-      orElse: () => state.dailyAgendas.isNotEmpty 
-          ? state.dailyAgendas.first 
-          : DailyAgenda(
-              date: DateTime(2025, 9, 12),
-              shiftType: 'Shift Pagi',
-              position: 'Pos Merpati',
-            ),
+      (a) =>
+          a.date.day == tomorrow.day &&
+          a.date.month == tomorrow.month &&
+          a.date.year == tomorrow.year,
+      orElse: () => DailyAgenda(
+        date: tomorrow,
+        shiftType: '',
+        position: '',
+      ),
     );
 
+    // Jika tidak ada agenda besok
+    if (agenda.shiftType.isEmpty) {
+      return Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            // Calendar Icon
+            Container(
+              width: 48.w,
+              height: 48.h,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Icon(
+                Icons.event_busy,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            SizedBox(width: 12.w),
+
+            // No Agenda Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Besok Tidak Ada Agenda',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    DateFormat('dd MMMM yyyy', 'id_ID').format(tomorrow),
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Jika ada agenda besok
     return GestureDetector(
       onTap: () async {
-        final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
+        final userId =
+            await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
         if (!mounted) return;
-        
+
         final scheduleBloc = context.read<ScheduleBloc>();
-        
+
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -197,7 +254,7 @@ class _SchedulePageState extends State<SchedulePage> {
               ),
             ),
             SizedBox(width: 12.w),
-            
+
             // Shift Info
             Expanded(
               child: Column(
@@ -213,7 +270,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    DateFormat('dd MMMM yyyy', 'id_ID').format(agenda.date),
+                    DateFormat('dd MMMM yyyy', 'id_ID').format(tomorrow),
                     style: TextStyle(
                       fontSize: 14.sp,
                       color: Colors.grey.shade600,
@@ -222,7 +279,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 ],
               ),
             ),
-            
+
             // Position Info
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -291,31 +348,32 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Widget _buildCalendar(ScheduleState state) {
+    final today = DateTime.now();
+
     return TableCalendar(
       firstDay: DateTime(2020),
       lastDay: DateTime(2030),
       focusedDay: _focusedDay,
+      currentDay: today,
       selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
       calendarFormat: CalendarFormat.month,
       startingDayOfWeek: StartingDayOfWeek.sunday,
       headerVisible: false,
-      daysOfWeekHeight: 40.h,
-      rowHeight: 80.h,
-      
+      daysOfWeekHeight: 20.h,
+      rowHeight: 70.h,
       calendarStyle: CalendarStyle(
         outsideDaysVisible: false,
         todayDecoration: BoxDecoration(
           color: const Color(0xFFE74C3C),
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(12.r),
         ),
         selectedDecoration: BoxDecoration(
           color: const Color(0xFFE74C3C).withOpacity(0.7),
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(12.r),
         ),
-        defaultTextStyle: TextStyle(fontSize: 14.sp),
-        weekendTextStyle: TextStyle(fontSize: 14.sp),
+        defaultTextStyle: TextStyle(fontSize: 16.sp),
+        weekendTextStyle: TextStyle(fontSize: 16.sp),
       ),
-      
       daysOfWeekStyle: DaysOfWeekStyle(
         weekdayStyle: TextStyle(
           fontSize: 12.sp,
@@ -328,30 +386,29 @@ class _SchedulePageState extends State<SchedulePage> {
           color: Colors.grey.shade600,
         ),
       ),
-      
       calendarBuilders: CalendarBuilders(
         defaultBuilder: (context, day, focusedDay) {
           return _buildDayCell(day, state);
         },
         todayBuilder: (context, day, focusedDay) {
-          return _buildDayCell(day, state, isToday: true);
+          return _buildDayCell(day, state);
         },
         selectedBuilder: (context, day, focusedDay) {
           return _buildDayCell(day, state, isSelected: true);
         },
       ),
-      
       onDaySelected: (selectedDay, focusedDay) async {
         setState(() {
           _selectedDay = selectedDay;
           _focusedDay = focusedDay;
         });
-        
-        final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
+
+        final userId =
+            await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
         if (!mounted) return;
-        
+
         final scheduleBloc = context.read<ScheduleBloc>();
-        
+
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -368,14 +425,16 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
-  Widget _buildDayCell(DateTime day, ScheduleState state, {
-    bool isToday = false,
+  Widget _buildDayCell(
+    DateTime day,
+    ScheduleState state, {
     bool isSelected = false,
   }) {
     final agenda = state.dailyAgendas.firstWhere(
-      (a) => a.date.day == day.day && 
-             a.date.month == day.month && 
-             a.date.year == day.year,
+      (a) =>
+          a.date.day == day.day &&
+          a.date.month == day.month &&
+          a.date.year == day.year,
       orElse: () => DailyAgenda(
         date: DateTime(2000, 1, 1),
         shiftType: '',
@@ -384,26 +443,41 @@ class _SchedulePageState extends State<SchedulePage> {
     );
 
     final hasShift = agenda.shiftType.isNotEmpty;
+    final today = DateTime.now();
+    final isActuallyToday = day.year == today.year &&
+        day.month == today.month &&
+        day.day == today.day;
 
     return Container(
-      margin: EdgeInsets.all(2.w),
-      decoration: BoxDecoration(
-        color: isToday 
-            ? const Color(0xFFE74C3C)
-            : isSelected 
-                ? const Color(0xFFE74C3C).withOpacity(0.7)
-                : Colors.transparent,
-        borderRadius: BorderRadius.circular(8.r),
-      ),
+      margin: EdgeInsets.all(1.w),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '${day.day}',
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: isToday || isSelected ? Colors.white : Colors.black,
+          // Angka tanggal dengan background
+          Container(
+            width: 32.w,
+            height: 32.w,
+            decoration: BoxDecoration(
+              color: isActuallyToday
+                  ? const Color(0xFF8B1E3F) // Maroon untuk hari ini
+                  : isSelected
+                      ? const Color(0xFFE74C3C).withOpacity(0.7)
+                      : hasShift
+                          ? const Color(
+                              0xFFFFE5E5) // Orange tipis untuk tanggal yang ada shift
+                          : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${day.day}',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w700,
+                color:
+                    isActuallyToday || isSelected ? Colors.white : Colors.black,
+              ),
             ),
           ),
           if (hasShift) ...[
@@ -411,25 +485,25 @@ class _SchedulePageState extends State<SchedulePage> {
             Text(
               agenda.shiftType,
               style: TextStyle(
-                fontSize: 9.sp,
-                color: isToday || isSelected 
-                    ? Colors.white 
-                    : Colors.black87,
+                fontSize: 8.sp,
+                fontWeight: FontWeight.w400,
+                color: Colors.black87,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
             SizedBox(height: 2.h),
             Text(
               agenda.position,
               style: TextStyle(
-                fontSize: 8.sp,
-                color: isToday || isSelected 
-                    ? Colors.white70 
-                    : Colors.grey.shade600,
+                fontSize: 7.sp,
+                fontWeight: FontWeight.w400,
+                color: Colors.grey.shade600,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
           ],
         ],
