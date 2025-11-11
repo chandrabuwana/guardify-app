@@ -14,6 +14,8 @@ import '../../features/news/presentation/bloc/news_bloc.dart';
 import '../../features/test_result/data/datasources/test_result_api_data_source.dart';
 import '../constants/app_constants.dart';
 import '../security/security_manager.dart';
+import '../services/location_service.dart';
+import '../../features/shift/data/datasources/shift_remote_data_source.dart';
 
 /// Injection Module - Centralized Dependency Registration
 /// Semua dependencies diregister di sini untuk memudahkan maintenance
@@ -212,4 +214,13 @@ abstract class InjectionModule {
   // - Patrol Feature
   // dll
   // ========================================
+
+  // Common Services
+  @lazySingleton
+  LocationService locationService() => LocationService();
+
+  // Shift Feature minimal DI
+  @lazySingleton
+  ShiftRemoteDataSource shiftRemoteDataSource(Dio dio) =>
+      ShiftRemoteDataSourceImpl(dio);
 }

@@ -7,20 +7,29 @@ import '../../../../core/di/injection.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../../../../shared/widgets/TextInput/input_primary.dart';
 import '../../../../shared/widgets/custom_dropdown.dart';
-import '../../../../shared/widgets/upload_photo_field.dart';
+import '../../../../shared/widgets/photo_picker_field.dart';
 import '../../domain/entities/attendance_request.dart';
 import '../bloc/attendance_bloc.dart';
 import '../bloc/attendance_event.dart';
 import '../bloc/attendance_state.dart';
+import '../../../shift/data/datasources/shift_remote_data_source.dart';
+import '../../../shift/data/models/shift_current_location_response.dart';
+import '../../../../core/services/location_service.dart';
 
 class CheckInPage extends StatefulWidget {
   final String userId;
   final String namaPersonil;
+  final String? prefillFullname;
+  final String? prefillLocation;
+  final String? prefillCurrentLocation;
 
   const CheckInPage({
     Key? key,
     required this.userId,
     required this.namaPersonil,
+    this.prefillFullname,
+    this.prefillLocation,
+    this.prefillCurrentLocation,
   }) : super(key: key);
 
   @override
@@ -43,24 +52,56 @@ class _CheckInPageState extends State<CheckInPage> {
   List<String> _fotoPengamanan = [];
   List<String> _tugasLanjutan = [];
   String? _fotoWajah;
+  double? _currentLat;
+  double? _currentLng;
 
   @override
   void initState() {
     super.initState();
     _attendanceBloc = getIt<AttendanceBloc>();
-    _namaPersonilController.text = widget.namaPersonil;
-    _lokasiPenugasanController.text = 'Pos Satpam Gedung A'; // Default value
-    _getCurrentLocation();
+    _namaPersonilController.text =
+        widget.prefillFullname ?? widget.namaPersonil;
+    if (widget.prefillLocation != null) {
+      _lokasiPenugasanController.text = widget.prefillLocation!;
+    }
+    if (widget.prefillCurrentLocation != null) {
+      _lokasiTerkiniController.text = widget.prefillCurrentLocation!;
+    } else {
+      _getCurrentLocation();
+    }
   }
 
   void _getCurrentLocation() {
-    // TODO: Implement GPS location service
-    // For demo purposes, simulate different location scenarios
-    setState(() {
-      // Simulate being outside the assigned location
-      _lokasiTerkiniController.text =
-          'Pos Satpam Gedung B'; // Different from assigned location
+    final locationService = getIt<LocationService>();
+    locationService.getCurrentLatLng().then((pos) {
+      if (pos == null) return;
+      _currentLat = pos.lat;
+      _currentLng = pos.lng;
+      _prefillFromShiftApi(pos.lat, pos.lng);
     });
+  }
+
+  Future<void> _prefillFromShiftApi(double lat, double lng) async {
+    try {
+      final shiftDs = getIt<ShiftRemoteDataSource>();
+      final ShiftCurrentLocationResponse res =
+          await shiftDs.getCurrentLocation(latitude: lat, longitude: lng);
+      final data = res.data;
+      if (!mounted) return;
+      setState(() {
+        if (data?.fullname != null) {
+          _namaPersonilController.text = data!.fullname!;
+        }
+        if (data?.location != null) {
+          _lokasiPenugasanController.text = data!.location!;
+        }
+        _lokasiTerkiniController.text =
+            data?.currentLocation ?? data?.location ?? '';
+        // Note: RouteName available in data?.routeName if needed
+      });
+    } catch (e) {
+      // Fallback UI values unchanged on failure
+    }
   }
 
   @override
@@ -363,7 +404,7 @@ class _CheckInPageState extends State<CheckInPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        UploadPhotoField(
+        PhotoPickerField(
           label: 'Pakaian Personil',
           photos: _pakaianPersonil.isEmpty ? [] : [_pakaianPersonil],
           onPhotosChanged: (photos) {
@@ -385,7 +426,7 @@ class _CheckInPageState extends State<CheckInPage> {
           isRequired: true,
         ),
 
-        UploadPhotoField(
+        PhotoPickerField(
           label: 'Foto Pengamanan',
           photos: _fotoPengamanan,
           onPhotosChanged: (photos) {
@@ -727,6 +768,8 @@ class _CheckInPageState extends State<CheckInPage> {
         shift: 'Pagi',
         lokasiPenugasan: _lokasiPenugasanController.text,
         lokasiTerkini: _lokasiTerkiniController.text,
+        latitude: _currentLat,
+        longitude: _currentLng,
         ratePatrol: _ratePatrol,
         pakaianPersonil: _pakaianPersonil,
         laporanPengamanan: _laporanPengamananController.text,

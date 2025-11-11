@@ -29,6 +29,8 @@ import '../../../personnel/presentation/pages/personnel_list_page.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../../core/services/location_service.dart';
+import '../../../shift/data/datasources/shift_remote_data_source.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -364,16 +366,50 @@ class __HomePageViewState extends State<_HomePageView> {
                           userRole: state.userRole,
                           onWorkButtonPressed: () {
                             if (!state.attendanceInfo.isCheckedIn) {
-                              // Navigate directly to check-in form (mulai bekerja)
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CheckInPage(
-                                    userId: '1',
-                                    namaPersonil: state.userProfile.name,
-                                  ),
-                                ),
-                              );
+                              // Call current location API first, then navigate with prefill
+                              final locService = getIt<LocationService>();
+                              locService.getCurrentLatLng().then((pos) async {
+                                double lat = 0;
+                                double lng = 0;
+                                if (pos != null) {
+                                  lat = pos.lat;
+                                  lng = pos.lng;
+                                }
+                                final shiftDs = getIt<ShiftRemoteDataSource>();
+                                try {
+                                  final resp = await shiftDs.getCurrentLocation(
+                                    latitude: lat,
+                                    longitude: lng,
+                                  );
+                                  final data = resp.data;
+                                  if (!context.mounted) return;
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CheckInPage(
+                                        userId: '1',
+                                        namaPersonil: state.userProfile.name,
+                                        prefillFullname: data?.fullname,
+                                        prefillLocation: data?.location,
+                                        prefillCurrentLocation:
+                                            data?.currentLocation ?? data?.location,
+                                      ),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  // Fallback: still navigate without prefill
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CheckInPage(
+                                        userId: '1',
+                                        namaPersonil: state.userProfile.name,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              });
                             } else {
                               // Handle check-out directly
                               context

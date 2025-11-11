@@ -3,6 +3,9 @@ import 'package:injectable/injectable.dart';
 import '../../domain/entities/attendance.dart';
 import '../../domain/entities/attendance_request.dart';
 import '../models/attendance_model.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 
 abstract class AttendanceRemoteDataSource {
   Future<AttendanceModel> submitAttendance(AttendanceModel attendance);
@@ -132,10 +135,60 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   @override
   Future<AttendanceModel> checkIn(CheckInRequest request) async {
     try {
-      final response = await dio.post(
-        '/attendance/checkin',
-        data: request.toJson(),
-      );
+      // Map request to external API schema provided by backend
+      final deviceInfo = DeviceInfoPlugin();
+      String deviceName = 'Unknown Device';
+      try {
+        if (Platform.isAndroid) {
+          final info = await deviceInfo.androidInfo;
+          deviceName = '${info.manufacturer} ${info.model}';
+        } else if (Platform.isIOS) {
+          final info = await deviceInfo.iosInfo;
+          deviceName = info.utsname.machine ?? 'iPhone';
+        }
+      } catch (_) {}
+
+      Map<String, dynamic>? photoFromPath(String? path) {
+        if (path == null || path.isEmpty) return null;
+        try {
+          final file = File(path);
+          if (!file.existsSync()) return null;
+          final bytes = file.readAsBytesSync();
+          final base64Str = base64Encode(bytes);
+          final filename = path.split('/').last;
+          final ext = filename.split('.').last.toLowerCase();
+          final mime = switch (ext) {
+            'jpg' || 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            _ => 'application/octet-stream',
+          };
+          return {
+            'Filename': filename,
+            'MimeType': mime,
+            'Base64': base64Str,
+          };
+        } catch (_) {
+          return null;
+        }
+      }
+
+      final Map<String, dynamic> apiBody = {
+        'PhotoAbsen': photoFromPath(request.fotoWajah),
+        'PhotoPakaian': photoFromPath(request.pakaianPersonil),
+        'PhotoPengamanan': request.fotoPengamanan.isNotEmpty
+            ? photoFromPath(request.fotoPengamanan.first)
+            : null,
+        'Laporan': request.laporanPengamanan,
+        'DeviceName': deviceName,
+        'Latitude': request.latitude ?? 0,
+        'Longitude': request.longitude ?? 0,
+        'LocationName': request.lokasiTerkini,
+        // Token is handled by Authorization header in this project; body Token is optional
+        'Token': null,
+      };
+
+      final response = await dio.post('/attendance/checkin', data: apiBody);
 
       return AttendanceModel.fromJson(response.data);
     } on DioException catch (e) {
