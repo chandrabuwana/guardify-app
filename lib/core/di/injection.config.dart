@@ -12,6 +12,7 @@ import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:guardify_app/core/di/injection_module.dart' as _i381;
 import 'package:guardify_app/core/network/network_manager.dart' as _i39;
+import 'package:guardify_app/core/services/location_service.dart' as _i856;
 import 'package:guardify_app/features/attendance/data/datasources/attendance_local_data_source.dart'
     as _i1007;
 import 'package:guardify_app/features/attendance/data/datasources/attendance_remote_data_source.dart'
@@ -234,6 +235,8 @@ import 'package:guardify_app/features/schedule/domain/usecases/get_shift_detail.
     as _i947;
 import 'package:guardify_app/features/schedule/presentation/bloc/schedule_bloc.dart'
     as _i1003;
+import 'package:guardify_app/features/shift/data/datasources/shift_remote_data_source.dart'
+    as _i415;
 import 'package:guardify_app/features/test_result/data/datasources/test_result_api_data_source.dart'
     as _i836;
 import 'package:guardify_app/features/test_result/data/datasources/test_result_remote_data_source.dart'
@@ -276,10 +279,13 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i523.ChatRepository>(
         () => injectionModule.chatRepository());
     gh.lazySingleton<_i39.NetworkManager>(() => _i39.NetworkManager());
+    gh.lazySingleton<_i856.LocationService>(() => _i856.LocationService());
     gh.lazySingleton<_i220.ProfileRemoteDataSource>(
         () => _i1020.ProfileRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i460.PanicButtonDataSource>(
         () => _i754.PanicButtonLocalDataSource());
+    gh.lazySingleton<_i415.ShiftRemoteDataSource>(
+        () => _i415.ShiftRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i228.PanicButtonRepository>(() =>
         _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
     gh.lazySingleton<_i606.NewsRemoteDataSource>(
