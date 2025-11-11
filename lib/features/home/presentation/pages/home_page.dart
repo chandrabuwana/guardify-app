@@ -127,10 +127,16 @@ class __HomePageViewState extends State<_HomePageView> {
                       userId: state.navigationArguments?['userId'] ?? '1',
                       namaPersonil:
                           state.navigationArguments?['userName'] ?? 'User',
+                      prefillCurrentLocation: state
+                          .navigationArguments?['currentLocation'] as String?,
+                      prefillRouteName:
+                          state.navigationArguments?['routeName'] as String?,
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -148,7 +154,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
@@ -163,7 +171,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -177,7 +187,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -195,7 +207,9 @@ class __HomePageViewState extends State<_HomePageView> {
                 break;
               case '/cuti':
                 Navigator.pushNamed(context, '/cuti').then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -209,7 +223,9 @@ class __HomePageViewState extends State<_HomePageView> {
                         state.navigationArguments?['userRole'] ?? 'anggota',
                   },
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -218,14 +234,17 @@ class __HomePageViewState extends State<_HomePageView> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => TestResultPage(
-                      userId: state.navigationArguments?['userId'], // Null jika tidak ada, akan dibaca dari secure storage
+                      userId: state.navigationArguments?[
+                          'userId'], // Null jika tidak ada, akan dibaca dari secure storage
                       userRole:
                           state.navigationArguments?['userRole'] as UserRole? ??
                               UserRole.anggota,
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -239,7 +258,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
@@ -254,7 +275,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
@@ -263,7 +286,9 @@ class __HomePageViewState extends State<_HomePageView> {
                 // Navigate to Schedule feature via named route
                 Navigator.pushNamed(context, '/schedule').then((_) {
                   // After returning from schedule, reset bottom nav to home
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
@@ -392,7 +417,8 @@ class __HomePageViewState extends State<_HomePageView> {
                                         prefillFullname: data?.fullname,
                                         prefillLocation: data?.location,
                                         prefillCurrentLocation:
-                                            data?.currentLocation ?? data?.location,
+                                            data?.currentLocation,
+                                        prefillRouteName: data?.routeName,
                                       ),
                                     ),
                                   );
@@ -417,14 +443,15 @@ class __HomePageViewState extends State<_HomePageView> {
                                   .add(const AttendanceToggleEvent());
                             }
                           },
-                          onTrackLocationPressed: state.userRole == UserRole.pengawas
-                              ? () {
-                                  context.read<HomeBloc>().add(
-                                        const ShowSnackbarEvent(
-                                            'Fitur Lacak Lokasi sedang dalam pengembangan'),
-                                      );
-                                }
-                              : null,
+                          onTrackLocationPressed:
+                              state.userRole == UserRole.pengawas
+                                  ? () {
+                                      context.read<HomeBloc>().add(
+                                            const ShowSnackbarEvent(
+                                                'Fitur Lacak Lokasi sedang dalam pengembangan'),
+                                          );
+                                    }
+                                  : null,
                         ),
 
                         24.verticalSpace,
@@ -665,7 +692,7 @@ class __HomePageViewState extends State<_HomePageView> {
             ],
           ),
           12.verticalSpace,
-          
+
           // Horizontal scrollable list of team members
           SizedBox(
             height: 200.h,
@@ -708,7 +735,7 @@ class __HomePageViewState extends State<_HomePageView> {
                             : null,
                       ),
                       10.verticalSpace,
-                      
+
                       // Nama
                       Text(
                         member['nama']!,
@@ -722,7 +749,7 @@ class __HomePageViewState extends State<_HomePageView> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       6.verticalSpace,
-                      
+
                       // Posisi Badge
                       Container(
                         padding: EdgeInsets.symmetric(
@@ -743,7 +770,7 @@ class __HomePageViewState extends State<_HomePageView> {
                         ),
                       ),
                       10.verticalSpace,
-                      
+
                       // Kirim Pesan button (solid filled)
                       SizedBox(
                         width: double.infinity,
@@ -896,8 +923,9 @@ class __HomePageViewState extends State<_HomePageView> {
           title: 'Insiden Kejadian',
           icon: Icons.report_problem,
           hasNotification: true,
-          onTap: () =>
-              context.read<HomeBloc>().add(const NavigateToIncidentReportEvent()),
+          onTap: () => context
+              .read<HomeBloc>()
+              .add(const NavigateToIncidentReportEvent()),
         ),
         MenuItem(
           id: 'personnel_list',
@@ -910,7 +938,9 @@ class __HomePageViewState extends State<_HomePageView> {
                 builder: (context) => const PersonnelListPage(),
               ),
             ).then((_) {
-              context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+              context
+                  .read<HomeBloc>()
+                  .add(const BottomNavigationTappedEvent(0));
             });
           },
         ),
@@ -918,8 +948,9 @@ class __HomePageViewState extends State<_HomePageView> {
           id: 'activity_report',
           title: 'Laporan Kegiatan',
           icon: Icons.description,
-          onTap: () =>
-              context.read<HomeBloc>().add(const NavigateToActivityReportEvent()),
+          onTap: () => context
+              .read<HomeBloc>()
+              .add(const NavigateToActivityReportEvent()),
         ),
         MenuItem(
           id: 'bmi',
@@ -966,7 +997,7 @@ class __HomePageViewState extends State<_HomePageView> {
         ),
       ];
     }
-    
+
     // Menu default untuk role lainnya (Anggota, Danton, PJO, Deputy, Admin)
     print('✅ BUILDING DEFAULT MENU (With Rekapitulasi Kehadiran)');
     return [

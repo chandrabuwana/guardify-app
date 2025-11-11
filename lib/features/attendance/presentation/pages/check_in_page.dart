@@ -1,12 +1,16 @@
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../../../../shared/widgets/TextInput/input_primary.dart';
-import '../../../../shared/widgets/custom_dropdown.dart';
 import '../../../../shared/widgets/photo_picker_field.dart';
 import '../../domain/entities/attendance_request.dart';
 import '../bloc/attendance_bloc.dart';
@@ -22,6 +26,7 @@ class CheckInPage extends StatefulWidget {
   final String? prefillFullname;
   final String? prefillLocation;
   final String? prefillCurrentLocation;
+  final String? prefillRouteName;
 
   const CheckInPage({
     Key? key,
@@ -30,6 +35,7 @@ class CheckInPage extends StatefulWidget {
     this.prefillFullname,
     this.prefillLocation,
     this.prefillCurrentLocation,
+    this.prefillRouteName,
   }) : super(key: key);
 
   @override
@@ -44,10 +50,10 @@ class _CheckInPageState extends State<CheckInPage> {
   final _namaPersonilController = TextEditingController();
   final _lokasiPenugasanController = TextEditingController();
   final _lokasiTerkiniController = TextEditingController();
+  final _rutePatroliController = TextEditingController();
   final _laporanPengamananController = TextEditingController();
 
   // Form data
-  String _ratePatrol = '';
   String _pakaianPersonil = '';
   List<String> _fotoPengamanan = [];
   List<String> _tugasLanjutan = [];
@@ -64,10 +70,21 @@ class _CheckInPageState extends State<CheckInPage> {
     if (widget.prefillLocation != null) {
       _lokasiPenugasanController.text = widget.prefillLocation!;
     }
-    if (widget.prefillCurrentLocation != null) {
-      _lokasiTerkiniController.text = widget.prefillCurrentLocation!;
+    final prefillCurrentLocation = widget.prefillCurrentLocation;
+    if (prefillCurrentLocation != null && prefillCurrentLocation.isNotEmpty) {
+      _lokasiTerkiniController.text = prefillCurrentLocation;
     } else {
+      _lokasiTerkiniController.text = '-';
       _getCurrentLocation();
+    }
+    final prefillRouteName = widget.prefillRouteName;
+    if (prefillRouteName != null && prefillRouteName.isNotEmpty) {
+      _rutePatroliController.text = prefillRouteName;
+    } else {
+      _rutePatroliController.text = '-';
+      if (prefillCurrentLocation != null && prefillCurrentLocation.isNotEmpty) {
+        _getCurrentLocation();
+      }
     }
   }
 
@@ -96,11 +113,75 @@ class _CheckInPageState extends State<CheckInPage> {
           _lokasiPenugasanController.text = data!.location!;
         }
         _lokasiTerkiniController.text =
-            data?.currentLocation ?? data?.location ?? '';
-        // Note: RouteName available in data?.routeName if needed
+            (data?.currentLocation != null && data!.currentLocation!.isNotEmpty)
+                ? data.currentLocation!
+                : '-';
+        final routeName =
+            (data?.routeName != null && data!.routeName!.isNotEmpty)
+                ? data.routeName!
+                : '-';
+        _rutePatroliController.text = routeName;
       });
     } catch (e) {
       // Fallback UI values unchanged on failure
+    }
+  }
+
+  Future<void> _captureSelfie() async {
+    if (!mounted) return;
+
+    final permissionStatus = await Permission.camera.request();
+    if (!permissionStatus.isGranted) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Izin kamera diperlukan untuk mengambil foto.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    List<CameraDescription> cameras;
+    try {
+      cameras = await availableCameras();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengakses kamera: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (cameras.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kamera tidak tersedia.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final frontCamera = cameras.firstWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.front,
+      orElse: () => cameras.first,
+    );
+
+    final image = await Navigator.of(context).push<XFile?>(
+      MaterialPageRoute(
+        builder: (_) => _SelfieCameraPage(camera: frontCamera),
+      ),
+    );
+
+    if (image != null && mounted) {
+      setState(() {
+        _fotoWajah = image.path;
+      });
     }
   }
 
@@ -211,113 +292,117 @@ class _CheckInPageState extends State<CheckInPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Face Scan Section
-        Container(
-          width: double.infinity,
-          height: 280.h,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(
-              color: Colors.blue.shade300,
-              width: 2,
-              style: BorderStyle.solid,
+        InkWell(
+          onTap: _captureSelfie,
+          borderRadius: BorderRadius.circular(12.r),
+          child: Container(
+            width: double.infinity,
+            height: 280.h,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(
+                color: Colors.blue.shade300,
+                width: 2,
+                style: BorderStyle.solid,
+              ),
             ),
-          ),
-          child: Stack(
-            children: [
-              // Corner brackets
-              Positioned(
-                top: 20,
-                left: 20,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(color: Colors.blue.shade700, width: 4),
-                      left: BorderSide(color: Colors.blue.shade700, width: 4),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 20,
-                right: 20,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(color: Colors.blue.shade700, width: 4),
-                      right: BorderSide(color: Colors.blue.shade700, width: 4),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 20,
-                left: 20,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Colors.blue.shade700, width: 4),
-                      left: BorderSide(color: Colors.blue.shade700, width: 4),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 20,
-                right: 20,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Colors.blue.shade700, width: 4),
-                      right: BorderSide(color: Colors.blue.shade700, width: 4),
-                    ),
-                  ),
-                ),
-              ),
-              // Center content
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (_fotoWajah == null) ...[
-                      Icon(
-                        Icons.face,
-                        size: 48.sp,
-                        color: Colors.grey.shade600,
+            child: Stack(
+              children: [
+                // Corner brackets
+                Positioned(
+                  top: 20,
+                  left: 20,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: Colors.blue.shade700, width: 4),
+                        left: BorderSide(color: Colors.blue.shade700, width: 4),
                       ),
-                      8.verticalSpace,
-                      Text(
-                        'Posisikan wajah dalam frame',
-                        style: TS.bodyMedium.copyWith(
-                          color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 20,
+                  right: 20,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: Colors.blue.shade700, width: 4),
+                        right:
+                            BorderSide(color: Colors.blue.shade700, width: 4),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 20,
+                  left: 20,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom:
+                            BorderSide(color: Colors.blue.shade700, width: 4),
+                        left: BorderSide(color: Colors.blue.shade700, width: 4),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 20,
+                  right: 20,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom:
+                            BorderSide(color: Colors.blue.shade700, width: 4),
+                        right:
+                            BorderSide(color: Colors.blue.shade700, width: 4),
+                      ),
+                    ),
+                  ),
+                ),
+                // Center content
+                Center(
+                  child: _fotoWajah == null
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.camera_alt,
+                              size: 48.sp,
+                              color: Colors.grey.shade600,
+                            ),
+                            12.verticalSpace,
+                            Text(
+                              'Ketuk untuk mengambil foto wajah',
+                              style: TS.bodyMedium.copyWith(
+                                color: Colors.grey.shade600,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(12.r),
+                          child: Image.file(
+                            File(_fotoWajah!),
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                      ),
-                    ] else ...[
-                      Icon(
-                        Icons.check_circle,
-                        size: 48.sp,
-                        color: Colors.green,
-                      ),
-                      8.verticalSpace,
-                      Text(
-                        'Wajah terdeteksi',
-                        style: TS.bodyMedium.copyWith(
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
 
@@ -349,21 +434,10 @@ class _CheckInPageState extends State<CheckInPage> {
           ),
         ),
 
-        CustomDropdown<String>(
+        InputPrimary(
           label: 'Rute Patroli',
-          hint: 'xxxx',
-          value: _ratePatrol.isEmpty ? null : _ratePatrol,
-          items: [
-            DropdownItem(value: 'rute_a', text: 'Rute A - Lantai 1-3'),
-            DropdownItem(value: 'rute_b', text: 'Rute B - Lantai 4-6'),
-            DropdownItem(value: 'rute_c', text: 'Rute C - Perimeter'),
-          ],
-          onChanged: (value) {
-            setState(() {
-              _ratePatrol = value ?? '';
-            });
-          },
-          isRequired: true,
+          controller: _rutePatroliController,
+          enable: false,
           margin: REdgeInsets.only(bottom: 16),
         ),
 
@@ -546,7 +620,8 @@ class _CheckInPageState extends State<CheckInPage> {
         _buildSummaryItem('Nama Personil', _namaPersonilController.text),
         _buildSummaryItem('Lokasi Penugasan', _lokasiPenugasanController.text),
         _buildSummaryItem('Lokasi Terkini', _lokasiTerkiniController.text),
-        _buildSummaryItem('Rate Patrol', _ratePatrol),
+        _buildSummaryItem('Foto Wajah', _fotoWajah != null ? 'Tersimpan' : '-'),
+        _buildSummaryItem('Rute Patroli', _rutePatroliController.text),
         _buildSummaryItem('Pakaian Personil', _pakaianPersonil),
         _buildSummaryItem(
             'Laporan Pengamanan', _laporanPengamananController.text),
@@ -665,8 +740,8 @@ class _CheckInPageState extends State<CheckInPage> {
   }
 
   bool _canProceedFromStep1() {
-    return _ratePatrol.isNotEmpty && _lokasiTerkiniController.text.isNotEmpty;
-    // Note: Removed face scan requirement to match the UI flow
+    final routeName = _rutePatroliController.text.trim();
+    return routeName.isNotEmpty && routeName != '-' && _fotoWajah != null;
   }
 
   bool _canProceedFromStep2() {
@@ -770,7 +845,7 @@ class _CheckInPageState extends State<CheckInPage> {
         lokasiTerkini: _lokasiTerkiniController.text,
         latitude: _currentLat,
         longitude: _currentLng,
-        ratePatrol: _ratePatrol,
+        ratePatrol: _rutePatroliController.text,
         pakaianPersonil: _pakaianPersonil,
         laporanPengamanan: _laporanPengamananController.text,
         fotoPengamanan: _fotoPengamanan,
@@ -860,7 +935,121 @@ class _CheckInPageState extends State<CheckInPage> {
     _namaPersonilController.dispose();
     _lokasiPenugasanController.dispose();
     _lokasiTerkiniController.dispose();
+    _rutePatroliController.dispose();
     _laporanPengamananController.dispose();
     super.dispose();
+  }
+}
+
+class _SelfieCameraPage extends StatefulWidget {
+  const _SelfieCameraPage({required this.camera});
+
+  final CameraDescription camera;
+
+  @override
+  State<_SelfieCameraPage> createState() => _SelfieCameraPageState();
+}
+
+class _SelfieCameraPageState extends State<_SelfieCameraPage> {
+  late CameraController _controller;
+  late Future<void> _initializeControllerFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = CameraController(
+      widget.camera,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+    _initializeControllerFuture = _controller.initialize();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Ambil Foto Wajah'),
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+      ),
+      body: FutureBuilder<void>(
+        future: _initializeControllerFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return Column(
+              children: [
+                Expanded(
+                  child:
+                      widget.camera.lensDirection == CameraLensDirection.front
+                          ? Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.identity()..rotateY(math.pi),
+                              child: CameraPreview(_controller),
+                            )
+                          : CameraPreview(_controller),
+                ),
+                Container(
+                  width: double.infinity,
+                  padding: REdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  color: Colors.black,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Posisikan wajah dalam frame lalu tekan tombol kamera.',
+                        style: TS.bodyMedium.copyWith(color: Colors.white70),
+                        textAlign: TextAlign.center,
+                      ),
+                      16.verticalSpace,
+                      SizedBox(
+                        width: 72.r,
+                        height: 72.r,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            shape: const CircleBorder(),
+                            backgroundColor: Colors.white,
+                            elevation: 6,
+                          ),
+                          onPressed: () async {
+                            try {
+                              await _initializeControllerFuture;
+                              final image = await _controller.takePicture();
+                              if (!mounted) return;
+                              Navigator.of(context).pop(image);
+                            } catch (e) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Gagal mengambil foto: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                          child: Icon(
+                            Icons.camera_alt,
+                            color: primaryColor,
+                            size: 32.sp,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
+    );
   }
 }
