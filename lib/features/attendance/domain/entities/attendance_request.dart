@@ -5,6 +5,8 @@ class CheckInRequest extends Equatable {
   final String shift;
   final String lokasiPenugasan;
   final String lokasiTerkini;
+  final double? latitude;
+  final double? longitude;
   final String ratePatrol;
   final String pakaianPersonil;
   final String laporanPengamanan;
@@ -17,6 +19,8 @@ class CheckInRequest extends Equatable {
     required this.shift,
     required this.lokasiPenugasan,
     required this.lokasiTerkini,
+    this.latitude,
+    this.longitude,
     required this.ratePatrol,
     required this.pakaianPersonil,
     required this.laporanPengamanan,
@@ -31,6 +35,8 @@ class CheckInRequest extends Equatable {
       'shift': shift,
       'lokasiPenugasan': lokasiPenugasan,
       'lokasiTerkini': lokasiTerkini,
+      'latitude': latitude,
+      'longitude': longitude,
       'ratePatrol': ratePatrol,
       'pakaianPersonil': pakaianPersonil,
       'laporanPengamanan': laporanPengamanan,
@@ -46,6 +52,8 @@ class CheckInRequest extends Equatable {
         shift,
         lokasiPenugasan,
         lokasiTerkini,
+        latitude,
+        longitude,
         ratePatrol,
         pakaianPersonil,
         laporanPengamanan,
