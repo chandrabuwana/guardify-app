@@ -49,6 +49,7 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
       await SecurityManager.deleteSecurely(AppConstants.userIdKey);
       await SecurityManager.deleteSecurely('user_username');
       await SecurityManager.deleteSecurely('user_fullname');
+      await SecurityManager.deleteSecurely('user_mail');
       await SecurityManager.deleteSecurely('user_role_id');
       await SecurityManager.deleteSecurely('user_role_name');
       print('🔐 Old data cleared!');
@@ -92,6 +93,12 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
       await SecurityManager.storeSecurely(
         'user_username',
         data.user.username,
+      );
+
+      // Save mail to secure storage
+      await SecurityManager.storeSecurely(
+        'user_mail',
+        data.user.mail,
       );
 
       // Save full name to secure storage

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/design/colors.dart';
@@ -27,6 +28,7 @@ class CheckInPage extends StatefulWidget {
   final String? prefillLocation;
   final String? prefillCurrentLocation;
   final String? prefillRouteName;
+  final String? prefillShiftDetailId;
 
   const CheckInPage({
     Key? key,
@@ -36,6 +38,7 @@ class CheckInPage extends StatefulWidget {
     this.prefillLocation,
     this.prefillCurrentLocation,
     this.prefillRouteName,
+    this.prefillShiftDetailId,
   }) : super(key: key);
 
   @override
@@ -52,6 +55,7 @@ class _CheckInPageState extends State<CheckInPage> {
   final _lokasiTerkiniController = TextEditingController();
   final _rutePatroliController = TextEditingController();
   final _laporanPengamananController = TextEditingController();
+  final _tugasLanjutanController = TextEditingController();
 
   // Form data
   String _pakaianPersonil = '';
@@ -60,6 +64,7 @@ class _CheckInPageState extends State<CheckInPage> {
   String? _fotoWajah;
   double? _currentLat;
   double? _currentLng;
+  String? _shiftDetailId;
 
   @override
   void initState() {
@@ -70,6 +75,7 @@ class _CheckInPageState extends State<CheckInPage> {
     if (widget.prefillLocation != null) {
       _lokasiPenugasanController.text = widget.prefillLocation!;
     }
+    _shiftDetailId = widget.prefillShiftDetailId;
     final prefillCurrentLocation = widget.prefillCurrentLocation;
     if (prefillCurrentLocation != null && prefillCurrentLocation.isNotEmpty) {
       _lokasiTerkiniController.text = prefillCurrentLocation;
@@ -121,6 +127,7 @@ class _CheckInPageState extends State<CheckInPage> {
                 ? data.routeName!
                 : '-';
         _rutePatroliController.text = routeName;
+        _shiftDetailId = data?.shiftDetailId ?? _shiftDetailId;
       });
     } catch (e) {
       // Fallback UI values unchanged on failure
@@ -187,10 +194,16 @@ class _CheckInPageState extends State<CheckInPage> {
 
   @override
   Widget build(BuildContext context) {
+    final tugasDisplayText =
+        _tugasLanjutan.isEmpty ? '' : _tugasLanjutan.join('\n');
+    if (_tugasLanjutanController.text != tugasDisplayText) {
+      _tugasLanjutanController.text = tugasDisplayText;
+    }
+
     return BlocProvider.value(
       value: _attendanceBloc..add(const CheckInStartedEvent()),
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF6F6F8),
         appBar: AppBar(
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
@@ -213,6 +226,10 @@ class _CheckInPageState extends State<CheckInPage> {
             }
           },
           builder: (context, state) {
+            if (state is CheckInFormState) {
+              _syncCheckInState(state);
+            }
+
             if (state is AttendanceLoading) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -245,8 +262,26 @@ class _CheckInPageState extends State<CheckInPage> {
 
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: REdgeInsets.all(20),
-                    child: _buildStepContent(),
+                    padding: REdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 24.h,
+                    ),
+                    child: Container(
+                      width: double.infinity,
+                      padding: REdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: _buildStepContent(),
+                    ),
                   ),
                 ),
 
@@ -257,10 +292,9 @@ class _CheckInPageState extends State<CheckInPage> {
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        spreadRadius: 1,
-                        blurRadius: 4,
-                        offset: const Offset(0, -2),
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 12,
+                        offset: const Offset(0, -6),
                       ),
                     ],
                   ),
@@ -272,6 +306,18 @@ class _CheckInPageState extends State<CheckInPage> {
         ),
       ),
     );
+  }
+
+  void _syncCheckInState(CheckInFormState state) {
+    final tasks = state.tugasLanjutan;
+    if (!listEquals(tasks, _tugasLanjutan)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _tugasLanjutan = List<String>.from(tasks);
+        });
+      });
+    }
   }
 
   Widget _buildStepContent() {
@@ -512,66 +558,34 @@ class _CheckInPageState extends State<CheckInPage> {
           margin: REdgeInsets.only(bottom: 16),
         ),
 
-        Text(
-          'Tugas Lanjutan',
-          style: TS.labelLarge.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+        InputPrimary(
+          label: 'Tugas Lanjutan',
+          controller: _tugasLanjutanController,
+          hint: 'Tugas lanjutan akan terisi otomatis',
+          enable: false,
+          readOnly: true,
+          maxLines: _tugasLanjutan.isEmpty
+              ? 1
+              : (_tugasLanjutan.length > 3 ? 4 : _tugasLanjutan.length),
+          margin: REdgeInsets.only(bottom: 12),
         ),
-        8.verticalSpace,
 
-        Container(
-          width: double.infinity,
-          padding: REdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Text(
-            '${_tugasLanjutan.length} Tugas Lanjutan',
-            style: TS.bodyMedium.copyWith(
-              color: Colors.grey.shade600,
+        if (_tugasLanjutan.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: REdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade50,
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: Colors.amber.shade200),
+            ),
+            child: Text(
+              'Belum ada data tugas lanjutan. Data akan tampil otomatis setelah tersedia dari sistem.',
+              style: TS.bodySmall.copyWith(
+                color: Colors.amber.shade900,
+              ),
             ),
           ),
-        ),
-
-        12.verticalSpace,
-
-        // Task Checkboxes
-        ...[
-          'Patroli Perimeter Gedung',
-          'Pengecekan CCTV Area',
-          'Laporan Kejadian Khusus',
-          'Koordinasi Tim Keamanan',
-          'Inspeksi Peralatan',
-          'Monitoring Akses Keluar Masuk'
-        ]
-            .map(
-              (task) => Container(
-                margin: REdgeInsets.only(bottom: 8),
-                child: CheckboxListTile(
-                  title: Text(
-                    task,
-                    style: TS.bodyMedium,
-                  ),
-                  value: _tugasLanjutan.contains(task),
-                  onChanged: (bool? value) {
-                    setState(() {
-                      if (value == true) {
-                        _tugasLanjutan.add(task);
-                      } else {
-                        _tugasLanjutan.remove(task);
-                      }
-                    });
-                  },
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  activeColor: primaryColor,
-                ),
-              ),
-            )
-            .toList(),
       ],
     );
   }
@@ -626,7 +640,10 @@ class _CheckInPageState extends State<CheckInPage> {
         _buildSummaryItem(
             'Laporan Pengamanan', _laporanPengamananController.text),
         _buildSummaryItem('Foto Pengamanan', '${_fotoPengamanan.length} foto'),
-        _buildSummaryItem('Tugas Lanjutan', '${_tugasLanjutan.length} tugas'),
+        _buildSummaryItem(
+          'Tugas Lanjutan',
+          _tugasLanjutan.isEmpty ? '-' : _tugasLanjutan.join(', '),
+        ),
       ],
     );
   }
@@ -851,6 +868,7 @@ class _CheckInPageState extends State<CheckInPage> {
         fotoPengamanan: _fotoPengamanan,
         tugasLanjutan: _tugasLanjutan,
         fotoWajah: _fotoWajah,
+        shiftDetailId: _shiftDetailId,
       );
 
       _attendanceBloc.add(CheckInSubmittedEvent(request));
@@ -937,6 +955,7 @@ class _CheckInPageState extends State<CheckInPage> {
     _lokasiTerkiniController.dispose();
     _rutePatroliController.dispose();
     _laporanPengamananController.dispose();
+    _tugasLanjutanController.dispose();
     super.dispose();
   }
 }
