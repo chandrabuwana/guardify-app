@@ -6,6 +6,8 @@ import '../models/attendance_model.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/security/security_manager.dart';
 
 abstract class AttendanceRemoteDataSource {
   Future<AttendanceModel> submitAttendance(AttendanceModel attendance);
@@ -135,60 +137,31 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   @override
   Future<AttendanceModel> checkIn(CheckInRequest request) async {
     try {
-      // Map request to external API schema provided by backend
-      final deviceInfo = DeviceInfoPlugin();
-      String deviceName = 'Unknown Device';
-      try {
-        if (Platform.isAndroid) {
-          final info = await deviceInfo.androidInfo;
-          deviceName = '${info.manufacturer} ${info.model}';
-        } else if (Platform.isIOS) {
-          final info = await deviceInfo.iosInfo;
-          deviceName = info.utsname.machine ?? 'iPhone';
-        }
-      } catch (_) {}
-
-      Map<String, dynamic>? photoFromPath(String? path) {
-        if (path == null || path.isEmpty) return null;
-        try {
-          final file = File(path);
-          if (!file.existsSync()) return null;
-          final bytes = file.readAsBytesSync();
-          final base64Str = base64Encode(bytes);
-          final filename = path.split('/').last;
-          final ext = filename.split('.').last.toLowerCase();
-          final mime = switch (ext) {
-            'jpg' || 'jpeg' => 'image/jpeg',
-            'png' => 'image/png',
-            'gif' => 'image/gif',
-            _ => 'application/octet-stream',
-          };
-          return {
-            'Filename': filename,
-            'MimeType': mime,
-            'Base64': base64Str,
-          };
-        } catch (_) {
-          return null;
-        }
-      }
+      final deviceName = await _resolveDeviceName();
+      final photoAbsen = await _encodePhoto(request.fotoWajah);
+      final photoPakaian = await _encodePhoto(request.pakaianPersonil);
+      final firstSecurityPhoto = request.fotoPengamanan.isNotEmpty
+          ? await _encodePhoto(request.fotoPengamanan.first)
+          : null;
+      final tokenPayload = await _buildTokenPayload();
 
       final Map<String, dynamic> apiBody = {
-        'PhotoAbsen': photoFromPath(request.fotoWajah),
-        'PhotoPakaian': photoFromPath(request.pakaianPersonil),
-        'PhotoPengamanan': request.fotoPengamanan.isNotEmpty
-            ? photoFromPath(request.fotoPengamanan.first)
-            : null,
+        'IdShiftDetail': request.shiftDetailId ?? '',
+        'PhotoAbsen': photoAbsen,
+        'PhotoPakaian': photoPakaian,
+        'PhotoPengamanan': firstSecurityPhoto,
         'Laporan': request.laporanPengamanan,
         'DeviceName': deviceName,
         'Latitude': request.latitude ?? 0,
         'Longitude': request.longitude ?? 0,
         'LocationName': request.lokasiTerkini,
-        // Token is handled by Authorization header in this project; body Token is optional
-        'Token': null,
-      };
+        if (tokenPayload != null) 'Token': tokenPayload,
+      }..removeWhere((key, value) => value == null);
 
-      final response = await dio.post('/attendance/checkin', data: apiBody);
+      final response = await dio.post(
+        '/Attendance/check_in',
+        data: apiBody,
+      );
 
       return AttendanceModel.fromJson(response.data);
     } on DioException catch (e) {
@@ -226,6 +199,91 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
+  }
+
+  Future<String> _resolveDeviceName() async {
+    final deviceInfo = DeviceInfoPlugin();
+    String deviceName = 'Unknown Device';
+    try {
+      if (Platform.isAndroid) {
+        final info = await deviceInfo.androidInfo;
+        deviceName = '${info.manufacturer} ${info.model}';
+      } else if (Platform.isIOS) {
+        final info = await deviceInfo.iosInfo;
+        final machine = info.utsname.machine;
+        deviceName = machine.isNotEmpty ? machine : 'iPhone';
+      }
+    } catch (_) {}
+    return deviceName;
+  }
+
+  Future<Map<String, dynamic>?> _encodePhoto(String? path) async {
+    if (path == null || path.isEmpty) return null;
+    try {
+      final file = File(path);
+      if (!await file.exists()) return null;
+      final bytes = await file.readAsBytes();
+      final base64Str = base64Encode(bytes);
+      final filename = path.split(RegExp(r'[\/\\]')).last;
+      final ext = filename.contains('.') ? filename.split('.').last.toLowerCase() : '';
+      final mime = _guessMimeType(ext);
+      return {
+        'Filename': filename,
+        'MimeType': mime,
+        'Base64': base64Str,
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _guessMimeType(String extension) {
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'heic':
+        return 'image/heic';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  Future<Map<String, dynamic>?> _buildTokenPayload() async {
+    final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+    final roleId = await SecurityManager.readSecurely('user_role_id');
+    final roleName = await SecurityManager.readSecurely('user_role_name');
+    final username = await SecurityManager.readSecurely('user_username');
+    final fullName = await SecurityManager.readSecurely('user_fullname');
+    final mail = await SecurityManager.readSecurely('user_mail');
+
+    final hasUserInfo = [
+      userId,
+      roleId,
+      roleName,
+      username,
+      fullName,
+      mail,
+    ].any((value) => value != null && value.isNotEmpty);
+
+    if (!hasUserInfo) return null;
+
+    return {
+      'Id': userId ?? '',
+      'Role': [
+        {
+          'Id': roleId ?? '',
+          'Nama': roleName ?? '',
+        },
+      ],
+      'Username': username ?? '',
+      'FullName': fullName ?? '',
+      'Mail': mail ?? '',
+    };
   }
 
   Exception _handleDioError(DioException error) {

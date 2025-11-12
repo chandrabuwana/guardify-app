@@ -13,6 +13,7 @@ class CheckInRequest extends Equatable {
   final List<String> fotoPengamanan;
   final List<String> tugasLanjutan;
   final String? fotoWajah; // Base64 encoded image
+  final String? shiftDetailId;
 
   const CheckInRequest({
     required this.userId,
@@ -27,6 +28,7 @@ class CheckInRequest extends Equatable {
     required this.fotoPengamanan,
     required this.tugasLanjutan,
     this.fotoWajah,
+    this.shiftDetailId,
   });
 
   Map<String, dynamic> toJson() {
@@ -43,6 +45,7 @@ class CheckInRequest extends Equatable {
       'fotoPengamanan': fotoPengamanan,
       'tugasLanjutan': tugasLanjutan,
       'fotoWajah': fotoWajah,
+      'shiftDetailId': shiftDetailId,
     };
   }
 
@@ -60,6 +63,7 @@ class CheckInRequest extends Equatable {
         fotoPengamanan,
         tugasLanjutan,
         fotoWajah,
+        shiftDetailId,
       ];
 }
 

@@ -3,12 +3,14 @@ class ShiftCurrentLocationData {
   final String? location;
   final String? currentLocation;
   final String? routeName;
+  final String? shiftDetailId;
 
   const ShiftCurrentLocationData({
     this.fullname,
     this.location,
     this.currentLocation,
     this.routeName,
+    this.shiftDetailId,
   });
 
   factory ShiftCurrentLocationData.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,8 @@ class ShiftCurrentLocationData {
       location: json['Location'] as String?,
       currentLocation: json['CurrentLocation'] as String?,
       routeName: json['RouteName'] as String?,
+      shiftDetailId: json['IdShiftDetail'] as String? ??
+          json['ShiftDetailId'] as String?,
     );
   }
 }

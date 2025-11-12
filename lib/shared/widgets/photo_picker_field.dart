@@ -1,10 +1,11 @@
+import 'dart:io';
+
+import 'package:camera/camera.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../core/design/styles.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:io';
 
 class PhotoPickerField extends StatefulWidget {
   final String label;
@@ -34,7 +35,6 @@ class PhotoPickerField extends StatefulWidget {
 
 class _PhotoPickerFieldState extends State<PhotoPickerField> {
   List<CameraDescription>? _cameras;
-  CameraController? _cameraController;
 
   @override
   void initState() {
@@ -50,7 +50,6 @@ class _PhotoPickerFieldState extends State<PhotoPickerField> {
 
   @override
   void dispose() {
-    _cameraController?.dispose();
     super.dispose();
   }
 
@@ -119,18 +118,12 @@ class _PhotoPickerFieldState extends State<PhotoPickerField> {
         return;
       }
 
-      _cameraController = CameraController(
-        _cameras!.first,
-        ResolutionPreset.high,
-      );
-      await _cameraController!.initialize();
-
       if (!mounted) return;
       final file = await Navigator.push<File?>(
         context,
         MaterialPageRoute(
           builder: (context) => _CameraCaptureScreen(
-            cameraController: _cameraController!,
+            camera: _cameras!.first,
           ),
         ),
       );
@@ -343,14 +336,34 @@ class _PhotoPickerFieldState extends State<PhotoPickerField> {
 }
 
 class _CameraCaptureScreen extends StatefulWidget {
-  final CameraController cameraController;
-  const _CameraCaptureScreen({required this.cameraController});
+  final CameraDescription camera;
+  const _CameraCaptureScreen({required this.camera});
 
   @override
   State<_CameraCaptureScreen> createState() => _CameraCaptureScreenState();
 }
 
 class _CameraCaptureScreenState extends State<_CameraCaptureScreen> {
+  late CameraController _cameraController;
+  late Future<void> _initializeControllerFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _cameraController = CameraController(
+      widget.camera,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+    _initializeControllerFuture = _cameraController.initialize();
+  }
+
+  @override
+  void dispose() {
+    _cameraController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -362,7 +375,19 @@ class _CameraCaptureScreenState extends State<_CameraCaptureScreen> {
       ),
       body: Column(
         children: [
-          Expanded(child: CameraPreview(widget.cameraController)),
+          Expanded(
+            child: FutureBuilder<void>(
+              future: _initializeControllerFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return CameraPreview(_cameraController);
+                }
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              },
+            ),
+          ),
           Container(
             height: 100.h,
             color: Colors.black,
@@ -395,7 +420,8 @@ class _CameraCaptureScreenState extends State<_CameraCaptureScreen> {
 
   Future<void> _capture() async {
     try {
-      final xfile = await widget.cameraController.takePicture();
+      await _initializeControllerFuture;
+      final xfile = await _cameraController.takePicture();
       if (!mounted) return;
       Navigator.pop(context, File(xfile.path));
     } catch (e) {

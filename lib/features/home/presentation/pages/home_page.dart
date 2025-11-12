@@ -131,6 +131,10 @@ class __HomePageViewState extends State<_HomePageView> {
                           .navigationArguments?['currentLocation'] as String?,
                       prefillRouteName:
                           state.navigationArguments?['routeName'] as String?,
+                      prefillLocation:
+                          state.navigationArguments?['locationName'] as String?,
+                      prefillShiftDetailId: state
+                          .navigationArguments?['shiftDetailId'] as String?,
                     ),
                   ),
                 ).then((_) {
@@ -419,6 +423,8 @@ class __HomePageViewState extends State<_HomePageView> {
                                         prefillCurrentLocation:
                                             data?.currentLocation,
                                         prefillRouteName: data?.routeName,
+                                        prefillShiftDetailId:
+                                            data?.shiftDetailId,
                                       ),
                                     ),
                                   );
