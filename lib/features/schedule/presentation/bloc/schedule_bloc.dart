@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import '../../domain/usecases/get_monthly_schedule.dart';
 import '../../domain/usecases/get_shift_detail.dart';
 import '../../domain/usecases/get_daily_agenda.dart';
+import '../../domain/usecases/get_schedule_detail.dart';
 import '../../domain/entities/shift_schedule.dart';
 
 part 'schedule_event.dart';
@@ -13,16 +14,19 @@ class ScheduleBloc extends Bloc<ScheduleEvent, ScheduleState> {
   final GetMonthlySchedule getMonthlySchedule;
   final GetShiftDetail getShiftDetail;
   final GetDailyAgenda getDailyAgenda;
+  final GetScheduleDetail getScheduleDetail;
 
   ScheduleBloc({
     required this.getMonthlySchedule,
     required this.getShiftDetail,
     required this.getDailyAgenda,
+    required this.getScheduleDetail,
   }) : super(ScheduleState.initial()) {
     on<LoadMonthlySchedule>(_onLoadMonthlySchedule);
     on<LoadShiftDetail>(_onLoadShiftDetail);
     on<LoadDailyAgenda>(_onLoadDailyAgenda);
     on<ChangeMonth>(_onChangeMonth);
+    on<LoadScheduleDetail>(_onLoadScheduleDetail);
   }
 
   Future<void> _onLoadMonthlySchedule(
@@ -114,5 +118,47 @@ class ScheduleBloc extends Bloc<ScheduleEvent, ScheduleState> {
       year: event.year,
       month: event.month,
     ));
+  }
+
+  Future<void> _onLoadScheduleDetail(
+    LoadScheduleDetail event,
+    Emitter<ScheduleState> emit,
+  ) async {
+    emit(state.copyWith(isLoadingDetail: true));
+
+    final result = await getScheduleDetail(
+      userId: event.userId,
+      date: event.date,
+    );
+
+    if (result.isSuccess) {
+      // Success case - shiftDetail can be null (no schedule for this date)
+      if (result.shiftDetail == null) {
+        // Explicitly clear selectedShift when no data
+        print('[ScheduleBloc] ✅ No schedule data - clearing selectedShift');
+        final newState = state.copyWith(
+          isLoadingDetail: false,
+          clearSelectedShift: true,
+          clearError: true,
+        );
+        emit(newState);
+        print('[ScheduleBloc] ✅ State updated - selectedShift is now: ${newState.selectedShift}');
+      } else {
+        // Has data
+        print('[ScheduleBloc] ✅ Schedule data found: ${result.shiftDetail!.shiftName}');
+        emit(state.copyWith(
+          isLoadingDetail: false,
+          selectedShift: result.shiftDetail,
+          clearError: true,
+        ));
+      }
+    } else {
+      // Failure case - show error
+      print('[ScheduleBloc] ❌ Error loading schedule: ${result.failure?.message}');
+      emit(state.copyWith(
+        isLoadingDetail: false,
+        error: result.failure?.message ?? 'Gagal memuat detail jadwal',
+      ));
+    }
   }
 }

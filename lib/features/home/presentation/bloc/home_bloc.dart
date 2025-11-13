@@ -6,14 +6,17 @@ import '../../../../core/security/security_manager.dart';
 import '../../../../core/utils/user_role_helper.dart';
 import '../../../patrol/domain/usecases/get_patrol_routes_paginated.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
+import '../../../schedule/domain/usecases/get_current_shift.dart';
+import '../../../schedule/domain/repositories/schedule_repository.dart';
 import 'home_event.dart';
 import 'home_state.dart';
 
 @injectable
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final GetPatrolRoutesPaginated _getPatrolRoutesPaginated;
+  final GetCurrentShift _getCurrentShift;
 
-  HomeBloc(this._getPatrolRoutesPaginated) : super(const HomeInitial()) {
+  HomeBloc(this._getPatrolRoutesPaginated, this._getCurrentShift) : super(const HomeInitial()) {
     on<HomeInitialEvent>(_onHomeInitial);
     on<BottomNavigationTappedEvent>(_onBottomNavigationTapped);
     on<ShowSnackbarEvent>(_onShowSnackbar);
@@ -69,13 +72,39 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       greeting: _getGreeting(),
     );
 
-    final attendanceInfo = AttendanceInfo(
-      isCheckedIn: false,
-      currentTime: _getCurrentTime(),
-      shift: 'Shift Pagi - Pos Gajah',
-      position: 'Security',
-      date: DateTime.now(),
-    );
+    // Get user ID for API calls
+    final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
+
+    // Load current shift from API
+    final currentShiftResult = await _getCurrentShift(userId: userId);
+    
+    AttendanceInfo attendanceInfo;
+    if (currentShiftResult.isSuccess && currentShiftResult.currentShift != null) {
+      final shift = currentShiftResult.currentShift!;
+      // Format checkin time or show "-" if not checked in
+      final checkinTime = shift.checkin && shift.checkinTime != null
+          ? _formatTime(shift.checkinTime!)
+          : '-';
+      
+      attendanceInfo = AttendanceInfo(
+        isCheckedIn: shift.checkin,
+        isCheckedOut: shift.checkout,
+        currentTime: checkinTime,
+        shift: shift.name,
+        position: 'Security', // Position might need to come from another API
+        date: DateTime.now(),
+      );
+    } else {
+      // Fallback to default if API fails
+      attendanceInfo = AttendanceInfo(
+        isCheckedIn: false,
+        isCheckedOut: false,
+        currentTime: _getCurrentTime(),
+        shift: 'Shift Pagi - Pos Gajah',
+        position: 'Security',
+        date: DateTime.now(),
+      );
+    }
 
     emit(HomeLoaded(
       currentBottomNavIndex: 0,
@@ -84,10 +113,24 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       todayTasks: [],
       isLoadingPatrolTasks: true,
       userRole: userRole, // Add user role to state
+      currentShift: currentShiftResult.isSuccess ? currentShiftResult.currentShift : null,
     ));
 
     // Load patrol tasks from API
     add(const LoadPatrolTasksEvent());
+  }
+
+  String _formatTime(String timeString) {
+    try {
+      // Parse time string like "07:00:00" and format to "07:00"
+      final parts = timeString.split(':');
+      if (parts.length >= 2) {
+        return '${parts[0]}:${parts[1]}';
+      }
+      return timeString;
+    } catch (e) {
+      return timeString;
+    }
   }
 
   void _onBottomNavigationTapped(
@@ -195,6 +238,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final currentState = state as HomeLoaded;
       final newAttendance = currentState.attendanceInfo.copyWith(
         isCheckedIn: false,
+        isCheckedOut: true,
         currentTime: _getCurrentTime(),
       );
 

@@ -391,7 +391,7 @@ class __HomePageViewState extends State<_HomePageView> {
                         // Shift Card
                         ShiftCard(
                           attendanceInfo: state.attendanceInfo,
-                          teamMembersImages: _getTeamMembersImages(),
+                          teamMembersImages: _getTeamMembersImages(state),
                           userRole: state.userRole,
                           onWorkButtonPressed: () {
                             if (!state.attendanceInfo.isCheckedIn) {
@@ -1076,7 +1076,14 @@ class __HomePageViewState extends State<_HomePageView> {
     ];
   }
 
-  List<String> _getTeamMembersImages() {
+  List<String> _getTeamMembersImages(HomeLoaded state) {
+    // Get team members from current shift if available
+    if (state.currentShift != null && state.currentShift!.listPersonel.isNotEmpty) {
+      return state.currentShift!.listPersonel
+          .map((personnel) => personnel.images.isNotEmpty ? personnel.images : '')
+          .toList();
+    }
+    // Fallback to empty list
     // Mock team members images
     return [
       '', // Empty for default avatar

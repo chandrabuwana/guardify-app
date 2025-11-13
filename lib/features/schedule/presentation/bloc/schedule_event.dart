@@ -49,3 +49,13 @@ class ChangeMonth extends ScheduleEvent {
     required this.month,
   });
 }
+
+class LoadScheduleDetail extends ScheduleEvent {
+  final String userId;
+  final DateTime date;
+
+  const LoadScheduleDetail({
+    required this.userId,
+    required this.date,
+  });
+}

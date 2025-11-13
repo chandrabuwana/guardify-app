@@ -56,7 +56,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
           if (!_hasLoadedData && !state.isLoadingDetail) {
             _hasLoadedData = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.read<ScheduleBloc>().add(LoadShiftDetail(
+              context.read<ScheduleBloc>().add(LoadScheduleDetail(
                     userId: widget.userId,
                     date: widget.date,
                   ));
@@ -83,7 +83,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [primary50, primary50.withOpacity(0.8)],
+          colors: [primaryColor, primaryColor.withOpacity(0.8)],
         ),
       ),
       child: SafeArea(
@@ -133,7 +133,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [primary50, primary50.withOpacity(0.8)],
+          colors: [primaryColor, primaryColor.withOpacity(0.8)],
         ),
       ),
       child: SafeArea(
@@ -233,9 +233,9 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
       margin: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
       child: TabBar(
         controller: _tabController,
-        labelColor: primary50,
+        labelColor: primaryColor,
         unselectedLabelColor: Colors.grey.shade600,
-        indicatorColor: primary50,
+        indicatorColor: primaryColor,
         indicatorWeight: 3,
         labelStyle: TextStyle(
           fontSize: 16.sp,
@@ -317,7 +317,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
           Text(
             value,
             style: TextStyle(
-              color: primary50,
+              color: primaryColor,
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -338,7 +338,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
         Text(
           'Lokasi : ${location.name}',
           style: TextStyle(
-            color: primary50,
+            color: primaryColor,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -411,7 +411,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
             member.position,
             style: TextStyle(
               fontSize: 10.sp,
-              color: primary50,
+              color: primaryColor,
             ),
             textAlign: TextAlign.center,
           ),
@@ -423,7 +423,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
                 // TODO: Implement kirim pesan
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: primary50,
+                backgroundColor: primaryColor,
                 padding: EdgeInsets.symmetric(vertical: 6.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6.r),
