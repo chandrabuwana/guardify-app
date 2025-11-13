@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/design/colors.dart';
 import '../../domain/entities/shift_schedule.dart';
 import '../bloc/schedule_bloc.dart';
 import 'shift_detail_page.dart';
@@ -218,6 +219,12 @@ class _SchedulePageState extends State<SchedulePage> {
 
         final scheduleBloc = context.read<ScheduleBloc>();
 
+        // Use new API to load schedule detail
+        scheduleBloc.add(LoadScheduleDetail(
+          userId: userId,
+          date: agenda.date,
+        ));
+
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -245,12 +252,12 @@ class _SchedulePageState extends State<SchedulePage> {
               width: 48.w,
               height: 48.h,
               decoration: BoxDecoration(
-                color: const Color(0xFFE74C3C).withOpacity(0.1),
+                color: primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8.r),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.calendar_today,
-                color: Color(0xFFE74C3C),
+                color: primaryColor,
               ),
             ),
             SizedBox(width: 12.w),
@@ -289,7 +296,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFFE74C3C),
+                    color: primaryColor,
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -364,11 +371,11 @@ class _SchedulePageState extends State<SchedulePage> {
       calendarStyle: CalendarStyle(
         outsideDaysVisible: false,
         todayDecoration: BoxDecoration(
-          color: const Color(0xFFE74C3C),
+          color: primaryColor,
           borderRadius: BorderRadius.circular(12.r),
         ),
         selectedDecoration: BoxDecoration(
-          color: const Color(0xFFE74C3C).withOpacity(0.7),
+          color: primaryColor.withOpacity(0.7),
           borderRadius: BorderRadius.circular(12.r),
         ),
         defaultTextStyle: TextStyle(fontSize: 16.sp),
@@ -408,6 +415,12 @@ class _SchedulePageState extends State<SchedulePage> {
         if (!mounted) return;
 
         final scheduleBloc = context.read<ScheduleBloc>();
+
+        // Use new API to load schedule detail
+        scheduleBloc.add(LoadScheduleDetail(
+          userId: userId,
+          date: selectedDay,
+        ));
 
         Navigator.push(
           context,
@@ -460,12 +473,11 @@ class _SchedulePageState extends State<SchedulePage> {
             height: 32.w,
             decoration: BoxDecoration(
               color: isActuallyToday
-                  ? const Color(0xFF8B1E3F) // Maroon untuk hari ini
+                  ? primaryColor // Primary untuk hari ini
                   : isSelected
-                      ? const Color(0xFFE74C3C).withOpacity(0.7)
+                      ? primaryColor.withOpacity(0.7)
                       : hasShift
-                          ? const Color(
-                              0xFFFFE5E5) // Orange tipis untuk tanggal yang ada shift
+                          ? primaryColor.withOpacity(0.1) // Primary tipis untuk tanggal yang ada shift
                           : Colors.transparent,
               shape: BoxShape.circle,
             ),

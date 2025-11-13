@@ -227,10 +227,14 @@ import 'package:guardify_app/features/schedule/data/repositories/schedule_reposi
     as _i343;
 import 'package:guardify_app/features/schedule/domain/repositories/schedule_repository.dart'
     as _i752;
+import 'package:guardify_app/features/schedule/domain/usecases/get_current_shift.dart'
+    as _i170;
 import 'package:guardify_app/features/schedule/domain/usecases/get_daily_agenda.dart'
     as _i369;
 import 'package:guardify_app/features/schedule/domain/usecases/get_monthly_schedule.dart'
     as _i1034;
+import 'package:guardify_app/features/schedule/domain/usecases/get_schedule_detail.dart'
+    as _i807;
 import 'package:guardify_app/features/schedule/domain/usecases/get_shift_detail.dart'
     as _i947;
 import 'package:guardify_app/features/schedule/presentation/bloc/schedule_bloc.dart'
@@ -361,17 +365,16 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i422.TestResultRepository>(() =>
         _i717.TestResultRepositoryImpl(
             remoteDataSource: gh<_i652.TestResultRemoteDataSource>()));
+    gh.factory<_i170.GetCurrentShift>(
+        () => _i170.GetCurrentShift(gh<_i752.ScheduleRepository>()));
     gh.factory<_i369.GetDailyAgenda>(
         () => _i369.GetDailyAgenda(gh<_i752.ScheduleRepository>()));
     gh.factory<_i1034.GetMonthlySchedule>(
         () => _i1034.GetMonthlySchedule(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i807.GetScheduleDetail>(
+        () => _i807.GetScheduleDetail(gh<_i752.ScheduleRepository>()));
     gh.factory<_i947.GetShiftDetail>(
         () => _i947.GetShiftDetail(gh<_i752.ScheduleRepository>()));
-    gh.factory<_i1003.ScheduleBloc>(() => _i1003.ScheduleBloc(
-          getMonthlySchedule: gh<_i1034.GetMonthlySchedule>(),
-          getShiftDetail: gh<_i947.GetShiftDetail>(),
-          getDailyAgenda: gh<_i369.GetDailyAgenda>(),
-        ));
     gh.lazySingleton<_i695.DocumentRepository>(
         () => _i117.DocumentRepositoryImpl(
               remoteDataSource: gh<_i125.DocumentRemoteDataSource>(),
@@ -456,6 +459,10 @@ extension GetItInjectableX on _i174.GetIt {
           localDataSource: gh<_i895.ProfileLocalDataSource>(),
           authRepository: gh<_i144.AuthRepository>(),
         ));
+    gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc(
+          gh<_i238.GetPatrolRoutesPaginated>(),
+          gh<_i170.GetCurrentShift>(),
+        ));
     gh.factory<_i311.AttendanceRepository>(() => _i289.AttendanceRepositoryImpl(
           remoteDataSource: gh<_i109.AttendanceRemoteDataSource>(),
           localDataSource: gh<_i1007.AttendanceLocalDataSource>(),
@@ -492,8 +499,12 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i974.SubmitAttendanceUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i601.ValidateAttendanceUseCase>(() =>
         _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
-    gh.factory<_i890.HomeBloc>(
-        () => _i890.HomeBloc(gh<_i238.GetPatrolRoutesPaginated>()));
+    gh.factory<_i1003.ScheduleBloc>(() => _i1003.ScheduleBloc(
+          getMonthlySchedule: gh<_i1034.GetMonthlySchedule>(),
+          getShiftDetail: gh<_i947.GetShiftDetail>(),
+          getDailyAgenda: gh<_i369.GetDailyAgenda>(),
+          getScheduleDetail: gh<_i807.GetScheduleDetail>(),
+        ));
     gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
           getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
           getPatrolRoutesPaginated: gh<_i238.GetPatrolRoutesPaginated>(),
