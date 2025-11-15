@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
+import 'package:dio/dio.dart';
 import '../../../../shared/entities/failure.dart';
 import '../../../../core/constants/enums.dart';
 import '../../domain/entities/user_profile.dart';
@@ -23,22 +24,43 @@ class BMIRepositoryImpl implements BMIRepository {
   @override
   Future<Either<Failure, UserProfile>> getUserProfile(String userId) async {
     try {
-      // Call API to get user's BMI data
+      // Call Bmi/list API to get user's BMI data (for detail page)
       final request = BmiListRequestModel(
         filter: [
           FilterModel(field: 'UserId', search: userId),
         ],
         sort: SortModel(field: '', type: 0),
-        start: 1,
-        length: 1, // Get 1 record for specific user
+        start: 0,
+        length: 0, // Get all BMI records for this user
       );
 
       final response = await remoteDataSource.getBmiList(request);
 
-      if (!response.succeeded || response.list.isEmpty) {
-        return Left(ServerFailure('User BMI data not found'));
+      if (!response.succeeded) {
+        return Left(ServerFailure(response.message));
       }
 
+      // If no BMI data, return user profile without BMI info
+      if (response.list.isEmpty) {
+        // Try to get user info from User/list API
+        final userRequest = UserListRequestModel(
+          filter: [
+            FilterModel(field: 'Id', search: userId),
+          ],
+          sort: SortModel(field: '', type: 0),
+          start: 0,
+          length: 1,
+        );
+        final userResponse = await remoteDataSource.getUserList(userRequest);
+        if (userResponse.succeeded == true && userResponse.list.isNotEmpty) {
+          final userProfile = BmiMapper.userListItemToUserProfile(userResponse.list.first);
+          final pinnedIds = await localDataSource.getPinnedUserIds();
+          return Right(userProfile.copyWith(isPinned: pinnedIds.contains(userId)));
+        }
+        return Left(ServerFailure('User not found'));
+      }
+
+      // Use the latest BMI record (first in list, sorted by date)
       // Convert to UserProfile using mapper
       final userProfile = BmiMapper.toUserProfile(response.list.first);
 
@@ -57,24 +79,24 @@ class BMIRepositoryImpl implements BMIRepository {
   Future<Either<Failure, List<UserProfile>>> searchUserProfiles(
       String query) async {
     try {
-      // Call API to get all BMI data
-      final request = BmiListRequestModel(
+      // Call User/list API to get all users
+      final request = UserListRequestModel(
         filter: [
           FilterModel(field: '', search: ''),
         ],
         sort: SortModel(field: '', type: 0),
-        start: 1,
-        length: 100,
+        start: 0,
+        length: 0, // Get all records
       );
 
-      final response = await remoteDataSource.getBmiList(request);
+      final response = await remoteDataSource.getUserList(request);
 
-      if (!response.succeeded) {
-        return Left(ServerFailure(response.message));
+      if (response.succeeded == false) {
+        return Left(ServerFailure(response.message ?? 'Failed to get user list'));
       }
 
       // Convert to list of UserProfile using mapper
-      var userProfiles = BmiMapper.toUserProfileList(response.list);
+      var userProfiles = BmiMapper.userListToUserProfileList(response.list);
 
       // Filter profiles by query (client-side filtering)
       if (query.isNotEmpty) {
@@ -101,24 +123,24 @@ class BMIRepositoryImpl implements BMIRepository {
   @override
   Future<Either<Failure, List<UserProfile>>> getAllUserProfiles() async {
     try {
-      // Call API to get all BMI data
-      final request = BmiListRequestModel(
+      // Call User/list API to get all users
+      final request = UserListRequestModel(
         filter: [
           FilterModel(field: '', search: ''),
         ],
         sort: SortModel(field: '', type: 0),
-        start: 1,
-        length: 100, // Get up to 100 records
+        start: 0,
+        length: 0, // Get all records
       );
 
-      final response = await remoteDataSource.getBmiList(request);
+      final response = await remoteDataSource.getUserList(request);
 
-      if (!response.succeeded) {
-        return Left(ServerFailure(response.message));
+      if (response.succeeded == false) {
+        return Left(ServerFailure(response.message ?? 'Failed to get user list'));
       }
 
       // Convert to list of UserProfile using mapper
-      final userProfiles = BmiMapper.toUserProfileList(response.list);
+      final userProfiles = BmiMapper.userListToUserProfileList(response.list);
 
       // Get pinned IDs and update profiles
       final pinnedIds = await localDataSource.getPinnedUserIds();
@@ -139,45 +161,64 @@ class BMIRepositoryImpl implements BMIRepository {
     required int pageSize,
   }) async {
     try {
-      // Call API to get paginated BMI data
-      // API menggunakan Start (page number) dan Length (items per page)
-      final request = BmiListRequestModel(
+      // Call User/list API to get paginated users
+      // API menggunakan Start (1-based) dan Length (items per page)
+      // Start is 1-based, so we need to calculate: (page - 1) * pageSize + 1
+      // Example: page=1, pageSize=10 -> Start=1; page=2, pageSize=10 -> Start=11
+      final start = (page - 1) * pageSize + 1;
+      // Ensure length is at least 1 for pagination
+      final validLength = pageSize > 0 ? pageSize : 10;
+      
+      final request = UserListRequestModel(
         filter: [
           FilterModel(field: '', search: ''),
         ],
         sort: SortModel(field: '', type: 0),
-        start: page,
-        length: pageSize,
+        start: start,
+        length: validLength,
       );
 
-      final response = await remoteDataSource.getBmiList(request);
+      // Debug: Log request before sending
+      print('═══════════════════════════════════════');
+      print('📤 User List API Request Debug');
+      print('═══════════════════════════════════════');
+      print('📄 Page: $page');
+      print('📏 PageSize: $pageSize');
+      print('📍 Start (offset): $start');
+      print('📊 Length: $validLength');
+      print('📋 Request JSON: ${request.toJson()}');
+      print('═══════════════════════════════════════\n');
+
+      final response = await remoteDataSource.getUserList(request);
 
       // Debug logging
       print('═══════════════════════════════════════');
-      print('📡 BMI API Response Debug');
+      print('📡 User List API Response Debug');
       print('═══════════════════════════════════════');
       print('✅ Succeeded: ${response.succeeded}');
       print('📊 Count (total): ${response.count}');
       print('🔍 Filtered: ${response.filtered}');
       print('📋 List length (received): ${response.list.length}');
+      if (response.message != null) {
+        print('💬 Message: ${response.message}');
+      }
       print('───────────────────────────────────────');
 
-      for (var i = 0; i < response.list.length; i++) {
-        final item = response.list[i];
-        final userId = item.user?.id ?? item.userId;
-        final userName = item.user?.fullname ?? item.fullname ?? 'N/A';
-        print('[$i] UserId: $userId');
-        print('    Name: $userName');
-        print('    BMI: ${item.bmi.toStringAsFixed(1)}');
+      if (response.list.isNotEmpty) {
+        for (var i = 0; i < response.list.length; i++) {
+          final item = response.list[i];
+          print('[$i] UserId: ${item.id}');
+          print('    Name: ${item.fullname}');
+        }
       }
       print('═══════════════════════════════════════\n');
 
-      if (!response.succeeded) {
-        return Left(ServerFailure(response.message));
+      if (response.succeeded == false) {
+        return Left(ServerFailure(response.message ?? 'Failed to get user list'));
       }
 
       // Convert to list of UserProfile using mapper
-      final userProfiles = BmiMapper.toUserProfileList(response.list);
+      final userProfiles = BmiMapper.userListToUserProfileList(response.list);
 
       print('� Unique users after mapping: ${userProfiles.length}');
       for (var i = 0; i < userProfiles.length; i++) {
@@ -192,9 +233,31 @@ class BMIRepositoryImpl implements BMIRepository {
       }).toList();
 
       // Calculate if there's more data
-      // Assuming filtered count represents total matching records
-      final totalPages = (response.filtered / pageSize).ceil();
-      final hasMore = page < totalPages;
+      // ALWAYS use Count (total records) for hasMore calculation, not Filtered
+      // Filtered is the count of items in current page response, not total available
+      // Count is the total number of records available in database
+      // Example: count=23 (total), filtered=10 (current page), pageSize=10
+      // Page 1: Start=1, Length=10 -> hasMore = (1 + 10 - 1) < 23 = true
+      // Page 2: Start=11, Length=10 -> hasMore = (11 + 10 - 1) < 23 = true  
+      // Page 3: Start=21, Length=10 -> hasMore = (21 + 10 - 1) < 23 = false
+      final lastItemIndex = start + validLength - 1;
+      
+      // Always use count (total records) for determining if there's more data
+      // Count represents total available records, filtered is just current page count
+      final totalAvailable = response.count > 0 ? response.count : response.filtered;
+      final hasMore = lastItemIndex < totalAvailable;
+      
+      print('📊 Pagination Calculation:');
+      print('   Start: $start');
+      print('   Length: $validLength');
+      print('   Last Item Index: $lastItemIndex');
+      print('   Count (total records): ${response.count}');
+      print('   Filtered (current page): ${response.filtered}');
+      print('   Items Received: ${response.list.length}');
+      print('   Total Available (using count): $totalAvailable');
+      print('   Has More: $hasMore');
+      print('   ⚠️ Note: Using COUNT for hasMore, not FILTERED');
+      print('───────────────────────────────────────\n');
 
       final paginatedResponse = PaginatedResponse<UserProfile>(
         data: updatedProfiles,
@@ -207,8 +270,22 @@ class BMIRepositoryImpl implements BMIRepository {
 
       return Right(paginatedResponse);
     } catch (e, stackTrace) {
-      print('❌ Error in getUserProfilesPaginated: $e');
+      print('═══════════════════════════════════════');
+      print('❌ Error in getUserProfilesPaginated');
+      print('═══════════════════════════════════════');
+      print('Error: $e');
+      print('Error Type: ${e.runtimeType}');
+      if (e is DioException) {
+        print('DioException Details:');
+        print('  - Type: ${e.type}');
+        print('  - Status Code: ${e.response?.statusCode}');
+        print('  - Status Message: ${e.response?.statusMessage}');
+        print('  - Response Data: ${e.response?.data}');
+        print('  - Request Path: ${e.requestOptions.path}');
+        print('  - Request Data: ${e.requestOptions.data}');
+      }
       print('Stack trace: $stackTrace');
+      print('═══════════════════════════════════════\n');
       return Left(ServerFailure(e.toString()));
     }
   }
@@ -247,13 +324,13 @@ class BMIRepositoryImpl implements BMIRepository {
   @override
   Future<Either<Failure, List<BMIRecord>>> getBMIHistory(String userId) async {
     try {
-      // Call API to get user's BMI history
+      // Call Bmi/list API to get user's BMI history (for detail page)
       final request = BmiListRequestModel(
         filter: [
           FilterModel(field: 'UserId', search: userId),
         ],
         sort: SortModel(field: '', type: 0),
-        start: 1,
+        start: 0,
         length: 0, // Get all records
       );
 

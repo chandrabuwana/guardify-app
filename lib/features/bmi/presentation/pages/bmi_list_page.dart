@@ -115,33 +115,48 @@ class _BMIListPageState extends State<BMIListPage> {
 
   Widget _buildSearchSection() {
     return Padding(
-      padding: REdgeInsets.symmetric(horizontal: 16),
+      padding: REdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              height: 50.h,
+              height: 52.h,
               decoration: BoxDecoration(
                 color: white,
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(14.r),
                 border: Border.all(
-                  color: const Color(0xFFB71C1C),
-                  width: 2,
+                  color: const Color(0xFFB71C1C).withOpacity(0.3),
+                  width: 1.5,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFB71C1C).withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                    spreadRadius: 0,
+                  ),
+                ],
               ),
               child: TextField(
                 controller: _searchController,
-                onChanged: _performSearch,
-                style: TS.bodyMedium.copyWith(color: neutral90),
+                onChanged: (value) {
+                  setState(() {});
+                  _performSearch(value);
+                },
+                style: TS.bodyMedium.copyWith(
+                  color: neutral90,
+                  fontSize: 14.sp,
+                ),
                 decoration: InputDecoration(
                   hintText: 'Cari',
                   hintStyle: TS.bodyMedium.copyWith(
-                    color: const Color(0xFFB71C1C),
+                    color: const Color(0xFFB71C1C).withOpacity(0.6),
+                    fontSize: 14.sp,
                   ),
                   prefixIcon: Icon(
                     Icons.search,
                     color: const Color(0xFFB71C1C),
-                    size: 24.w,
+                    size: 22.w,
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -160,28 +175,48 @@ class _BMIListPageState extends State<BMIListPage> {
                   border: InputBorder.none,
                   contentPadding: REdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 14,
+                    vertical: 16,
                   ),
                 ),
               ),
             ),
           ),
-          16.horizontalSpace,
+          12.horizontalSpace,
           Container(
-            width: 50.w,
-            height: 50.h,
+            width: 52.w,
+            height: 52.h,
             decoration: BoxDecoration(
-              color: const Color(0xFFB71C1C),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: IconButton(
-              onPressed: _showFilterDialog,
-              icon: Icon(
-                Icons.filter_list,
-                color: white,
-                size: 24.w,
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFB71C1C),
+                  const Color(0xFFD32F2F),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              padding: EdgeInsets.zero,
+              borderRadius: BorderRadius.circular(14.r),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFB71C1C).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _showFilterDialog,
+                borderRadius: BorderRadius.circular(14.r),
+                child: Center(
+                  child: Icon(
+                    Icons.filter_list,
+                    color: white,
+                    size: 24.w,
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -254,15 +289,21 @@ class _BMIListPageState extends State<BMIListPage> {
       color: primaryColor,
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
+          final metrics = scrollInfo.metrics;
+          final threshold = metrics.maxScrollExtent - 200;
+          
           if (!state.isLoadingMore &&
               state.hasMoreData &&
-              scrollInfo.metrics.pixels >=
-                  scrollInfo.metrics.maxScrollExtent - 200) {
+              metrics.pixels >= threshold &&
+              metrics.maxScrollExtent > 0) {
+            print('📜 Scroll detected: pixels=${metrics.pixels}, maxScrollExtent=${metrics.maxScrollExtent}, threshold=$threshold');
+            print('   isLoadingMore=${state.isLoadingMore}, hasMoreData=${state.hasMoreData}');
             _bmiBloc.add(BMILoadMoreUsers());
           }
           return false;
         },
         child: GridView.builder(
+          key: const PageStorageKey('bmi_list_grid'),
           padding: REdgeInsets.symmetric(horizontal: 16, vertical: 8),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
@@ -276,7 +317,11 @@ class _BMIListPageState extends State<BMIListPage> {
               return _buildLoadingCard();
             }
             final userProfile = combinedList[index];
-            return _buildUserProfileCard(userProfile);
+            // Use key to ensure unique widgets and proper rebuild
+            return _buildUserProfileCard(
+              userProfile, 
+              key: ValueKey('user_${userProfile.id}_$index'),
+            );
           },
         ),
       ),
@@ -286,60 +331,120 @@ class _BMIListPageState extends State<BMIListPage> {
   Widget _buildLoadingCard() {
     return Container(
       decoration: BoxDecoration(
-        color: white,
-        borderRadius: BorderRadius.circular(16.r),
+        gradient: LinearGradient(
+          colors: [
+            white,
+            const Color(0xFFFFF9F9),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(
+          color: const Color(0xFFB71C1C).withOpacity(0.1),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: neutral50.withOpacity(0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: const Color(0xFFB71C1C).withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
           ),
         ],
       ),
       child: Center(
         child: CircularProgressIndicator(
-          color: primaryColor,
-          strokeWidth: 2,
+          color: const Color(0xFFB71C1C),
+          strokeWidth: 2.5,
         ),
       ),
     );
   }
 
-  Widget _buildUserProfileCard(dynamic userProfile) {
+  Widget _buildUserProfileCard(dynamic userProfile, {Key? key}) {
     final hasData = userProfile.currentBMI != null;
+    final bmiStatus = userProfile.currentBMIStatus;
 
-    return GestureDetector(
-      onTap: () => _navigateToDetail(userProfile),
-      child: Container(
-        decoration: BoxDecoration(
-          color: white,
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: neutral50.withOpacity(0.15),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    return Container(
+      key: key,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToDetail(userProfile),
+          borderRadius: BorderRadius.circular(18.r),
+          child: Container(
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: hasData
+                  ? LinearGradient(
+                      colors: [
+                        white,
+                        const Color(0xFFFFF9F9),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: hasData ? null : white,
+              borderRadius: BorderRadius.circular(18.r),
+              border: Border.all(
+                color: hasData
+                    ? const Color(0xFFB71C1C).withOpacity(0.1)
+                    : neutral20,
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: hasData
+                      ? const Color(0xFFB71C1C).withOpacity(0.1)
+                      : neutral50.withOpacity(0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: neutral50.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                  spreadRadius: 0,
+                ),
+              ],
             ),
-          ],
-        ),
         child: Stack(
           children: [
             Padding(
-              padding: REdgeInsets.all(12),
+              padding: REdgeInsets.symmetric(horizontal: 12, vertical: 12),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  8.verticalSpace,
-
+                  const Spacer(),
                   // Profile Photo
-                  Container(
-                    width: 70.w,
-                    height: 70.w,
+                  Center(
+                    child: Container(
+                    width: 75.w,
+                    height: 75.w,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: neutral20,
-                      border: Border.all(color: neutral30, width: 2),
+                      border: Border.all(
+                        color: hasData
+                            ? const Color(0xFFB71C1C).withOpacity(0.2)
+                            : neutral30,
+                        width: 3,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: hasData
+                              ? const Color(0xFFB71C1C).withOpacity(0.15)
+                              : neutral50.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                          spreadRadius: 0,
+                        ),
+                      ],
                     ),
                     child: userProfile.profileImageUrl != null
                         ? ClipOval(
@@ -360,18 +465,19 @@ class _BMIListPageState extends State<BMIListPage> {
                             size: 35.w,
                             color: neutral50,
                           ),
+                    ),
                   ),
 
                   10.verticalSpace,
 
                   // Name
-                  Flexible(
+                  Center(
                     child: Text(
                       userProfile.name,
                       style: TS.titleSmall.copyWith(
                         fontWeight: FontWeight.bold,
                         color: neutral90,
-                        fontSize: 14.sp,
+                        fontSize: 15.sp,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 2,
@@ -380,29 +486,77 @@ class _BMIListPageState extends State<BMIListPage> {
                   ),
 
                   if (hasData) ...[
-                    8.verticalSpace,
+                    10.verticalSpace,
 
-                    // BMI Value
-                    Text(
-                      '${userProfile.currentBMI!.toStringAsFixed(1)} Kg/m2',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFFB71C1C),
-                        fontSize: 16.sp,
+                    // BMI Value with Status Badge
+                    Center(
+                      child: Container(
+                      padding: REdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFFB71C1C).withOpacity(0.1),
+                            const Color(0xFFB71C1C).withOpacity(0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: const Color(0xFFB71C1C).withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '${userProfile.currentBMI!.toStringAsFixed(1).replaceAll('.', ',')} Kg/m2',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFB71C1C),
+                              fontSize: 17.sp,
+                            ),
+                          ),
+                          if (bmiStatus != null) ...[
+                            4.verticalSpace,
+                            Text(
+                              bmiStatus.label,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF2C5F7C),
+                                fontSize: 11.sp,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                       ),
                     ),
 
-                    10.verticalSpace,
+                    12.verticalSpace,
 
-                    // Weight and Height Info with striped background
-                    Container(
-                      padding:
-                          REdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.yellow.withOpacity(0.3),
-                        border: Border.all(color: Colors.black, width: 1),
-                      ),
-                      child: Row(
+                    // Weight and Height Info
+                    Center(
+                      child: Container(
+                        width: double.infinity,
+                        padding:
+                            REdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(0xFFFFF5F5),
+                              const Color(0xFFFFF9F9),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: const Color(0xFFB71C1C).withOpacity(0.15),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Expanded(
@@ -412,26 +566,30 @@ class _BMIListPageState extends State<BMIListPage> {
                                 Text(
                                   'Berat',
                                   style: TextStyle(
-                                    color: neutral90,
-                                    fontSize: 10.sp,
+                                    color: const Color(0xFF2C5F7C),
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                2.verticalSpace,
+                                4.verticalSpace,
                                 Text(
                                   '${userProfile.currentWeight!.toStringAsFixed(0)} KG',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: neutral90,
-                                    fontSize: 11.sp,
+                                    color: const Color(0xFFB71C1C),
+                                    fontSize: 13.sp,
                                   ),
                                 ),
                               ],
                             ),
                           ),
                           Container(
-                            width: 1,
-                            height: 25.h,
-                            color: neutral30,
+                            width: 1.5,
+                            height: 30.h,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFB71C1C).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(1),
+                            ),
                           ),
                           Expanded(
                             child: Column(
@@ -440,17 +598,18 @@ class _BMIListPageState extends State<BMIListPage> {
                                 Text(
                                   'Tinggi',
                                   style: TextStyle(
-                                    color: neutral90,
-                                    fontSize: 10.sp,
+                                    color: const Color(0xFF2C5F7C),
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                2.verticalSpace,
+                                4.verticalSpace,
                                 Text(
                                   '${userProfile.height!.toStringAsFixed(0)} CM',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: neutral90,
-                                    fontSize: 11.sp,
+                                    color: const Color(0xFFB71C1C),
+                                    fontSize: 13.sp,
                                   ),
                                 ),
                               ],
@@ -458,24 +617,32 @@ class _BMIListPageState extends State<BMIListPage> {
                           ),
                         ],
                       ),
+                      ),
                     ),
                   ] else ...[
                     10.verticalSpace,
-                    Icon(
-                      Icons.scale_outlined,
-                      size: 24.w,
-                      color: neutral50,
-                    ),
-                    4.verticalSpace,
-                    Text(
-                      'Belum ada data',
-                      style: TS.bodySmall.copyWith(
-                        color: neutral50,
-                        fontSize: 11.sp,
+                    Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.scale_outlined,
+                            size: 24.w,
+                            color: neutral50,
+                          ),
+                          4.verticalSpace,
+                          Text(
+                            'Belum ada data',
+                            style: TS.bodySmall.copyWith(
+                              color: neutral50,
+                              fontSize: 11.sp,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ],
+                  const Spacer(),
                 ],
               ),
             ),
@@ -483,22 +650,39 @@ class _BMIListPageState extends State<BMIListPage> {
             // Pin icon at top left
             if (userProfile.isPinned)
               Positioned(
-                top: 8,
-                left: 8,
+                top: 10,
+                left: 10,
                 child: Container(
-                  padding: REdgeInsets.all(4),
+                  padding: REdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFB71C1C),
-                    borderRadius: BorderRadius.circular(4.r),
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFB71C1C),
+                        const Color(0xFFD32F2F),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(8.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFB71C1C).withOpacity(0.4),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                        spreadRadius: 0,
+                      ),
+                    ],
                   ),
                   child: Icon(
                     Icons.push_pin,
-                    size: 14.w,
+                    size: 16.w,
                     color: white,
                   ),
                 ),
               ),
           ],
+        ),
+          ),
         ),
       ),
     );

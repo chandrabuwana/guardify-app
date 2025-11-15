@@ -19,7 +19,10 @@ import '../bloc/attendance_event.dart';
 import '../bloc/attendance_state.dart';
 import '../../../shift/data/datasources/shift_remote_data_source.dart';
 import '../../../shift/data/models/shift_current_location_response.dart';
+import '../../../schedule/data/datasources/schedule_remote_data_source.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/security/security_manager.dart';
+import '../../../../core/constants/app_constants.dart';
 
 class CheckInPage extends StatefulWidget {
   final String userId;
@@ -29,6 +32,7 @@ class CheckInPage extends StatefulWidget {
   final String? prefillCurrentLocation;
   final String? prefillRouteName;
   final String? prefillShiftDetailId;
+  final String? prefillTugasLanjutan; // Tugas lanjutan dari ListCarryOver
 
   const CheckInPage({
     Key? key,
@@ -39,6 +43,7 @@ class CheckInPage extends StatefulWidget {
     this.prefillCurrentLocation,
     this.prefillRouteName,
     this.prefillShiftDetailId,
+    this.prefillTugasLanjutan,
   }) : super(key: key);
 
   @override
@@ -76,6 +81,8 @@ class _CheckInPageState extends State<CheckInPage> {
       _lokasiPenugasanController.text = widget.prefillLocation!;
     }
     _shiftDetailId = widget.prefillShiftDetailId;
+    // Jika prefillShiftDetailId kosong, cek dari storage
+    _loadShiftDetailIdFromStorage();
     final prefillCurrentLocation = widget.prefillCurrentLocation;
     if (prefillCurrentLocation != null && prefillCurrentLocation.isNotEmpty) {
       _lokasiTerkiniController.text = prefillCurrentLocation;
@@ -90,6 +97,61 @@ class _CheckInPageState extends State<CheckInPage> {
       _rutePatroliController.text = '-';
       if (prefillCurrentLocation != null && prefillCurrentLocation.isNotEmpty) {
         _getCurrentLocation();
+      }
+    }
+    
+    // Prefill tugas lanjutan dari ListCarryOver
+    print('📋 CheckInPage initState - prefillTugasLanjutan: ${widget.prefillTugasLanjutan}');
+    if (widget.prefillTugasLanjutan != null && widget.prefillTugasLanjutan!.isNotEmpty) {
+      final tasks = widget.prefillTugasLanjutan!.split('\n').where((task) => task.trim().isNotEmpty).toList();
+      _tugasLanjutan = tasks;
+      if (_tugasLanjutan.isNotEmpty) {
+        final textToSet = _tugasLanjutan.join('\n');
+        _tugasLanjutanController.text = textToSet;
+        print('✅ CheckInPage initState - Tugas lanjutan filled: ${_tugasLanjutan.length} tasks');
+        print('✅ CheckInPage initState - Tugas lanjutan text: ${_tugasLanjutanController.text}');
+        print('✅ CheckInPage initState - _tugasLanjutan list: $_tugasLanjutan');
+      }
+    } else {
+      print('⚠️ CheckInPage initState - prefillTugasLanjutan is null or empty');
+    }
+    
+    // Verify dan update UI setelah initState selesai
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        print('🔍 CheckInPage - PostFrameCallback: _tugasLanjutan.length = ${_tugasLanjutan.length}');
+        print('🔍 CheckInPage - PostFrameCallback: controller.text = "${_tugasLanjutanController.text}"');
+        
+        // Pastikan controller terisi jika prefill ada
+        if (widget.prefillTugasLanjutan != null && widget.prefillTugasLanjutan!.isNotEmpty) {
+          if (_tugasLanjutanController.text != widget.prefillTugasLanjutan) {
+            _tugasLanjutanController.text = widget.prefillTugasLanjutan!;
+            _tugasLanjutan = widget.prefillTugasLanjutan!.split('\n').where((task) => task.trim().isNotEmpty).toList();
+            print('🔄 CheckInPage - PostFrameCallback: Re-set controller from prefill: "${_tugasLanjutanController.text}"');
+          }
+        } else if (_tugasLanjutanController.text.isNotEmpty && _tugasLanjutan.isEmpty) {
+          // Sync _tugasLanjutan dari controller jika controller sudah terisi
+          _tugasLanjutan = _tugasLanjutanController.text.split('\n').where((task) => task.trim().isNotEmpty).toList();
+          print('🔄 CheckInPage - PostFrameCallback: Synced _tugasLanjutan from controller');
+        }
+        
+        // Trigger rebuild untuk update UI
+        if (mounted) {
+          setState(() {
+            print('🔄 CheckInPage - PostFrameCallback: Triggered setState to update UI');
+          });
+        }
+      }
+    });
+  }
+
+  Future<void> _loadShiftDetailIdFromStorage() async {
+    if (_shiftDetailId == null || _shiftDetailId!.isEmpty) {
+      final storedId = await SecurityManager.readSecurely(AppConstants.shiftDetailIdKey);
+      if (storedId != null && storedId.isNotEmpty) {
+        setState(() {
+          _shiftDetailId = storedId;
+        });
       }
     }
   }
@@ -127,7 +189,42 @@ class _CheckInPageState extends State<CheckInPage> {
                 ? data.routeName!
                 : '-';
         _rutePatroliController.text = routeName;
-        _shiftDetailId = data?.shiftDetailId ?? _shiftDetailId;
+        final newShiftDetailId = data?.shiftDetailId;
+        if (newShiftDetailId != null && newShiftDetailId.isNotEmpty) {
+          _shiftDetailId = newShiftDetailId;
+          print('📋 ShiftDetailId from getCurrentLocation: $_shiftDetailId');
+          
+          // Simpan IdShiftDetail ke storage jika ada
+          SecurityManager.storeSecurely(
+            AppConstants.shiftDetailIdKey,
+            newShiftDetailId,
+          ).then((_) {
+            print('✅ ShiftDetailId saved to storage from getCurrentLocation: $newShiftDetailId');
+          });
+        }
+        
+        // Ambil tugas lanjutan dari ListCarryOver (status OPEN)
+        print('📋 _prefillFromShiftApi - Checking carryOverTasks');
+        final carryOverTasks = data?.carryOverTasks;
+        print('📋 _prefillFromShiftApi - carryOverTasks: $carryOverTasks');
+        
+        if (carryOverTasks != null && carryOverTasks.isNotEmpty) {
+          _tugasLanjutan = carryOverTasks.split('\n').where((task) => task.trim().isNotEmpty).toList();
+          _tugasLanjutanController.text = carryOverTasks;
+          print('✅ _prefillFromShiftApi - Tugas lanjutan loaded: ${_tugasLanjutan.length} tasks');
+          print('✅ _prefillFromShiftApi - Tugas lanjutan text: ${_tugasLanjutanController.text}');
+        } else {
+          print('⚠️ _prefillFromShiftApi - No carry over tasks found');
+          print('⚠️ _prefillFromShiftApi - data is null: ${data == null}');
+          if (data != null) {
+            print('⚠️ _prefillFromShiftApi - data.raw keys: ${data.raw.keys.toList()}');
+          }
+        }
+        
+        if (newShiftDetailId == null || newShiftDetailId.isEmpty) {
+          print('⚠️ ShiftDetailId is null or empty from getCurrentLocation response');
+          print('Response data - fullname: ${data?.fullname}, location: ${data?.location}');
+        }
       });
     } catch (e) {
       // Fallback UI values unchanged on failure
@@ -194,11 +291,30 @@ class _CheckInPageState extends State<CheckInPage> {
 
   @override
   Widget build(BuildContext context) {
+    // PENTING: Sync _tugasLanjutan dari controller TERLEBIH DAHULU jika controller sudah punya nilai
+    // Ini untuk handle case ketika controller terisi di initState tapi _tugasLanjutan belum sync
+    if (_tugasLanjutanController.text.isNotEmpty && _tugasLanjutan.isEmpty) {
+      _tugasLanjutan = _tugasLanjutanController.text.split('\n').where((task) => task.trim().isNotEmpty).toList();
+      print('🔄 Build - Synced _tugasLanjutan from controller: ${_tugasLanjutan.length} tasks');
+    }
+    
+    // JANGAN overwrite controller jika sudah punya nilai (dari prefill)
+    // Hanya update controller jika:
+    // 1. _tugasLanjutan tidak kosong DAN
+    // 2. Controller KOSONG (belum terisi)
+    // JANGAN overwrite controller yang sudah punya nilai
     final tugasDisplayText =
         _tugasLanjutan.isEmpty ? '' : _tugasLanjutan.join('\n');
-    if (_tugasLanjutanController.text != tugasDisplayText) {
+    
+    // JANGAN overwrite controller jika sudah punya nilai dari prefill
+    if (tugasDisplayText.isNotEmpty && 
+        _tugasLanjutanController.text.isEmpty) {
+      // Hanya update jika controller KOSONG, jangan overwrite yang sudah ada
       _tugasLanjutanController.text = tugasDisplayText;
+      print('🔄 Build - Updated tugas lanjutan controller (only if empty): $tugasDisplayText');
     }
+    
+    print('🔍 Build - Final check: _tugasLanjutan.length = ${_tugasLanjutan.length}, controller.text = "${_tugasLanjutanController.text}"');
 
     return BlocProvider.value(
       value: _attendanceBloc..add(const CheckInStartedEvent()),
@@ -214,8 +330,22 @@ class _CheckInPageState extends State<CheckInPage> {
         body: BlocConsumer<AttendanceBloc, AttendanceState>(
           listener: (context, state) {
             if (state is AttendanceCheckedIn) {
+              // Simpan attendanceId ke storage setelah check-in berhasil
+              if (state.attendance.id.isNotEmpty) {
+                SecurityManager.storeSecurely(
+                  AppConstants.attendanceIdKey,
+                  state.attendance.id,
+                ).then((_) {
+                  print('✅ CheckIn - attendanceId saved to storage: ${state.attendance.id}');
+                });
+              }
               // Show success dialog when check-in is successful
-              _showSuccessDialog();
+              // Return true to indicate successful check-in, so home page can reload data
+              _showSuccessDialog().then((shouldReload) {
+                if (shouldReload == true && mounted) {
+                  Navigator.of(context).pop(true);
+                }
+              });
             } else if (state is AttendanceFailure) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -555,22 +685,30 @@ class _CheckInPageState extends State<CheckInPage> {
             });
           },
           isRequired: true,
+          multiple: false,
+          maxPhotos: 1,
           margin: REdgeInsets.only(bottom: 16),
         ),
 
+        // Gunakan ValueKey dengan controller text untuk memaksa rebuild ketika controller berubah
         InputPrimary(
+          key: ValueKey('tugas_lanjutan_${_tugasLanjutanController.text}'),
           label: 'Tugas Lanjutan',
           controller: _tugasLanjutanController,
           hint: 'Tugas lanjutan akan terisi otomatis',
           enable: false,
           readOnly: true,
-          maxLines: _tugasLanjutan.isEmpty
+          maxLines: (_tugasLanjutan.isEmpty && _tugasLanjutanController.text.isEmpty)
               ? 1
-              : (_tugasLanjutan.length > 3 ? 4 : _tugasLanjutan.length),
+              : (_tugasLanjutan.isNotEmpty
+                  ? (_tugasLanjutan.length > 3 ? 4 : _tugasLanjutan.length)
+                  : (_tugasLanjutanController.text.split('\n').length > 3 
+                      ? 4 
+                      : _tugasLanjutanController.text.split('\n').length)),
           margin: REdgeInsets.only(bottom: 12),
         ),
 
-        if (_tugasLanjutan.isEmpty)
+        if (_tugasLanjutan.isEmpty && _tugasLanjutanController.text.isEmpty)
           Container(
             width: double.infinity,
             padding: REdgeInsets.all(12),
@@ -764,8 +902,7 @@ class _CheckInPageState extends State<CheckInPage> {
   bool _canProceedFromStep2() {
     return _pakaianPersonil.isNotEmpty &&
         _laporanPengamananController.text.isNotEmpty &&
-        _fotoPengamanan.isNotEmpty &&
-        _tugasLanjutan.isNotEmpty;
+        _fotoPengamanan.isNotEmpty;
   }
 
   void _submitCheckIn() async {
@@ -854,6 +991,84 @@ class _CheckInPageState extends State<CheckInPage> {
     );
 
     if (confirmed == true && mounted) {
+      print('🚀 Submit CheckIn - Starting...');
+      print('🚀 Submit CheckIn - _shiftDetailId: $_shiftDetailId');
+      
+      // Cek jika shiftDetailId kosong, ambil dari storage atau hit API
+      String? shiftDetailId = _shiftDetailId;
+      print('🚀 Submit CheckIn - shiftDetailId initial: $shiftDetailId');
+      
+      if (shiftDetailId == null || shiftDetailId.isEmpty) {
+        print('⚠️ Submit CheckIn - shiftDetailId is empty, checking storage...');
+        // Cek dari storage dulu
+        shiftDetailId = await SecurityManager.readSecurely(AppConstants.shiftDetailIdKey);
+        
+        // Jika masih kosong, hit API /Shift/get_current untuk mendapatkan IdShiftDetail
+        if (shiftDetailId == null || shiftDetailId.isEmpty) {
+          try {
+            final scheduleDs = getIt<ScheduleRemoteDataSource>();
+            final userId = widget.userId;
+            final body = {'IdUser': userId};
+            
+            final resp = await scheduleDs.getCurrentShift(body);
+            
+            print('📋 Full response from /Shift/get_current:');
+            print('  - succeeded: ${resp.succeeded}');
+            print('  - code: ${resp.code}');
+            print('  - message: ${resp.message}');
+            print('  - data: ${resp.data != null ? "exists" : "null"}');
+            if (resp.data != null) {
+              print('  - data.id: ${resp.data!.id}');
+              print('  - data.name: ${resp.data!.name}');
+              print('  - data.checkin: ${resp.data!.checkin}');
+            }
+            
+            // Ambil Id dari response sebagai IdShiftDetail (field IdShiftDetail tidak ada di response)
+            shiftDetailId = resp.data?.id;
+            
+            print('📋 ShiftDetailId extracted from /Shift/get_current API (using data.id): $shiftDetailId');
+            
+            // Simpan ke storage jika berhasil mendapatkan
+            if (shiftDetailId != null && shiftDetailId.isNotEmpty) {
+              await SecurityManager.storeSecurely(
+                AppConstants.shiftDetailIdKey,
+                shiftDetailId,
+              );
+              print('✅ ShiftDetailId saved to storage: $shiftDetailId');
+              // Update state juga
+              setState(() {
+                _shiftDetailId = shiftDetailId;
+              });
+            } else {
+              print('⚠️ ShiftDetailId is null or empty from /Shift/get_current API response');
+            }
+          } catch (e) {
+            // Jika API gagal, tetap lanjut submit dengan shiftDetailId kosong
+            print('❌ Error getting shiftDetailId from /Shift/get_current: $e');
+          }
+        } else {
+          print('✅ ShiftDetailId from storage: $shiftDetailId');
+        }
+      } else {
+        print('✅ ShiftDetailId already set: $shiftDetailId');
+      }
+      
+      print('📤 Submitting with ShiftDetailId: $shiftDetailId');
+      
+      // Validasi: Pastikan shiftDetailId tidak kosong sebelum submit
+      if (shiftDetailId == null || shiftDetailId.isEmpty) {
+        print('❌ ERROR: ShiftDetailId is still empty/null before submit!');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Shift Detail tidak ditemukan. Silakan coba lagi.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
       // Submit to bloc - success dialog will be shown by listener
       final request = CheckInRequest(
         userId: widget.userId,
@@ -868,15 +1083,17 @@ class _CheckInPageState extends State<CheckInPage> {
         fotoPengamanan: _fotoPengamanan,
         tugasLanjutan: _tugasLanjutan,
         fotoWajah: _fotoWajah,
-        shiftDetailId: _shiftDetailId,
+        shiftDetailId: shiftDetailId, // Pastikan ini tidak null/kosong
       );
+      
+      print('✅ CheckInRequest created with shiftDetailId: ${request.shiftDetailId}');
 
       _attendanceBloc.add(CheckInSubmittedEvent(request));
     }
   }
 
-  void _showSuccessDialog() async {
-    await showDialog(
+  Future<bool> _showSuccessDialog() async {
+    final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
@@ -891,11 +1108,11 @@ class _CheckInPageState extends State<CheckInPage> {
               width: 60.w,
               height: 60.h,
               decoration: const BoxDecoration(
-                color: Color(0xFFB71C1C),
+                color: Colors.green,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.thumb_up,
+                Icons.check_circle,
                 color: Colors.white,
                 size: 30,
               ),
@@ -923,12 +1140,10 @@ class _CheckInPageState extends State<CheckInPage> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                // Safely navigate back to home by popping until home route
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.of(context).pop(true); // Return true to indicate success
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB71C1C),
+                backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
@@ -945,6 +1160,9 @@ class _CheckInPageState extends State<CheckInPage> {
         ],
       ),
     );
+    
+    // Return result (true jika user klik OK, false jika dialog ditutup)
+    return result ?? false;
   }
 
   @override

@@ -2,10 +2,17 @@ import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../models/shift_checkout_detail_response.dart';
 import '../models/shift_current_location_response.dart';
 
 abstract class ShiftRemoteDataSource {
   Future<ShiftCurrentLocationResponse> getCurrentLocation({
+    required double latitude,
+    required double longitude,
+  });
+
+  Future<ShiftCheckoutDetailResponse> getCheckoutDetail({
+    required String shiftDetailId,
     required double latitude,
     required double longitude,
   });
@@ -28,12 +35,11 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
       // TODO(guardify): Use actual coordinates once attendance flow is ready.
     }
 
-    final tokenPayload = await _buildTokenPayload();
-
+    final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
     final body = {
+      'IdUser': userId,
       'Latitude': _hardcodedLatitude,
       'Longitude': _hardcodedLongitude,
-      if (tokenPayload != null) 'Token': tokenPayload,
     };
     final response = await dio.post(
       '/Shift/get_current_location',
@@ -42,37 +48,31 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
     return ShiftCurrentLocationResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<Map<String, dynamic>?> _buildTokenPayload() async {
-    final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
-    final roleId = await SecurityManager.readSecurely('user_role_id');
-    final roleName = await SecurityManager.readSecurely('user_role_name');
-    final username = await SecurityManager.readSecurely('user_username');
-    final fullName = await SecurityManager.readSecurely('user_fullname');
-    final mail = await SecurityManager.readSecurely('user_mail');
-
-    final hasUserInfo = [
-      userId,
-      roleId,
-      roleName,
-      username,
-      fullName,
-      mail,
-    ].any((value) => value != null && value.isNotEmpty);
-
-    if (!hasUserInfo) return null;
-
-    return {
-      'Id': userId ?? '',
-      'Role': [
-        {
-          'Id': roleId ?? '',
-          'Nama': roleName ?? '',
-        },
-      ],
-      'Username': username ?? '',
-      'FullName': fullName ?? '',
-      'Mail': mail ?? '',
+  @override
+  Future<ShiftCheckoutDetailResponse> getCheckoutDetail({
+    required String shiftDetailId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    // Gunakan hardcoded lat/lng seperti di check-in/check-out
+    // Selalu gunakan hardcoded untuk konsistensi
+    final body = {
+      'IdShiftDetail': shiftDetailId,
+      'Latitude': _hardcodedLatitude,
+      'Longitude': _hardcodedLongitude,
     };
+
+    print('📤 getCheckoutDetail - Request body:');
+    print('  - IdShiftDetail: $shiftDetailId');
+    print('  - Latitude: ${_hardcodedLatitude} (hardcoded)');
+    print('  - Longitude: ${_hardcodedLongitude} (hardcoded)');
+
+    final response = await dio.post(
+      '/Shift/get_detail_checkout',
+      data: body,
+    );
+
+    return ShiftCheckoutDetailResponse.fromJson(response.data as Map<String, dynamic>);
   }
 }
 
