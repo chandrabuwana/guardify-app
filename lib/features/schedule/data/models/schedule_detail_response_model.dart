@@ -86,7 +86,7 @@ class ScheduleDetailDataModel {
         id: personnel.userId,
         name: personnel.fullname,
         position: location,
-        photoUrl: personnel.images.isNotEmpty ? personnel.images : null,
+        photoUrl: (personnel.images != null && personnel.images!.isNotEmpty) ? personnel.images : null,
       );
     }).toList();
 
@@ -114,12 +114,12 @@ class PersonnelModel {
   final String fullname;
 
   @JsonKey(name: 'Images')
-  final String images;
+  final String? images;
 
   PersonnelModel({
     required this.userId,
     required this.fullname,
-    required this.images,
+    this.images,
   });
 
   factory PersonnelModel.fromJson(Map<String, dynamic> json) =>

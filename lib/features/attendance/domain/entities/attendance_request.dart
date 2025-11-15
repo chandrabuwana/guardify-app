@@ -70,34 +70,52 @@ class CheckInRequest extends Equatable {
 class CheckOutRequest extends Equatable {
   final String userId;
   final String attendanceId;
-  final String lokasiPenugasanAkhir;
+  final String? shiftDetailId; // IdShiftDetail
+  final String lokasiPenugasanAkhir; // LocationName
   final String statusTugas; // selesai/tidak selesai
   final String pakaianPersonil;
-  final String laporanPengamanan;
-  final List<String> fotoPengamanan;
-  final List<String> buktiLaporan;
+  final String laporanPengamanan; // Laporan
+  final List<String> fotoPengamanan; // PhotoPengamanan
+  final List<String> buktiLaporan; // PhotoLembur
+  final String? fotoWajah; // PhotoAbsen - Base64 encoded image path
+  final String? coTask; // CoTask - tugas tertunda/completion task
+  final bool isOvertime; // IsOvertime
+  final double? latitude;
+  final double? longitude;
 
   const CheckOutRequest({
     required this.userId,
     required this.attendanceId,
+    this.shiftDetailId,
     required this.lokasiPenugasanAkhir,
     required this.statusTugas,
     required this.pakaianPersonil,
     required this.laporanPengamanan,
     required this.fotoPengamanan,
     required this.buktiLaporan,
+    this.fotoWajah,
+    this.coTask,
+    this.isOvertime = false,
+    this.latitude,
+    this.longitude,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'userId': userId,
       'attendanceId': attendanceId,
+      'shiftDetailId': shiftDetailId,
       'lokasiPenugasanAkhir': lokasiPenugasanAkhir,
       'statusTugas': statusTugas,
       'pakaianPersonil': pakaianPersonil,
       'laporanPengamanan': laporanPengamanan,
       'fotoPengamanan': fotoPengamanan,
       'buktiLaporan': buktiLaporan,
+      'fotoWajah': fotoWajah,
+      'coTask': coTask,
+      'isOvertime': isOvertime,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -105,11 +123,17 @@ class CheckOutRequest extends Equatable {
   List<Object?> get props => [
         userId,
         attendanceId,
+        shiftDetailId,
         lokasiPenugasanAkhir,
         statusTugas,
         pakaianPersonil,
         laporanPengamanan,
         fotoPengamanan,
         buktiLaporan,
+        fotoWajah,
+        coTask,
+        isOvertime,
+        latitude,
+        longitude,
       ];
 }

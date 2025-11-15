@@ -98,7 +98,7 @@ PersonnelModel _$PersonnelModelFromJson(Map<String, dynamic> json) =>
         final val = PersonnelModel(
           userId: $checkedConvert('UserId', (v) => v as String),
           fullname: $checkedConvert('Fullname', (v) => v as String),
-          images: $checkedConvert('Images', (v) => v as String),
+          images: $checkedConvert('Images', (v) => v as String?),
         );
         return val;
       },

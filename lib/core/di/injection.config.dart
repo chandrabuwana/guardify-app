@@ -341,8 +341,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i352.LaporanKegiatanRepository>(() =>
         _i713.LaporanKegiatanRepositoryImpl(
             remoteDataSource: gh<_i590.LaporanKegiatanRemoteDataSource>()));
-    gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
-        () => _i109.AttendanceRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i893.PanicButtonBloc>(() => _i893.PanicButtonBloc(
           activatePanicButtonUseCase: gh<_i491.ActivatePanicButtonUseCase>(),
           getVerificationItemsUseCase: gh<_i4.GetVerificationItemsUseCase>(),
@@ -375,6 +373,11 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i807.GetScheduleDetail(gh<_i752.ScheduleRepository>()));
     gh.factory<_i947.GetShiftDetail>(
         () => _i947.GetShiftDetail(gh<_i752.ScheduleRepository>()));
+    gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
+        () => _i109.AttendanceRemoteDataSourceImpl(
+              dio: gh<_i361.Dio>(),
+              scheduleRemoteDataSource: gh<_i563.ScheduleRemoteDataSource>(),
+            ));
     gh.lazySingleton<_i695.DocumentRepository>(
         () => _i117.DocumentRepositoryImpl(
               remoteDataSource: gh<_i125.DocumentRemoteDataSource>(),

@@ -15,6 +15,8 @@ class AppConstants {
   static const String userIdKey = 'user_id';
   static const String biometricEnabledKey = 'biometric_enabled';
   static const String pinKey = 'user_pin';
+  static const String shiftDetailIdKey = 'shift_detail_id';
+  static const String attendanceIdKey = 'attendance_id';
 
   // Security Configuration
   static const String encryptionKey = 'guardify_encryption_key_2024';

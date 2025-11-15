@@ -167,11 +167,11 @@ class CurrentShiftData {
 class CurrentShiftPersonnel {
   final String userId;
   final String fullname;
-  final String images;
+  final String? images;
 
   const CurrentShiftPersonnel({
     required this.userId,
     required this.fullname,
-    required this.images,
+    this.images,
   });
 }

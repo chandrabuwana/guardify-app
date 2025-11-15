@@ -5,6 +5,39 @@ import '../models/bmi_api_response_model.dart';
 
 /// Mapper untuk convert API model ke domain entities
 class BmiMapper {
+  /// Convert UserListItemModel ke UserProfile (untuk User/list API)
+  static UserProfile userListItemToUserProfile(UserListItemModel userItem) {
+    return UserProfile(
+      id: userItem.id,
+      name: userItem.fullname,
+      profileImageUrl: userItem.urlFoto,
+      role: UserRole.anggota, // Default role, can be updated based on requirements
+      currentWeight: null, // Will be loaded from BMI API when detail is clicked
+      height: null, // Will be loaded from BMI API when detail is clicked
+      currentBMI: null, // Will be loaded from BMI API when detail is clicked
+      currentBMIStatus: null, // Will be loaded from BMI API when detail is clicked
+      lastUpdated: null, // Will be loaded from BMI API when detail is clicked
+      isPinned: false, // Will be managed locally
+      recommendation: null, // Will be loaded from BMI API when detail is clicked
+    );
+  }
+
+  /// Convert list of UserListItemModel to list of UserProfile
+  /// Remove duplicates based on user ID
+  static List<UserProfile> userListToUserProfileList(
+      List<UserListItemModel> userList) {
+    // Use a map to ensure unique users by ID
+    final Map<String, UserProfile> uniqueUsers = {};
+    
+    for (var userItem in userList) {
+      // Skip if user ID is empty or already exists
+      if (userItem.id.isNotEmpty && !uniqueUsers.containsKey(userItem.id)) {
+        uniqueUsers[userItem.id] = userListItemToUserProfile(userItem);
+      }
+    }
+    
+    return uniqueUsers.values.toList();
+  }
   /// Convert BmiDataModel ke UserProfile
   /// Menggunakan kombinasi BMI Record ID dan User ID untuk unique identification
   static UserProfile toUserProfile(BmiDataModel bmiData,

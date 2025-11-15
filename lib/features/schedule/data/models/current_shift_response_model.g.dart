@@ -64,6 +64,7 @@ CurrentShiftDataModel _$CurrentShiftDataModelFromJson(
                   .map(
                       (e) => PersonnelModel.fromJson(e as Map<String, dynamic>))
                   .toList()),
+          idShiftDetail: $checkedConvert('IdShiftDetail', (v) => v as String?),
         );
         return val;
       },
@@ -75,7 +76,8 @@ CurrentShiftDataModel _$CurrentShiftDataModelFromJson(
         'checkout': 'Checkout',
         'checkinTime': 'CheckinTime',
         'checkoutTime': 'CheckoutTime',
-        'listPersonel': 'ListPersonel'
+        'listPersonel': 'ListPersonel',
+        'idShiftDetail': 'IdShiftDetail'
       },
     );
 
@@ -90,4 +92,5 @@ Map<String, dynamic> _$CurrentShiftDataModelToJson(
       'CheckinTime': instance.checkinTime,
       'CheckoutTime': instance.checkoutTime,
       'ListPersonel': instance.listPersonel.map((e) => e.toJson()).toList(),
+      'IdShiftDetail': instance.idShiftDetail,
     };

@@ -4,12 +4,15 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/security/security_manager.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../../../../shared/widgets/TextInput/input_primary.dart';
 import '../../../../shared/widgets/custom_dropdown.dart';
-import '../../../../shared/widgets/upload_photo_field.dart';
+import '../../../../shared/widgets/photo_picker_field.dart';
 import '../../../../shared/widgets/confirm_dialog.dart';
 import '../../domain/entities/attendance_request.dart';
+import '../../../shift/data/models/shift_checkout_detail_response.dart';
 import '../bloc/attendance_bloc.dart';
 import '../bloc/attendance_event.dart';
 import '../bloc/attendance_state.dart';
@@ -17,11 +20,13 @@ import '../bloc/attendance_state.dart';
 class CheckOutPage extends StatefulWidget {
   final String userId;
   final String attendanceId;
+  final ShiftCheckoutDetailData? checkoutDetail;
 
   const CheckOutPage({
     Key? key,
     required this.userId,
     required this.attendanceId,
+    this.checkoutDetail,
   }) : super(key: key);
 
   @override
@@ -29,28 +34,58 @@ class CheckOutPage extends StatefulWidget {
 }
 
 class _CheckOutPageState extends State<CheckOutPage> {
+  late AttendanceBloc _attendanceBloc; // Add bloc reference
+
   // Controllers
-  final _lokasiPenugasanAkhirController = TextEditingController();
+  final _lokasiPengamananController = TextEditingController();
   final _laporanPengamananController = TextEditingController();
+  final _tugasTertundaController = TextEditingController();
 
   // Form data
-  String _statusTugas = '';
+  String _statusTugas = 'selesai'; // Default selesai, tidak ditampilkan di form
   String _pakaianPersonil = '';
   List<String> _fotoPengamanan = [];
-  List<String> _buktiLaporan = [];
+  List<String> _buktiLembur = [];
+  String _lembur = 'Tidak'; // Lembur dropdown
+  ShiftCheckoutDetailData? _checkoutDetail;
 
   @override
   void initState() {
     super.initState();
-    _lokasiPenugasanAkhirController.text =
-        'Pos Satpam Gedung A'; // Default value
+    _attendanceBloc = getIt<AttendanceBloc>();
+    _checkoutDetail = widget.checkoutDetail;
+    _applyPrefillDetail(_checkoutDetail);
+  }
+
+  void _applyPrefillDetail(ShiftCheckoutDetailData? detail) {
+    if (detail == null) return;
+
+    // Ambil CurrentLocation dari response, fallback ke guardLocation
+    final locationName = detail.currentLocation ?? detail.guardLocation;
+    if (locationName != null && locationName.isNotEmpty) {
+      _lokasiPengamananController.text = locationName;
+    }
+
+    final report = detail.securityReport;
+    if (report != null && report.isNotEmpty) {
+      _laporanPengamananController.text = report;
+    }
+
+    final outfit = detail.pakaianPersonilNormalized;
+    if (outfit != null && outfit.isNotEmpty) {
+      _pakaianPersonil = outfit;
+    }
+
+    final pendingTasks = detail.pendingTasksDescription;
+    if (pendingTasks != null && pendingTasks.isNotEmpty) {
+      _tugasTertundaController.text = pendingTasks;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) =>
-          getIt<AttendanceBloc>()..add(const CheckOutStartedEvent()),
+    return BlocProvider.value(
+      value: _attendanceBloc..add(const CheckOutStartedEvent()),
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -63,26 +98,47 @@ class _CheckOutPageState extends State<CheckOutPage> {
         body: BlocConsumer<AttendanceBloc, AttendanceState>(
           listener: (context, state) {
             if (state is AttendanceCheckedOut) {
+              // Close loading dialog if exists
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(state.message),
+                  content: Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Colors.white),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(state.message)),
+                    ],
+                  ),
                   backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 3),
                 ),
               );
-              Navigator.of(context).pop();
+              // Return true to indicate successful checkout, so home page can reload data
+              Navigator.of(context).pop(true);
             } else if (state is AttendanceFailure) {
+              // Close loading dialog if exists
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.message),
                   backgroundColor: Colors.red,
                 ),
               );
+            } else if (state is AttendanceLoading) {
+              // Show loading dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const Center(child: CircularProgressIndicator()),
+              );
             }
           },
           builder: (context, state) {
-            if (state is AttendanceLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            // Remove loading check from builder since it's handled in listener
 
             return Column(
               children: [
@@ -92,76 +148,64 @@ class _CheckOutPageState extends State<CheckOutPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Patroli Section (Read-only status)
+                        _buildReadOnlyStatusField(
+                          label: 'Patroli',
+                          value: _checkoutDetail?.patrolStatusLabel ??
+                              _checkoutDetail?.patrolDescription ??
+                              'Selesai (5/5 Tempat Telah Diperiksa)',
+                        ),
+                        16.verticalSpace,
+
+                        // Tugas Lanjutan Section (Read-only status)
+                        _buildReadOnlyStatusField(
+                          label: 'Tugas Lanjutan',
+                          value: _checkoutDetail?.followUpStatusLabel ??
+                              _checkoutDetail?.followUpDescription ??
+                              'Selesai (5/5 Selesai Dikerjakan)',
+                        ),
+                        16.verticalSpace,
+
+                        // Lokasi Pengamanan
                         InputPrimary(
-                          label: 'Lokasi Penugasan Akhir',
-                          controller: _lokasiPenugasanAkhirController,
-                          hint: 'Masukkan lokasi penugasan akhir',
+                          label: 'Lokasi Pengamanan',
+                          controller: _lokasiPengamananController,
+                          hint: 'Lokasi Pengamanan',
+                          readOnly: true,
                           margin: REdgeInsets.only(bottom: 16),
                           isRequired: true,
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.my_location),
-                            onPressed: () {
-                              // TODO: Get current location
-                            },
-                          ),
                         ),
 
-                        CustomDropdown<String>(
-                          label: 'Status Tugas',
-                          hint: 'Pilih Status Tugas',
-                          value: _statusTugas.isEmpty ? null : _statusTugas,
-                          items: [
-                            DropdownItem(value: 'selesai', text: 'Selesai'),
-                            DropdownItem(
-                                value: 'tidak_selesai', text: 'Tidak Selesai'),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _statusTugas = value ?? '';
-                            });
-                          },
-                          isRequired: true,
-                          margin: REdgeInsets.only(bottom: 16),
-                          errorText: _statusTugas == 'tidak_selesai'
-                              ? 'Tugas belum selesai. Pastikan semua tugas telah diselesaikan.'
-                              : null,
-                        ),
-
-                        CustomDropdown<String>(
+                        // Pakaian Personil (Photo field)
+                        PhotoPickerField(
                           label: 'Pakaian Personil',
-                          hint: 'Pilih Pakaian Personil',
-                          value: _pakaianPersonil.isEmpty
-                              ? null
-                              : _pakaianPersonil,
-                          items: [
-                            DropdownItem(
-                                value: 'seragam_harian',
-                                text: 'Seragam Harian'),
-                            DropdownItem(
-                                value: 'seragam_lapangan',
-                                text: 'Seragam Lapangan'),
-                            DropdownItem(
-                                value: 'pakaian_dinas', text: 'Pakaian Dinas'),
-                          ],
-                          onChanged: (value) {
+                          photos: _pakaianPersonil.isEmpty
+                              ? []
+                              : [_pakaianPersonil],
+                          onPhotosChanged: (photos) {
                             setState(() {
-                              _pakaianPersonil = value ?? '';
+                              _pakaianPersonil =
+                                  photos.isNotEmpty ? photos.first : '';
                             });
                           },
                           isRequired: true,
+                          multiple: false,
+                          maxPhotos: 1,
                           margin: REdgeInsets.only(bottom: 16),
                         ),
 
+                        // Laporan Pengamanan
                         InputPrimary(
                           label: 'Laporan Pengamanan',
                           controller: _laporanPengamananController,
-                          hint: 'Masukkan laporan pengamanan akhir...',
+                          hint: 'Keterangan Pengamanan',
                           maxLines: 4,
                           margin: REdgeInsets.only(bottom: 16),
                           isRequired: true,
                         ),
 
-                        UploadPhotoField(
+                        // Foto Pengamanan
+                        PhotoPickerField(
                           label: 'Foto Pengamanan',
                           photos: _fotoPengamanan,
                           onPhotosChanged: (photos) {
@@ -170,112 +214,59 @@ class _CheckOutPageState extends State<CheckOutPage> {
                             });
                           },
                           isRequired: true,
+                          multiple: false,
+                          maxPhotos: 1,
                           margin: REdgeInsets.only(bottom: 16),
                         ),
 
-                        UploadPhotoField(
-                          label: 'Bukti Laporan',
-                          photos: _buktiLaporan,
-                          onPhotosChanged: (photos) {
+                        // Tugas Tertunda
+                        InputPrimary(
+                          label: 'Tugas Tertunda',
+                          controller: _tugasTertundaController,
+                          hint: 'Keterangan Tugas Tertunda',
+                          maxLines: 4,
+                          margin: REdgeInsets.only(bottom: 16),
+                          isRequired: false,
+                        ),
+
+                        // Lembur Dropdown
+                        CustomDropdown<String>(
+                          label: 'Lembur',
+                          hint: 'Pilih Lembur',
+                          value: _lembur.isEmpty ? null : _lembur,
+                          items: [
+                            DropdownItem(value: 'Tidak', text: 'Tidak'),
+                            DropdownItem(value: 'Ya', text: 'Ya'),
+                          ],
+                          onChanged: (value) {
                             setState(() {
-                              _buktiLaporan = photos;
+                              _lembur = value ?? 'Tidak';
                             });
                           },
                           isRequired: false,
                           margin: REdgeInsets.only(bottom: 16),
                         ),
 
-                        // Warning for incomplete tasks
-                        if (_statusTugas == 'tidak_selesai') ...[
-                          Container(
-                            width: double.infinity,
-                            padding: REdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              border: Border.all(color: Colors.red.shade200),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.warning_amber,
-                                  color: Colors.red.shade600,
-                                  size: 24.sp,
-                                ),
-                                12.horizontalSpace,
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Peringatan',
-                                        style: TS.labelMedium.copyWith(
-                                          color: Colors.red.shade800,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      4.verticalSpace,
-                                      Text(
-                                        'Terdapat tugas yang belum selesai. Pastikan untuk menyelesaikan semua tugas atau memberikan keterangan yang jelas dalam laporan.',
-                                        style: TS.bodySmall.copyWith(
-                                          color: Colors.red.shade700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          16.verticalSpace,
-                        ],
-
-                        // Summary Section
-                        Container(
-                          width: double.infinity,
-                          padding: REdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            border: Border.all(color: Colors.blue.shade200),
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: Colors.blue.shade600,
-                                    size: 20.sp,
-                                  ),
-                                  8.horizontalSpace,
-                                  Text(
-                                    'Ringkasan Check Out',
-                                    style: TS.labelMedium.copyWith(
-                                      color: Colors.blue.shade800,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              8.verticalSpace,
-                              Text(
-                                'Pastikan semua data yang Anda masukkan sudah benar sebelum mengakhiri tugas.',
-                                style: TS.bodySmall.copyWith(
-                                  color: Colors.blue.shade700,
-                                ),
-                              ),
-                            ],
-                          ),
+                        // Bukti Lembur (Photo field)
+                        PhotoPickerField(
+                          label: 'Bukti Lembur',
+                          photos: _buktiLembur,
+                          onPhotosChanged: (photos) {
+                            setState(() {
+                              _buktiLembur = photos;
+                            });
+                          },
+                          isRequired: false,
+                          multiple: false,
+                          maxPhotos: 1,
+                          margin: REdgeInsets.only(bottom: 16),
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                // Bottom Navigation
+                // Bottom Button
                 Container(
                   padding: REdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -289,27 +280,14 @@ class _CheckOutPageState extends State<CheckOutPage> {
                       ),
                     ],
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: UIButton(
-                          text: 'Batal',
-                          buttonType: UIButtonType.outline,
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ),
-                      16.horizontalSpace,
-                      Expanded(
-                        child: UIButton(
-                          text: 'Akhiri Bekerja',
-                          onPressed:
-                              _canSubmitCheckOut() ? _submitCheckOut : null,
-                          variant: _statusTugas == 'tidak_selesai'
-                              ? UIButtonVariant.warning
-                              : UIButtonVariant.primary,
-                        ),
-                      ),
-                    ],
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: UIButton(
+                      text: 'AKHIRI BEKERJA',
+                      onPressed:
+                          _canSubmitCheckOut() ? _submitCheckOut : null,
+                      variant: UIButtonVariant.primary,
+                    ),
                   ),
                 ),
               ],
@@ -320,53 +298,127 @@ class _CheckOutPageState extends State<CheckOutPage> {
     );
   }
 
+  Widget _buildReadOnlyStatusField({
+    required String label,
+    required String value,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TS.labelLarge,
+        ),
+        8.verticalSpace,
+        Container(
+          width: double.infinity,
+          padding: REdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Text(
+            value,
+            style: TS.bodyMedium.copyWith(
+              color: Colors.blue.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   bool _canSubmitCheckOut() {
-    return _lokasiPenugasanAkhirController.text.isNotEmpty &&
-        _statusTugas.isNotEmpty &&
+    return _lokasiPengamananController.text.isNotEmpty &&
         _pakaianPersonil.isNotEmpty &&
         _laporanPengamananController.text.isNotEmpty &&
         _fotoPengamanan.isNotEmpty;
   }
 
   void _submitCheckOut() async {
-    String confirmMessage = 'Apakah Anda yakin selesai bekerja?';
-    String confirmTitle = 'Konfirmasi Check Out';
+    String confirmMessage = 'Pastikan semua data sudah benar dan lengkap sebelum mengakhiri tugas hari ini.';
+    String confirmTitle = 'Konfirmasi Akhiri Bekerja';
+    IconData confirmIcon = Icons.logout_rounded;
+    Color confirmIconColor = primaryColor;
 
     if (_statusTugas == 'tidak_selesai') {
-      confirmTitle = 'Konfirmasi Check Out - Tugas Belum Selesai';
+      confirmTitle = '⚠️ Tugas Belum Selesai';
       confirmMessage =
-          'Terdapat tugas yang belum selesai. Apakah Anda yakin ingin mengakhiri tugas sekarang?';
+          'Anda memiliki tugas yang belum selesai. Apakah Anda yakin ingin mengakhiri tugas sekarang?\n\nPastikan Anda sudah menyelesaikan semua tugas yang diperlukan.';
+      confirmIcon = Icons.warning_rounded;
+      confirmIconColor = Colors.orange;
     }
 
     final confirmed = await ConfirmDialog.show(
       context: context,
       title: confirmTitle,
       message: confirmMessage,
-      icon: Icons.exit_to_app,
-      iconColor: _statusTugas == 'tidak_selesai' ? Colors.orange : Colors.blue,
+      icon: confirmIcon,
+      iconColor: confirmIconColor,
+      confirmText: 'Ya, Akhiri Bekerja',
+      cancelText: 'Batal',
       isDestructive: _statusTugas == 'tidak_selesai',
     );
 
     if (confirmed == true && mounted) {
+      // Get shiftDetailId from checkoutDetail, fallback to storage
+      String? shiftDetailId = _checkoutDetail?.shiftDetailId;
+      if (shiftDetailId == null || shiftDetailId.isEmpty) {
+        shiftDetailId = await SecurityManager.readSecurely(AppConstants.shiftDetailIdKey);
+        print('📋 CheckOut - shiftDetailId from storage: $shiftDetailId');
+      } else {
+        print('📋 CheckOut - shiftDetailId from checkoutDetail: $shiftDetailId');
+      }
+
+      // Get coTask from pendingTasksDescription or statusTugas
+      final coTask = _checkoutDetail?.pendingTasksDescription?.isNotEmpty == true
+          ? _checkoutDetail!.pendingTasksDescription
+          : (_statusTugas == 'tidak_selesai' ? 'Tugas belum selesai' : null);
+
+      print('📤 CheckOut - Submitting checkout request:');
+      print('  - userId: ${widget.userId}');
+      print('  - shiftDetailId: $shiftDetailId');
+      print('  - lokasiPenugasanAkhir: ${_lokasiPengamananController.text}');
+      print('  - isOvertime: ${_lembur == 'Ya'}');
+      print('  - fotoWajah (PhotoAbsen - foto pakaian): ${_pakaianPersonil.isNotEmpty ? "EXISTS (${_pakaianPersonil})" : "NULL"}');
+      print('  - fotoPengamanan count: ${_fotoPengamanan.length}');
+      print('  - buktiLaporan count: ${_buktiLembur.length}');
+      print('  - Note: Latitude/Longitude will be hardcoded in API call');
+
+      // Lat/lng akan di-hardcode di API call, jadi tidak perlu ambil dari location service
+      // fotoWajah harus diisi dengan foto pakaian (_pakaianPersonil) karena foto pakaian dikirim sebagai PhotoAbsen
       final request = CheckOutRequest(
         userId: widget.userId,
         attendanceId: widget.attendanceId,
-        lokasiPenugasanAkhir: _lokasiPenugasanAkhirController.text,
+        shiftDetailId: shiftDetailId,
+        lokasiPenugasanAkhir: _lokasiPengamananController.text,
         statusTugas: _statusTugas,
         pakaianPersonil: _pakaianPersonil,
         laporanPengamanan: _laporanPengamananController.text,
         fotoPengamanan: _fotoPengamanan,
-        buktiLaporan: _buktiLaporan,
+        buktiLaporan: _buktiLembur,
+        fotoWajah: _pakaianPersonil.isNotEmpty ? _pakaianPersonil : null, // Foto pakaian dikirim sebagai PhotoAbsen
+        coTask: _tugasTertundaController.text.isNotEmpty
+            ? _tugasTertundaController.text
+            : coTask,
+        isOvertime: _lembur == 'Ya',
+        latitude: 0.0, // Will be replaced with hardcoded value in API
+        longitude: 0.0, // Will be replaced with hardcoded value in API
       );
 
-      context.read<AttendanceBloc>().add(CheckOutSubmittedEvent(request));
+      _attendanceBloc.add(CheckOutSubmittedEvent(request));
     }
   }
 
   @override
   void dispose() {
-    _lokasiPenugasanAkhirController.dispose();
+    _lokasiPengamananController.dispose();
     _laporanPengamananController.dispose();
+    _tugasTertundaController.dispose();
+    // Don't close bloc here as it's managed by DI container
     super.dispose();
   }
 }
+

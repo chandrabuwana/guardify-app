@@ -184,10 +184,6 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
       errors['fotoPengamanan'] = 'Foto Pengamanan harus diambil';
     }
 
-    if (state.tugasLanjutan.isEmpty) {
-      errors['tugasLanjutan'] = 'Tugas Lanjutan harus dipilih';
-    }
-
     return errors;
   }
 
