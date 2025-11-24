@@ -279,9 +279,11 @@ class _PersonnelApprovalPageState extends State<PersonnelApprovalPage> {
   Widget _buildDocumentRow(String label, String documentName) {
     return Padding(
       padding: EdgeInsets.only(bottom: 16.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Label
           Text(
             label,
             style: TextStyle(
@@ -290,22 +292,31 @@ class _PersonnelApprovalPageState extends State<PersonnelApprovalPage> {
               color: neutral70,
             ),
           ),
-          TextButton(
-            onPressed: () {
-              // TODO: Open/download document
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Membuka dokumen: $documentName'),
-                  backgroundColor: primaryColor,
+          SizedBox(height: 4.h),
+          // URL - Full width with wrap support
+          Tooltip(
+            message: documentName,
+            child: InkWell(
+              onTap: () {
+                // TODO: Open/download document
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Membuka dokumen: $documentName'),
+                    backgroundColor: primaryColor,
+                  ),
+                );
+              },
+              child: Text(
+                documentName,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: primaryColor,
+                  decoration: TextDecoration.underline,
                 ),
-              );
-            },
-            child: Text(
-              documentName,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: primaryColor,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
               ),
             ),
           ),

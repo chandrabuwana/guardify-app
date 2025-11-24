@@ -28,6 +28,8 @@ import 'features/news/presentation/bloc/news_bloc.dart';
 import 'features/schedule/presentation/pages/schedule_page.dart';
 import 'features/schedule/presentation/pages/schedule_pjo_deputy_page.dart';
 import 'features/schedule/presentation/bloc/schedule_bloc.dart';
+import 'features/tugas_lanjutan/presentation/pages/tugas_lanjutan_page.dart';
+import 'features/tugas_lanjutan/presentation/bloc/tugas_lanjutan_bloc.dart';
 import 'core/constants/enums.dart';
 import 'core/security/security_manager.dart';
 import 'core/di/injection.dart';
@@ -177,6 +179,18 @@ class GuardifyApp extends StatelessWidget {
                     // Anggota dan Danton menggunakan halaman schedule asli
                     return const SchedulePage();
                   },
+                ),
+              );
+            },
+            '/tugas-lanjutan': (context) {
+              final arguments = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
+              final String userId = arguments?['userId'] ?? 'current_user';
+
+              return BlocProvider(
+                create: (context) => getIt<TugasLanjutanBloc>(),
+                child: TugasLanjutanPage(
+                  userId: userId,
                 ),
               );
             },

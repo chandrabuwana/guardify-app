@@ -142,42 +142,14 @@ class PersonnelRepositoryImpl implements PersonnelRepository {
 
       final personnel = personnelResponse.data!;
 
-      // Build request body with all fields + Active status and Feedback
+      // Build request body for approval - simplified payload with only required fields
       final requestBody = {
         'Id': personnelId,
-        'Username': personnel.username,
-        'Fullname': personnel.fullname,
-        'Email': personnel.email,
-        'PhoneNumber': personnel.phoneNumber,
-        'Active': true, // Set to Active untuk approval
-        'Status': 'Active', // Set status ke Active
-        'NoNrp': personnel.noNrp,
-        'NoKtp': personnel.noKtp,
-        'TempatLahir': personnel.tempatLahir,
-        'TanggalLahir': personnel.tanggalLahir,
-        'JenisKelamin': personnel.jenisKelamin,
-        'Pendidikan': personnel.pendidikan,
-        'TeleponPribadi': personnel.teleponPribadi,
-        'TeleponDarurat': personnel.teleponDarurat,
-        'WargaNegara': personnel.wargaNegara,
-        'Site': personnel.site,
-        'Jabatan': personnel.jabatan,
-        'IdAtasan': personnel.idAtasan,
-        'TanggalPenerimaan': personnel.tanggalPenerimaan,
-        'MasaBerlakuPermit': personnel.masaBerlakuPermit,
-        'KompetensiPekerjaan': personnel.kompetensiPekerjaan,
-        'Provinsi': personnel.provinsi,
-        'KotaKabupaten': personnel.kotaKabupaten,
-        'Kecamatan': personnel.kecamatan,
-        'Kelurahan': personnel.kelurahan,
-        'AlamatDomisili': personnel.alamatDomisili,
-        'UrlKtp': personnel.urlKtp,
-        'UrlKta': personnel.urlKta,
-        'UrlFoto': personnel.urlFoto,
-        'P3tdK3lh': personnel.p3tdK3lh,
-        'P3tdSecurity': personnel.p3tdSecurity,
-        'UrlPernyataanTidakMerokok': personnel.urlPernyataanTidakMerokok,
-        'Feedback': feedback, // Add feedback
+        'Username': personnel.username ?? '',
+        'Fullname': personnel.fullname ?? '',
+        'Email': personnel.email ?? '',
+        'Feedback': feedback,
+        'Status': 'Active', // Set status ke Active untuk aktivasi user pending
       };
 
       await remoteDataSource.editUserInfo(requestBody);

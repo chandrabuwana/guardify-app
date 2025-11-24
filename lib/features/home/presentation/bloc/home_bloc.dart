@@ -7,6 +7,7 @@ import '../../../../core/utils/user_role_helper.dart';
 import '../../../patrol/domain/usecases/get_patrol_routes_paginated.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
 import '../../../schedule/domain/usecases/get_current_shift.dart';
+import '../../../schedule/domain/usecases/get_current_task.dart';
 import '../../../schedule/domain/repositories/schedule_repository.dart';
 import 'home_event.dart';
 import 'home_state.dart';
@@ -15,8 +16,9 @@ import 'home_state.dart';
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final GetPatrolRoutesPaginated _getPatrolRoutesPaginated;
   final GetCurrentShift _getCurrentShift;
+  final GetCurrentTask _getCurrentTask;
 
-  HomeBloc(this._getPatrolRoutesPaginated, this._getCurrentShift) : super(const HomeInitial()) {
+  HomeBloc(this._getPatrolRoutesPaginated, this._getCurrentShift, this._getCurrentTask) : super(const HomeInitial()) {
     on<HomeInitialEvent>(_onHomeInitial);
     on<BottomNavigationTappedEvent>(_onBottomNavigationTapped);
     on<ShowSnackbarEvent>(_onShowSnackbar);
@@ -44,6 +46,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     // Tasks Events
     on<LoadTodayTasksEvent>(_onLoadTodayTasks);
     on<LoadPatrolTasksEvent>(_onLoadPatrolTasks);
+    on<LoadCurrentTaskEvent>(_onLoadCurrentTask);
     on<TaskProgressUpdateEvent>(_onTaskProgressUpdate);
 
     // Profile Events
@@ -116,8 +119,17 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       currentShift: currentShiftResult.isSuccess ? currentShiftResult.currentShift : null,
     ));
 
-    // Load patrol tasks from API
-    add(const LoadPatrolTasksEvent());
+    // Load current task if we have IdShiftDetail
+    if (currentShiftResult.isSuccess && 
+        currentShiftResult.currentShift != null &&
+        currentShiftResult.currentShift!.idShiftDetail != null &&
+        currentShiftResult.currentShift!.idShiftDetail!.isNotEmpty) {
+      print('[HomeBloc] Loading current task with IdShiftDetail: ${currentShiftResult.currentShift!.idShiftDetail}');
+      add(LoadCurrentTaskEvent(idShiftDetail: currentShiftResult.currentShift!.idShiftDetail!));
+    } else {
+      // Load patrol tasks from API (fallback)
+      add(const LoadPatrolTasksEvent());
+    }
   }
 
   String _formatTime(String timeString) {
@@ -443,6 +455,82 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(currentState.copyWith(
         todayTasks: tasks,
         snackbarMessage: 'Tugas hari ini berhasil dimuat',
+      ));
+    }
+  }
+
+  Future<void> _onLoadCurrentTask(
+      LoadCurrentTaskEvent event, Emitter<HomeState> emit) async {
+    if (state is! HomeLoaded) return;
+
+    final currentState = state as HomeLoaded;
+
+    try {
+      // Set loading state
+      emit(currentState.copyWith(isLoadingPatrolTasks: true));
+
+      // Fetch current task from API
+      final result = await _getCurrentTask.call(
+        idShiftDetail: event.idShiftDetail,
+      );
+
+      if (result.isSuccess && result.currentTask != null) {
+        final taskData = result.currentTask!;
+
+        // Convert ListRoute to TaskItem for "Tugas Hari Ini"
+        final routeTasks = taskData.listRoute.map((route) {
+          final isCompleted = route.status.toUpperCase() == 'SELESAI' || 
+                             route.status.toUpperCase() == 'DONE';
+          
+          return TaskItem(
+            id: 'route_${route.idAreas}',
+            title: route.areasName,
+            subtitle: 'Status: ${route.status}',
+            progress: isCompleted ? 1.0 : 0.0,
+            completedTasks: isCompleted ? 1 : 0,
+            totalTasks: 1,
+            isCompleted: isCompleted,
+          );
+        }).toList();
+
+        // Convert ListCarryOver to TaskItem for "Tugas Lanjutan"
+        final carryOverTasks = taskData.listCarryOver.map((carryOver) {
+          final isOpen = carryOver.status.toUpperCase() == 'OPEN';
+          
+          return TaskItem(
+            id: 'carryover_${carryOver.id}',
+            title: carryOver.reportNote,
+            subtitle: 'Status: ${carryOver.status}',
+            progress: isOpen ? 0.0 : 1.0,
+            completedTasks: isOpen ? 0 : 1,
+            totalTasks: 1,
+            isCompleted: !isOpen,
+          );
+        }).toList();
+
+        // Combine route tasks and carry over tasks
+        final allTasks = [...routeTasks, ...carryOverTasks];
+
+        print('[HomeBloc] ✅ Loaded ${routeTasks.length} route tasks and ${carryOverTasks.length} carry over tasks');
+
+        emit(currentState.copyWith(
+          todayTasks: allTasks,
+          isLoadingPatrolTasks: false,
+          currentTask: taskData,
+        ));
+      } else {
+        print('[HomeBloc] ❌ Failed to load current task');
+        // On failure, use fallback or empty
+        emit(currentState.copyWith(
+          todayTasks: [],
+          isLoadingPatrolTasks: false,
+        ));
+      }
+    } catch (e) {
+      print('[HomeBloc] ❌ Error loading current task: $e');
+      emit(currentState.copyWith(
+        todayTasks: [],
+        isLoadingPatrolTasks: false,
       ));
     }
   }

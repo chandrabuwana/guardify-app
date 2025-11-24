@@ -10,6 +10,7 @@ import '../models/shift_category_response_model.dart';
 import '../models/route_response_model.dart';
 import '../models/schedule_detail_response_model.dart';
 import '../models/current_shift_response_model.dart';
+import '../models/current_task_response_model.dart';
 
 @LazySingleton(as: ScheduleRepository)
 class ScheduleRepositoryImpl implements ScheduleRepository {
@@ -442,6 +443,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
             images: p.images,
           );
         }).toList(),
+        idShiftDetail: response.data!.idShiftDetail,
       );
 
       print('[ScheduleRepository] ✅ Found current shift: ${currentShift.name}');
@@ -461,6 +463,79 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
     } catch (e) {
       print('[ScheduleRepository] ❌ Error: $e');
       return CurrentShiftResult.failure(
+        UnexpectedFailure(e.toString()),
+      );
+    }
+  }
+
+  @override
+  Future<CurrentTaskResult> getCurrentTask({
+    required String idShiftDetail,
+  }) async {
+    try {
+      print('[ScheduleRepository] Fetching current task for shift detail $idShiftDetail');
+
+      final requestBody = {
+        'IdShiftDetail': idShiftDetail,
+      };
+
+      final response = await remoteDataSource.getCurrentTask(requestBody);
+
+      if (!response.succeeded || response.data == null) {
+        print('[ScheduleRepository] ❌ No current task found');
+        return CurrentTaskResult.failure(
+          CacheFailure('Tidak ada tugas saat ini'),
+        );
+      }
+
+      // Convert to entity
+      final currentTask = CurrentTaskData(
+        listRoute: response.data!.listRoute.map((r) {
+          return RouteTask(
+            idAreas: r.idAreas,
+            areasName: r.areasName,
+            checkIn: r.checkIn,
+            filename: r.filename,
+            fileUrl: r.fileUrl,
+            status: r.status,
+          );
+        }).toList(),
+        listCarryOver: response.data!.listCarryOver.map((c) {
+          return CarryOverTask(
+            id: c.id,
+            createBy: c.createBy,
+            createDate: c.createDate,
+            idShift: c.idShift,
+            reportDate: c.reportDate,
+            reportId: c.reportId,
+            reportNote: c.reportNote,
+            solverDate: c.solverDate,
+            solverId: c.solverId,
+            solverNote: c.solverNote,
+            status: c.status,
+            updateBy: c.updateBy,
+            updateDate: c.updateDate,
+          );
+        }).toList(),
+      );
+
+      print('[ScheduleRepository] ✅ Found current task: ${currentTask.listRoute.length} routes, ${currentTask.listCarryOver.length} carry over tasks');
+      return CurrentTaskResult.success(currentTask);
+    } on DioException catch (e) {
+      print('[ScheduleRepository] ❌ DioException: ${e.message}');
+      if (e.response?.statusCode != null &&
+          e.response!.statusCode! >= 400 &&
+          e.response!.statusCode! < 500) {
+        return CurrentTaskResult.failure(
+          AuthenticationFailure('Gagal memuat tugas saat ini'),
+        );
+      }
+      return CurrentTaskResult.failure(
+        ServerFailure('Terjadi kesalahan pada server'),
+      );
+    } catch (e) {
+      print('[ScheduleRepository] ❌ Error: $e');
+      return CurrentTaskResult.failure(
         UnexpectedFailure(e.toString()),
       );
     }

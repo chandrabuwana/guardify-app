@@ -63,7 +63,12 @@ ScheduleDetailDataModel _$ScheduleDetailDataModelFromJson(
                   .map(
                       (e) => PersonnelModel.fromJson(e as Map<String, dynamic>))
                   .toList()),
-          listRoute: $checkedConvert('ListRoute', (v) => v as List<dynamic>),
+          listRoute: $checkedConvert(
+              'ListRoute',
+              (v) => (v as List<dynamic>)
+                  .map(
+                      (e) => RouteAreaModel.fromJson(e as Map<String, dynamic>))
+                  .toList()),
         );
         return val;
       },
@@ -87,7 +92,7 @@ Map<String, dynamic> _$ScheduleDetailDataModelToJson(
       'Location': instance.location,
       'RouteName': instance.routeName,
       'ListPersonel': instance.listPersonel.map((e) => e.toJson()).toList(),
-      'ListRoute': instance.listRoute,
+      'ListRoute': instance.listRoute.map((e) => e.toJson()).toList(),
     };
 
 PersonnelModel _$PersonnelModelFromJson(Map<String, dynamic> json) =>
@@ -114,4 +119,22 @@ Map<String, dynamic> _$PersonnelModelToJson(PersonnelModel instance) =>
       'UserId': instance.userId,
       'Fullname': instance.fullname,
       'Images': instance.images,
+    };
+
+RouteAreaModel _$RouteAreaModelFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      'RouteAreaModel',
+      json,
+      ($checkedConvert) {
+        final val = RouteAreaModel(
+          areasName: $checkedConvert('AreasName', (v) => v as String),
+        );
+        return val;
+      },
+      fieldKeyMap: const {'areasName': 'AreasName'},
+    );
+
+Map<String, dynamic> _$RouteAreaModelToJson(RouteAreaModel instance) =>
+    <String, dynamic>{
+      'AreasName': instance.areasName,
     };

@@ -492,9 +492,11 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
   Widget _buildDocumentRow(String label, String documentName) {
     return Padding(
       padding: EdgeInsets.only(bottom: 16.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Label
           Text(
             label,
             style: TextStyle(
@@ -503,8 +505,10 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
               color: neutral70,
             ),
           ),
-          TextButton(
-            onPressed: () {
+          SizedBox(height: 4.h),
+          // URL - Full width with wrap support
+          InkWell(
+            onTap: () {
               // TODO: Open document
             },
             child: Text(
@@ -513,7 +517,11 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w500,
                 color: primaryColor,
+                decoration: TextDecoration.underline,
               ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
             ),
           ),
         ],

@@ -6,6 +6,7 @@ import '../models/shift_category_response_model.dart';
 import '../models/route_response_model.dart';
 import '../models/schedule_detail_response_model.dart';
 import '../models/current_shift_response_model.dart';
+import '../models/current_task_response_model.dart';
 
 part 'schedule_remote_data_source.g.dart';
 
@@ -43,6 +44,12 @@ abstract class ScheduleApiClient {
   Future<CurrentShiftResponseModel> getCurrentShift(
     @Body() Map<String, dynamic> body,
   );
+
+  /// Get current task using POST /Shift/get_current_task
+  @POST('/Shift/get_current_task')
+  Future<CurrentTaskResponseModel> getCurrentTask(
+    @Body() Map<String, dynamic> body,
+  );
 }
 
 /// Abstract interface for schedule remote data source
@@ -55,6 +62,8 @@ abstract class ScheduleRemoteDataSource {
   Future<ScheduleDetailResponseModel> getDetailSchedule(
       Map<String, dynamic> body);
   Future<CurrentShiftResponseModel> getCurrentShift(
+      Map<String, dynamic> body);
+  Future<CurrentTaskResponseModel> getCurrentTask(
       Map<String, dynamic> body);
 }
 
@@ -90,7 +99,13 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
 
   @override
   Future<CurrentShiftResponseModel> getCurrentShift(
-      Map<String, dynamic> body) {
+    Map<String, dynamic> body) {
     return apiClient.getCurrentShift(body);
+  }
+
+  @override
+  Future<CurrentTaskResponseModel> getCurrentTask(
+    Map<String, dynamic> body) {
+    return apiClient.getCurrentTask(body);
   }
 }

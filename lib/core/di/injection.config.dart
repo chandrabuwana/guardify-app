@@ -229,6 +229,8 @@ import 'package:guardify_app/features/schedule/domain/repositories/schedule_repo
     as _i752;
 import 'package:guardify_app/features/schedule/domain/usecases/get_current_shift.dart'
     as _i170;
+import 'package:guardify_app/features/schedule/domain/usecases/get_current_task.dart'
+    as _i547;
 import 'package:guardify_app/features/schedule/domain/usecases/get_daily_agenda.dart'
     as _i369;
 import 'package:guardify_app/features/schedule/domain/usecases/get_monthly_schedule.dart'
@@ -259,6 +261,22 @@ import 'package:guardify_app/features/test_result/domain/usecases/get_test_summa
     as _i227;
 import 'package:guardify_app/features/test_result/presentation/bloc/test_result_bloc.dart'
     as _i1060;
+import 'package:guardify_app/features/tugas_lanjutan/data/datasources/tugas_lanjutan_remote_data_source.dart'
+    as _i176;
+import 'package:guardify_app/features/tugas_lanjutan/data/repositories/tugas_lanjutan_repository_impl.dart'
+    as _i949;
+import 'package:guardify_app/features/tugas_lanjutan/domain/repositories/tugas_lanjutan_repository.dart'
+    as _i83;
+import 'package:guardify_app/features/tugas_lanjutan/domain/usecases/get_progress_summary.dart'
+    as _i81;
+import 'package:guardify_app/features/tugas_lanjutan/domain/usecases/get_tugas_lanjutan_detail.dart'
+    as _i237;
+import 'package:guardify_app/features/tugas_lanjutan/domain/usecases/get_tugas_lanjutan_list.dart'
+    as _i778;
+import 'package:guardify_app/features/tugas_lanjutan/domain/usecases/selesaikan_tugas.dart'
+    as _i419;
+import 'package:guardify_app/features/tugas_lanjutan/presentation/bloc/tugas_lanjutan_bloc.dart'
+    as _i359;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 
@@ -304,6 +322,8 @@ extension GetItInjectableX on _i174.GetIt {
         _i4.GetVerificationItemsUseCase(gh<_i228.PanicButtonRepository>()));
     gh.lazySingleton<_i590.LaporanKegiatanRemoteDataSource>(
         () => _i590.LaporanKegiatanRemoteDataSourceImpl());
+    gh.lazySingleton<_i176.TugasLanjutanRemoteDataSource>(
+        () => _i176.TugasLanjutanRemoteDataSourceImpl());
     gh.lazySingleton<_i650.AuthRemoteDataSource>(
         () => injectionModule.authRemoteDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i163.BmiRemoteDataSource>(
@@ -358,6 +378,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i752.ScheduleRepository>(() =>
         _i343.ScheduleRepositoryImpl(
             remoteDataSource: gh<_i563.ScheduleRemoteDataSource>()));
+    gh.lazySingleton<_i83.TugasLanjutanRepository>(() =>
+        _i949.TugasLanjutanRepositoryImpl(
+            gh<_i176.TugasLanjutanRemoteDataSource>()));
     gh.factory<_i505.NewsBloc>(
         () => injectionModule.newsBloc(gh<_i54.NewsRepository>()));
     gh.lazySingleton<_i422.TestResultRepository>(() =>
@@ -365,6 +388,8 @@ extension GetItInjectableX on _i174.GetIt {
             remoteDataSource: gh<_i652.TestResultRemoteDataSource>()));
     gh.factory<_i170.GetCurrentShift>(
         () => _i170.GetCurrentShift(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i547.GetCurrentTask>(
+        () => _i547.GetCurrentTask(gh<_i752.ScheduleRepository>()));
     gh.factory<_i369.GetDailyAgenda>(
         () => _i369.GetDailyAgenda(gh<_i752.ScheduleRepository>()));
     gh.factory<_i1034.GetMonthlySchedule>(
@@ -439,6 +464,11 @@ extension GetItInjectableX on _i174.GetIt {
           gh<_i826.BMILocalDataSource>(),
           gh<_i163.BmiRemoteDataSource>(),
         ));
+    gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc(
+          gh<_i238.GetPatrolRoutesPaginated>(),
+          gh<_i170.GetCurrentShift>(),
+          gh<_i547.GetCurrentTask>(),
+        ));
     gh.factory<_i215.CutiBloc>(() => _i215.CutiBloc(
           getCutiKuota: gh<_i1067.GetCutiKuota>(),
           getDaftarCutiSaya: gh<_i1023.GetDaftarCutiSaya>(),
@@ -461,10 +491,6 @@ extension GetItInjectableX on _i174.GetIt {
           remoteDataSource: gh<_i220.ProfileRemoteDataSource>(),
           localDataSource: gh<_i895.ProfileLocalDataSource>(),
           authRepository: gh<_i144.AuthRepository>(),
-        ));
-    gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc(
-          gh<_i238.GetPatrolRoutesPaginated>(),
-          gh<_i170.GetCurrentShift>(),
         ));
     gh.factory<_i311.AttendanceRepository>(() => _i289.AttendanceRepositoryImpl(
           remoteDataSource: gh<_i109.AttendanceRemoteDataSource>(),
@@ -502,6 +528,14 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i974.SubmitAttendanceUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i601.ValidateAttendanceUseCase>(() =>
         _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i81.GetProgressSummary>(
+        () => _i81.GetProgressSummary(gh<_i83.TugasLanjutanRepository>()));
+    gh.factory<_i237.GetTugasLanjutanDetail>(
+        () => _i237.GetTugasLanjutanDetail(gh<_i83.TugasLanjutanRepository>()));
+    gh.factory<_i778.GetTugasLanjutanList>(
+        () => _i778.GetTugasLanjutanList(gh<_i83.TugasLanjutanRepository>()));
+    gh.factory<_i419.SelesaikanTugas>(
+        () => _i419.SelesaikanTugas(gh<_i83.TugasLanjutanRepository>()));
     gh.factory<_i1003.ScheduleBloc>(() => _i1003.ScheduleBloc(
           getMonthlySchedule: gh<_i1034.GetMonthlySchedule>(),
           getShiftDetail: gh<_i947.GetShiftDetail>(),
@@ -554,6 +588,12 @@ extension GetItInjectableX on _i174.GetIt {
           getMemberResultsUseCase: gh<_i930.GetMemberTestResultsUseCase>(),
           getSummaryUseCase: gh<_i227.GetTestSummaryUseCase>(),
           getMemberTestsByPicUseCase: gh<_i332.GetMemberTestsByPicUseCase>(),
+        ));
+    gh.factory<_i359.TugasLanjutanBloc>(() => _i359.TugasLanjutanBloc(
+          getTugasLanjutanList: gh<_i778.GetTugasLanjutanList>(),
+          getTugasLanjutanDetail: gh<_i237.GetTugasLanjutanDetail>(),
+          selesaikanTugas: gh<_i419.SelesaikanTugas>(),
+          getProgressSummary: gh<_i81.GetProgressSummary>(),
         ));
     gh.factory<_i908.AttendanceBloc>(() => _i908.AttendanceBloc(
           checkInUseCase: gh<_i865.CheckInUseCase>(),
