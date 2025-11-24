@@ -41,11 +41,11 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
     return Scaffold(
       body: BlocBuilder<ScheduleBloc, ScheduleState>(
         builder: (context, state) {
-          // Load shift detail when first built
+          // Load shift detail when first built using new API
           if (!_hasLoadedData && !state.isLoadingDetail) {
             _hasLoadedData = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.read<ScheduleBloc>().add(LoadShiftDetail(
+              context.read<ScheduleBloc>().add(LoadScheduleDetail(
                     userId: widget.userId,
                     date: widget.date,
                   ));
@@ -72,7 +72,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [primary50, primary50.withOpacity(0.8)],
+          colors: [primaryColor, primaryColor.withOpacity(0.8)],
         ),
       ),
       child: SafeArea(
@@ -117,7 +117,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [primary50, primary50.withOpacity(0.8)],
+          colors: [primaryColor, primaryColor.withOpacity(0.8)],
         ),
       ),
       child: SafeArea(
@@ -189,7 +189,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
-                          color: primary50,
+                          color: primaryColor,
                         ),
                       ),
                       SizedBox(height: 12.h),
@@ -203,7 +203,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
-                          color: primary50,
+                          color: primaryColor,
                         ),
                       ),
                       SizedBox(height: 12.h),
@@ -231,7 +231,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
               label,
               style: TextStyle(
                 fontSize: 14.sp,
-                color: primary50,
+                color: primaryColor,
               ),
             ),
           ),
@@ -267,7 +267,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
               Icon(
                 Icons.home_outlined,
                 size: 32.w,
-                color: primary50,
+                color: primaryColor,
               ),
               SizedBox(height: 8.h),
               Text(
@@ -336,7 +336,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
                 member.position,
                 style: TextStyle(
                   fontSize: 10.sp,
-                  color: primary50,
+                  color: primaryColor,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -352,7 +352,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
                     // TODO: Implement send message
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primary50,
+                    backgroundColor: primaryColor,
                     padding: EdgeInsets.symmetric(vertical: 6.h),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6.r),

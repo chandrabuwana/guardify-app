@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../patrol/domain/entities/patrol_route.dart';
+import '../../../schedule/domain/repositories/schedule_repository.dart';
 
 // Task Model
 class TaskItem {
@@ -75,6 +76,7 @@ class UserProfile {
 // Attendance Model
 class AttendanceInfo {
   final bool isCheckedIn;
+  final bool isCheckedOut;
   final String currentTime;
   final String shift;
   final String position;
@@ -82,6 +84,7 @@ class AttendanceInfo {
 
   const AttendanceInfo({
     required this.isCheckedIn,
+    required this.isCheckedOut,
     required this.currentTime,
     required this.shift,
     required this.position,
@@ -90,6 +93,7 @@ class AttendanceInfo {
 
   AttendanceInfo copyWith({
     bool? isCheckedIn,
+    bool? isCheckedOut,
     String? currentTime,
     String? shift,
     String? position,
@@ -97,6 +101,7 @@ class AttendanceInfo {
   }) {
     return AttendanceInfo(
       isCheckedIn: isCheckedIn ?? this.isCheckedIn,
+      isCheckedOut: isCheckedOut ?? this.isCheckedOut,
       currentTime: currentTime ?? this.currentTime,
       shift: shift ?? this.shift,
       position: position ?? this.position,
@@ -132,6 +137,7 @@ class HomeLoaded extends HomeState {
   final bool isLoadingPatrolTasks;
   final List<PatrolRoute> patrolRoutes;
   final UserRole userRole; // Add user role to state
+  final CurrentShiftData? currentShift; // Current shift data from API
 
   const HomeLoaded({
     required this.currentBottomNavIndex,
@@ -145,6 +151,7 @@ class HomeLoaded extends HomeState {
     this.isLoadingPatrolTasks = false,
     this.patrolRoutes = const [],
     this.userRole = UserRole.anggota, // Default to anggota
+    this.currentShift,
   });
 
   HomeLoaded copyWith({
@@ -159,6 +166,7 @@ class HomeLoaded extends HomeState {
     bool? isLoadingPatrolTasks,
     List<PatrolRoute>? patrolRoutes,
     UserRole? userRole,
+    CurrentShiftData? currentShift,
     bool clearSnackbar = false,
     bool clearNavigation = false,
   }) {
@@ -179,6 +187,7 @@ class HomeLoaded extends HomeState {
       isLoadingPatrolTasks: isLoadingPatrolTasks ?? this.isLoadingPatrolTasks,
       patrolRoutes: patrolRoutes ?? this.patrolRoutes,
       userRole: userRole ?? this.userRole,
+      currentShift: currentShift ?? this.currentShift,
     );
   }
 
@@ -195,6 +204,7 @@ class HomeLoaded extends HomeState {
         isLoadingPatrolTasks,
         patrolRoutes,
         userRole,
+        currentShift ?? '',
       ];
 }
 

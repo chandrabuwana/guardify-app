@@ -22,6 +22,17 @@ abstract class ScheduleRepository {
     required int year,
     required int month,
   });
+
+  /// Get schedule detail by date using get_detail_schedule API
+  Future<ShiftDetailResult> getScheduleDetail({
+    required String userId,
+    required DateTime date,
+  });
+
+  /// Get current shift using get_current API
+  Future<CurrentShiftResult> getCurrentShift({
+    required String userId,
+  });
 }
 
 // Custom Result Classes
@@ -63,7 +74,7 @@ class ShiftDetailResult {
     required this.isSuccess,
   });
 
-  factory ShiftDetailResult.success(ShiftSchedule shiftDetail) {
+  factory ShiftDetailResult.success(ShiftSchedule? shiftDetail) {
     return ShiftDetailResult._(
       shiftDetail: shiftDetail,
       isSuccess: true,
@@ -102,4 +113,65 @@ class DailyAgendaResult {
       isSuccess: false,
     );
   }
+}
+
+class CurrentShiftResult {
+  final CurrentShiftData? currentShift;
+  final Failure? failure;
+  final bool isSuccess;
+
+  const CurrentShiftResult._({
+    this.currentShift,
+    this.failure,
+    required this.isSuccess,
+  });
+
+  factory CurrentShiftResult.success(CurrentShiftData currentShift) {
+    return CurrentShiftResult._(
+      currentShift: currentShift,
+      isSuccess: true,
+    );
+  }
+
+  factory CurrentShiftResult.failure(Failure failure) {
+    return CurrentShiftResult._(
+      failure: failure,
+      isSuccess: false,
+    );
+  }
+}
+
+/// Entity for current shift data
+class CurrentShiftData {
+  final String id;
+  final String name;
+  final String startTime;
+  final bool checkin;
+  final bool checkout;
+  final String? checkinTime;
+  final String? checkoutTime;
+  final List<CurrentShiftPersonnel> listPersonel;
+
+  const CurrentShiftData({
+    required this.id,
+    required this.name,
+    required this.startTime,
+    required this.checkin,
+    required this.checkout,
+    this.checkinTime,
+    this.checkoutTime,
+    required this.listPersonel,
+  });
+}
+
+class CurrentShiftPersonnel {
+  final String userId;
+  final String fullname;
+  final String? images;
+
+  const CurrentShiftPersonnel({
+    required this.userId,
+    required this.fullname,
+    this.images,
+  });
 }

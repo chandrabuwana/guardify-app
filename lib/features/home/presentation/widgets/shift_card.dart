@@ -23,6 +23,9 @@ class ShiftCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCheckedIn = attendanceInfo.isCheckedIn;
+    final isCheckedOut = attendanceInfo.isCheckedOut;
+    // Jika sudah checkout, tidak tampilkan tombol
+    final shouldShowButton = !isCheckedOut;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -73,11 +76,15 @@ class ShiftCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isCheckedIn ? successColor : primaryColor,
+                  color: isCheckedOut 
+                      ? Colors.grey 
+                      : (isCheckedIn ? successColor : primaryColor),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  isCheckedIn ? 'Masuk' : 'Menunggu',
+                  isCheckedOut 
+                      ? 'Selesai' 
+                      : (isCheckedIn ? 'Masuk' : 'Menunggu'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -140,54 +147,56 @@ class ShiftCard extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Buttons - Show "Lacak Lokasi" button for Pengawas role
-          if (userRole == UserRole.pengawas)
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: onTrackLocationPressed ?? () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+          // Buttons - Only show if not checked out
+          if (shouldShowButton)
+            // Show "Lacak Lokasi" button for Pengawas role
+            if (userRole == UserRole.pengawas)
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: onTrackLocationPressed ?? () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
+                  child: const Text(
+                    'Lacak Lokasi',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                child: const Text(
-                  'Lacak Lokasi',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+              )
+            else
+              // Work Button for other roles
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: onWorkButtonPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    isCheckedIn ? 'Akhiri Bekerja' : 'Mulai Bekerja',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            )
-          else
-            // Work Button for other roles
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: onWorkButtonPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  isCheckedIn ? 'Akhiri Bekerja' : 'Mulai Bekerja',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
