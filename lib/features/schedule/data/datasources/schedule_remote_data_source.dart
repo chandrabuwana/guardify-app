@@ -4,6 +4,8 @@ import 'package:retrofit/retrofit.dart';
 import '../models/shift_detail_response_model.dart';
 import '../models/shift_category_response_model.dart';
 import '../models/route_response_model.dart';
+import '../models/schedule_detail_response_model.dart';
+import '../models/current_shift_response_model.dart';
 
 part 'schedule_remote_data_source.g.dart';
 
@@ -29,6 +31,18 @@ abstract class ScheduleApiClient {
   Future<RouteResponseModel> getRouteById(
     @Path('id') String id,
   );
+
+  /// Get schedule detail using POST /Shift/get_detail_schedule
+  @POST('/Shift/get_detail_schedule')
+  Future<ScheduleDetailResponseModel> getDetailSchedule(
+    @Body() Map<String, dynamic> body,
+  );
+
+  /// Get current shift using POST /Shift/get_current
+  @POST('/Shift/get_current')
+  Future<CurrentShiftResponseModel> getCurrentShift(
+    @Body() Map<String, dynamic> body,
+  );
 }
 
 /// Abstract interface for schedule remote data source
@@ -38,6 +52,10 @@ abstract class ScheduleRemoteDataSource {
   Future<ShiftCategoryResponseModel> getShiftCategories(
       Map<String, dynamic> body);
   Future<RouteResponseModel> getRouteById(String id);
+  Future<ScheduleDetailResponseModel> getDetailSchedule(
+      Map<String, dynamic> body);
+  Future<CurrentShiftResponseModel> getCurrentShift(
+      Map<String, dynamic> body);
 }
 
 /// Implementation of ScheduleRemoteDataSource using Retrofit API client
@@ -62,5 +80,17 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
   @override
   Future<RouteResponseModel> getRouteById(String id) {
     return apiClient.getRouteById(id);
+  }
+
+  @override
+  Future<ScheduleDetailResponseModel> getDetailSchedule(
+      Map<String, dynamic> body) {
+    return apiClient.getDetailSchedule(body);
+  }
+
+  @override
+  Future<CurrentShiftResponseModel> getCurrentShift(
+      Map<String, dynamic> body) {
+    return apiClient.getCurrentShift(body);
   }
 }

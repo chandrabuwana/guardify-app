@@ -12,4 +12,9 @@ abstract class BmiRemoteDataSource {
   Future<BmiListResponseModel> getBmiList(
     @Body() BmiListRequestModel request,
   );
+
+  @POST('/User/list')
+  Future<UserListResponseModel> getUserList(
+    @Body() UserListRequestModel request,
+  );
 }

@@ -13,6 +13,7 @@ import '../bloc/home_state.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/design/colors.dart';
 import '../../../attendance/presentation/pages/check_in_page.dart';
+import '../../../attendance/presentation/pages/check_out_page.dart';
 import '../../../bmi/presentation/pages/bmi_navigation_page.dart';
 import '../../../panic_button/presentation/pages/panic_verification_page.dart';
 import '../../../panic_button/presentation/bloc/panic_button_bloc.dart';
@@ -29,6 +30,9 @@ import '../../../personnel/presentation/pages/personnel_list_page.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../../core/services/location_service.dart';
+import '../../../shift/data/datasources/shift_remote_data_source.dart';
+import '../../../schedule/data/datasources/schedule_remote_data_source.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -125,10 +129,20 @@ class __HomePageViewState extends State<_HomePageView> {
                       userId: state.navigationArguments?['userId'] ?? '1',
                       namaPersonil:
                           state.navigationArguments?['userName'] ?? 'User',
+                      prefillCurrentLocation: state
+                          .navigationArguments?['currentLocation'] as String?,
+                      prefillRouteName:
+                          state.navigationArguments?['routeName'] as String?,
+                      prefillLocation:
+                          state.navigationArguments?['locationName'] as String?,
+                      prefillShiftDetailId: state
+                          .navigationArguments?['shiftDetailId'] as String?,
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -146,7 +160,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
@@ -161,7 +177,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -175,7 +193,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -193,7 +213,9 @@ class __HomePageViewState extends State<_HomePageView> {
                 break;
               case '/cuti':
                 Navigator.pushNamed(context, '/cuti').then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -207,7 +229,9 @@ class __HomePageViewState extends State<_HomePageView> {
                         state.navigationArguments?['userRole'] ?? 'anggota',
                   },
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -216,14 +240,17 @@ class __HomePageViewState extends State<_HomePageView> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => TestResultPage(
-                      userId: state.navigationArguments?['userId'], // Null jika tidak ada, akan dibaca dari secure storage
+                      userId: state.navigationArguments?[
+                          'userId'], // Null jika tidak ada, akan dibaca dari secure storage
                       userRole:
                           state.navigationArguments?['userRole'] as UserRole? ??
                               UserRole.anggota,
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
@@ -237,7 +264,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
@@ -252,7 +281,9 @@ class __HomePageViewState extends State<_HomePageView> {
                     ),
                   ),
                 ).then((_) {
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
@@ -261,7 +292,9 @@ class __HomePageViewState extends State<_HomePageView> {
                 // Navigate to Schedule feature via named route
                 Navigator.pushNamed(context, '/schedule').then((_) {
                   // After returning from schedule, reset bottom nav to home
-                  context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
                 });
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
@@ -360,35 +393,22 @@ class __HomePageViewState extends State<_HomePageView> {
                         // Shift Card
                         ShiftCard(
                           attendanceInfo: state.attendanceInfo,
-                          teamMembersImages: _getTeamMembersImages(),
+                          teamMembersImages: _getTeamMembersImages(state),
                           userRole: state.userRole,
                           onWorkButtonPressed: () {
-                            if (!state.attendanceInfo.isCheckedIn) {
-                              // Navigate directly to check-in form (mulai bekerja)
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CheckInPage(
-                                    userId: '1',
-                                    namaPersonil: state.userProfile.name,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              // Handle check-out directly
-                              context
-                                  .read<HomeBloc>()
-                                  .add(const AttendanceToggleEvent());
-                            }
+                            unawaited(
+                              _handleWorkButtonPressed(context, state),
+                            );
                           },
-                          onTrackLocationPressed: state.userRole == UserRole.pengawas
-                              ? () {
-                                  context.read<HomeBloc>().add(
-                                        const ShowSnackbarEvent(
-                                            'Fitur Lacak Lokasi sedang dalam pengembangan'),
-                                      );
-                                }
-                              : null,
+                          onTrackLocationPressed:
+                              state.userRole == UserRole.pengawas
+                                  ? () {
+                                      context.read<HomeBloc>().add(
+                                            const ShowSnackbarEvent(
+                                                'Fitur Lacak Lokasi sedang dalam pengembangan'),
+                                          );
+                                    }
+                                  : null,
                         ),
 
                         24.verticalSpace,
@@ -450,6 +470,269 @@ class __HomePageViewState extends State<_HomePageView> {
         );
       },
     );
+  }
+
+  Future<void> _handleWorkButtonPressed(
+    BuildContext context,
+    HomeLoaded state,
+  ) async {
+    if (!state.attendanceInfo.isCheckedIn) {
+      await _startCheckInFlow(context, state);
+    } else {
+      await _startCheckOutFlow(context, state);
+    }
+  }
+
+  Future<void> _startCheckInFlow(
+    BuildContext context,
+    HomeLoaded state,
+  ) async {
+    if (!mounted) return;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    bool loadingShown = false;
+
+    void closeLoading() {
+      if (loadingShown && navigator.canPop()) {
+        navigator.pop();
+        loadingShown = false;
+      }
+    }
+
+    // Get userId first before try-catch so it's available in catch block
+    final userId =
+        await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '1';
+
+    try {
+      loadingShown = true;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final locService = getIt<LocationService>();
+      final shiftDs = getIt<ShiftRemoteDataSource>();
+
+      final pos = await locService.getCurrentLatLng();
+      final lat = pos?.lat ?? 0;
+      final lng = pos?.lng ?? 0;
+      final resp = await shiftDs.getCurrentLocation(
+        latitude: lat,
+        longitude: lng,
+      );
+      final data = resp.data;
+      
+      // Debug: Log carryOverTasks
+      if (data != null) {
+        final carryOverTasks = data.carryOverTasks;
+        print('📋 CheckIn Flow - carryOverTasks from getCurrentLocation: $carryOverTasks');
+      }
+      
+      // Ambil IdShiftDetail dari /Shift/get_current (gunakan field Id dari response)
+      String? shiftDetailId;
+      try {
+        final scheduleDs = getIt<ScheduleRemoteDataSource>();
+        final body = {'IdUser': userId};
+        final currentShiftResp = await scheduleDs.getCurrentShift(body);
+        // Gunakan field Id dari response sebagai IdShiftDetail
+        shiftDetailId = currentShiftResp.data?.id;
+        
+        // Simpan IdShiftDetail ke storage jika ada
+        if (shiftDetailId != null && shiftDetailId.isNotEmpty) {
+          await SecurityManager.storeSecurely(
+            AppConstants.shiftDetailIdKey,
+            shiftDetailId,
+          );
+        }
+      } catch (e) {
+        print('Error getting IdShiftDetail from /Shift/get_current: $e');
+      }
+      
+      closeLoading();
+      if (!mounted) return;
+      
+      final checkInResult = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CheckInPage(
+            userId: userId,
+            namaPersonil: state.userProfile.name,
+            prefillFullname: data?.fullname,
+            prefillLocation: data?.location,
+            prefillCurrentLocation: data?.currentLocation,
+            prefillRouteName: data?.routeName,
+            prefillShiftDetailId: shiftDetailId,
+            prefillTugasLanjutan: data?.carryOverTasks, // Tugas lanjutan dari ListCarryOver
+          ),
+        ),
+      );
+
+      // Reload data setelah check-in berhasil
+      if (checkInResult == true && mounted) {
+        print('🔄 Reloading home data after successful check-in...');
+        // Reload get_current (current shift) dan get_current_task (patrol tasks)
+        context.read<HomeBloc>().add(const HomeInitialEvent());
+      }
+    } catch (e) {
+      closeLoading();
+      if (!mounted) return;
+      
+      // Tetap navigasi ke CheckInPage meskipun ada error
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CheckInPage(
+            userId: userId,
+            namaPersonil: state.userProfile.name,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _startCheckOutFlow(
+    BuildContext context,
+    HomeLoaded state,
+  ) async {
+    if (!mounted) return;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    bool loadingShown = false;
+
+    void closeLoading() {
+      if (loadingShown && navigator.canPop()) {
+        navigator.pop();
+        loadingShown = false;
+      }
+    }
+
+    try {
+      loadingShown = true;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      print('🚀 CheckOut Flow - Starting...');
+      final userId =
+          await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '1';
+      print('🚀 CheckOut Flow - userId: $userId');
+
+      // Ambil IdShiftDetail dari /Shift/get_current (gunakan field Id dari response)
+      // Ini juga untuk validasi bahwa Checkin: true dan Checkout: false
+      String? shiftDetailId;
+      try {
+        final scheduleDs = getIt<ScheduleRemoteDataSource>();
+        final body = {'IdUser': userId};
+        final currentShiftResp = await scheduleDs.getCurrentShift(body);
+        print('📋 CheckOut Flow - Response from /Shift/get_current:');
+        print('  - succeeded: ${currentShiftResp.succeeded}');
+        print('  - checkin: ${currentShiftResp.data?.checkin}');
+        print('  - checkout: ${currentShiftResp.data?.checkout}');
+        print('  - data.id: ${currentShiftResp.data?.id}');
+        
+        // Validasi: harus Checkin: true dan Checkout: false
+        if (currentShiftResp.data == null) {
+          throw Exception('Data shift tidak ditemukan');
+        }
+        
+        if (currentShiftResp.data!.checkin != true) {
+          throw Exception('Anda belum melakukan check-in. Silakan check-in terlebih dahulu.');
+        }
+        
+        if (currentShiftResp.data!.checkout == true) {
+          throw Exception('Anda sudah melakukan check-out hari ini.');
+        }
+        
+        // Gunakan field Id dari response sebagai IdShiftDetail
+        shiftDetailId = currentShiftResp.data?.id;
+        print('✅ CheckOut Flow - shiftDetailId from API: $shiftDetailId');
+        
+        // Simpan IdShiftDetail ke storage jika ada
+        if (shiftDetailId != null && shiftDetailId.isNotEmpty) {
+          await SecurityManager.storeSecurely(
+            AppConstants.shiftDetailIdKey,
+            shiftDetailId,
+          );
+          print('💾 CheckOut Flow - shiftDetailId saved to storage');
+        }
+      } catch (e) {
+        print('❌ CheckOut Flow - Error getting shiftDetailId from /Shift/get_current: $e');
+        throw Exception('Gagal mendapatkan data shift: $e');
+      }
+
+      if (shiftDetailId == null || shiftDetailId.isEmpty) {
+        print('❌ CheckOut Flow - shiftDetailId still empty after all attempts');
+        throw Exception('Shift detail tidak ditemukan. Silakan coba lagi.');
+      }
+
+      // Get current location (untuk logging saja, lat/lng akan di-hardcode di API call)
+      final locService = getIt<LocationService>();
+      final position = await locService.getCurrentLatLng();
+      final lat = position?.lat ?? 0;
+      final lng = position?.lng ?? 0;
+      print('📍 CheckOut Flow - Location: lat=$lat, lng=$lng (akan di-hardcode di API)');
+
+      print('📤 CheckOut Flow - Calling getCheckoutDetail API...');
+      print('  - shiftDetailId: $shiftDetailId');
+      print('  - latitude: $lat');
+      print('  - longitude: $lng');
+
+      final shiftDs = getIt<ShiftRemoteDataSource>();
+
+      final checkoutResp = await shiftDs.getCheckoutDetail(
+        shiftDetailId: shiftDetailId,
+        latitude: lat,
+        longitude: lng,
+      );
+
+      print('✅ CheckOut Flow - getCheckoutDetail response received');
+      print('  - succeeded: ${checkoutResp.succeeded}');
+      print('  - data: ${checkoutResp.data}');
+
+      closeLoading();
+      if (!mounted) return;
+
+      print('✅ CheckOut Flow - Navigating to CheckOutPage');
+      // attendanceId tidak diperlukan untuk checkout flow, bisa dikosongkan
+      final checkoutResult = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CheckOutPage(
+            userId: userId,
+            attendanceId: '', // Tidak diperlukan untuk checkout flow
+            checkoutDetail: checkoutResp.data,
+          ),
+        ),
+      );
+
+      // Reload data setelah checkout berhasil
+      if (checkoutResult == true && mounted) {
+        print('🔄 Reloading home data after successful checkout...');
+        // Reload get_current (current shift) dan get_current_task (patrol tasks)
+        context.read<HomeBloc>().add(const HomeInitialEvent());
+      }
+    } catch (e, stackTrace) {
+      print('❌ CheckOut Flow - Error caught: $e');
+      print('❌ CheckOut Flow - Stack trace: $stackTrace');
+      closeLoading();
+      if (!mounted) return;
+      
+      String errorMessage = 'Gagal membuka form check out';
+      if (e is Exception) {
+        errorMessage = e.toString().replaceAll('Exception: ', '');
+      } else {
+        errorMessage = e.toString();
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   Widget _buildAppHeader(UserProfile userProfile) {
@@ -629,7 +912,7 @@ class __HomePageViewState extends State<_HomePageView> {
             ],
           ),
           12.verticalSpace,
-          
+
           // Horizontal scrollable list of team members
           SizedBox(
             height: 200.h,
@@ -672,7 +955,7 @@ class __HomePageViewState extends State<_HomePageView> {
                             : null,
                       ),
                       10.verticalSpace,
-                      
+
                       // Nama
                       Text(
                         member['nama']!,
@@ -686,7 +969,7 @@ class __HomePageViewState extends State<_HomePageView> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       6.verticalSpace,
-                      
+
                       // Posisi Badge
                       Container(
                         padding: EdgeInsets.symmetric(
@@ -707,7 +990,7 @@ class __HomePageViewState extends State<_HomePageView> {
                         ),
                       ),
                       10.verticalSpace,
-                      
+
                       // Kirim Pesan button (solid filled)
                       SizedBox(
                         width: double.infinity,
@@ -860,8 +1143,9 @@ class __HomePageViewState extends State<_HomePageView> {
           title: 'Insiden Kejadian',
           icon: Icons.report_problem,
           hasNotification: true,
-          onTap: () =>
-              context.read<HomeBloc>().add(const NavigateToIncidentReportEvent()),
+          onTap: () => context
+              .read<HomeBloc>()
+              .add(const NavigateToIncidentReportEvent()),
         ),
         MenuItem(
           id: 'personnel_list',
@@ -874,7 +1158,9 @@ class __HomePageViewState extends State<_HomePageView> {
                 builder: (context) => const PersonnelListPage(),
               ),
             ).then((_) {
-              context.read<HomeBloc>().add(const BottomNavigationTappedEvent(0));
+              context
+                  .read<HomeBloc>()
+                  .add(const BottomNavigationTappedEvent(0));
             });
           },
         ),
@@ -882,8 +1168,9 @@ class __HomePageViewState extends State<_HomePageView> {
           id: 'activity_report',
           title: 'Laporan Kegiatan',
           icon: Icons.description,
-          onTap: () =>
-              context.read<HomeBloc>().add(const NavigateToActivityReportEvent()),
+          onTap: () => context
+              .read<HomeBloc>()
+              .add(const NavigateToActivityReportEvent()),
         ),
         MenuItem(
           id: 'bmi',
@@ -930,7 +1217,7 @@ class __HomePageViewState extends State<_HomePageView> {
         ),
       ];
     }
-    
+
     // Menu default untuk role lainnya (Anggota, Danton, PJO, Deputy, Admin)
     print('✅ BUILDING DEFAULT MENU (With Rekapitulasi Kehadiran)');
     return [
@@ -1003,7 +1290,16 @@ class __HomePageViewState extends State<_HomePageView> {
     ];
   }
 
-  List<String> _getTeamMembersImages() {
+  List<String> _getTeamMembersImages(HomeLoaded state) {
+    // Get team members from current shift if available
+    if (state.currentShift != null && state.currentShift!.listPersonel.isNotEmpty) {
+      return state.currentShift!.listPersonel
+          .map((personnel) => (personnel.images != null && personnel.images!.isNotEmpty) 
+              ? personnel.images! 
+              : '')
+          .toList();
+    }
+    // Fallback to empty list
     // Mock team members images
     return [
       '', // Empty for default avatar
