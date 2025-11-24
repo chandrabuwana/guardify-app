@@ -27,6 +27,8 @@ import '../../../chat/presentation/bloc/chat_bloc.dart';
 import '../../../news/presentation/pages/news_list_page.dart';
 import '../../../news/presentation/bloc/news_bloc.dart';
 import '../../../personnel/presentation/pages/personnel_list_page.dart';
+import '../../../tugas_lanjutan/presentation/pages/tugas_lanjutan_page.dart';
+import '../../../tugas_lanjutan/presentation/bloc/tugas_lanjutan_bloc.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
@@ -1077,9 +1079,30 @@ class __HomePageViewState extends State<_HomePageView> {
                 children: tasks
                     .map((task) => TaskCard(
                           task: task,
-                          onTap: () {
-                            // Navigate to patrol detail page for patrol tasks
-                            if (task.id.startsWith('patrol_')) {
+                          onTap: () async {
+                            // Navigate to Tugas Lanjutan page first (before patrol check)
+                            if (task.id == 'patrol_continue') {
+                              final userId = await SecurityManager.readSecurely(
+                                    AppConstants.userIdKey,
+                                  ) ??
+                                  'user_1';
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => BlocProvider(
+                                    create: (context) => getIt<TugasLanjutanBloc>(),
+                                    child: TugasLanjutanPage(
+                                      userId: userId,
+                                    ),
+                                  ),
+                                ),
+                              ).then((_) {
+                                context
+                                    .read<HomeBloc>()
+                                    .add(const BottomNavigationTappedEvent(0));
+                              });
+                            } else if (task.id.startsWith('patrol_')) {
+                              // Navigate to patrol detail page for patrol tasks
                               // Get the route ID from task ID (format: patrol_xxx)
                               final routeId =
                                   task.id.replaceFirst('patrol_', '');

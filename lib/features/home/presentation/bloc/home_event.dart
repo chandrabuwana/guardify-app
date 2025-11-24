@@ -104,6 +104,15 @@ class LoadPatrolTasksEvent extends HomeEvent {
   const LoadPatrolTasksEvent();
 }
 
+class LoadCurrentTaskEvent extends HomeEvent {
+  final String idShiftDetail;
+
+  const LoadCurrentTaskEvent({required this.idShiftDetail});
+
+  @override
+  List<Object> get props => [idShiftDetail];
+}
+
 class TaskProgressUpdateEvent extends HomeEvent {
   final String taskId;
   final double progress;

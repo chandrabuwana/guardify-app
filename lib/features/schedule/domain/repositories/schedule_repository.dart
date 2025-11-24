@@ -33,6 +33,11 @@ abstract class ScheduleRepository {
   Future<CurrentShiftResult> getCurrentShift({
     required String userId,
   });
+
+  /// Get current task using get_current_task API
+  Future<CurrentTaskResult> getCurrentTask({
+    required String idShiftDetail,
+  });
 }
 
 // Custom Result Classes
@@ -151,6 +156,7 @@ class CurrentShiftData {
   final String? checkinTime;
   final String? checkoutTime;
   final List<CurrentShiftPersonnel> listPersonel;
+  final String? idShiftDetail;
 
   const CurrentShiftData({
     required this.id,
@@ -161,6 +167,7 @@ class CurrentShiftData {
     this.checkinTime,
     this.checkoutTime,
     required this.listPersonel,
+    this.idShiftDetail,
   });
 }
 
@@ -173,5 +180,94 @@ class CurrentShiftPersonnel {
     required this.userId,
     required this.fullname,
     this.images,
+  });
+}
+
+class CurrentTaskResult {
+  final CurrentTaskData? currentTask;
+  final Failure? failure;
+  final bool isSuccess;
+
+  const CurrentTaskResult._({
+    this.currentTask,
+    this.failure,
+    required this.isSuccess,
+  });
+
+  factory CurrentTaskResult.success(CurrentTaskData currentTask) {
+    return CurrentTaskResult._(
+      currentTask: currentTask,
+      isSuccess: true,
+    );
+  }
+
+  factory CurrentTaskResult.failure(Failure failure) {
+    return CurrentTaskResult._(
+      failure: failure,
+      isSuccess: false,
+    );
+  }
+}
+
+/// Entity for current task data
+class CurrentTaskData {
+  final List<RouteTask> listRoute;
+  final List<CarryOverTask> listCarryOver;
+
+  const CurrentTaskData({
+    required this.listRoute,
+    required this.listCarryOver,
+  });
+}
+
+/// Route Task Entity
+class RouteTask {
+  final String idAreas;
+  final String areasName;
+  final String? checkIn;
+  final String? filename;
+  final String? fileUrl;
+  final String status;
+
+  const RouteTask({
+    required this.idAreas,
+    required this.areasName,
+    this.checkIn,
+    this.filename,
+    this.fileUrl,
+    required this.status,
+  });
+}
+
+/// Carry Over Task Entity
+class CarryOverTask {
+  final String id;
+  final String createBy;
+  final String createDate;
+  final String idShift;
+  final String reportDate;
+  final String reportId;
+  final String reportNote;
+  final String? solverDate;
+  final String? solverId;
+  final String? solverNote;
+  final String status;
+  final String? updateBy;
+  final String? updateDate;
+
+  const CarryOverTask({
+    required this.id,
+    required this.createBy,
+    required this.createDate,
+    required this.idShift,
+    required this.reportDate,
+    required this.reportId,
+    required this.reportNote,
+    this.solverDate,
+    this.solverId,
+    this.solverNote,
+    required this.status,
+    this.updateBy,
+    this.updateDate,
   });
 }

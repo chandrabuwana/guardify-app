@@ -58,7 +58,7 @@ class ScheduleDetailDataModel {
   final List<PersonnelModel> listPersonel;
 
   @JsonKey(name: 'ListRoute')
-  final List<dynamic> listRoute;
+  final List<RouteAreaModel> listRoute;
 
   ScheduleDetailDataModel({
     required this.shiftName,
@@ -90,6 +90,15 @@ class ScheduleDetailDataModel {
       );
     }).toList();
 
+    // Convert ListRoute to PatrolLocationModel
+    final patrolLocations = listRoute.map((routeArea) {
+      return PatrolLocationModel(
+        id: '', // Not provided by API
+        name: routeArea.areasName,
+        type: routeArea.areasName, // Use AreasName as type for display
+      );
+    }).toList();
+
     return ShiftScheduleModel(
       id: '', // Not provided by API
       date: DateFormat('yyyy-MM-dd').format(date),
@@ -98,7 +107,7 @@ class ScheduleDetailDataModel {
       location: location,
       position: location,
       route: routeName,
-      patrolLocations: const [], // Not provided by API
+      patrolLocations: patrolLocations,
       teamMembers: teamMembers,
     );
   }
@@ -126,5 +135,21 @@ class PersonnelModel {
       _$PersonnelModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$PersonnelModelToJson(this);
+}
+
+/// Route Area model for ListRoute
+@JsonSerializable()
+class RouteAreaModel {
+  @JsonKey(name: 'AreasName')
+  final String areasName;
+
+  RouteAreaModel({
+    required this.areasName,
+  });
+
+  factory RouteAreaModel.fromJson(Map<String, dynamic> json) =>
+      _$RouteAreaModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$RouteAreaModelToJson(this);
 }
 
