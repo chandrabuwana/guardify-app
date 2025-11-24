@@ -12,6 +12,7 @@ import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:guardify_app/core/di/injection_module.dart' as _i381;
 import 'package:guardify_app/core/network/network_manager.dart' as _i39;
+import 'package:guardify_app/core/services/location_service.dart' as _i856;
 import 'package:guardify_app/features/attendance/data/datasources/attendance_local_data_source.dart'
     as _i1007;
 import 'package:guardify_app/features/attendance/data/datasources/attendance_remote_data_source.dart'
@@ -226,14 +227,20 @@ import 'package:guardify_app/features/schedule/data/repositories/schedule_reposi
     as _i343;
 import 'package:guardify_app/features/schedule/domain/repositories/schedule_repository.dart'
     as _i752;
+import 'package:guardify_app/features/schedule/domain/usecases/get_current_shift.dart'
+    as _i170;
 import 'package:guardify_app/features/schedule/domain/usecases/get_daily_agenda.dart'
     as _i369;
 import 'package:guardify_app/features/schedule/domain/usecases/get_monthly_schedule.dart'
     as _i1034;
+import 'package:guardify_app/features/schedule/domain/usecases/get_schedule_detail.dart'
+    as _i807;
 import 'package:guardify_app/features/schedule/domain/usecases/get_shift_detail.dart'
     as _i947;
 import 'package:guardify_app/features/schedule/presentation/bloc/schedule_bloc.dart'
     as _i1003;
+import 'package:guardify_app/features/shift/data/datasources/shift_remote_data_source.dart'
+    as _i415;
 import 'package:guardify_app/features/test_result/data/datasources/test_result_api_data_source.dart'
     as _i836;
 import 'package:guardify_app/features/test_result/data/datasources/test_result_remote_data_source.dart'
@@ -276,10 +283,13 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i523.ChatRepository>(
         () => injectionModule.chatRepository());
     gh.lazySingleton<_i39.NetworkManager>(() => _i39.NetworkManager());
+    gh.lazySingleton<_i856.LocationService>(() => _i856.LocationService());
     gh.lazySingleton<_i220.ProfileRemoteDataSource>(
         () => _i1020.ProfileRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i460.PanicButtonDataSource>(
         () => _i754.PanicButtonLocalDataSource());
+    gh.lazySingleton<_i415.ShiftRemoteDataSource>(
+        () => _i415.ShiftRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i228.PanicButtonRepository>(() =>
         _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
     gh.lazySingleton<_i606.NewsRemoteDataSource>(
@@ -331,8 +341,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i352.LaporanKegiatanRepository>(() =>
         _i713.LaporanKegiatanRepositoryImpl(
             remoteDataSource: gh<_i590.LaporanKegiatanRemoteDataSource>()));
-    gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
-        () => _i109.AttendanceRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.factory<_i893.PanicButtonBloc>(() => _i893.PanicButtonBloc(
           activatePanicButtonUseCase: gh<_i491.ActivatePanicButtonUseCase>(),
           getVerificationItemsUseCase: gh<_i4.GetVerificationItemsUseCase>(),
@@ -355,17 +363,21 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i422.TestResultRepository>(() =>
         _i717.TestResultRepositoryImpl(
             remoteDataSource: gh<_i652.TestResultRemoteDataSource>()));
+    gh.factory<_i170.GetCurrentShift>(
+        () => _i170.GetCurrentShift(gh<_i752.ScheduleRepository>()));
     gh.factory<_i369.GetDailyAgenda>(
         () => _i369.GetDailyAgenda(gh<_i752.ScheduleRepository>()));
     gh.factory<_i1034.GetMonthlySchedule>(
         () => _i1034.GetMonthlySchedule(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i807.GetScheduleDetail>(
+        () => _i807.GetScheduleDetail(gh<_i752.ScheduleRepository>()));
     gh.factory<_i947.GetShiftDetail>(
         () => _i947.GetShiftDetail(gh<_i752.ScheduleRepository>()));
-    gh.factory<_i1003.ScheduleBloc>(() => _i1003.ScheduleBloc(
-          getMonthlySchedule: gh<_i1034.GetMonthlySchedule>(),
-          getShiftDetail: gh<_i947.GetShiftDetail>(),
-          getDailyAgenda: gh<_i369.GetDailyAgenda>(),
-        ));
+    gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
+        () => _i109.AttendanceRemoteDataSourceImpl(
+              dio: gh<_i361.Dio>(),
+              scheduleRemoteDataSource: gh<_i563.ScheduleRemoteDataSource>(),
+            ));
     gh.lazySingleton<_i695.DocumentRepository>(
         () => _i117.DocumentRepositoryImpl(
               remoteDataSource: gh<_i125.DocumentRemoteDataSource>(),
@@ -450,6 +462,10 @@ extension GetItInjectableX on _i174.GetIt {
           localDataSource: gh<_i895.ProfileLocalDataSource>(),
           authRepository: gh<_i144.AuthRepository>(),
         ));
+    gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc(
+          gh<_i238.GetPatrolRoutesPaginated>(),
+          gh<_i170.GetCurrentShift>(),
+        ));
     gh.factory<_i311.AttendanceRepository>(() => _i289.AttendanceRepositoryImpl(
           remoteDataSource: gh<_i109.AttendanceRemoteDataSource>(),
           localDataSource: gh<_i1007.AttendanceLocalDataSource>(),
@@ -486,8 +502,12 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i974.SubmitAttendanceUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i601.ValidateAttendanceUseCase>(() =>
         _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
-    gh.factory<_i890.HomeBloc>(
-        () => _i890.HomeBloc(gh<_i238.GetPatrolRoutesPaginated>()));
+    gh.factory<_i1003.ScheduleBloc>(() => _i1003.ScheduleBloc(
+          getMonthlySchedule: gh<_i1034.GetMonthlySchedule>(),
+          getShiftDetail: gh<_i947.GetShiftDetail>(),
+          getDailyAgenda: gh<_i369.GetDailyAgenda>(),
+          getScheduleDetail: gh<_i807.GetScheduleDetail>(),
+        ));
     gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
           getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
           getPatrolRoutesPaginated: gh<_i238.GetPatrolRoutesPaginated>(),

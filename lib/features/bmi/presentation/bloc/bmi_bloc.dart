@@ -125,21 +125,37 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     BMILoadMoreUsers event,
     Emitter<BMIState> emit,
   ) async {
-    if (state.isLoadingMore || !state.hasMoreData) return;
+    if (state.isLoadingMore || !state.hasMoreData) {
+      print('⚠️ LoadMore skipped: isLoadingMore=${state.isLoadingMore}, hasMoreData=${state.hasMoreData}');
+      return;
+    }
 
+    print('🔄 LoadMore triggered: currentPage=${state.currentPage}, hasMoreData=${state.hasMoreData}');
     emit(state.copyWith(isLoadingMore: true, error: null));
 
     final nextPage = state.currentPage + 1;
+    print('📄 Loading page: $nextPage');
     final result = await getUserProfilesPaginated(page: nextPage, pageSize: 10);
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        isLoadingMore: false,
-        error: _mapFailureToMessage(failure),
-      )),
+      (failure) {
+        print('❌ LoadMore failed: ${_mapFailureToMessage(failure)}');
+        emit(state.copyWith(
+          isLoadingMore: false,
+          error: _mapFailureToMessage(failure),
+        ));
+      },
       (paginatedResponse) {
+        print('✅ LoadMore success: received ${paginatedResponse.data.length} items, hasMore=${paginatedResponse.hasMore}');
+        
+        // Remove duplicates before adding
+        final existingIds = state.searchResults.map((u) => u.id).toSet();
+        final newItems = paginatedResponse.data.where((u) => !existingIds.contains(u.id)).toList();
+        
         final updatedList = List<UserProfile>.from(state.searchResults)
-          ..addAll(paginatedResponse.data);
+          ..addAll(newItems);
+
+        print('📊 Updated list: ${state.searchResults.length} -> ${updatedList.length} items');
 
         emit(state.copyWith(
           isLoadingMore: false,

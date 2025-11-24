@@ -38,8 +38,10 @@ class ScheduleState {
     bool? isLoadingDetail,
     List<ShiftSchedule>? schedules,
     ShiftSchedule? selectedShift,
+    bool clearSelectedShift = false, // Flag to explicitly clear selectedShift
     List<DailyAgenda>? dailyAgendas,
     String? error,
+    bool clearError = false, // Flag to explicitly clear error
     int? selectedYear,
     int? selectedMonth,
   }) {
@@ -47,9 +49,11 @@ class ScheduleState {
       isLoading: isLoading ?? this.isLoading,
       isLoadingDetail: isLoadingDetail ?? this.isLoadingDetail,
       schedules: schedules ?? this.schedules,
-      selectedShift: selectedShift ?? this.selectedShift,
+      selectedShift: clearSelectedShift 
+          ? null 
+          : (selectedShift ?? this.selectedShift),
       dailyAgendas: dailyAgendas ?? this.dailyAgendas,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
       selectedYear: selectedYear ?? this.selectedYear,
       selectedMonth: selectedMonth ?? this.selectedMonth,
     );

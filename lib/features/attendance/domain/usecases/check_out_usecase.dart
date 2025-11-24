@@ -12,30 +12,17 @@ class CheckOutUseCase {
   CheckOutUseCase(this.repository);
 
   Future<Either<Failure, Attendance>> call(CheckOutRequest request) async {
-    // Get current attendance status to validate check out
-    final currentStatus =
-        await repository.getCurrentAttendanceStatus(request.userId);
+    // Validasi checkout sudah dilakukan di home_page melalui /Shift/get_current
+    // yang mengecek Checkin: true dan Checkout: false
+    // Tidak perlu lagi validasi melalui getCurrentAttendanceStatus karena endpoint tidak ada di backend
+    
+    // Validate task completion if required
+    if (request.statusTugas == 'tidak selesai') {
+      // You can add additional validation here if needed
+      // For now, we'll allow check out even with incomplete tasks
+    }
 
-    return currentStatus.fold(
-      (failure) => Left(failure),
-      (attendance) async {
-        if (attendance == null) {
-          return Left(ValidationFailure('Tidak ada sesi check in yang aktif'));
-        }
-
-        if (attendance.type == AttendanceType.clockOut) {
-          return Left(ValidationFailure('Anda sudah melakukan check out'));
-        }
-
-        // Validate task completion if required
-        if (request.statusTugas == 'tidak selesai') {
-          // You can add additional validation here if needed
-          // For now, we'll allow check out even with incomplete tasks
-        }
-
-        return await repository.checkOut(request);
-      },
-    );
+    return await repository.checkOut(request);
   }
 }
 

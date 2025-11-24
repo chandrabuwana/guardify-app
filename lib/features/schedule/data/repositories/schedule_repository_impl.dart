@@ -8,6 +8,8 @@ import '../datasources/schedule_remote_data_source.dart';
 import '../models/shift_schedule_model.dart';
 import '../models/shift_category_response_model.dart';
 import '../models/route_response_model.dart';
+import '../models/schedule_detail_response_model.dart';
+import '../models/current_shift_response_model.dart';
 
 @LazySingleton(as: ScheduleRepository)
 class ScheduleRepositoryImpl implements ScheduleRepository {
@@ -349,6 +351,116 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
     } catch (e) {
       print('[ScheduleRepository] ❌ Error: $e');
       return DailyAgendaResult.failure(
+        UnexpectedFailure(e.toString()),
+      );
+    }
+  }
+
+  @override
+  Future<ShiftDetailResult> getScheduleDetail({
+    required String userId,
+    required DateTime date,
+  }) async {
+    try {
+      print('[ScheduleRepository] Fetching schedule detail for $date using get_detail_schedule API');
+
+      final dateString = DateFormat('yyyy-MM-dd').format(date);
+      final requestBody = {
+        'ShiftDate': dateString,
+        'IdUser': userId,
+      };
+
+      final response = await remoteDataSource.getDetailSchedule(requestBody);
+
+      // Handle case when API returns no data (Code 400, Data null)
+      // This is a valid response - just means no schedule for this date
+      if (!response.succeeded || response.data == null) {
+        print('[ScheduleRepository] ℹ️ No schedule detail found for date (this is normal)');
+        // Return success with null data to show empty state instead of error
+        return ShiftDetailResult.success(null);
+      }
+
+      // Convert to ShiftScheduleModel and then to entity
+      final shiftModel = response.data!.toShiftScheduleModel(date);
+      final shiftDetail = shiftModel.toEntity();
+
+      print('[ScheduleRepository] ✅ Found schedule detail: ${shiftDetail.shiftName}');
+      return ShiftDetailResult.success(shiftDetail);
+    } on DioException catch (e) {
+      print('[ScheduleRepository] ❌ DioException: ${e.message}');
+      if (e.response?.statusCode != null &&
+          e.response!.statusCode! >= 400 &&
+          e.response!.statusCode! < 500) {
+        return ShiftDetailResult.failure(
+          AuthenticationFailure('Gagal memuat detail jadwal'),
+        );
+      }
+      return ShiftDetailResult.failure(
+        ServerFailure('Terjadi kesalahan pada server'),
+      );
+    } catch (e) {
+      print('[ScheduleRepository] ❌ Error: $e');
+      return ShiftDetailResult.failure(
+        UnexpectedFailure(e.toString()),
+      );
+    }
+  }
+
+  @override
+  Future<CurrentShiftResult> getCurrentShift({
+    required String userId,
+  }) async {
+    try {
+      print('[ScheduleRepository] Fetching current shift for user $userId');
+
+      final requestBody = {
+        'IdUser': userId,
+      };
+
+      final response = await remoteDataSource.getCurrentShift(requestBody);
+
+      if (!response.succeeded || response.data == null) {
+        print('[ScheduleRepository] ❌ No current shift found');
+        return CurrentShiftResult.failure(
+          CacheFailure('Tidak ada shift saat ini'),
+        );
+      }
+
+      // Convert to entity
+      final currentShift = CurrentShiftData(
+        id: response.data!.id,
+        name: response.data!.name,
+        startTime: response.data!.startTime,
+        checkin: response.data!.checkin,
+        checkout: response.data!.checkout,
+        checkinTime: response.data!.checkinTime,
+        checkoutTime: response.data!.checkoutTime,
+        listPersonel: response.data!.listPersonel.map((p) {
+          return CurrentShiftPersonnel(
+            userId: p.userId,
+            fullname: p.fullname,
+            images: p.images,
+          );
+        }).toList(),
+      );
+
+      print('[ScheduleRepository] ✅ Found current shift: ${currentShift.name}');
+      return CurrentShiftResult.success(currentShift);
+    } on DioException catch (e) {
+      print('[ScheduleRepository] ❌ DioException: ${e.message}');
+      if (e.response?.statusCode != null &&
+          e.response!.statusCode! >= 400 &&
+          e.response!.statusCode! < 500) {
+        return CurrentShiftResult.failure(
+          AuthenticationFailure('Gagal memuat shift saat ini'),
+        );
+      }
+      return CurrentShiftResult.failure(
+        ServerFailure('Terjadi kesalahan pada server'),
+      );
+    } catch (e) {
+      print('[ScheduleRepository] ❌ Error: $e');
+      return CurrentShiftResult.failure(
         UnexpectedFailure(e.toString()),
       );
     }
