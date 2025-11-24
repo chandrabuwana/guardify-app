@@ -1,5 +1,5 @@
 name: guardify_app
-description: A secure Flutter application with clean architecture and BLoC pattern.
+description: Application for security Officer
 publish_to: 'none'
 version: 1.0.0+1
 

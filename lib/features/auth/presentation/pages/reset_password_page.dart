@@ -118,7 +118,7 @@ class _ResetPasswordViewState extends State<_ResetPasswordView> {
                                     ),
                                   ),
                                   Text(
-                                    'Logoipsum',
+                                    'Guardify',
                                     style: TextStyle(
                                       fontSize: 18.sp,
                                       fontWeight: FontWeight.bold,
