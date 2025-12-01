@@ -10,6 +10,7 @@ import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../bloc/laporan_kegiatan_bloc.dart';
 import '../../domain/entities/laporan_kegiatan_entity.dart';
 import '../widgets/laporan_card.dart';
+import '../widgets/empty_state_widget.dart';
 import 'laporan_kegiatan_detail_page.dart';
 
 class LaporanKegiatanPage extends StatefulWidget {
@@ -32,6 +33,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
   late String _currentUserId;
   late UserRole _currentUserRole;
   late LaporanKegiatanBloc _laporanBloc;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -43,6 +45,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
     _laporanBloc = getIt<LaporanKegiatanBloc>();
 
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
 
     // Load initial data
     _loadData();
@@ -50,7 +53,9 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
+    _searchController.dispose();
     _laporanBloc.close();
     super.dispose();
   }
@@ -62,14 +67,16 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
   }
 
   void _onTabChanged() {
-    if (_tabController.index == 0) {
-      _laporanBloc.add(GetLaporanListEvent(
-        status: LaporanStatus.menungguVerifikasi,
-      ));
-    } else {
-      _laporanBloc.add(GetLaporanListEvent(
-        status: LaporanStatus.terverifikasi,
-      ));
+    if (!_tabController.indexIsChanging) {
+      if (_tabController.index == 0) {
+        _laporanBloc.add(GetLaporanListEvent(
+          status: LaporanStatus.menungguVerifikasi,
+        ));
+      } else {
+        _laporanBloc.add(GetLaporanListEvent(
+          status: LaporanStatus.terverifikasi,
+        ));
+      }
     }
   }
 
@@ -80,12 +87,8 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
       case LaporanStatus.revisi:
         return Colors.orange;
       case LaporanStatus.terverifikasi:
-        return const Color(0xFF1E3A8A); // Dark blue
+        return const Color(0xFF1E88E5); // Blue
     }
-  }
-
-  String _formatJamKerja(String jamKerja) {
-    return jamKerja;
   }
 
   @override
@@ -93,7 +96,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
     return BlocProvider<LaporanKegiatanBloc>.value(
       value: _laporanBloc,
       child: AppScaffold(
-        backgroundColor: Colors.grey[50],
+        backgroundColor: Colors.white,
         enableScrolling: false,
         appBar: AppBar(
           backgroundColor: primaryColor,
@@ -105,56 +108,85 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
           ),
           title: Text(
             'Laporan Kegiatan',
-            style: TS.titleLarge.copyWith(color: Colors.white),
+            style: TS.titleLarge.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           centerTitle: true,
-          bottom: TabBar(
-            controller: _tabController,
-            onTap: (_) => _onTabChanged(),
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            tabs: const [
-              Tab(text: 'Menunggu Verifikasi'),
-              Tab(text: 'Terverifikasi'),
-            ],
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(48.h),
+            child: Container(
+              color: primaryColor,
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.white,
+                indicatorWeight: 3,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                labelStyle: TS.titleSmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: TS.titleSmall,
+                tabs: const [
+                  Tab(text: 'Menunggu Verifikasi'),
+                  Tab(text: 'Terverifikasi'),
+                ],
+              ),
+            ),
           ),
         ),
         child: Column(
           children: [
-            // Search Bar
+            // Search and Filter Section
             Container(
               padding: REdgeInsets.all(16),
               color: Colors.white,
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Cari',
-                        prefixIcon:
-                            const Icon(Icons.search, color: Colors.grey),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.r),
-                          borderSide: BorderSide.none,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(color: primaryColor, width: 1),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Cari',
+                          hintStyle: TS.bodyMedium.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Colors.grey[600],
+                            size: 20.sp,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: REdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                         ),
-                        contentPadding: REdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
+                        style: TS.bodyMedium,
                       ),
                     ),
                   ),
                   12.horizontalSpace,
                   Container(
+                    width: 48.w,
+                    height: 48.h,
                     decoration: BoxDecoration(
                       color: primaryColor,
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.filter_list, color: Colors.white),
+                      icon: Icon(
+                        Icons.filter_list,
+                        color: Colors.white,
+                        size: 20.sp,
+                      ),
                       onPressed: () {
                         // Show filter sheet
                       },
@@ -184,7 +216,11 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
     return BlocBuilder<LaporanKegiatanBloc, LaporanKegiatanState>(
       builder: (context, state) {
         if (state is LaporanLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: CircularProgressIndicator(
+              color: primaryColor,
+            ),
+          );
         }
 
         if (state is LaporanError) {
@@ -192,10 +228,28 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(state.message),
+                Icon(
+                  Icons.error_outline,
+                  size: 64.sp,
+                  color: errorColor,
+                ),
                 16.verticalSpace,
+                Text(
+                  'Terjadi Kesalahan',
+                  style: TS.titleMedium.copyWith(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                8.verticalSpace,
+                Text(
+                  state.message,
+                  style: TS.bodyMedium.copyWith(color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+                24.verticalSpace,
                 UIButton(
-                  text: 'Retry',
+                  text: 'Coba Lagi',
                   onPressed: () => _loadData(),
                 ),
               ],
@@ -204,47 +258,50 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
         }
 
         if (state is LaporanListLoaded) {
-          if (state.laporanList.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.assignment_outlined,
-                      size: 64.sp, color: Colors.grey),
-                  16.verticalSpace,
-                  Text(
-                    'Tidak ditemukan',
-                    style: TS.titleMedium.copyWith(color: Colors.grey),
-                  ),
-                ],
-              ),
+          // Filter by status
+          final filteredList = state.laporanList
+              .where((laporan) => laporan.status == status)
+              .toList();
+
+          if (filteredList.isEmpty) {
+            return EmptyStateWidget(
+              message: 'Tidak ditemukan',
             );
           }
 
-          return ListView.builder(
-            padding: REdgeInsets.all(16),
-            itemCount: state.laporanList.length,
-            itemBuilder: (context, index) {
-              final laporan = state.laporanList[index];
-              return LaporanCard(
-                laporan: laporan,
-                statusColor: _getStatusColor(laporan.status),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BlocProvider.value(
-                        value: _laporanBloc,
-                        child: LaporanKegiatanDetailPage(
-                          laporanId: laporan.id,
-                          userRole: _currentUserRole,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              );
+          return RefreshIndicator(
+            onRefresh: () async {
+              _laporanBloc.add(GetLaporanListEvent(status: status));
             },
+            color: primaryColor,
+            child: ListView.builder(
+              padding: REdgeInsets.all(16),
+              itemCount: filteredList.length,
+              itemBuilder: (context, index) {
+                final laporan = filteredList[index];
+                return Padding(
+                  padding: REdgeInsets.only(bottom: 12),
+                  child: LaporanCard(
+                    laporan: laporan,
+                    statusColor: _getStatusColor(laporan.status),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BlocProvider.value(
+                            value: _laporanBloc,
+                            child: LaporanKegiatanDetailPage(
+                              laporanId: laporan.id,
+                              userRole: _currentUserRole,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
           );
         }
 

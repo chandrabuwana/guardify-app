@@ -33,6 +33,7 @@ import 'features/tugas_lanjutan/presentation/bloc/tugas_lanjutan_bloc.dart';
 import 'core/constants/enums.dart';
 import 'core/security/security_manager.dart';
 import 'core/di/injection.dart';
+import 'core/design/colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -125,18 +126,76 @@ class GuardifyApp extends StatelessWidget {
               );
             },
             '/laporan-kegiatan': (context) {
-              final arguments = ModalRoute.of(context)?.settings.arguments
-                  as Map<String, dynamic>?;
-              final String userId = arguments?['userId'] ?? 'current_user';
-              final String userRoleString = arguments?['userRole'] ?? 'anggota';
-              final UserRole userRole = UserRole.fromValue(userRoleString);
+              return FutureBuilder<String?>(
+                future: SecurityManager.readSecurely('user_role_id'),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  }
 
-              return BlocProvider(
-                create: (context) => getIt<LaporanKegiatanBloc>(),
-                child: LaporanKegiatanPage(
-                  userId: userId,
-                  userRole: userRole,
-                ),
+                  final roleId = snapshot.data ?? 'AGT';
+                  final userRole = UserRole.fromValue(roleId);
+
+                  // Check if user has access (only danton, pjo, deputy, pengawas)
+                  final allowedRoles = ['DTN', 'PJO', 'DPT', 'PGW'];
+                  if (!allowedRoles.contains(roleId)) {
+                    return Scaffold(
+                      appBar: AppBar(
+                        title: const Text('Akses Ditolak'),
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                      body: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.block,
+                              size: 64,
+                              color: errorColor,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Akses Ditolak',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Anda tidak memiliki akses ke halaman ini.',
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryColor,
+                              ),
+                              child: const Text('Kembali'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  final arguments = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, dynamic>?;
+                  final String userId = arguments?['userId'] ??
+                      (snapshot.data != null ? snapshot.data! : 'current_user');
+
+                  return BlocProvider(
+                    create: (context) => getIt<LaporanKegiatanBloc>(),
+                    child: LaporanKegiatanPage(
+                      userId: userId,
+                      userRole: userRole,
+                    ),
+                  );
+                },
               );
             },
             '/cuti/detail': (context) {
@@ -171,8 +230,8 @@ class GuardifyApp extends StatelessWidget {
                     
                     final roleId = snapshot.data ?? 'AGT';
                     
-                    // PJO dan Deputy menggunakan halaman schedule khusus
-                    if (roleId == 'PJO' || roleId == 'DPT') {
+                    // PJO, Deputy, dan Pengawas menggunakan halaman schedule khusus
+                    if (roleId == 'PJO' || roleId == 'DPT' || roleId == 'PGW') {
                       return const SchedulePJODeputyPage();
                     }
                     

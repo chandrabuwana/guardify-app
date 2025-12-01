@@ -24,6 +24,16 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
 
       // Check if request succeeded
       if (!response.succeeded || response.data == null) {
+        // Handle specific error cases
+        // Jika code 403 (user not active), tampilkan pesan dari API
+        if (response.code == 403) {
+          return LoginResult.failure(
+            AuthenticationFailure(response.message.isNotEmpty 
+                ? response.message 
+                : 'Akun belum aktif. Silakan hubungi administrator untuk verifikasi akun.'),
+          );
+        }
+        
         // Login gagal - tampilkan pesan user-friendly
         // Apapun error dari API (404, 400, dll), tampilkan pesan yang sama
         return LoginResult.failure(

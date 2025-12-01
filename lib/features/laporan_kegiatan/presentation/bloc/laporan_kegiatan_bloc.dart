@@ -27,6 +27,7 @@ class LaporanKegiatanBloc
     on<UpdateStatusEvent>(_onUpdateStatus);
     on<AcceptLaporanEvent>(_onAcceptLaporan);
     on<RequestRevisiEvent>(_onRequestRevisi);
+    on<MarkAsTidakMasukEvent>(_onMarkAsTidakMasuk);
   }
 
   Future<void> _onGetLaporanList(
@@ -117,6 +118,28 @@ class LaporanKegiatanBloc
     result.fold(
       (failure) => emit(LaporanError(message: failure.message)),
       (laporan) => emit(LaporanUpdated(laporan: laporan)),
+    );
+  }
+
+  Future<void> _onMarkAsTidakMasuk(
+    MarkAsTidakMasukEvent event,
+    Emitter<LaporanKegiatanState> emit,
+  ) async {
+    emit(LaporanLoading());
+
+    // Mark as tidak masuk - this would typically update the kehadiran status
+    // For now, we'll just reload the detail
+    final result = await getLaporanDetail(event.id);
+
+    result.fold(
+      (failure) => emit(LaporanError(message: failure.message)),
+      (laporan) {
+        // Update kehadiran to "Tidak Masuk"
+        final updatedLaporan = laporan.copyWith(
+          kehadiran: 'Tidak Masuk',
+        );
+        emit(LaporanDetailLoaded(laporan: updatedLaporan));
+      },
     );
   }
 }

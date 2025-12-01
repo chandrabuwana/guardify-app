@@ -6,9 +6,16 @@ import '../entities/tugas_lanjutan_entity.dart';
 abstract class TugasLanjutanRepository {
   /// Get list tugas lanjutan
   /// - filterByToday: true untuk tugas hari ini, false untuk riwayat
+  /// - filterByJabatan: jika true, filter by Jabatan (untuk tab "Tugas Anggota")
+  /// - jabatan: nama jabatan untuk filter (misalnya "Anggota")
+  /// - userId: untuk riwayat, digunakan sebagai SolverId untuk filter
+  /// - status: status untuk filter (opsional, tidak digunakan untuk riwayat)
   Future<Either<Failure, List<TugasLanjutanEntity>>> getTugasLanjutanList({
     bool filterByToday = false,
     String? userId,
+    bool filterByJabatan = false,
+    String? jabatan,
+    String? status,
   });
 
   /// Get detail tugas lanjutan by ID

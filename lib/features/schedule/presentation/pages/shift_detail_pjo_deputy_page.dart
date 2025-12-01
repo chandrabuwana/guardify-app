@@ -6,15 +6,16 @@ import '../../../../core/design/colors.dart';
 import '../bloc/schedule_bloc.dart';
 import '../../domain/entities/shift_schedule.dart';
 
-/// Shift Detail Page for PJO & Deputy
+/// Shift Detail Page for PJO, Deputy & Pengawas
 ///
-/// Halaman detail shift khusus untuk PJO dan Deputy
+/// Halaman detail shift khusus untuk PJO, Deputy, dan Pengawas
 /// dengan tampilan:
+/// - Header dengan waktu, status icons, dan calendar icon
 /// - Tab untuk Shift Pagi dan Shift Malam
 /// - Total personil per shift
 /// - Jam mulai dan selesai bekerja
 /// - Lokasi per pos (Pos Gajah, Pos Merpati, Pos Ayam)
-/// - Tim jaga dengan route assignment
+/// - Tim jaga dengan route assignment dalam layout 2 kolom
 class ShiftDetailPJODeputyPage extends StatefulWidget {
   final String userId;
   final DateTime date;
@@ -80,11 +81,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
   Widget _buildEmptyState() {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [primaryColor, primaryColor.withOpacity(0.8)],
-        ),
+        color: primaryColor,
       ),
       child: SafeArea(
         child: Column(
@@ -130,11 +127,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
   Widget _buildContent(ShiftSchedule shift) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [primaryColor, primaryColor.withOpacity(0.8)],
-        ),
+        color: primaryColor,
       ),
       child: SafeArea(
         child: Column(
@@ -183,25 +176,62 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: EdgeInsets.all(16.w),
-      child: Row(
+    // Get current time
+    final now = DateTime.now();
+    final timeString = DateFormat('HH:mm').format(now);
+    
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      child: Column(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
+          // Top row: Time, title, status icons
+          Row(
+            children: [
+              // Time
+              Text(
+                timeString,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const Spacer(),
+              // Status icons (Network signal and Battery)
+              Row(
+                children: [
+                  Icon(Icons.signal_cellular_alt, 
+                    color: Colors.white, 
+                    size: 18.r),
+                  SizedBox(width: 8.w),
+                  Icon(Icons.battery_full, 
+                    color: Colors.white, 
+                    size: 18.r),
+                ],
+              ),
+            ],
           ),
-          const Spacer(),
-          Text(
-            'Jadwal Kerja',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w600,
-            ),
+          SizedBox(height: 12.h),
+          // Second row: Back button and title
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => Navigator.pop(context),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                'Jadwal Kerja',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-          const Spacer(),
-          SizedBox(width: 48.w), // Balance for back button
         ],
       ),
     );
@@ -260,35 +290,20 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Info Cards
-          Row(
-            children: [
-              Expanded(
-                child: _buildInfoCard('Total Personil', '$totalPersonil Orang'),
-              ),
-            ],
-          ),
+          // Shift Info - Inline text style matching the image
+          _buildShiftInfo('Total Personil', '$totalPersonil Orang'),
           SizedBox(height: 12.h),
-
-          Row(
-            children: [
-              Expanded(
-                child: _buildInfoCard('Jam Mulai Bekerja', jamMulai),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: _buildInfoCard('Jam Selesai Bekerja', jamSelesai),
-              ),
-            ],
-          ),
-
+          _buildShiftInfo('Jam Mulai Bekerja', jamMulai),
+          SizedBox(height: 12.h),
+          _buildShiftInfo('Jam Selesai Bekerja', jamSelesai),
+          
           SizedBox(height: 24.h),
 
           // Lokasi Sections
           ...shift.patrolLocations.map((location) {
             return Padding(
               padding: EdgeInsets.only(bottom: 24.h),
-              child: _buildLocationSection(location, shift.teamMembers),
+              child: _buildLocationSection(location, shift.teamMembers, shiftType),
             );
           }).toList(),
         ],
@@ -296,47 +311,41 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
     );
   }
 
-  Widget _buildInfoCard(String label, String value) {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 12.sp,
-            ),
+  Widget _buildShiftInfo(String label, String value) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: primaryColor,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
           ),
-          SizedBox(height: 4.h),
-          Text(
-            value,
-            style: TextStyle(
-              color: primaryColor,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-            ),
+        ),
+        SizedBox(width: 8.w),
+        Text(
+          ': $value',
+          style: TextStyle(
+            color: primaryColor,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildLocationSection(
-      PatrolLocation location, List<TeamMember> allMembers) {
+      PatrolLocation location, List<TeamMember> allMembers, String shiftType) {
     // Filter team members untuk lokasi ini (simulasi)
-    final locationMembers = allMembers.take(3).toList();
+    // In real implementation, this should filter based on location
+    final locationMembers = allMembers;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Lokasi : ${location.name}',
+          'Lokasi: ${location.name}',
           style: TextStyle(
             color: primaryColor,
             fontSize: 16.sp,
@@ -348,74 +357,104 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
         Text(
           'Tim Jaga',
           style: TextStyle(
-            color: Colors.black87,
+            color: primaryColor,
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
         SizedBox(height: 12.h),
 
-        // Team Grid
+        // Team Grid - 2 columns as per image
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 0.8,
+            crossAxisCount: 2,
+            childAspectRatio: 0.75,
             crossAxisSpacing: 12.w,
             mainAxisSpacing: 12.h,
           ),
           itemCount: locationMembers.length,
           itemBuilder: (context, index) {
             final member = locationMembers[index];
-            return _buildTeamMemberCard(member);
+            // Simulate route assignment - in real app, this should come from API
+            final route = _getRouteForMember(member, index);
+            return _buildTeamMemberCard(member, route);
           },
         ),
       ],
     );
   }
 
-  Widget _buildTeamMemberCard(TeamMember member) {
+  Widget _buildTeamMemberCard(TeamMember member, String route) {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
+          // Profile Picture
           CircleAvatar(
-            radius: 24.r,
+            radius: 30.r,
             backgroundImage:
                 member.photoUrl != null ? NetworkImage(member.photoUrl!) : null,
             backgroundColor: Colors.grey.shade300,
             child: member.photoUrl == null
-                ? Icon(Icons.person, size: 24.r, color: Colors.grey.shade600)
+                ? Icon(Icons.person, size: 30.r, color: Colors.grey.shade600)
                 : null,
           ),
           SizedBox(height: 8.h),
+          
+          // Name
           Text(
             member.name,
             style: TextStyle(
-              fontSize: 12.sp,
+              fontSize: 13.sp,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: primaryColor,
             ),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           SizedBox(height: 4.h),
+          
+          // Route
           Text(
-            member.position,
+            route,
             style: TextStyle(
-              fontSize: 10.sp,
+              fontSize: 12.sp,
               color: primaryColor,
+              fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 4.h),
+          
+          // Status
+          Text(
+            'Masuk',
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: primaryColor,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const Spacer(),
+          
+          // Kirim Pesan Button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -424,16 +463,18 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
-                padding: EdgeInsets.symmetric(vertical: 6.h),
+                padding: EdgeInsets.symmetric(vertical: 8.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6.r),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
+                elevation: 0,
               ),
               child: Text(
                 'Kirim Pesan',
                 style: TextStyle(
-                  fontSize: 10.sp,
+                  fontSize: 12.sp,
                   color: Colors.white,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -441,5 +482,14 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
         ],
       ),
     );
+  }
+  
+  // Helper method to simulate route assignment
+  // In real implementation, this should come from API data
+  String _getRouteForMember(TeamMember member, int index) {
+    final routes = ['Rute A', 'Rute B', 'Rute BB', 'Rute AN', 'Rute C', 
+                    'Rute D', 'Rute N', 'Rute M', 'Rute P', 'Rute L', 
+                    'Rute J', 'Rute Y'];
+    return routes[index % routes.length];
   }
 }

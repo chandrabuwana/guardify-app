@@ -7,6 +7,7 @@ import '../models/route_response_model.dart';
 import '../models/schedule_detail_response_model.dart';
 import '../models/current_shift_response_model.dart';
 import '../models/current_task_response_model.dart';
+import '../models/schedule_pengawas_response_model.dart';
 
 part 'schedule_remote_data_source.g.dart';
 
@@ -50,6 +51,12 @@ abstract class ScheduleApiClient {
   Future<CurrentTaskResponseModel> getCurrentTask(
     @Body() Map<String, dynamic> body,
   );
+
+  /// Get schedule pengawas using POST /Shift/get_schedule_pengawas
+  @POST('/Shift/get_schedule_pengawas')
+  Future<SchedulePengawasResponseModel> getSchedulePengawas(
+    @Body() Map<String, dynamic> body,
+  );
 }
 
 /// Abstract interface for schedule remote data source
@@ -64,7 +71,9 @@ abstract class ScheduleRemoteDataSource {
   Future<CurrentShiftResponseModel> getCurrentShift(
       Map<String, dynamic> body);
   Future<CurrentTaskResponseModel> getCurrentTask(
-      Map<String, dynamic> body);
+    Map<String, dynamic> body);
+  Future<SchedulePengawasResponseModel> getSchedulePengawas(
+    Map<String, dynamic> body);
 }
 
 /// Implementation of ScheduleRemoteDataSource using Retrofit API client
@@ -107,5 +116,11 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
   Future<CurrentTaskResponseModel> getCurrentTask(
     Map<String, dynamic> body) {
     return apiClient.getCurrentTask(body);
+  }
+
+  @override
+  Future<SchedulePengawasResponseModel> getSchedulePengawas(
+    Map<String, dynamic> body) {
+    return apiClient.getSchedulePengawas(body);
   }
 }

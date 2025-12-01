@@ -27,4 +27,16 @@ abstract class PatrolRepository {
       String routeId, PatrolLocation location);
   Future<Either<Failure, String>> uploadProofImage(String imagePath);
   Future<Either<Failure, String>> getCurrentLocation();
+
+  /// Get areas list filtered by IdAreas
+  Future<Either<Failure, List<PatrolLocation>>> getAreasByIdAreas(String idAreas);
+
+  /// Submit patrol check point
+  Future<Either<Failure, bool>> submitCheckPoint({
+    required String idShiftDetail,
+    required String idAreas,
+    String? photoPath,
+    required double latitude,
+    required double longitude,
+  });
 }

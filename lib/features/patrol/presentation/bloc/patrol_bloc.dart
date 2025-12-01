@@ -7,6 +7,7 @@ import '../../domain/usecases/get_patrol_routes.dart';
 import '../../domain/usecases/get_patrol_routes_paginated.dart';
 import '../../domain/usecases/get_patrol_progress.dart';
 import '../../domain/usecases/add_patrol_location.dart';
+import '../../domain/repositories/patrol_repository.dart';
 
 part 'patrol_event.dart';
 part 'patrol_state.dart';
@@ -17,12 +18,14 @@ class PatrolBloc extends Bloc<PatrolEvent, PatrolState> {
   final GetPatrolRoutesPaginated getPatrolRoutesPaginated;
   final GetPatrolProgress getPatrolProgress;
   final AddPatrolLocation addPatrolLocation;
+  final PatrolRepository patrolRepository;
 
   PatrolBloc({
     required this.getPatrolRoutes,
     required this.getPatrolRoutesPaginated,
     required this.getPatrolProgress,
     required this.addPatrolLocation,
+    required this.patrolRepository,
   }) : super(PatrolInitial()) {
     on<LoadPatrolRoutes>(_onLoadPatrolRoutes);
     on<LoadMorePatrolRoutes>(_onLoadMorePatrolRoutes);
@@ -32,6 +35,7 @@ class PatrolBloc extends Bloc<PatrolEvent, PatrolState> {
     on<AddPatrolLocationEvent>(_onAddPatrolLocation);
     on<ReloadAndSelectRoute>(_onReloadAndSelectRoute);
     on<LoadPatrolRoutesFromData>(_onLoadPatrolRoutesFromData);
+    on<LoadAreasByRouteId>(_onLoadAreasByRouteId);
   }
 
   Future<void> _onLoadPatrolRoutes(
@@ -191,49 +195,77 @@ class PatrolBloc extends Bloc<PatrolEvent, PatrolState> {
     Emitter<PatrolState> emit,
   ) async {
     print(
-        '[PatrolBloc] ReloadAndSelectRoute - Reload after adding location or from dashboard: ${event.routeId}');
+        '[PatrolBloc] ReloadAndSelectRoute - Load areas from /Areas/list for route: ${event.routeId}');
+
+    // Use LoadAreasByRouteId instead
+    add(LoadAreasByRouteId(event.routeId));
+  }
+
+  Future<void> _onLoadAreasByRouteId(
+    LoadAreasByRouteId event,
+    Emitter<PatrolState> emit,
+  ) async {
+    print('[PatrolBloc] LoadAreasByRouteId - Loading areas for IdAreas: ${event.routeId}');
 
     // Emit loading state
     emit(PatrolLoading());
 
-    // Load fresh data from API
-    final result = await getPatrolRoutesPaginated(
-      page: 1,
-      pageSize: 10,
-    );
+    // Load areas from /Areas/list using routeId (which is actually IdAreas)
+    final areasResult = await patrolRepository.getAreasByIdAreas(event.routeId);
 
-    result.fold(
+    areasResult.fold(
       (failure) {
-        print('[PatrolBloc] Error reloading routes: ${failure.message}');
+        print('[PatrolBloc] Error loading areas: ${failure.message}');
         emit(PatrolError(failure.message));
       },
-      (paginatedResponse) {
-        print('[PatrolBloc] Reloaded ${paginatedResponse.data.length} routes');
+      (locations) {
+        print('[PatrolBloc] Successfully loaded ${locations.length} areas');
+        
+        // Use existing route if provided, otherwise create new one
+        final baseRoute = event.existingRoute;
+        final updatedRoute = baseRoute != null
+            ? baseRoute.copyWith(locations: locations)
+            : PatrolRoute(
+                id: event.routeId,
+                name: 'Patroli',
+                description: '${locations.length} Lokasi',
+                locations: locations,
+                additionalLocations: const [],
+                date: DateTime.now(),
+              );
 
-        // Find and select the route
-        final routeIndex = paginatedResponse.data
-            .indexWhere((route) => route.id == event.routeId);
+        // Check if we have existing state
+        final currentState = state;
+        if (currentState is PatrolLoaded) {
+          // Update existing routes list
+          final updatedRoutes = currentState.routes.map((route) {
+            if (route.id == event.routeId) {
+              return updatedRoute;
+            }
+            return route;
+          }).toList();
 
-        if (routeIndex != -1) {
-          final selectedRoute = paginatedResponse.data[routeIndex];
+          // If route not in list, add it
+          if (!updatedRoutes.any((r) => r.id == event.routeId)) {
+            updatedRoutes.add(updatedRoute);
+          }
 
           emit(PatrolLoaded(
-            routes: paginatedResponse.data,
-            selectedRoute: selectedRoute,
-            currentPage: paginatedResponse.currentPage,
-            hasMore: paginatedResponse.hasMore,
-            totalCount: paginatedResponse.totalCount,
+            routes: updatedRoutes,
+            selectedRoute: updatedRoute,
+            currentPage: currentState.currentPage,
+            hasMore: currentState.hasMore,
+            totalCount: updatedRoutes.length,
+            isLoadingMore: currentState.isLoadingMore,
           ));
-
-          // Don't load progress from API - UI calculates it from route.locations
-          // This prevents "Route not found" errors
         } else {
-          // Route not found, just emit loaded state
+          // No existing state, create new loaded state
           emit(PatrolLoaded(
-            routes: paginatedResponse.data,
-            currentPage: paginatedResponse.currentPage,
-            hasMore: paginatedResponse.hasMore,
-            totalCount: paginatedResponse.totalCount,
+            routes: [updatedRoute],
+            selectedRoute: updatedRoute,
+            currentPage: 1,
+            hasMore: false,
+            totalCount: 1,
           ));
         }
       },

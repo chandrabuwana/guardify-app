@@ -4,7 +4,10 @@ import '../../domain/usecases/get_monthly_schedule.dart';
 import '../../domain/usecases/get_shift_detail.dart';
 import '../../domain/usecases/get_daily_agenda.dart';
 import '../../domain/usecases/get_schedule_detail.dart';
+import '../../domain/usecases/get_schedule_pengawas.dart';
 import '../../domain/entities/shift_schedule.dart';
+import '../../../../core/utils/user_role_helper.dart';
+import '../../../../core/constants/enums.dart';
 
 part 'schedule_event.dart';
 part 'schedule_state.dart';
@@ -15,12 +18,14 @@ class ScheduleBloc extends Bloc<ScheduleEvent, ScheduleState> {
   final GetShiftDetail getShiftDetail;
   final GetDailyAgenda getDailyAgenda;
   final GetScheduleDetail getScheduleDetail;
+  final GetSchedulePengawas getSchedulePengawas;
 
   ScheduleBloc({
     required this.getMonthlySchedule,
     required this.getShiftDetail,
     required this.getDailyAgenda,
     required this.getScheduleDetail,
+    required this.getSchedulePengawas,
   }) : super(ScheduleState.initial()) {
     on<LoadMonthlySchedule>(_onLoadMonthlySchedule);
     on<LoadShiftDetail>(_onLoadShiftDetail);
@@ -126,10 +131,18 @@ class ScheduleBloc extends Bloc<ScheduleEvent, ScheduleState> {
   ) async {
     emit(state.copyWith(isLoadingDetail: true));
 
-    final result = await getScheduleDetail(
-      userId: event.userId,
-      date: event.date,
-    );
+    // Check if user is Pengawas - if so, use get_schedule_pengawas API
+    final userRole = await UserRoleHelper.getUserRole();
+    final isPengawas = userRole == UserRole.pengawas;
+
+    print('[ScheduleBloc] 👤 User role: ${userRole.displayName}, isPengawas: $isPengawas');
+
+    final result = isPengawas
+        ? await getSchedulePengawas(date: event.date)
+        : await getScheduleDetail(
+            userId: event.userId,
+            date: event.date,
+          );
 
     if (result.isSuccess) {
       // Success case - shiftDetail can be null (no schedule for this date)

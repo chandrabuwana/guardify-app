@@ -55,25 +55,25 @@ class RouteDetailModel {
   final RouteModel? route;
 
   @JsonKey(name: 'Latitude')
-  final double latitude;
+  final double? latitude;
 
   @JsonKey(name: 'Longitude')
-  final double longitude;
+  final double? longitude;
 
   @JsonKey(name: 'Name')
-  final String name;
+  final String? name;
 
   @JsonKey(name: 'Radius')
-  final double radius;
+  final double? radius;
 
   RouteDetailModel({
     required this.id,
     required this.idRoute,
     this.route,
-    required this.latitude,
-    required this.longitude,
-    required this.name,
-    required this.radius,
+    this.latitude,
+    this.longitude,
+    this.name,
+    this.radius,
   });
 
   factory RouteDetailModel.fromJson(Map<String, dynamic> json) =>

@@ -64,10 +64,11 @@ RouteDetailModel _$RouteDetailModelFromJson(Map<String, dynamic> json) =>
               (v) => v == null
                   ? null
                   : RouteModel.fromJson(v as Map<String, dynamic>)),
-          latitude: $checkedConvert('Latitude', (v) => (v as num).toDouble()),
-          longitude: $checkedConvert('Longitude', (v) => (v as num).toDouble()),
-          name: $checkedConvert('Name', (v) => v as String),
-          radius: $checkedConvert('Radius', (v) => (v as num).toDouble()),
+          latitude: $checkedConvert('Latitude', (v) => (v as num?)?.toDouble()),
+          longitude:
+              $checkedConvert('Longitude', (v) => (v as num?)?.toDouble()),
+          name: $checkedConvert('Name', (v) => v as String?),
+          radius: $checkedConvert('Radius', (v) => (v as num?)?.toDouble()),
         );
         return val;
       },

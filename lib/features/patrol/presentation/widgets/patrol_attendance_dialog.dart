@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// import 'package:image_picker/image_picker.dart';
-// import 'dart:io';
-import '../../../../core/design/colors.dart';
-import '../bloc/patrol_bloc.dart';
+import 'package:camera/camera.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import '../../../../core/di/injection.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/security/security_manager.dart';
 import '../../domain/entities/patrol_location.dart';
+import '../../domain/repositories/patrol_repository.dart';
+import '../bloc/patrol_bloc.dart';
 
 class PatrolAttendanceDialog extends StatefulWidget {
   final String routeId;
@@ -25,23 +29,33 @@ class PatrolAttendanceDialog extends StatefulWidget {
 class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
   final _formKey = GlobalKey<FormState>();
   final _proofController = TextEditingController();
-  // File? _imageFile;
+  File? _imageFile;
   // File? _attachmentFile;
   bool _isLoading = false;
   bool _isLocationVerified = false;
   double? _currentLatitude;
   double? _currentLongitude;
+  List<CameraDescription>? _cameras;
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
+    _initializeCameras();
   }
 
   @override
   void dispose() {
     _proofController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initializeCameras() async {
+    try {
+      _cameras = await availableCameras();
+    } catch (e) {
+      debugPrint('Error initializing cameras: $e');
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -56,19 +70,68 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
   }
 
   Future<void> _pickImage() async {
-    // TODO: Implement camera picker
-    // Requires image_picker package: flutter pub add image_picker
-    // final picker = ImagePicker();
-    // final pickedFile = await picker.pickImage(source: ImageSource.camera);
-    // if (pickedFile != null) {
-    //   setState(() {
-    //     _imageFile = File(pickedFile.path);
-    //   });
-    // }
+    try {
+      // Request camera permission
+      final cameraPermission = await Permission.camera.request();
+      if (cameraPermission != PermissionStatus.granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Akses kamera ditolak'),
+              backgroundColor: Colors.red,
+            ),
+          );  
+        }
+        return;
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Camera picker belum diimplementasi')),
-    );
+      // Initialize cameras if not already done
+      if (_cameras == null) {
+        _cameras = await availableCameras();
+      }
+
+      if (_cameras == null || _cameras!.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kamera tidak tersedia'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Navigate to camera capture page
+      final result = await Navigator.push<XFile?>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => _CameraCapturePage(cameras: _cameras!),
+        ),
+      );
+
+      if (result != null && mounted) {
+        setState(() {
+          _imageFile = File(result.path);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto berhasil diambil'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error mengambil foto: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _pickAttachment() async {
@@ -78,7 +141,7 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
     );
   }
 
-  void _submitAttendance() {
+  Future<void> _submitAttendance() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -107,130 +170,151 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
       _isLoading = true;
     });
 
-    // Add patrol location with current GPS coordinates
-    context.read<PatrolBloc>().add(
-          AddPatrolLocationEvent(
-            routeId: widget.routeId,
-            locationName: widget.currentLocation.name,
-            latitude: _currentLatitude!,
-            longitude: _currentLongitude!,
-            radius: 100, // Default radius
+    try {
+      // Get IdShiftDetail from storage
+      final shiftDetailId = await SecurityManager.readSecurely(
+        AppConstants.shiftDetailIdKey,
+      );
+
+      if (shiftDetailId == null || shiftDetailId.isEmpty) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('IdShiftDetail tidak ditemukan. Silakan check-in terlebih dahulu.'),
+            backgroundColor: Colors.red,
           ),
         );
-  }
+        return;
+      }
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<PatrolBloc, PatrolState>(
-      listener: (context, state) {
-        if (state is PatrolLocationAdded) {
-          setState(() {
-            _isLoading = true;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Lokasi berhasil ditambahkan'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+      // Get patrol repository
+      final patrolRepository = getIt<PatrolRepository>();
 
-        if (state is PatrolLoaded) {
+      // Submit check point using new API
+      final result = await patrolRepository.submitCheckPoint(
+        idShiftDetail: shiftDetailId,
+        idAreas: widget.routeId, // This is actually IdAreas
+        photoPath: _imageFile?.path,
+        latitude: _currentLatitude!,
+        longitude: _currentLongitude!,
+      );
+
+      result.fold(
+        (failure) {
           setState(() {
             _isLoading = false;
           });
-          Navigator.of(context).pop(true);
-
-          // Show success dialog
+          
+          // Show error dialog popup
           showDialog(
             context: context,
-            barrierDismissible: false,
+            barrierDismissible: true,
             builder: (context) => AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
+              title: Row(
                 children: [
                   Container(
-                    width: 80,
-                    height: 80,
+                    width: 40,
+                    height: 40,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF8B0000),
+                      color: Colors.red,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.thumb_up,
+                      Icons.error_outline,
                       color: Colors.white,
-                      size: 40,
+                      size: 24,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Absen Patroli Berhasil',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Terima Kasih',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B0000),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'OK',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Error',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
                       ),
                     ),
                   ),
                 ],
               ),
+              content: Text(
+                failure.message,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
-        }
-
-        if (state is PatrolError) {
+        },
+        (success) {
           setState(() {
             _isLoading = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${state.message}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      },
-      child: Dialog(
+          
+          // Reload patrol list BEFORE closing dialog (context is still valid)
+          try {
+            // Try to access PatrolBloc from context if available
+            final patrolBloc = context.read<PatrolBloc>();
+            print('[PatrolAttendanceDialog] ✅ Success! Reloading areas for route: ${widget.routeId}');
+            // Reload areas to refresh the list
+            patrolBloc.add(LoadAreasByRouteId(widget.routeId, null));
+          } catch (e) {
+            print('[PatrolAttendanceDialog] Could not access PatrolBloc: $e');
+            // If bloc is not available, parent will handle reload via return value
+          }
+          
+          // Close attendance dialog and return success
+          Navigator.of(context).pop(true);
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
         insetPadding: const EdgeInsets.symmetric(horizontal: 16),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 600),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -238,6 +322,7 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
+                  color: Colors.white,
                   border: Border(
                     bottom: BorderSide(color: Colors.grey, width: 0.5),
                   ),
@@ -265,13 +350,15 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
 
               // Content
               Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                child: Container(
+                  color: Colors.white,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                         // Lokasi Patroli (Read-only)
                         const Text(
                           'Lokasi Patroli',
@@ -385,6 +472,56 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
                             return null;
                           },
                         ),
+                        
+                        // Photo Preview
+                        if (_imageFile != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            height: 200,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    _imageFile!,
+                                    width: double.infinity,
+                                    height: 200,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: IconButton(
+                                    icon: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _imageFile = null;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        
                         const SizedBox(height: 16),
 
                         // Verifikasi Lokasi Button
@@ -494,7 +631,8 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
                             ),
                           ],
                         ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -502,6 +640,114 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
             ],
           ),
         ),
+      );
+  }
+}
+
+// Camera Capture Page
+class _CameraCapturePage extends StatefulWidget {
+  final List<CameraDescription> cameras;
+
+  const _CameraCapturePage({
+    required this.cameras,
+  });
+
+  @override
+  State<_CameraCapturePage> createState() => _CameraCapturePageState();
+}
+
+class _CameraCapturePageState extends State<_CameraCapturePage> {
+  late CameraController _controller;
+  late Future<void> _initializeControllerFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = CameraController(
+      widget.cameras.first,
+      ResolutionPreset.high,
+    );
+    _initializeControllerFuture = _controller.initialize();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Ambil Foto Bukti Patroli'),
+        backgroundColor: const Color(0xFF8B0000),
+        foregroundColor: Colors.white,
+      ),
+      body: FutureBuilder<void>(
+        future: _initializeControllerFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Kembali'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Column(
+              children: [
+                Expanded(
+                  child: CameraPreview(_controller),
+                ),
+                Container(
+                  height: 120,
+                  color: Colors.black,
+                  child: Center(
+                    child: FloatingActionButton(
+                      onPressed: () async {
+                        try {
+                          await _initializeControllerFuture;
+                          final image = await _controller.takePicture();
+                          if (mounted) {
+                            Navigator.of(context).pop(image);
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      backgroundColor: Colors.white,
+                      child: const Icon(Icons.camera_alt, color: Colors.black),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
       ),
     );
   }

@@ -28,6 +28,7 @@ class TugasLanjutanBloc
     on<GetTugasLanjutanDetailEvent>(_onGetTugasLanjutanDetail);
     on<SelesaikanTugasEvent>(_onSelesaikanTugas);
     on<GetProgressSummaryEvent>(_onGetProgressSummary);
+    on<SearchTugasLanjutanEvent>(_onSearchTugasLanjutan);
   }
 
   Future<void> _onGetTugasLanjutanList(
@@ -39,11 +40,55 @@ class TugasLanjutanBloc
     final result = await getTugasLanjutanList(
       filterByToday: event.filterByToday,
       userId: event.userId,
+      filterByJabatan: event.filterByJabatan,
+      jabatan: event.jabatan,
+      status: event.status,
     );
 
-    result.fold(
-      (failure) => emit(TugasLanjutanError(message: failure.message)),
-      (tugasList) => emit(TugasLanjutanListLoaded(tugasList: tugasList)),
+    await result.fold(
+      (failure) async {
+        emit(TugasLanjutanError(message: failure.message));
+      },
+      (tugasList) async {
+        // Debug: Print list length
+        print('📋 TugasLanjutanBloc: Loaded ${tugasList.length} tasks');
+        
+        // Check if we have progress data in current state
+        final currentState = state;
+        if (currentState is TugasLanjutanProgressLoaded) {
+          // If progress is already loaded, combine both
+          emit(TugasLanjutanListAndProgressLoaded(
+            tugasList: tugasList,
+            summary: currentState.summary,
+          ));
+        } else {
+          // Emit list first
+          emit(TugasLanjutanListLoaded(
+            tugasList: tugasList,
+            filteredList: tugasList,
+          ));
+          
+          // If this is for "Hari Ini" tab (filterByToday = true), also load progress summary
+          if (event.filterByToday && event.userId != null) {
+            // Load progress summary after list is loaded
+            final progressResult = await getProgressSummary(userId: event.userId!);
+            progressResult.fold(
+              (failure) {
+                // If progress fails, keep the list loaded
+                print('📋 TugasLanjutanBloc: Failed to load progress: ${failure.message}');
+              },
+              (summary) {
+                // Combine list and progress
+                emit(TugasLanjutanListAndProgressLoaded(
+                  tugasList: tugasList,
+                  filteredList: tugasList,
+                  summary: summary,
+                ));
+              },
+            );
+          }
+        }
+      },
     );
   }
 
@@ -90,8 +135,78 @@ class TugasLanjutanBloc
 
     result.fold(
       (failure) => emit(TugasLanjutanError(message: failure.message)),
-      (summary) => emit(TugasLanjutanProgressLoaded(summary: summary)),
+      (summary) {
+        // Check if we have list data in current state
+        final currentState = state;
+        if (currentState is TugasLanjutanListLoaded) {
+          // If list is already loaded, combine both
+          emit(TugasLanjutanListAndProgressLoaded(
+            tugasList: currentState.tugasList,
+            summary: summary,
+          ));
+        } else if (currentState is TugasLanjutanListAndProgressLoaded) {
+          // If both are already loaded, update progress
+          emit(TugasLanjutanListAndProgressLoaded(
+            tugasList: currentState.tugasList,
+            summary: summary,
+          ));
+        } else {
+          emit(TugasLanjutanProgressLoaded(summary: summary));
+        }
+      },
     );
+  }
+
+  void _onSearchTugasLanjutan(
+    SearchTugasLanjutanEvent event,
+    Emitter<TugasLanjutanState> emit,
+  ) {
+    final currentState = state;
+    final query = event.query.trim().toLowerCase();
+
+    if (currentState is TugasLanjutanListLoaded) {
+      if (query.isEmpty) {
+        // Reset search
+        emit(currentState.copyWith(
+          filteredList: currentState.tugasList,
+          searchQuery: null,
+        ));
+      } else {
+        // Filter tasks
+        final filtered = currentState.tugasList.where((tugas) {
+          return tugas.title.toLowerCase().contains(query) ||
+              tugas.lokasi.toLowerCase().contains(query) ||
+              tugas.pelapor.toLowerCase().contains(query) ||
+              tugas.deskripsi.toLowerCase().contains(query);
+        }).toList();
+
+        emit(currentState.copyWith(
+          filteredList: filtered,
+          searchQuery: query,
+        ));
+      }
+    } else if (currentState is TugasLanjutanListAndProgressLoaded) {
+      if (query.isEmpty) {
+        // Reset search
+        emit(currentState.copyWith(
+          filteredList: currentState.tugasList,
+          searchQuery: null,
+        ));
+      } else {
+        // Filter tasks
+        final filtered = currentState.tugasList.where((tugas) {
+          return tugas.title.toLowerCase().contains(query) ||
+              tugas.lokasi.toLowerCase().contains(query) ||
+              tugas.pelapor.toLowerCase().contains(query) ||
+              tugas.deskripsi.toLowerCase().contains(query);
+        }).toList();
+
+        emit(currentState.copyWith(
+          filteredList: filtered,
+          searchQuery: query,
+        ));
+      }
+    }
   }
 }
 

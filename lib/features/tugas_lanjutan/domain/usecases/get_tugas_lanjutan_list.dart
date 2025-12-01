@@ -14,10 +14,16 @@ class GetTugasLanjutanList {
   Future<Either<Failure, List<TugasLanjutanEntity>>> call({
     bool filterByToday = false,
     String? userId,
+    bool filterByJabatan = false,
+    String? jabatan,
+    String? status,
   }) async {
     return await repository.getTugasLanjutanList(
       filterByToday: filterByToday,
       userId: userId,
+      filterByJabatan: filterByJabatan,
+      jabatan: jabatan,
+      status: status,
     );
   }
 }

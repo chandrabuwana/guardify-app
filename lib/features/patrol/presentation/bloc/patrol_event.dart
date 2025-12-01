@@ -50,3 +50,10 @@ class LoadPatrolRoutesFromData extends PatrolEvent {
 
   const LoadPatrolRoutesFromData(this.routes, [this.selectedRouteId]);
 }
+
+class LoadAreasByRouteId extends PatrolEvent {
+  final String routeId; // This is actually IdAreas
+  final PatrolRoute? existingRoute; // Optional existing route to preserve its data
+
+  const LoadAreasByRouteId(this.routeId, [this.existingRoute]);
+}

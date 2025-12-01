@@ -17,11 +17,29 @@ class TugasLanjutanLoading extends TugasLanjutanState {}
 /// List loaded state
 class TugasLanjutanListLoaded extends TugasLanjutanState {
   final List<TugasLanjutanEntity> tugasList;
+  final List<TugasLanjutanEntity> filteredList;
+  final String? searchQuery;
 
-  const TugasLanjutanListLoaded({required this.tugasList});
+  const TugasLanjutanListLoaded({
+    required this.tugasList,
+    List<TugasLanjutanEntity>? filteredList,
+    this.searchQuery,
+  }) : filteredList = filteredList ?? tugasList;
+
+  TugasLanjutanListLoaded copyWith({
+    List<TugasLanjutanEntity>? tugasList,
+    List<TugasLanjutanEntity>? filteredList,
+    String? searchQuery,
+  }) {
+    return TugasLanjutanListLoaded(
+      tugasList: tugasList ?? this.tugasList,
+      filteredList: filteredList ?? this.filteredList,
+      searchQuery: searchQuery ?? this.searchQuery,
+    );
+  }
 
   @override
-  List<Object?> get props => [tugasList];
+  List<Object?> get props => [tugasList, filteredList, searchQuery];
 }
 
 /// Detail loaded state
@@ -47,11 +65,47 @@ class TugasLanjutanUpdated extends TugasLanjutanState {
 /// Progress summary loaded state
 class TugasLanjutanProgressLoaded extends TugasLanjutanState {
   final Map<String, dynamic> summary;
+  final List<TugasLanjutanEntity>? tugasList; // Keep list data if available
 
-  const TugasLanjutanProgressLoaded({required this.summary});
+  const TugasLanjutanProgressLoaded({
+    required this.summary,
+    this.tugasList,
+  });
 
   @override
-  List<Object?> get props => [summary];
+  List<Object?> get props => [summary, tugasList];
+}
+
+/// Combined state: List and Progress loaded
+class TugasLanjutanListAndProgressLoaded extends TugasLanjutanState {
+  final List<TugasLanjutanEntity> tugasList;
+  final List<TugasLanjutanEntity> filteredList;
+  final Map<String, dynamic> summary;
+  final String? searchQuery;
+
+  const TugasLanjutanListAndProgressLoaded({
+    required this.tugasList,
+    List<TugasLanjutanEntity>? filteredList,
+    required this.summary,
+    this.searchQuery,
+  }) : filteredList = filteredList ?? tugasList;
+
+  TugasLanjutanListAndProgressLoaded copyWith({
+    List<TugasLanjutanEntity>? tugasList,
+    List<TugasLanjutanEntity>? filteredList,
+    Map<String, dynamic>? summary,
+    String? searchQuery,
+  }) {
+    return TugasLanjutanListAndProgressLoaded(
+      tugasList: tugasList ?? this.tugasList,
+      filteredList: filteredList ?? this.filteredList,
+      summary: summary ?? this.summary,
+      searchQuery: searchQuery ?? this.searchQuery,
+    );
+  }
+
+  @override
+  List<Object?> get props => [tugasList, filteredList, summary, searchQuery];
 }
 
 /// Error state

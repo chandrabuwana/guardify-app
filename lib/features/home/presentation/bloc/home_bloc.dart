@@ -8,7 +8,6 @@ import '../../../patrol/domain/usecases/get_patrol_routes_paginated.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
 import '../../../schedule/domain/usecases/get_current_shift.dart';
 import '../../../schedule/domain/usecases/get_current_task.dart';
-import '../../../schedule/domain/repositories/schedule_repository.dart';
 import 'home_event.dart';
 import 'home_state.dart';
 
@@ -79,7 +78,17 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
 
     // Load current shift from API
+    print('');
+    print('🏠 Loading current shift from API...');
     final currentShiftResult = await _getCurrentShift(userId: userId);
+    print('🏠 Current shift result:');
+    print('  - isSuccess: ${currentShiftResult.isSuccess}');
+    print('  - hasData: ${currentShiftResult.currentShift != null}');
+    if (currentShiftResult.currentShift != null) {
+      print('  - shift.id: ${currentShiftResult.currentShift!.id}');
+      print('  - shift.idShiftDetail: ${currentShiftResult.currentShift!.idShiftDetail}');
+      print('  - shift.name: ${currentShiftResult.currentShift!.name}');
+    }
     
     AttendanceInfo attendanceInfo;
     if (currentShiftResult.isSuccess && currentShiftResult.currentShift != null) {
@@ -96,16 +105,18 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         shift: shift.name,
         position: 'Security', // Position might need to come from another API
         date: DateTime.now(),
+        hasShift: true, // There is shift data available
       );
     } else {
-      // Fallback to default if API fails
+      // No shift data available - hide work button
       attendanceInfo = AttendanceInfo(
         isCheckedIn: false,
         isCheckedOut: false,
         currentTime: _getCurrentTime(),
-        shift: 'Shift Pagi - Pos Gajah',
+        shift: 'Tidak ada shift hari ini',
         position: 'Security',
         date: DateTime.now(),
+        hasShift: false, // No shift data available
       );
     }
 
@@ -119,17 +130,58 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       currentShift: currentShiftResult.isSuccess ? currentShiftResult.currentShift : null,
     ));
 
-    // Load current task if we have IdShiftDetail
-    if (currentShiftResult.isSuccess && 
-        currentShiftResult.currentShift != null &&
-        currentShiftResult.currentShift!.idShiftDetail != null &&
-        currentShiftResult.currentShift!.idShiftDetail!.isNotEmpty) {
-      print('[HomeBloc] Loading current task with IdShiftDetail: ${currentShiftResult.currentShift!.idShiftDetail}');
-      add(LoadCurrentTaskEvent(idShiftDetail: currentShiftResult.currentShift!.idShiftDetail!));
+    // Load current task if we have shift data
+    print('');
+    print('🏠 Checking if we should load current task...');
+    print('  - isSuccess: ${currentShiftResult.isSuccess}');
+    print('  - currentShift != null: ${currentShiftResult.currentShift != null}');
+    
+    if (currentShiftResult.isSuccess && currentShiftResult.currentShift != null) {
+      final shift = currentShiftResult.currentShift!;
+      print('🏠 ✅ Shift data available, preparing to load current task');
+      
+      // Try to get idShiftDetail, fallback to id if idShiftDetail is null
+      // Ensure we always have a non-null value
+      final String shiftDetailId = shift.idShiftDetail != null && shift.idShiftDetail!.isNotEmpty
+          ? shift.idShiftDetail!
+          : shift.id;
+      
+      if (shift.idShiftDetail != null && shift.idShiftDetail!.isNotEmpty) {
+        print('🏠 ✅ Using idShiftDetail: $shiftDetailId');
+      } else {
+        print('🏠 ⚠️ idShiftDetail is null, using id as fallback: $shiftDetailId');
+      }
+      
+      print('🏠 📋 Dispatching LoadCurrentTaskEvent with shiftDetailId: $shiftDetailId');
+      // Use Future.microtask to ensure event is processed after state is emitted
+      Future.microtask(() {
+        print('🏠 📋 Executing microtask to dispatch LoadCurrentTaskEvent');
+        add(LoadCurrentTaskEvent(idShiftDetail: shiftDetailId));
+        print('🏠 ✅ Event dispatched in microtask');
+      });
     } else {
-      // Load patrol tasks from API (fallback)
-      add(const LoadPatrolTasksEvent());
+      print('🏠 ⚠️ No shift data available');
+      if (!currentShiftResult.isSuccess) {
+        print('  - Reason: isSuccess is false');
+        if (currentShiftResult.failure != null) {
+          print('  - Failure: ${currentShiftResult.failure}');
+        }
+      }
+      if (currentShiftResult.currentShift == null) {
+        print('  - Reason: currentShift is null');
+      }
+      print('🏠 No shift data - updating state to show empty tasks');
+      // Update state to show empty tasks (card will still appear with "Tidak ada tugas hari ini")
+      // State was already emitted above, so we can safely use copyWith
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        todayTasks: [], // Empty tasks - card will show "Tidak ada tugas hari ini"
+        isLoadingPatrolTasks: false, // Stop loading so card appears
+        currentShift: null,
+      ));
+      print('🏠 ✅ State updated - card "Tugas Hari Ini" will appear with empty message');
     }
+    print('');
   }
 
   String _formatTime(String timeString) {
@@ -461,31 +513,61 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   Future<void> _onLoadCurrentTask(
       LoadCurrentTaskEvent event, Emitter<HomeState> emit) async {
-    if (state is! HomeLoaded) return;
+    print('');
+    print('📋 ========================================');
+    print('📋 EVENT RECEIVED: LoadCurrentTaskEvent');
+    print('📋 ========================================');
+    print('📋 idShiftDetail: ${event.idShiftDetail}');
+    
+    if (state is! HomeLoaded) {
+      print('📋 ❌ State is not HomeLoaded, returning');
+      print('📋 Current state: ${state.runtimeType}');
+      print('📋 ========================================');
+      print('');
+      return;
+    }
 
     final currentState = state as HomeLoaded;
+    print('📋 ✅ State is HomeLoaded, proceeding...');
 
     try {
+      print('');
+      print('📋 ========================================');
+      print('📋 HOME BLOC - LOADING CURRENT TASK');
+      print('📋 ========================================');
+      print('📋 idShiftDetail: ${event.idShiftDetail}');
+      print('📋 ========================================');
+      print('');
+
       // Set loading state
       emit(currentState.copyWith(isLoadingPatrolTasks: true));
 
       // Fetch current task from API
+      print('📋 Calling get_current_task API...');
       final result = await _getCurrentTask.call(
         idShiftDetail: event.idShiftDetail,
       );
+      
+      print('📋 API Response received:');
+      print('  - isSuccess: ${result.isSuccess}');
+      print('  - hasData: ${result.currentTask != null}');
 
       if (result.isSuccess && result.currentTask != null) {
         final taskData = result.currentTask!;
+        
+        print('📋 Task data loaded:');
+        print('  - ListRoute count: ${taskData.listRoute.length}');
+        print('  - ListCarryOver count: ${taskData.listCarryOver.length}');
 
-        // Convert ListRoute to TaskItem for "Tugas Hari Ini"
+        // Convert ListRoute to TaskItem for "Tugas Patroli"
         final routeTasks = taskData.listRoute.map((route) {
           final isCompleted = route.status.toUpperCase() == 'SELESAI' || 
                              route.status.toUpperCase() == 'DONE';
           
           return TaskItem(
-            id: 'route_${route.idAreas}',
+            id: 'patrol_${route.idAreas}', // Use patrol_ prefix for patrol tasks
             title: route.areasName,
-            subtitle: 'Status: ${route.status}',
+            subtitle: 'Patroli - Status: ${route.status}',
             progress: isCompleted ? 1.0 : 0.0,
             completedTasks: isCompleted ? 1 : 0,
             totalTasks: 1,
@@ -498,9 +580,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           final isOpen = carryOver.status.toUpperCase() == 'OPEN';
           
           return TaskItem(
-            id: 'carryover_${carryOver.id}',
-            title: carryOver.reportNote,
-            subtitle: 'Status: ${carryOver.status}',
+            id: 'patrol_continue', // Special ID for carry-over tasks
+            title: carryOver.reportNote.isNotEmpty ? carryOver.reportNote : 'Tugas Lanjutan',
+            subtitle: 'Tugas Lanjutan - Status: ${carryOver.status}',
             progress: isOpen ? 0.0 : 1.0,
             completedTasks: isOpen ? 0 : 1,
             totalTasks: 1,
@@ -511,23 +593,96 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         // Combine route tasks and carry over tasks
         final allTasks = [...routeTasks, ...carryOverTasks];
 
-        print('[HomeBloc] ✅ Loaded ${routeTasks.length} route tasks and ${carryOverTasks.length} carry over tasks');
-
+        print('📋 ✅ Loaded ${routeTasks.length} route tasks and ${carryOverTasks.length} carry over tasks');
+        
+        // Create summary tasks for better overview
+        final List<TaskItem> summaryTasks = [];
+        
+        // Add patrol summary if there are patrol routes
+        if (routeTasks.isNotEmpty) {
+          final completedPatrols = routeTasks.where((task) => task.isCompleted).length;
+          final totalPatrols = routeTasks.length;
+          
+          summaryTasks.add(TaskItem(
+            id: 'patrol_summary',
+            title: 'Patroli',
+            subtitle: '$completedPatrols dari $totalPatrols area selesai',
+            progress: totalPatrols > 0 ? completedPatrols / totalPatrols : 0.0,
+            completedTasks: completedPatrols,
+            totalTasks: totalPatrols,
+            isCompleted: completedPatrols == totalPatrols,
+          ));
+        }
+        
+        // Always add "Tugas Lanjutan" card (only 1 card with summary), even if list is empty
+        if (carryOverTasks.isNotEmpty) {
+          // Calculate summary for carry-over tasks
+          final openTasks = carryOverTasks.where((task) => !task.isCompleted).length;
+          final totalTasks = carryOverTasks.length;
+          final completedTasks = carryOverTasks.where((task) => task.isCompleted).length;
+          
+          // Add only 1 summary card for "Tugas Lanjutan" (no individual task cards)
+          summaryTasks.add(TaskItem(
+            id: 'patrol_continue',
+            title: 'Tugas Lanjutan',
+            subtitle: totalTasks > 1 
+                ? '$openTasks belum selesai, $completedTasks selesai dari $totalTasks tugas'
+                : openTasks > 0 
+                    ? '1 tugas belum selesai'
+                    : '1 tugas selesai',
+            progress: totalTasks > 0 ? completedTasks / totalTasks : 0.0,
+            completedTasks: completedTasks,
+            totalTasks: totalTasks,
+            isCompleted: openTasks == 0,
+          ));
+          
+          // DO NOT add individual carry-over tasks as separate cards
+          // Only show 1 summary card regardless of how many tasks are in the list
+        } else {
+          // Add empty "Tugas Lanjutan" card when list is empty
+          summaryTasks.add(TaskItem(
+            id: 'patrol_continue',
+            title: 'Tugas Lanjutan',
+            subtitle: 'Tidak ada tugas lanjutan',
+            progress: 1.0, // 100% karena tidak ada tugas
+            completedTasks: 0,
+            totalTasks: 0,
+            isCompleted: true, // Completed karena tidak ada tugas yang perlu dikerjakan
+          ));
+        }
+        
+        print('📋 Total summary tasks: ${summaryTasks.length}');
+        print('📋 ========================================');
+        print('');
+        
+        // Use summary tasks for display, but keep all tasks for detailed view
         emit(currentState.copyWith(
-          todayTasks: allTasks,
+          todayTasks: summaryTasks.isNotEmpty ? summaryTasks : allTasks,
           isLoadingPatrolTasks: false,
           currentTask: taskData,
         ));
       } else {
-        print('[HomeBloc] ❌ Failed to load current task');
+        print('📋 ❌ Failed to load current task');
+        print('  - isSuccess: ${result.isSuccess}');
+        print('  - hasData: ${result.currentTask != null}');
+        if (result.failure != null) {
+          print('  - failure: ${result.failure}');
+        }
+        print('📋 ========================================');
+        print('');
+        
         // On failure, use fallback or empty
         emit(currentState.copyWith(
           todayTasks: [],
           isLoadingPatrolTasks: false,
         ));
       }
-    } catch (e) {
-      print('[HomeBloc] ❌ Error loading current task: $e');
+    } catch (e, stackTrace) {
+      print('📋 ❌ Error loading current task: $e');
+      print('📋 Stack trace: $stackTrace');
+      print('📋 ========================================');
+      print('');
+      
       emit(currentState.copyWith(
         todayTasks: [],
         isLoadingPatrolTasks: false,

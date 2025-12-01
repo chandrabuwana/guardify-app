@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:async';
+import 'package:collection/collection.dart';
 import '../widgets/shift_card.dart';
 import '../widgets/task_card.dart';
 import '../widgets/menu_grid.dart';
@@ -20,6 +21,9 @@ import '../../../panic_button/presentation/bloc/panic_button_bloc.dart';
 import '../../../company_regulations/presentation/pages/company_regulations_page.dart';
 import '../../../company_regulations/presentation/bloc/document_bloc.dart';
 import '../../../patrol/presentation/pages/patrol_detail_page.dart';
+import '../../../patrol/presentation/pages/home_patrol_page.dart';
+import '../../../patrol/domain/entities/patrol_route.dart';
+import '../../../patrol/domain/repositories/patrol_repository.dart';
 import '../../../profile/presentation/pages/profile_screen.dart';
 import '../../../test_result/presentation/pages/test_result_page.dart';
 import '../../../chat/presentation/pages/chat_list_page.dart';
@@ -202,15 +206,16 @@ class __HomePageViewState extends State<_HomePageView> {
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/patrol':
-                // Patrol tasks are shown in "Tugas Hari Ini" section
-                // No need to navigate to separate page
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Tugas patroli tersedia di "Tugas Hari Ini"'),
-                    backgroundColor: primaryColor,
-                    behavior: SnackBarBehavior.floating,
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HomePatrolPage(),
                   ),
-                );
+                ).then((_) {
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
+                });
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               case '/cuti':
@@ -421,6 +426,9 @@ class __HomePageViewState extends State<_HomePageView> {
                             children: [
                               // Tim Jaga Hari Ini (khusus Pengawas)
                               _buildTimJagaSection(),
+                              24.verticalSpace,
+                              // Tugas Hari Ini untuk Pengawas
+                              _buildTodayTasksSection(state.todayTasks),
                               24.verticalSpace,
                             ],
                           )
@@ -1080,6 +1088,7 @@ class __HomePageViewState extends State<_HomePageView> {
                     .map((task) => TaskCard(
                           task: task,
                           onTap: () async {
+                            print('🖱️ Task card tapped! Task ID: ${task.id}, Title: ${task.title}');
                             // Navigate to Tugas Lanjutan page first (before patrol check)
                             if (task.id == 'patrol_continue') {
                               final userId = await SecurityManager.readSecurely(
@@ -1101,8 +1110,120 @@ class __HomePageViewState extends State<_HomePageView> {
                                     .read<HomeBloc>()
                                     .add(const BottomNavigationTappedEvent(0));
                               });
+                            } else if (task.id == 'patrol_summary') {
+                              // Navigate directly to patrol detail page using data from get_current_task
+                              print('🚀 Navigating to patrol detail page from patrol_summary task');
+                              final homeState = context.read<HomeBloc>().state;
+                              if (homeState is HomeLoaded && homeState.currentTask != null) {
+                                final currentTask = homeState.currentTask!;
+                                
+                                // Get first route from listRoute
+                                if (currentTask.listRoute.isNotEmpty) {
+                                  final firstRoute = currentTask.listRoute.first;
+                                  final idAreas = firstRoute.idAreas;
+                                  
+                                  // Show loading
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (_) => const Center(child: CircularProgressIndicator()),
+                                  );
+                                  
+                                  // Fetch areas from API using IdAreas
+                                  final patrolRepository = getIt<PatrolRepository>();
+                                  final areasResult = await patrolRepository.getAreasByIdAreas(idAreas);
+                                  
+                                  // Close loading
+                                  Navigator.of(context).pop();
+                                  
+                                  areasResult.fold(
+                                    (failure) {
+                                      print('❌ Error loading areas: ${failure.message}');
+                                      
+                                      // Show error message
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Gagal memuat data area. Silakan coba lagi.'),
+                                          backgroundColor: Colors.red,
+                                          duration: const Duration(seconds: 3),
+                                        ),
+                                      );
+                                      
+                                      // Still navigate but with empty locations
+                                      // PatrolDetailPage will handle empty locations
+                                      final patrolRoute = PatrolRoute(
+                                        id: idAreas,
+                                        name: firstRoute.areasName,
+                                        description: 'Status: ${firstRoute.status}',
+                                        locations: [], // Empty - will be loaded by page
+                                        additionalLocations: const [],
+                                        date: DateTime.now(),
+                                        status: firstRoute.status.toUpperCase() == 'SELESAI' || 
+                                                firstRoute.status.toUpperCase() == 'DONE'
+                                            ? PatrolRouteStatus.completed
+                                            : firstRoute.status.toUpperCase() == 'BELUM'
+                                                ? PatrolRouteStatus.pending
+                                                : PatrolRouteStatus.inProgress,
+                                      );
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => PatrolDetailPage(route: patrolRoute),
+                                        ),
+                                      ).then((_) {
+                                        context
+                                            .read<HomeBloc>()
+                                            .add(const BottomNavigationTappedEvent(0));
+                                      });
+                                    },
+                                    (locations) {
+                                      // Create PatrolRoute with locations from API
+                                      final patrolRoute = PatrolRoute(
+                                        id: idAreas,
+                                        name: firstRoute.areasName,
+                                        description: '${locations.length} Lokasi - Status: ${firstRoute.status}',
+                                        locations: locations,
+                                        additionalLocations: const [],
+                                        date: DateTime.now(),
+                                        status: firstRoute.status.toUpperCase() == 'SELESAI' || 
+                                                firstRoute.status.toUpperCase() == 'DONE'
+                                            ? PatrolRouteStatus.completed
+                                            : firstRoute.status.toUpperCase() == 'BELUM'
+                                                ? PatrolRouteStatus.pending
+                                                : PatrolRouteStatus.inProgress,
+                                      );
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => PatrolDetailPage(route: patrolRoute),
+                                        ),
+                                      ).then((_) {
+                                        context
+                                            .read<HomeBloc>()
+                                            .add(const BottomNavigationTappedEvent(0));
+                                      });
+                                    },
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Tidak ada rute patroli yang tersedia'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Data patroli tidak tersedia'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             } else if (task.id.startsWith('patrol_')) {
-                              // Navigate to patrol detail page for patrol tasks
+                              // Navigate to patrol detail page for specific patrol tasks
                               // Get the route ID from task ID (format: patrol_xxx)
                               final routeId =
                                   task.id.replaceFirst('patrol_', '');
@@ -1110,7 +1231,46 @@ class __HomePageViewState extends State<_HomePageView> {
                               // Get the patrol route from state
                               final homeState = context.read<HomeBloc>().state;
                               if (homeState is HomeLoaded) {
-                                // Check if patrolRoutes is not empty
+                                // Use currentTask data if available for more accurate routing
+                                if (homeState.currentTask != null) {
+                                  final currentTask = homeState.currentTask!;
+                                  final matchingRoute = currentTask.listRoute
+                                      .where((route) => route.idAreas == routeId)
+                                      .firstOrNull;
+                                  
+                                  if (matchingRoute != null) {
+                                    // Create PatrolRoute from RouteTask and navigate
+                                    final patrolRoute = PatrolRoute(
+                                      id: matchingRoute.idAreas,
+                                      name: matchingRoute.areasName,
+                                      description: 'Status: ${matchingRoute.status}',
+                                      locations: [],
+                                      additionalLocations: const [],
+                                      date: DateTime.now(),
+                                      status: matchingRoute.status.toUpperCase() == 'SELESAI' || 
+                                              matchingRoute.status.toUpperCase() == 'DONE'
+                                          ? PatrolRouteStatus.completed
+                                          : matchingRoute.status.toUpperCase() == 'BELUM'
+                                              ? PatrolRouteStatus.pending
+                                              : PatrolRouteStatus.inProgress,
+                                    );
+
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            PatrolDetailPage(route: patrolRoute),
+                                      ),
+                                    ).then((_) {
+                                      context
+                                          .read<HomeBloc>()
+                                          .add(const BottomNavigationTappedEvent(0));
+                                    });
+                                    return;
+                                  }
+                                }
+
+                                // Fallback to existing patrol routes
                                 if (homeState.patrolRoutes.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
@@ -1139,7 +1299,11 @@ class __HomePageViewState extends State<_HomePageView> {
                                     builder: (context) =>
                                         PatrolDetailPage(route: route),
                                   ),
-                                );
+                                ).then((_) {
+                                  context
+                                      .read<HomeBloc>()
+                                      .add(const BottomNavigationTappedEvent(0));
+                                });
                               }
                             } else {
                               context.read<HomeBloc>().add(
