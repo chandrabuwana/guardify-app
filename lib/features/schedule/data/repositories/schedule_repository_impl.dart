@@ -11,6 +11,7 @@ import '../models/route_response_model.dart';
 import '../models/schedule_detail_response_model.dart';
 import '../models/current_shift_response_model.dart';
 import '../models/current_task_response_model.dart';
+import '../models/schedule_pengawas_response_model.dart';
 
 @LazySingleton(as: ScheduleRepository)
 class ScheduleRepositoryImpl implements ScheduleRepository {
@@ -103,7 +104,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
     return {
       'Filter': [
         {'Field': 'jadwal', 'Search': dateFilter},
-        {'Field': 'UserId', 'Search': userId},
+        {'Field': 'iduser', 'Search': userId},
       ],
       'Sort': {'Field': '', 'Type': 0},
       'Start': 0,
@@ -286,7 +287,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       // API will return only shifts that exist for this user
       final requestBody = {
         'Filter': [
-          {'Field': 'UserId', 'Search': userId},
+          {'Field': 'iduser', 'Search': userId},
         ],
         'Sort': {'Field': 'CreateDate', 'Type': 1},
         'Start': 0,
@@ -536,6 +537,122 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
     } catch (e) {
       print('[ScheduleRepository] ❌ Error: $e');
       return CurrentTaskResult.failure(
+        UnexpectedFailure(e.toString()),
+      );
+    }
+  }
+
+  @override
+  Future<ShiftDetailResult> getSchedulePengawas({
+    required DateTime date,
+  }) async {
+    try {
+      print('[ScheduleRepository] Fetching schedule pengawas for $date using get_schedule_pengawas API');
+
+      // Format date as ISO 8601 string
+      final dateString = date.toUtc().toIso8601String();
+      final requestBody = {
+        'ShiftDate': dateString,
+      };
+
+      final response = await remoteDataSource.getSchedulePengawas(requestBody);
+
+      // Handle case when API returns no data
+      if (!response.succeeded || response.data == null || response.data!.listShift.isEmpty) {
+        print('[ScheduleRepository] ℹ️ No schedule pengawas found for date (this is normal)');
+        return ShiftDetailResult.success(null);
+      }
+
+      // Convert pengawas response to ShiftSchedule entity
+      // The pengawas API returns multiple shifts (Pagi and Malam) with routes and personnel
+      // We'll create a combined entity that includes all shifts
+      final pengawasData = response.data!;
+      
+      // Collect all unique routes from all shifts, grouped by shift type
+      final routesByShift = <String, Map<String, List<PersonnelModel>>>{}; // shiftName -> {areaName -> [personnel]}
+      final allTeamMembers = <String, TeamMemberModel>{};
+      String? primaryShiftName;
+      String? primaryStartTime;
+      String? primaryEndTime;
+
+      for (final shift in pengawasData.listShift) {
+        // Store shift info
+        if (primaryShiftName == null) {
+          primaryShiftName = shift.shiftName;
+          primaryStartTime = shift.startTime;
+          primaryEndTime = shift.endTime;
+        }
+
+        // Group routes by shift
+        routesByShift[shift.shiftName] = {};
+        
+        for (final route in shift.listRoute) {
+          routesByShift[shift.shiftName]![route.areasName] = route.listPersonel;
+
+          // Add all personnel to the team members map
+          for (final personnel in route.listPersonel) {
+            if (!allTeamMembers.containsKey(personnel.userId)) {
+              allTeamMembers[personnel.userId] = TeamMemberModel(
+                id: personnel.userId,
+                name: personnel.fullname,
+                position: route.areasName, // Use route/area as position
+                photoUrl: (personnel.images != null && personnel.images!.isNotEmpty) ? personnel.images : null,
+              );
+            }
+          }
+        }
+      }
+
+      // Get all unique area names across all shifts
+      final allAreaNames = <String>{};
+      for (final routes in routesByShift.values) {
+        allAreaNames.addAll(routes.keys);
+      }
+
+      // Convert to PatrolLocationModel list
+      final patrolLocations = allAreaNames.map((areaName) {
+        return PatrolLocationModel(
+          id: '', // Not provided by API
+          name: areaName,
+          type: areaName,
+        );
+      }).toList();
+
+      // Convert to TeamMemberModel list
+      final teamMembers = allTeamMembers.values.toList();
+
+      // Create ShiftScheduleModel
+      final shiftModel = ShiftScheduleModel(
+        id: '', // Not provided by API
+        date: DateFormat('yyyy-MM-dd').format(date),
+        shiftName: primaryShiftName ?? 'Jadwal Pengawas',
+        shiftTime: primaryStartTime != null && primaryEndTime != null ? '$primaryStartTime - $primaryEndTime' : '',
+        location: patrolLocations.isNotEmpty ? patrolLocations.first.name : '',
+        position: 'Pengawas',
+        route: allAreaNames.join(', '), // Combine all area names
+        patrolLocations: patrolLocations,
+        teamMembers: teamMembers,
+      );
+
+      final shiftDetail = shiftModel.toEntity();
+
+      print('[ScheduleRepository] ✅ Found schedule pengawas: ${shiftDetail.shiftName} with ${shiftDetail.teamMembers.length} members across ${shiftDetail.patrolLocations.length} routes');
+      return ShiftDetailResult.success(shiftDetail);
+    } on DioException catch (e) {
+      print('[ScheduleRepository] ❌ DioException: ${e.message}');
+      if (e.response?.statusCode != null &&
+          e.response!.statusCode! >= 400 &&
+          e.response!.statusCode! < 500) {
+        return ShiftDetailResult.failure(
+          AuthenticationFailure('Gagal memuat jadwal pengawas'),
+        );
+      }
+      return ShiftDetailResult.failure(
+        ServerFailure('Terjadi kesalahan pada server'),
+      );
+    } catch (e) {
+      print('[ScheduleRepository] ❌ Error: $e');
+      return ShiftDetailResult.failure(
         UnexpectedFailure(e.toString()),
       );
     }

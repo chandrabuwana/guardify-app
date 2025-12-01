@@ -38,6 +38,11 @@ abstract class ScheduleRepository {
   Future<CurrentTaskResult> getCurrentTask({
     required String idShiftDetail,
   });
+
+  /// Get schedule pengawas using get_schedule_pengawas API
+  Future<ShiftDetailResult> getSchedulePengawas({
+    required DateTime date,
+  });
 }
 
 // Custom Result Classes

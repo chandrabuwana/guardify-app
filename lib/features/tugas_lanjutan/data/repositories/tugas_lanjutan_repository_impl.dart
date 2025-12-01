@@ -4,24 +4,103 @@ import '../../../../core/error/failures.dart';
 import '../../domain/entities/tugas_lanjutan_entity.dart';
 import '../../domain/repositories/tugas_lanjutan_repository.dart';
 import '../datasources/tugas_lanjutan_remote_data_source.dart';
+import '../../../schedule/domain/usecases/get_current_task.dart';
+import '../../../schedule/domain/usecases/get_current_shift.dart';
 
 @LazySingleton(as: TugasLanjutanRepository)
 class TugasLanjutanRepositoryImpl implements TugasLanjutanRepository {
   final TugasLanjutanRemoteDataSource remoteDataSource;
+  final GetCurrentTask getCurrentTask;
+  final GetCurrentShift getCurrentShift;
 
-  TugasLanjutanRepositoryImpl(this.remoteDataSource);
+  TugasLanjutanRepositoryImpl(
+    this.remoteDataSource,
+    this.getCurrentTask,
+    this.getCurrentShift,
+  );
 
   @override
   Future<Either<Failure, List<TugasLanjutanEntity>>> getTugasLanjutanList({
     bool filterByToday = false,
     String? userId,
+    bool filterByJabatan = false,
+    String? jabatan,
+    String? status,
   }) async {
     try {
-      final result = await remoteDataSource.getTugasLanjutanList(
-        filterByToday: filterByToday,
-        userId: userId,
-      );
-      return Right(result.map((model) => model.toEntity()).toList());
+      if (filterByToday) {
+        // Tab "Hari Ini": Get from get_current_task
+        if (userId == null) {
+          return Left(ServerFailure('userId is required'));
+        }
+
+        // First, get current shift to get idShiftDetail
+        final shiftResult = await getCurrentShift(userId: userId);
+        if (!shiftResult.isSuccess || shiftResult.currentShift == null) {
+          // No shift today, return empty list
+          return const Right([]);
+        }
+
+        final shift = shiftResult.currentShift!;
+        final idShiftDetail = shift.idShiftDetail ?? shift.id;
+
+        // Get current task using idShiftDetail
+        final taskResult = await getCurrentTask(idShiftDetail: idShiftDetail);
+        if (!taskResult.isSuccess || taskResult.currentTask == null) {
+          return const Right([]);
+        }
+
+        // Convert ListCarryOver to TugasLanjutanEntity
+        final carryOverTasks = taskResult.currentTask!.listCarryOver;
+        
+        // Check if listCarryOver is null or empty
+        if (carryOverTasks.isEmpty) {
+          return const Right([]);
+        }
+        
+        final tugasList = carryOverTasks.map((task) {
+          final reportDate = task.reportDate != null
+              ? DateTime.tryParse(task.reportDate!)
+              : null;
+          final solverDate = task.solverDate != null
+              ? DateTime.tryParse(task.solverDate!)
+              : null;
+          final status = task.status.toUpperCase() == 'OPEN'
+              ? TugasLanjutanStatus.belum
+              : TugasLanjutanStatus.selesai;
+
+          return TugasLanjutanEntity(
+            id: task.id,
+            title: task.reportNote.isNotEmpty
+                ? task.reportNote
+                : 'Tugas Lanjutan',
+            lokasi: '',
+            pelapor: task.createBy ?? 'Unknown',
+            tanggal: reportDate ?? DateTime.now(),
+            deskripsi: task.reportNote,
+            status: status,
+            diselesaikanOleh: task.solverId != null
+                ? '${task.updateBy ?? task.solverId}'
+                : null,
+            diselesaikanOlehId: task.solverId,
+            tanggalSelesai: solverDate,
+            buktiUrl: null,
+            catatan: task.solverNote,
+          );
+        }).toList();
+
+        return Right(tugasList);
+      } else {
+        // Tab "Riwayat" or "Tugas Anggota": Get from CarriedOverTask/list API
+        final result = await remoteDataSource.getTugasLanjutanList(
+          filterByToday: false,
+          userId: userId,
+          filterByJabatan: filterByJabatan,
+          jabatan: jabatan,
+          status: status,
+        );
+        return Right(result.map((model) => model.toEntity()).toList());
+      }
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -68,8 +147,57 @@ class TugasLanjutanRepositoryImpl implements TugasLanjutanRepository {
     String? userId,
   }) async {
     try {
-      final result = await remoteDataSource.getProgressSummary(userId: userId);
-      return Right(result);
+      if (userId == null) {
+        return Left(ServerFailure('userId is required'));
+      }
+
+      // Get current shift to get idShiftDetail
+      final shiftResult = await getCurrentShift(userId: userId);
+      if (!shiftResult.isSuccess || shiftResult.currentShift == null) {
+        // No shift today, return empty summary
+        return const Right({
+          'total': 0,
+          'selesai': 0,
+          'belum': 0,
+          'terverifikasi': 0,
+          'progress': 0.0,
+        });
+      }
+
+      final shift = shiftResult.currentShift!;
+      final idShiftDetail = shift.idShiftDetail ?? shift.id;
+
+      // Get current task using idShiftDetail
+      final taskResult = await getCurrentTask(idShiftDetail: idShiftDetail);
+      if (!taskResult.isSuccess || taskResult.currentTask == null) {
+        // No task data, return empty summary
+        return const Right({
+          'total': 0,
+          'selesai': 0,
+          'belum': 0,
+          'terverifikasi': 0,
+          'progress': 0.0,
+        });
+      }
+
+      // Calculate summary from ListCarryOver
+      final carryOverTasks = taskResult.currentTask!.listCarryOver;
+      final total = carryOverTasks.length;
+      final selesai = carryOverTasks
+          .where((task) => task.status.toUpperCase() != 'OPEN')
+          .length;
+      final belum = carryOverTasks
+          .where((task) => task.status.toUpperCase() == 'OPEN')
+          .length;
+      final terverifikasi = 0; // Not available in current API response
+
+      return Right({
+        'total': total,
+        'selesai': selesai,
+        'belum': belum,
+        'terverifikasi': terverifikasi,
+        'progress': total > 0 ? selesai / total : 0.0,
+      });
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

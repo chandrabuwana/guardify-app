@@ -49,7 +49,7 @@ class BMIRepositoryImpl implements BMIRepository {
           ],
           sort: SortModel(field: '', type: 0),
           start: 0,
-          length: 1,
+          length: 0,
         );
         final userResponse = await remoteDataSource.getUserList(userRequest);
         if (userResponse.succeeded == true && userResponse.list.isNotEmpty) {

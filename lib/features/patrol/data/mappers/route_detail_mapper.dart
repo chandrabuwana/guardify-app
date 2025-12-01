@@ -55,15 +55,27 @@ class RouteDetailMapper {
 
       // Convert each route detail to patrol location
       final locations = details
-          .map((detail) => PatrolLocation(
-                id: detail.id,
-                name: detail.name,
-                description: routeInfo?.site?.name ?? 'Unknown Site',
-                latitude: detail.latitude,
-                longitude: detail.longitude,
-                address: routeInfo?.site?.description ?? '',
-                status: PatrolLocationStatus.pending,
-              ))
+          .map((detail) {
+            // Log null values for debugging
+            if (detail.name == null) {
+              print('[RouteDetailMapper] Warning: Null name for location ${detail.id}');
+            }
+            if (detail.latitude == null || detail.longitude == null) {
+              print('[RouteDetailMapper] Warning: Null coordinates for location ${detail.name ?? "Unknown"} (${detail.id})');
+              print('  - Latitude: ${detail.latitude}');
+              print('  - Longitude: ${detail.longitude}');
+            }
+            
+            return PatrolLocation(
+              id: detail.id,
+              name: detail.name ?? 'Unknown Location', // Default value if null
+              description: routeInfo?.site?.name ?? 'Unknown Site',
+              latitude: detail.latitude ?? 0.0, // Default to 0.0 if null
+              longitude: detail.longitude ?? 0.0, // Default to 0.0 if null
+              address: routeInfo?.site?.description ?? '',
+              status: PatrolLocationStatus.pending,
+            );
+          })
           .toList();
 
       // Build route name with site if available
@@ -87,10 +99,10 @@ class RouteDetailMapper {
   static PatrolLocation toPatrolLocation(RouteDetailModel detail) {
     return PatrolLocation(
       id: detail.id,
-      name: detail.name,
+      name: detail.name ?? 'Unknown Location', // Default value if null
       description: detail.route?.site?.name ?? 'Unknown Site',
-      latitude: detail.latitude,
-      longitude: detail.longitude,
+      latitude: detail.latitude ?? 0.0, // Default to 0.0 if null
+      longitude: detail.longitude ?? 0.0, // Default to 0.0 if null
       address: detail.route?.site?.description ?? '',
       status: PatrolLocationStatus.pending,
     );

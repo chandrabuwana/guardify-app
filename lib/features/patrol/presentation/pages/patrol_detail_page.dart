@@ -33,10 +33,10 @@ class PatrolDetailPage extends StatelessWidget {
     return BlocProvider(
       create: (context) {
         final newBloc = getIt<PatrolBloc>();
-        // Only reload if route doesn't have locations data
-        // This prevents unnecessary API calls when navigating from dashboard
+        // Always load areas from /Areas/list when locations are empty
+        // This uses the new API endpoint instead of /RouteDetail/list
         if (route.locations.isEmpty) {
-          newBloc.add(ReloadAndSelectRoute(route.id));
+          newBloc.add(LoadAreasByRouteId(route.id, route));
         } else {
           // Use existing route data, emit PatrolLoaded immediately
           newBloc.add(LoadPatrolRoutesFromData([route], route.id));
@@ -96,10 +96,15 @@ class PatrolDetailPage extends StatelessWidget {
             );
           }
 
-          final completedCount = route.locations
+          // Use route from state if available, otherwise use the prop route
+          final currentRoute = (state is PatrolLoaded && state.selectedRoute != null)
+              ? state.selectedRoute!
+              : route;
+
+          final completedCount = currentRoute.locations
               .where((loc) => loc.status == PatrolLocationStatus.completed)
               .length;
-          final totalCount = route.locations.length;
+          final totalCount = currentRoute.locations.length;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -148,7 +153,7 @@ class PatrolDetailPage extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    '${route.name} (${route.locations.length} Lokasi)*',
+                    '${currentRoute.name} (${currentRoute.locations.length} Lokasi)*',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -160,7 +165,7 @@ class PatrolDetailPage extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 // Location List
-                ...route.locations.asMap().entries.map((entry) {
+                ...currentRoute.locations.asMap().entries.map((entry) {
                   final index = entry.key;
                   final location = entry.value;
                   return Padding(
@@ -168,19 +173,97 @@ class PatrolDetailPage extends StatelessWidget {
                     child: _LocationCard(
                       location: location,
                       locationNumber: index + 1,
-                      onAbsenTap: () {
-                        showDialog(
+                      onAbsenTap: () async {
+                        final result = await showDialog<bool>(
                           context: context,
                           barrierDismissible: false,
                           builder: (dialogContext) => BlocProvider.value(
                             value: context.read<PatrolBloc>(),
                             child: PatrolAttendanceDialog(
-                              routeId: route.id,
-                              locations: route.locations,
+                              routeId: currentRoute.id,
+                              locations: currentRoute.locations,
                               currentLocation: location,
                             ),
                           ),
                         );
+                        
+                        // If success, show success dialog and reload
+                        if (result == true) {
+                          // Reload areas to refresh list
+                          context.read<PatrolBloc>().add(
+                            LoadAreasByRouteId(currentRoute.id, currentRoute),
+                          );
+                          
+                          // Show success dialog
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (dialogContext) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 80,
+                                    height: 80,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF8B0000),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.thumb_up,
+                                      color: Colors.white,
+                                      size: 40,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  const Text(
+                                    'Absen Patroli Berhasil',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Terima Kasih',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.of(dialogContext).pop();
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF8B0000),
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'OK',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
                       },
                     ),
                   );
@@ -189,11 +272,11 @@ class PatrolDetailPage extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 // Additional Patrol Section
-                if (route.additionalLocations.isNotEmpty) ...[
+                if (currentRoute.additionalLocations.isNotEmpty) ...[
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Patroli Tambahan (${route.additionalLocations.length} Lokasi)*',
+                      'Patroli Tambahan (${currentRoute.additionalLocations.length} Lokasi)*',
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -202,13 +285,13 @@ class PatrolDetailPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ...route.additionalLocations.asMap().entries.map((entry) {
+                  ...currentRoute.additionalLocations.asMap().entries.map((entry) {
                     final location = entry.value;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: _LocationCard(
                         location: location,
-                        locationNumber: route.locations.length + entry.key + 1,
+                        locationNumber: currentRoute.locations.length + entry.key + 1,
                         onAbsenTap: () {
                           showDialog(
                             context: context,
@@ -216,9 +299,9 @@ class PatrolDetailPage extends StatelessWidget {
                             builder: (dialogContext) => BlocProvider.value(
                               value: context.read<PatrolBloc>(),
                               child: PatrolAttendanceDialog(
-                                routeId: route.id,
+                                routeId: currentRoute.id,
                                 locations:
-                                    route.locations + route.additionalLocations,
+                                    currentRoute.locations + currentRoute.additionalLocations,
                                 currentLocation: location,
                               ),
                             ),
@@ -241,9 +324,9 @@ class PatrolDetailPage extends StatelessWidget {
                         builder: (dialogContext) => BlocProvider.value(
                           value: patrolBloc,
                           child: AddPatrolLocationDialog(
-                            routeId: route.id,
+                            routeId: currentRoute.id,
                             existingLocations:
-                                route.locations.map((loc) => loc.name).toList(),
+                                currentRoute.locations.map((loc) => loc.name).toList(),
                             onLocationAdded: () {
                               // Data already reloaded by BLoC
                               // No need to do anything here

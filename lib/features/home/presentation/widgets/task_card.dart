@@ -14,7 +14,7 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final cardContent = Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -33,108 +33,114 @@ class TaskCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Task Title and Status
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Task Title and Status
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        task.title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: neutral90,
-                        ),
-                      ),
+                Expanded(
+                  child: Text(
+                    task.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: neutral90,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: task.isCompleted ? successColor : primaryColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${(task.progress * 100).round()}%',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-
-                // Task Subtitle
-                Text(
-                  task.subtitle,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: neutral70,
                   ),
                 ),
-
-                const SizedBox(height: 12),
-
-                // Progress Bar
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${task.completedTasks}/${task.totalTasks} Selesai',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: neutral70,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          '${(task.progress * 100).round()}%',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: neutral70,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: task.isCompleted ? successColor : primaryColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${(task.progress * 100).round()}%',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: task.progress,
-                        backgroundColor: neutral30,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          task.isCompleted ? successColor : primaryColor,
-                        ),
-                        minHeight: 6,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
-          ),
+
+            const SizedBox(height: 8),
+
+            // Task Subtitle
+            Text(
+              task.subtitle,
+              style: const TextStyle(
+                fontSize: 14,
+                color: neutral70,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Progress Bar
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${task.completedTasks}/${task.totalTasks} Selesai',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: neutral70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '${(task.progress * 100).round()}%',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: neutral70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: task.progress,
+                    backgroundColor: neutral30,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      task.isCompleted ? successColor : primaryColor,
+                    ),
+                    minHeight: 6,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
+
+    // Wrap with GestureDetector for reliable tap detection
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: () {
+          print('🖱️ TaskCard tapped! Task ID: ${task.id}, Title: ${task.title}');
+          onTap?.call();
+        },
+        child: cardContent,
+      );
+    }
+
+    return cardContent;
   }
 }

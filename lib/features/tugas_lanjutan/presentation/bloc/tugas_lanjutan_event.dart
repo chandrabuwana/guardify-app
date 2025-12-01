@@ -12,14 +12,20 @@ abstract class TugasLanjutanEvent extends Equatable {
 class GetTugasLanjutanListEvent extends TugasLanjutanEvent {
   final bool filterByToday;
   final String? userId;
+  final bool filterByJabatan;
+  final String? jabatan;
+  final String? status;
 
   const GetTugasLanjutanListEvent({
     this.filterByToday = false,
     this.userId,
+    this.filterByJabatan = false,
+    this.jabatan,
+    this.status,
   });
 
   @override
-  List<Object?> get props => [filterByToday, userId];
+  List<Object?> get props => [filterByToday, userId, filterByJabatan, jabatan, status];
 }
 
 /// Get detail tugas lanjutan
@@ -62,5 +68,15 @@ class GetProgressSummaryEvent extends TugasLanjutanEvent {
 
   @override
   List<Object?> get props => [userId];
+}
+
+/// Search tugas lanjutan
+class SearchTugasLanjutanEvent extends TugasLanjutanEvent {
+  final String query;
+
+  const SearchTugasLanjutanEvent(this.query);
+
+  @override
+  List<Object?> get props => [query];
 }
 

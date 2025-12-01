@@ -24,8 +24,9 @@ class ShiftCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCheckedIn = attendanceInfo.isCheckedIn;
     final isCheckedOut = attendanceInfo.isCheckedOut;
-    // Jika sudah checkout, tidak tampilkan tombol
-    final shouldShowButton = !isCheckedOut;
+    final hasShift = attendanceInfo.hasShift;
+    // Jika sudah checkout atau tidak ada shift, tidak tampilkan tombol
+    final shouldShowButton = !isCheckedOut && hasShift;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),

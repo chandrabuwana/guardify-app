@@ -237,6 +237,8 @@ import 'package:guardify_app/features/schedule/domain/usecases/get_monthly_sched
     as _i1034;
 import 'package:guardify_app/features/schedule/domain/usecases/get_schedule_detail.dart'
     as _i807;
+import 'package:guardify_app/features/schedule/domain/usecases/get_schedule_pengawas.dart'
+    as _i376;
 import 'package:guardify_app/features/schedule/domain/usecases/get_shift_detail.dart'
     as _i947;
 import 'package:guardify_app/features/schedule/presentation/bloc/schedule_bloc.dart'
@@ -322,8 +324,6 @@ extension GetItInjectableX on _i174.GetIt {
         _i4.GetVerificationItemsUseCase(gh<_i228.PanicButtonRepository>()));
     gh.lazySingleton<_i590.LaporanKegiatanRemoteDataSource>(
         () => _i590.LaporanKegiatanRemoteDataSourceImpl());
-    gh.lazySingleton<_i176.TugasLanjutanRemoteDataSource>(
-        () => _i176.TugasLanjutanRemoteDataSourceImpl());
     gh.lazySingleton<_i650.AuthRemoteDataSource>(
         () => injectionModule.authRemoteDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i163.BmiRemoteDataSource>(
@@ -332,6 +332,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => injectionModule.testResultApiDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i599.PersonnelRemoteDataSource>(
         () => _i599.PersonnelRemoteDataSource(gh<_i361.Dio>()));
+    gh.lazySingleton<_i176.TugasLanjutanRemoteDataSource>(
+        () => _i176.TugasLanjutanRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i563.ScheduleRemoteDataSource>(
         () => _i563.ScheduleRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i220.ProfileRemoteDataSource>(
@@ -378,9 +380,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i752.ScheduleRepository>(() =>
         _i343.ScheduleRepositoryImpl(
             remoteDataSource: gh<_i563.ScheduleRemoteDataSource>()));
-    gh.lazySingleton<_i83.TugasLanjutanRepository>(() =>
-        _i949.TugasLanjutanRepositoryImpl(
-            gh<_i176.TugasLanjutanRemoteDataSource>()));
     gh.factory<_i505.NewsBloc>(
         () => injectionModule.newsBloc(gh<_i54.NewsRepository>()));
     gh.lazySingleton<_i422.TestResultRepository>(() =>
@@ -396,6 +395,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i1034.GetMonthlySchedule(gh<_i752.ScheduleRepository>()));
     gh.factory<_i807.GetScheduleDetail>(
         () => _i807.GetScheduleDetail(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i376.GetSchedulePengawas>(
+        () => _i376.GetSchedulePengawas(gh<_i752.ScheduleRepository>()));
     gh.factory<_i947.GetShiftDetail>(
         () => _i947.GetShiftDetail(gh<_i752.ScheduleRepository>()));
     gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
@@ -430,6 +431,19 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i515.GetRekapCuti(gh<_i825.CutiRepository>()));
     gh.factory<_i688.UpdateStatusCuti>(
         () => _i688.UpdateStatusCuti(gh<_i825.CutiRepository>()));
+    gh.lazySingleton<_i83.TugasLanjutanRepository>(
+        () => _i949.TugasLanjutanRepositoryImpl(
+              gh<_i176.TugasLanjutanRemoteDataSource>(),
+              gh<_i547.GetCurrentTask>(),
+              gh<_i170.GetCurrentShift>(),
+            ));
+    gh.factory<_i1003.ScheduleBloc>(() => _i1003.ScheduleBloc(
+          getMonthlySchedule: gh<_i1034.GetMonthlySchedule>(),
+          getShiftDetail: gh<_i947.GetShiftDetail>(),
+          getDailyAgenda: gh<_i369.GetDailyAgenda>(),
+          getScheduleDetail: gh<_i807.GetScheduleDetail>(),
+          getSchedulePengawas: gh<_i376.GetSchedulePengawas>(),
+        ));
     gh.factory<_i635.ApprovePersonnelUseCase>(
         () => _i635.ApprovePersonnelUseCase(gh<_i809.PersonnelRepository>()));
     gh.factory<_i917.GetPersonnelByStatusUseCase>(() =>
@@ -478,6 +492,13 @@ extension GetItInjectableX on _i174.GetIt {
           filterCuti: gh<_i639.FilterCuti>(),
           getDetailCuti: gh<_i505.GetDetailCuti>(),
           getRekapCuti: gh<_i515.GetRekapCuti>(),
+        ));
+    gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
+          getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
+          getPatrolRoutesPaginated: gh<_i238.GetPatrolRoutesPaginated>(),
+          getPatrolProgress: gh<_i820.GetPatrolProgress>(),
+          addPatrolLocation: gh<_i198.AddPatrolLocation>(),
+          patrolRepository: gh<_i824.PatrolRepository>(),
         ));
     gh.factory<_i332.GetMemberTestsByPicUseCase>(() =>
         _i332.GetMemberTestsByPicUseCase(gh<_i422.TestResultRepository>()));
@@ -536,18 +557,6 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i778.GetTugasLanjutanList(gh<_i83.TugasLanjutanRepository>()));
     gh.factory<_i419.SelesaikanTugas>(
         () => _i419.SelesaikanTugas(gh<_i83.TugasLanjutanRepository>()));
-    gh.factory<_i1003.ScheduleBloc>(() => _i1003.ScheduleBloc(
-          getMonthlySchedule: gh<_i1034.GetMonthlySchedule>(),
-          getShiftDetail: gh<_i947.GetShiftDetail>(),
-          getDailyAgenda: gh<_i369.GetDailyAgenda>(),
-          getScheduleDetail: gh<_i807.GetScheduleDetail>(),
-        ));
-    gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
-          getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
-          getPatrolRoutesPaginated: gh<_i238.GetPatrolRoutesPaginated>(),
-          getPatrolProgress: gh<_i820.GetPatrolProgress>(),
-          addPatrolLocation: gh<_i198.AddPatrolLocation>(),
-        ));
     gh.factory<_i945.LaporanKegiatanBloc>(() => _i945.LaporanKegiatanBloc(
           getLaporanList: gh<_i970.GetLaporanList>(),
           getLaporanDetail: gh<_i272.GetLaporanDetail>(),

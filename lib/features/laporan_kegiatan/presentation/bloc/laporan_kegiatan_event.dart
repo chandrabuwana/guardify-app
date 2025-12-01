@@ -77,3 +77,13 @@ class RequestRevisiEvent extends LaporanKegiatanEvent {
   @override
   List<Object?> get props => [id, note];
 }
+
+/// Mark as Tidak Masuk
+class MarkAsTidakMasukEvent extends LaporanKegiatanEvent {
+  final String id;
+
+  const MarkAsTidakMasukEvent(this.id);
+
+  @override
+  List<Object?> get props => [id];
+}
