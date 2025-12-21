@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'firebase_options.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/register_page.dart';
@@ -34,19 +37,35 @@ import 'core/constants/enums.dart';
 import 'core/security/security_manager.dart';
 import 'core/di/injection.dart';
 import 'core/design/colors.dart';
+import 'core/services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  final navigatorKey = GlobalKey<NavigatorState>();
+  final fcmService = FcmService();
+  await fcmService.init(navigatorKey);
 
   // Initialize date formatting for Indonesian locale
   await initializeDateFormatting('id_ID', null);
 
   await configureDependencies();
-  runApp(const GuardifyApp());
+  runApp(GuardifyApp(navigatorKey: navigatorKey));
 }
 
 class GuardifyApp extends StatelessWidget {
-  const GuardifyApp({super.key});
+  final GlobalKey<NavigatorState> navigatorKey;
+
+  const GuardifyApp({
+    super.key,
+    required this.navigatorKey,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +77,7 @@ class GuardifyApp extends StatelessWidget {
         return MaterialApp(
           title: 'Guardify App',
           debugShowCheckedModeBanner: false,
+          navigatorKey: navigatorKey,
           theme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(

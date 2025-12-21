@@ -3,6 +3,8 @@
     <!-- Internet permission for network requests -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
     <!-- Biometric authentication permissions -->
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
