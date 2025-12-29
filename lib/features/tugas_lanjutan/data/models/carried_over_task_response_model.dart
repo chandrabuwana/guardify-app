@@ -87,6 +87,12 @@ class CarriedOverTaskItemModel {
   @JsonKey(name: 'UpdateDate')
   final String? updateDate;
 
+  @JsonKey(name: 'Location')
+  final String? location;
+
+  @JsonKey(name: 'File')
+  final String? file;
+
   CarriedOverTaskItemModel({
     required this.id,
     required this.createBy,
@@ -102,6 +108,8 @@ class CarriedOverTaskItemModel {
     required this.status,
     this.updateBy,
     this.updateDate,
+    this.location,
+    this.file,
   });
 
   factory CarriedOverTaskItemModel.fromJson(Map<String, dynamic> json) =>

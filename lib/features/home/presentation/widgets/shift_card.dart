@@ -10,6 +10,10 @@ class ShiftCard extends StatelessWidget {
   final VoidCallback onWorkButtonPressed;
   final UserRole? userRole; // Optional parameter for role-based UI
   final VoidCallback? onTrackLocationPressed; // Optional callback for Lacak Lokasi button
+  final int? totalPersonil; // Total jumlah personil (untuk pengawas)
+  final int? hadirCount; // Jumlah personil yang hadir (untuk pengawas)
+  final VoidCallback? onCardTap; // Callback untuk klik card (untuk pengawas)
+  final String? location; // Location from current shift
 
   const ShiftCard({
     super.key,
@@ -18,6 +22,10 @@ class ShiftCard extends StatelessWidget {
     required this.onWorkButtonPressed,
     this.userRole,
     this.onTrackLocationPressed,
+    this.totalPersonil,
+    this.hadirCount,
+    this.onCardTap,
+    this.location,
   });
 
   @override
@@ -25,11 +33,13 @@ class ShiftCard extends StatelessWidget {
     final isCheckedIn = attendanceInfo.isCheckedIn;
     final isCheckedOut = attendanceInfo.isCheckedOut;
     final hasShift = attendanceInfo.hasShift;
-    // Jika sudah checkout atau tidak ada shift, tidak tampilkan tombol
-    final shouldShowButton = !isCheckedOut && hasShift;
+    // Untuk pengawas, tidak perlu validasi shift (selalu tampilkan tombol kecuali sudah checkout)
+    // Untuk role lain, validasi shift tetap diperlukan
+    final shouldShowButton = userRole == UserRole.pengawas
+        ? !isCheckedOut
+        : (!isCheckedOut && hasShift);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+    Widget cardContent = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -62,8 +72,14 @@ class ShiftCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
+                    // Untuk pengawas, tampilkan "Shift Pagi - 28 Personil"
+                    // Untuk role lain, tampilkan shift dengan location jika ada
                     Text(
-                      attendanceInfo.shift,
+                      userRole == UserRole.pengawas && totalPersonil != null
+                          ? '${attendanceInfo.shift} - $totalPersonil Personil'
+                          : (location != null && location!.isNotEmpty
+                              ? '${attendanceInfo.shift} - $location'
+                              : attendanceInfo.shift),
                       style: const TextStyle(
                         fontSize: 14,
                         color: neutral70,
@@ -72,79 +88,108 @@ class ShiftCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Status Badge
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isCheckedOut 
-                      ? Colors.grey 
-                      : (isCheckedIn ? successColor : primaryColor),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  isCheckedOut 
-                      ? 'Selesai' 
-                      : (isCheckedIn ? 'Masuk' : 'Menunggu'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+              // Status Badge atau Hadir Count (untuk pengawas)
+              userRole == UserRole.pengawas && hadirCount != null
+                  ? Text(
+                      '$hadirCount Hadir',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: neutral90,
+                      ),
+                    )
+                  : Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isCheckedOut 
+                            ? Colors.grey 
+                            : (isCheckedIn ? successColor : primaryColor),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        isCheckedOut 
+                            ? 'Selesai' 
+                            : (isCheckedIn ? 'Masuk' : 'Menunggu'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
             ],
           ),
 
           const SizedBox(height: 16),
 
-          // Attendance Time Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Jam Absen: ',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: neutral70,
-                    ),
+          // Untuk pengawas, tampilkan Tim Jaga saja
+          // Untuk role lain, tampilkan Jam Absen dan Tim Jaga
+          if (userRole == UserRole.pengawas)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tim Jaga',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: neutral70,
+                    fontWeight: FontWeight.w500,
                   ),
-                  Text(
-                    attendanceInfo.currentTime,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: neutral70,
-                    ),
-                  ),
-                ],
-              ),
-              6.horizontalSpace,
-              // Team Members Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Tim Jaga',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: neutral70,
-                          fontWeight: FontWeight.w500,
-                        ),
+                ),
+                const SizedBox(height: 8),
+                _buildTeamAvatars(),
+              ],
+            )
+          else
+            // Attendance Time Row untuk role lain
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Jam Absen',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: neutral70,
                       ),
-                      const SizedBox(height: 8),
-                      _buildTeamAvatars(),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
+                    ),
+                    Text(
+                      attendanceInfo.currentTime,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: neutral70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                6.horizontalSpace,
+                // Team Members Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Tim Jaga',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: neutral70,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildTeamAvatars(),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
 
           const SizedBox(height: 20),
 
@@ -201,6 +246,24 @@ class ShiftCard extends StatelessWidget {
         ],
       ),
     );
+
+    // Wrap dengan Container untuk margin
+    final cardWithMargin = Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: cardContent,
+    );
+
+    // Untuk pengawas, wrap dengan GestureDetector agar card bisa diklik
+    // Tombol "Lacak Lokasi" akan menangkap tap terlebih dahulu, tap di area lain akan trigger onCardTap
+    if (userRole == UserRole.pengawas && onCardTap != null) {
+      return GestureDetector(
+        onTap: onCardTap,
+        behavior: HitTestBehavior.opaque,
+        child: cardWithMargin,
+      );
+    }
+
+    return cardWithMargin;
   }
 
   Widget _buildTeamAvatars() {
@@ -274,6 +337,11 @@ class ShiftCard extends StatelessWidget {
       'Desember'
     ];
 
-    return '${days[date.weekday % 7]}, ${date.day} ${months[date.month]} ${date.year}';
+    // DateTime.weekday returns 1-7 (Monday=1, Sunday=7)
+    // Array days: [0]=Minggu, [1]=Senin, [2]=Selasa, [3]=Rabu, [4]=Kamis, [5]=Jumat, [6]=Sabtu
+    // Mapping: weekday 1->1, 2->2, 3->3, 4->4, 5->5, 6->6, 7->0
+    final dayIndex = date.weekday == 7 ? 0 : date.weekday;
+
+    return '${days[dayIndex]}, ${date.day} ${months[date.month]} ${date.year}';
   }
 }

@@ -1,7 +1,14 @@
 import 'package:injectable/injectable.dart';
+import '../models/incident_request_model.dart';
+import '../models/panic_button_list_request.dart';
+import '../models/panic_button_list_response.dart';
+import '../models/panic_button_detail_response.dart';
+import '../models/panic_button_submit_request.dart';
+import '../models/panic_button_submit_response.dart';
 import 'panic_button_datasource.dart';
 
-@LazySingleton(as: PanicButtonDataSource)
+// Note: This is kept for backward compatibility but should not be used in production
+// Use PanicButtonRemoteDataSourceImpl instead
 class PanicButtonLocalDataSource implements PanicButtonDataSource {
   @override
   Future<void> sendPanicAlert(String userId) async {
@@ -37,5 +44,29 @@ class PanicButtonLocalDataSource implements PanicButtonDataSource {
       'Saya memahami bahwa alert ini akan dikirim ke tim keamanan',
       'Saya siap untuk dihubungi oleh tim respons darurat',
     ];
+  }
+
+  @override
+  Future<Map<String, dynamic>> submitIncident(IncidentRequestModel request) async {
+    // This should not be used in production - use PanicButtonRemoteDataSourceImpl instead
+    throw UnimplementedError('Use PanicButtonRemoteDataSourceImpl for submitIncident');
+  }
+
+  @override
+  Future<PanicButtonListResponse> getPanicButtonList(PanicButtonListRequest request) async {
+    // This should not be used in production - use PanicButtonRemoteDataSourceImpl instead
+    throw UnimplementedError('Use PanicButtonRemoteDataSourceImpl for getPanicButtonList');
+  }
+
+  @override
+  Future<PanicButtonDetailResponse> getPanicButtonDetail(String id) async {
+    // This should not be used in production - use PanicButtonRemoteDataSourceImpl instead
+    throw UnimplementedError('Use PanicButtonRemoteDataSourceImpl for getPanicButtonDetail');
+  }
+
+  @override
+  Future<PanicButtonSubmitResponse> submitPanicButton(PanicButtonSubmitRequest request) async {
+    // This should not be used in production - use PanicButtonRemoteDataSourceImpl instead
+    throw UnimplementedError('Use PanicButtonRemoteDataSourceImpl for submitPanicButton');
   }
 }

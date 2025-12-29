@@ -280,8 +280,27 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
   }
 
   Widget _buildShiftContent(ShiftSchedule shift, String shiftType) {
-    // Simulasi data - nanti akan diambil dari API based on shiftType
-    final totalPersonil = shift.teamMembers.length;
+    // Filter team members by shift type
+    // Position field contains "AreaName|ShiftName" format for pengawas schedule
+    final filteredMembers = shift.teamMembers.where((member) {
+      // Check if position contains shift information
+      if (member.position.contains('|')) {
+        final parts = member.position.split('|');
+        if (parts.length >= 2) {
+          final memberShiftName = parts[1].toLowerCase();
+          // Match shift type
+          if (shiftType == 'Pagi') {
+            return memberShiftName.contains('pagi');
+          } else if (shiftType == 'Malam') {
+            return memberShiftName.contains('malam');
+          }
+        }
+      }
+      // If no shift info in position, include in both (backward compatibility)
+      return true;
+    }).toList();
+    
+    final totalPersonil = filteredMembers.length;
     final jamMulai = shiftType == 'Pagi' ? '07.00 WIB' : '19.00 WIB';
     final jamSelesai = shiftType == 'Pagi' ? '19.00 WIB' : '07.00 WIB';
 
@@ -303,7 +322,7 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
           ...shift.patrolLocations.map((location) {
             return Padding(
               padding: EdgeInsets.only(bottom: 24.h),
-              child: _buildLocationSection(location, shift.teamMembers, shiftType),
+              child: _buildLocationSection(location, filteredMembers, shiftType),
             );
           }).toList(),
         ],
@@ -337,9 +356,15 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
 
   Widget _buildLocationSection(
       PatrolLocation location, List<TeamMember> allMembers, String shiftType) {
-    // Filter team members untuk lokasi ini (simulasi)
-    // In real implementation, this should filter based on location
-    final locationMembers = allMembers;
+    // Filter team members untuk lokasi ini
+    // Position field contains "AreaName|ShiftName" format for pengawas schedule
+    final locationMembers = allMembers.where((member) {
+      // Extract area name from position (before |)
+      final areaName = member.position.contains('|') 
+          ? member.position.split('|')[0] 
+          : member.position;
+      return areaName == location.name;
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -69,7 +69,7 @@ class TugasLanjutanRemoteDataSourceImpl
       : apiClient = TugasLanjutanApiClient(dio);
 
   /// Convert CarryOverTaskItemModel to TugasLanjutanModel
-  TugasLanjutanModel _carriedOverTaskToModel(CarriedOverTaskItemModel item) {
+  TugasLanjutanModel _carriedOverTaskToModel(CarriedOverTaskItemModel item, int index) {
     // Parse dates
     final reportDate = DateTime.tryParse(item.reportDate) ?? DateTime.now();
     final solverDate = item.solverDate != null
@@ -86,20 +86,20 @@ class TugasLanjutanRemoteDataSourceImpl
 
     return TugasLanjutanModel(
       id: item.id,
-      title: item.reportNote.isNotEmpty
-          ? item.reportNote
-          : 'Tugas Lanjutan',
-      lokasi: '', // Lokasi tidak ada di API response, akan diisi dari form
+      title: 'Tugas Lanjutan ${index + 1}',
+      lokasi: item.location ?? '',
       pelapor: pelapor,
       tanggal: reportDate,
-      deskripsi: item.reportNote,
+      deskripsi: item.reportNote.isNotEmpty
+          ? item.reportNote
+          : 'Tugas lanjutan',
       status: status,
       diselesaikanOleh: item.solverId != null
           ? '${item.updateBy ?? item.solverId}'
           : null,
       diselesaikanOlehId: item.solverId,
       tanggalSelesai: solverDate,
-      buktiUrl: null, // Bukti tidak ada di API response
+      buktiUrl: item.file,
       catatan: item.solverNote,
     );
   }
@@ -208,9 +208,11 @@ class TugasLanjutanRemoteDataSourceImpl
       final response = await apiClient.getCarriedOverTaskList(requestBody);
 
       if (response.succeeded) {
-        // Convert List to TugasLanjutanModel
+        // Convert List to TugasLanjutanModel with numbering
         return response.list
-            .map((item) => _carriedOverTaskToModel(item))
+            .asMap()
+            .entries
+            .map((entry) => _carriedOverTaskToModel(entry.value, entry.key))
             .toList();
       }
 

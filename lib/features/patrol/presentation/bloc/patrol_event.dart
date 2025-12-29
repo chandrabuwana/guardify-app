@@ -54,6 +54,7 @@ class LoadPatrolRoutesFromData extends PatrolEvent {
 class LoadAreasByRouteId extends PatrolEvent {
   final String routeId; // This is actually IdAreas
   final PatrolRoute? existingRoute; // Optional existing route to preserve its data
+  final List<RouteTask>? listRoute; // Optional ListRoute data from get_current_task
 
-  const LoadAreasByRouteId(this.routeId, [this.existingRoute]);
+  const LoadAreasByRouteId(this.routeId, [this.existingRoute, this.listRoute]);
 }

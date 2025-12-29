@@ -8,11 +8,13 @@ import 'package:intl/intl.dart';
 class TugasLanjutanCard extends StatelessWidget {
   final TugasLanjutanEntity tugas;
   final VoidCallback onTap;
+  final bool? isCheckedIn; // Checkin status from get_current API
 
   const TugasLanjutanCard({
     Key? key,
     required this.tugas,
     required this.onTap,
+    this.isCheckedIn,
   }) : super(key: key);
 
   Color _getStatusColor(TugasLanjutanStatus status) {
@@ -45,13 +47,21 @@ class TugasLanjutanCard extends StatelessWidget {
       margin: REdgeInsets.only(bottom: 16),
       padding: REdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with title and status
+          // Header with title and "Selesai" button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -63,27 +73,29 @@ class TugasLanjutanCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(
-                padding: REdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(tugas.status).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Text(
-                  _getStatusText(tugas.status),
-                  style: TS.labelSmall.copyWith(
-                    color: _getStatusColor(tugas.status),
-                    fontWeight: FontWeight.bold,
+              if (tugas.status == TugasLanjutanStatus.selesai ||
+                  tugas.status == TugasLanjutanStatus.terverifikasi)
+                Container(
+                  padding: REdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E3A8A),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Text(
+                    'Selesai',
+                    style: TS.labelSmall.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
 
           12.verticalSpace,
 
           // Details
-          _buildDetailRow('Lokasi', ': ${tugas.lokasi}'),
+          _buildDetailRow('Lokasi', ': ${tugas.lokasi.isEmpty ? '' : tugas.lokasi}'),
           4.verticalSpace,
           _buildDetailRow('Pelapor', ': ${tugas.pelapor}'),
           4.verticalSpace,
@@ -95,14 +107,13 @@ class TugasLanjutanCard extends StatelessWidget {
           12.verticalSpace,
 
           // Description
-          Text(
-            tugas.deskripsi,
-            style: TS.bodySmall.copyWith(color: Colors.grey[700]),
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-          ),
+          if (tugas.deskripsi.isNotEmpty)
+            Text(
+              tugas.deskripsi,
+              style: TS.bodySmall.copyWith(color: Colors.grey[700]),
+            ),
 
-          12.verticalSpace,
+          if (tugas.deskripsi.isNotEmpty) 12.verticalSpace,
 
           // Completion info (if completed)
           if (tugas.status == TugasLanjutanStatus.selesai ||
@@ -120,7 +131,9 @@ class TugasLanjutanCard extends StatelessWidget {
                 4.verticalSpace,
                 Text(
                   tugas.diselesaikanOleh ?? '-',
-                  style: TS.bodySmall,
+                  style: TS.bodySmall.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 4.verticalSpace,
                 if (tugas.tanggalSelesai != null)
@@ -130,6 +143,7 @@ class TugasLanjutanCard extends StatelessWidget {
                   ),
                 8.verticalSpace,
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Bukti',
@@ -138,51 +152,67 @@ class TugasLanjutanCard extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    8.horizontalSpace,
-                    if (tugas.buktiUrl != null)
-                      GestureDetector(
-                        onTap: () {
-                          // Show proof image
-                        },
-                        child: Text(
-                          tugas.buktiUrl!,
-                          style: TS.bodySmall.copyWith(
-                            color: primaryColor,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      )
-                    else
+                    if (tugas.buktiUrl != null && tugas.buktiUrl!.isNotEmpty) ...[
                       Text(
-                        '-',
+                        ' ',
                         style: TS.bodySmall,
                       ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            // Show proof image
+                          },
+                          child: Text(
+                            tugas.buktiUrl!,
+                            style: TS.bodySmall.copyWith(
+                              color: primaryColor,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      Text(
+                        ' -',
+                        style: TS.bodySmall,
+                      ),
+                    ],
                   ],
                 ),
+                16.verticalSpace,
               ],
-            ),
+            )
+          else
+            16.verticalSpace,
 
-          16.verticalSpace,
-
-          // Action Button
+          // Action Button (always visible, but disabled if completed or not checked in)
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: tugas.status == TugasLanjutanStatus.belum
+              onPressed: (tugas.status == TugasLanjutanStatus.belum &&
+                          (isCheckedIn == null || isCheckedIn == true))
                   ? onTap
                   : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: tugas.status == TugasLanjutanStatus.belum
+                backgroundColor: (tugas.status == TugasLanjutanStatus.belum &&
+                                  (isCheckedIn == null || isCheckedIn == true))
                     ? primaryColor
-                    : Colors.grey,
+                    : Colors.grey[400],
+                disabledBackgroundColor: Colors.grey[400],
                 padding: REdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
                 ),
+                elevation: 0,
               ),
               child: Text(
                 'Tandai Sebagai Selesai',
-                style: TS.labelLarge.copyWith(color: Colors.white),
+                style: TS.labelLarge.copyWith(
+                  color: (tugas.status == TugasLanjutanStatus.belum &&
+                          (isCheckedIn == null || isCheckedIn == true))
+                      ? Colors.white
+                      : Colors.grey[600],
+                ),
               ),
             ),
           ),
@@ -195,12 +225,9 @@ class TugasLanjutanCard extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 80.w,
-          child: Text(
-            label,
-            style: TS.bodySmall.copyWith(color: Colors.grey[600]),
-          ),
+        Text(
+          label,
+          style: TS.bodySmall.copyWith(color: Colors.grey[600]),
         ),
         Expanded(
           child: Text(

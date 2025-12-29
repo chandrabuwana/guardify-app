@@ -1,22 +1,44 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/constants/enums.dart';
 
-/// Status laporan kegiatan
+/// Status laporan kegiatan - sesuai dengan web: checkIn, waiting, verified, revision
 enum LaporanStatus {
-  menungguVerifikasi('menunggu_verifikasi', 'Menunggu Verifikasi'),
-  revisi('revisi', 'Revisi'),
-  terverifikasi('terverifikasi', 'Terverifikasi');
+  checkIn('check_in', 'Check In'),
+  waiting('waiting', 'Waiting'),
+  verified('verified', 'Verified'),
+  revision('revision', 'Revision');
 
   const LaporanStatus(this.value, this.displayName);
 
   final String value;
   final String displayName;
 
-  static LaporanStatus fromValue(String value) {
-    return LaporanStatus.values.firstWhere(
-      (status) => status.value == value,
-      orElse: () => LaporanStatus.menungguVerifikasi,
-    );
+  static LaporanStatus fromValue(String? value) {
+    if (value == null || value.isEmpty) {
+      return LaporanStatus.waiting;
+    }
+    
+    final valueLower = value.toLowerCase().trim();
+    
+    // Map new status format
+    switch (valueLower) {
+      case 'checkin':
+      case 'check_in':
+        return LaporanStatus.checkIn;
+      case 'waiting':
+      case 'menunggu':
+      case 'menunggu_verifikasi':
+        return LaporanStatus.waiting;
+      case 'verified':
+      case 'verifikasi':
+      case 'terverifikasi':
+        return LaporanStatus.verified;
+      case 'revision':
+      case 'revisi':
+        return LaporanStatus.revision;
+      default:
+        return LaporanStatus.waiting;
+    }
   }
 }
 
@@ -55,6 +77,11 @@ class LaporanKegiatanEntity extends Equatable {
   final String? reviewerName;
   final DateTime? tanggalReview;
 
+  // Attendance info
+  final String? idAttendance;
+  final DateTime? checkIn;
+  final DateTime? checkOut;
+
   const LaporanKegiatanEntity({
     required this.id,
     required this.namaPersonil,
@@ -84,6 +111,9 @@ class LaporanKegiatanEntity extends Equatable {
     this.reviewerId,
     this.reviewerName,
     this.tanggalReview,
+    this.idAttendance,
+    this.checkIn,
+    this.checkOut,
   });
 
   @override
@@ -116,6 +146,9 @@ class LaporanKegiatanEntity extends Equatable {
         reviewerId,
         reviewerName,
         tanggalReview,
+        idAttendance,
+        checkIn,
+        checkOut,
       ];
 
   LaporanKegiatanEntity copyWith({
@@ -147,6 +180,9 @@ class LaporanKegiatanEntity extends Equatable {
     String? reviewerId,
     String? reviewerName,
     DateTime? tanggalReview,
+    String? idAttendance,
+    DateTime? checkIn,
+    DateTime? checkOut,
   }) {
     return LaporanKegiatanEntity(
       id: id ?? this.id,
@@ -177,6 +213,9 @@ class LaporanKegiatanEntity extends Equatable {
       reviewerId: reviewerId ?? this.reviewerId,
       reviewerName: reviewerName ?? this.reviewerName,
       tanggalReview: tanggalReview ?? this.tanggalReview,
+      idAttendance: idAttendance ?? this.idAttendance,
+      checkIn: checkIn ?? this.checkIn,
+      checkOut: checkOut ?? this.checkOut,
     );
   }
 }

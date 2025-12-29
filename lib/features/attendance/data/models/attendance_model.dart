@@ -3,6 +3,45 @@ import '../../domain/entities/attendance.dart';
 
 part 'attendance_model.g.dart';
 
+/// Helper function to parse attendance status from API
+/// Maps old status (pending, approved, rejected) to new status (checkIn, waiting, verified, revision)
+AttendanceStatus _parseAttendanceStatus(String? status) {
+  if (status == null) return AttendanceStatus.checkIn;
+  
+  final statusLower = status.toLowerCase().trim();
+  
+  // New status format
+  switch (statusLower) {
+    case 'checkin':
+    case 'check_in':
+    case 'checkin':
+      return AttendanceStatus.checkIn;
+    case 'waiting':
+    case 'menunggu':
+      return AttendanceStatus.waiting;
+    case 'verified':
+    case 'terverifikasi':
+    case 'approved':
+      return AttendanceStatus.verified;
+    case 'revision':
+    case 'revisi':
+    case 'rejected':
+      return AttendanceStatus.revision;
+    default:
+      // Fallback: map old status to new status
+      switch (statusLower) {
+        case 'pending':
+          return AttendanceStatus.checkIn;
+        case 'approved':
+          return AttendanceStatus.verified;
+        case 'rejected':
+          return AttendanceStatus.revision;
+        default:
+          return AttendanceStatus.checkIn;
+      }
+  }
+}
+
 @JsonSerializable()
 class AttendanceModel extends Attendance {
   const AttendanceModel({
@@ -20,7 +59,7 @@ class AttendanceModel extends Attendance {
     required super.securityReport,
     super.photoPath,
     required super.patrolRoute,
-    super.status = AttendanceStatus.pending,
+    super.status = AttendanceStatus.checkIn,
     super.rejectionReason,
     super.approvalChain = const [],
     super.approvedBy,
@@ -45,7 +84,7 @@ class AttendanceModel extends Attendance {
       securityReport: json['securityReport'] as String,
       photoPath: json['photoPath'] as String?,
       patrolRoute: json['patrolRoute'] as String,
-      status: AttendanceStatus.values.byName(json['status'] as String),
+      status: _parseAttendanceStatus(json['status'] as String?),
       rejectionReason: json['rejectionReason'] as String?,
       approvalChain:
           (json['approvalChain'] as List<dynamic>?)?.cast<String>() ?? [],

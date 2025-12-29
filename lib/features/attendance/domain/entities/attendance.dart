@@ -4,7 +4,12 @@ enum AttendanceType { clockIn, clockOut }
 
 enum ShiftType { morning, night }
 
-enum AttendanceStatus { pending, approved, rejected }
+enum AttendanceStatus { 
+  checkIn, 
+  waiting, 
+  verified, 
+  revision 
+}
 
 class Attendance extends Equatable {
   final String id;
@@ -44,7 +49,7 @@ class Attendance extends Equatable {
     required this.securityReport,
     this.photoPath,
     required this.patrolRoute,
-    this.status = AttendanceStatus.pending,
+    this.status = AttendanceStatus.checkIn,
     this.rejectionReason,
     this.approvalChain = const [],
     this.approvedBy,

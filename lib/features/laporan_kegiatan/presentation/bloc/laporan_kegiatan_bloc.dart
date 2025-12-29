@@ -6,6 +6,7 @@ import '../../domain/entities/laporan_kegiatan_entity.dart';
 import '../../domain/usecases/get_laporan_list.dart';
 import '../../domain/usecases/get_laporan_detail.dart';
 import '../../domain/usecases/update_status_laporan.dart';
+import '../../domain/usecases/verif_laporan.dart';
 
 part 'laporan_kegiatan_event.dart';
 part 'laporan_kegiatan_state.dart';
@@ -16,11 +17,13 @@ class LaporanKegiatanBloc
   final GetLaporanList getLaporanList;
   final GetLaporanDetail getLaporanDetail;
   final UpdateStatusLaporan updateStatusLaporan;
+  final VerifLaporan verifLaporan;
 
   LaporanKegiatanBloc({
     required this.getLaporanList,
     required this.getLaporanDetail,
     required this.updateStatusLaporan,
+    required this.verifLaporan,
   }) : super(LaporanInitial()) {
     on<GetLaporanListEvent>(_onGetLaporanList);
     on<GetLaporanDetailEvent>(_onGetLaporanDetail);
@@ -28,23 +31,81 @@ class LaporanKegiatanBloc
     on<AcceptLaporanEvent>(_onAcceptLaporan);
     on<RequestRevisiEvent>(_onRequestRevisi);
     on<MarkAsTidakMasukEvent>(_onMarkAsTidakMasuk);
+    on<VerifLaporanEvent>(_onVerifLaporan);
   }
 
   Future<void> _onGetLaporanList(
     GetLaporanListEvent event,
     Emitter<LaporanKegiatanState> emit,
   ) async {
-    emit(LaporanLoading());
+    // If loading more, keep current state and set isLoadingMore
+    if (event.isLoadMore) {
+      final currentState = state;
+      if (currentState is LaporanListLoaded) {
+        emit(currentState.copyWith(isLoadingMore: true));
+      } else {
+        emit(const LaporanLoading(isLoadMore: true));
+      }
+    } else {
+      emit(const LaporanLoading(isLoadMore: false));
+    }
 
     final result = await getLaporanList(
       status: event.status,
       role: event.role,
       userId: event.userId,
+      search: event.search,
+      start: event.start,
+      length: event.length,
     );
 
     result.fold(
-      (failure) => emit(LaporanError(message: failure.message)),
-      (laporanList) => emit(LaporanListLoaded(laporanList: laporanList)),
+      (failure) {
+        // If loading more failed, restore previous state
+        if (event.isLoadMore) {
+          final currentState = state;
+          if (currentState is LaporanListLoaded) {
+            emit(currentState.copyWith(isLoadingMore: false));
+          } else {
+            emit(LaporanError(message: failure.message));
+          }
+        } else {
+          emit(LaporanError(message: failure.message));
+        }
+      },
+      (laporanList) {
+        if (event.isLoadMore) {
+          // Append new data to existing list
+          final currentState = state;
+          if (currentState is LaporanListLoaded) {
+            final updatedList = [
+              ...currentState.laporanList,
+              ...laporanList,
+            ];
+            final hasMore = laporanList.length >= event.length;
+            emit(currentState.copyWith(
+              laporanList: updatedList,
+              hasMore: hasMore,
+              isLoadingMore: false,
+              currentPage: event.start,
+            ));
+          } else {
+            emit(LaporanListLoaded(
+              laporanList: laporanList,
+              hasMore: laporanList.length >= event.length,
+              currentPage: event.start,
+            ));
+          }
+        } else {
+          // Replace with new data
+          final hasMore = laporanList.length >= event.length;
+          emit(LaporanListLoaded(
+            laporanList: laporanList,
+            hasMore: hasMore,
+            currentPage: event.start,
+          ));
+        }
+      },
     );
   }
 
@@ -90,7 +151,7 @@ class LaporanKegiatanBloc
 
     final result = await updateStatusLaporan(
       id: event.id,
-      status: LaporanStatus.terverifikasi,
+      status: LaporanStatus.verified,
       reviewerId: 'current_user_id', // Should be from context
       reviewerName: 'Current User',
     );
@@ -107,17 +168,23 @@ class LaporanKegiatanBloc
   ) async {
     emit(LaporanLoading());
 
-    final result = await updateStatusLaporan(
-      id: event.id,
-      status: LaporanStatus.revisi,
-      reviewerId: 'current_user_id', // Should be from context
-      reviewerName: 'Current User',
-      umpanBalik: event.note,
+    // Gunakan API verifikasi Attendance/verif dengan IsVerif: false dan Feedback
+    final result = await verifLaporan(
+      idAttendance: event.idAttendance,
+      isVerif: false,
+      feedback: event.note,
     );
 
     result.fold(
       (failure) => emit(LaporanError(message: failure.message)),
-      (laporan) => emit(LaporanUpdated(laporan: laporan)),
+      (success) {
+        if (success) {
+          // Reload detail setelah revisi berhasil
+          add(GetLaporanDetailEvent(event.idAttendance));
+        } else {
+          emit(LaporanError(message: 'Request revisi gagal'));
+        }
+      },
     );
   }
 
@@ -139,6 +206,31 @@ class LaporanKegiatanBloc
           kehadiran: 'Tidak Masuk',
         );
         emit(LaporanDetailLoaded(laporan: updatedLaporan));
+      },
+    );
+  }
+
+  Future<void> _onVerifLaporan(
+    VerifLaporanEvent event,
+    Emitter<LaporanKegiatanState> emit,
+  ) async {
+    emit(LaporanLoading());
+
+    final result = await verifLaporan(
+      idAttendance: event.idAttendance,
+      isVerif: event.isVerif,
+      feedback: event.feedback,
+    );
+
+    result.fold(
+      (failure) => emit(LaporanError(message: failure.message)),
+      (success) {
+        if (success) {
+          // Reload detail setelah verifikasi berhasil
+          add(GetLaporanDetailEvent(event.idAttendance));
+        } else {
+          emit(LaporanError(message: 'Verifikasi gagal'));
+        }
       },
     );
   }

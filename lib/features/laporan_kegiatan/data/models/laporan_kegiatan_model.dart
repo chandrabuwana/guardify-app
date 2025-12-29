@@ -32,6 +32,9 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
     super.reviewerId,
     super.reviewerName,
     super.tanggalReview,
+    super.idAttendance,
+    super.checkIn,
+    super.checkOut,
   });
 
   factory LaporanKegiatanModel.fromJson(Map<String, dynamic> json) {
@@ -74,6 +77,13 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       tanggalReview: json['tanggal_review'] != null
           ? DateTime.parse(json['tanggal_review'] as String)
           : null,
+      idAttendance: json['id_attendance'] as String?,
+      checkIn: json['check_in'] != null
+          ? DateTime.parse(json['check_in'] as String)
+          : null,
+      checkOut: json['check_out'] != null
+          ? DateTime.parse(json['check_out'] as String)
+          : null,
     );
   }
 
@@ -109,6 +119,9 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       'reviewer_id': reviewerId,
       'reviewer_name': reviewerName,
       'tanggal_review': tanggalReview?.toIso8601String(),
+      'id_attendance': idAttendance,
+      'check_in': checkIn?.toIso8601String(),
+      'check_out': checkOut?.toIso8601String(),
     };
   }
 
@@ -142,6 +155,9 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       reviewerId: entity.reviewerId,
       reviewerName: entity.reviewerName,
       tanggalReview: entity.tanggalReview,
+      idAttendance: entity.idAttendance,
+      checkIn: entity.checkIn,
+      checkOut: entity.checkOut,
     );
   }
 
@@ -175,6 +191,9 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       reviewerId: reviewerId,
       reviewerName: reviewerName,
       tanggalReview: tanggalReview,
+      idAttendance: idAttendance,
+      checkIn: checkIn,
+      checkOut: checkOut,
     );
   }
 }

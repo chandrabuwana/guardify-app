@@ -672,6 +672,7 @@ class _CheckInPageState extends State<CheckInPage> {
           controller: _laporanPengamananController,
           hint: 'Keterangan Pengamanan',
           maxLines: 4,
+          maxLength: TextField.noMaxLength,
           margin: REdgeInsets.only(bottom: 16),
           isRequired: true,
         ),
@@ -774,10 +775,10 @@ class _CheckInPageState extends State<CheckInPage> {
         _buildSummaryItem('Lokasi Terkini', _lokasiTerkiniController.text),
         _buildSummaryItem('Foto Wajah', _fotoWajah != null ? 'Tersimpan' : '-'),
         _buildSummaryItem('Rute Patroli', _rutePatroliController.text),
-        _buildSummaryItem('Pakaian Personil', _pakaianPersonil),
+        _buildSummaryItemWithImage('Pakaian Personil', _pakaianPersonil),
         _buildSummaryItem(
             'Laporan Pengamanan', _laporanPengamananController.text),
-        _buildSummaryItem('Foto Pengamanan', '${_fotoPengamanan.length} foto'),
+        _buildSummaryItemWithImages('Foto Pengamanan', _fotoPengamanan),
         _buildSummaryItem(
           'Tugas Lanjutan',
           _tugasLanjutan.isEmpty ? '-' : _tugasLanjutan.join(', '),
@@ -809,6 +810,305 @@ class _CheckInPageState extends State<CheckInPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryItemWithImage(String label, String imagePath) {
+    final hasImage = imagePath.isNotEmpty;
+    final isLocalFile = hasImage && 
+                       !imagePath.startsWith('http://') && 
+                       !imagePath.startsWith('https://');
+    
+    return Padding(
+      padding: REdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120.w,
+            child: Text(
+              label,
+              style: TS.bodyMedium.copyWith(
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          Text(': ', style: TS.bodyMedium),
+          Expanded(
+            child: hasImage
+                ? GestureDetector(
+                    onTap: () => _showFullImageInSummary(imagePath, 0),
+                    child: Container(
+                      width: 80.w,
+                      height: 80.h,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8.r),
+                        child: isLocalFile
+                            ? Image.file(
+                                File(imagePath),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      size: 24.sp,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                  );
+                                },
+                              )
+                            : Image.network(
+                                imagePath,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      value: loadingProgress.expectedTotalBytes != null
+                                          ? loadingProgress.cumulativeBytesLoaded /
+                                              loadingProgress.expectedTotalBytes!
+                                          : null,
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      size: 24.sp,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ),
+                  )
+                : Text(
+                    '-',
+                    style: TS.bodyMedium,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryItemWithImages(String label, List<String> imagePaths) {
+    return Padding(
+      padding: REdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120.w,
+            child: Text(
+              label,
+              style: TS.bodyMedium.copyWith(
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          Text(': ', style: TS.bodyMedium),
+          Expanded(
+            child: imagePaths.isEmpty
+                ? Text(
+                    '-',
+                    style: TS.bodyMedium,
+                  )
+                : Wrap(
+                    spacing: 8.w,
+                    runSpacing: 8.h,
+                    children: imagePaths.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final imagePath = entry.value;
+                      final isLocalFile = !imagePath.startsWith('http://') && 
+                                         !imagePath.startsWith('https://');
+                      
+                      return GestureDetector(
+                        onTap: () => _showFullImageInSummary(imagePath, index, allImages: imagePaths),
+                        child: Container(
+                          width: 80.w,
+                          height: 80.h,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8.r),
+                            child: isLocalFile
+                                ? Image.file(
+                                    File(imagePath),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Icon(
+                                          Icons.broken_image,
+                                          size: 24.sp,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Image.network(
+                                    imagePath,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          value: loadingProgress.expectedTotalBytes != null
+                                              ? loadingProgress.cumulativeBytesLoaded /
+                                                  loadingProgress.expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Icon(
+                                          Icons.broken_image,
+                                          size: 24.sp,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullImageInSummary(String imagePath, int index, {List<String>? allImages}) {
+    final isLocalFile = !imagePath.startsWith('http://') && 
+                       !imagePath.startsWith('https://');
+    final images = allImages ?? [imagePath];
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: REdgeInsets.all(0),
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: isLocalFile
+                    ? Image.file(
+                        File(imagePath),
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            padding: REdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 64.sp,
+                                  color: Colors.white,
+                                ),
+                                16.verticalSpace,
+                                Text(
+                                  'Gagal memuat gambar',
+                                  style: TS.bodyMedium.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      )
+                    : Image.network(
+                        imagePath,
+                        fit: BoxFit.contain,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            padding: REdgeInsets.all(20),
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            padding: REdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 64.sp,
+                                  color: Colors.white,
+                                ),
+                                16.verticalSpace,
+                                Text(
+                                  'Gagal memuat gambar',
+                                  style: TS.bodyMedium.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ),
+            Positioned(
+              top: 40.h,
+              right: 20.w,
+              child: IconButton(
+                icon: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 32,
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+            if (images.length > 1)
+              Positioned(
+                bottom: 20.h,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${index + 1} / ${images.length}',
+                      style: TS.bodyMedium.copyWith(
+                        color: Colors.white,
+                        backgroundColor: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

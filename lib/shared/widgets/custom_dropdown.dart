@@ -32,6 +32,7 @@ class CustomDropdown<T> extends StatelessWidget {
     return Container(
       margin: margin,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (label.isNotEmpty) ...[
@@ -64,14 +65,29 @@ class CustomDropdown<T> extends StatelessWidget {
               child: DropdownButton<T>(
                 value: value,
                 hint: Padding(
-                  padding: REdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  padding: REdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Text(
                     hint,
                     style: TS.bodyLarge.copyWith(
                       color: appHintColor,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
+                selectedItemBuilder: (BuildContext context) {
+                  return items.map<Widget>((item) {
+                    return Padding(
+                      padding: REdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      child: Text(
+                        item.text,
+                        style: TS.bodyLarge,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    );
+                  }).toList();
+                },
                 items: items.map((item) {
                   return DropdownMenuItem<T>(
                     value: item.value,
@@ -80,6 +96,8 @@ class CustomDropdown<T> extends StatelessWidget {
                       child: Text(
                         item.text,
                         style: TS.bodyLarge,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
                       ),
                     ),
                   );

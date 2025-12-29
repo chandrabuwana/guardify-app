@@ -8,15 +8,20 @@ import '../bloc/patrol_bloc.dart';
 import '../widgets/patrol_progress_widget.dart';
 import '../widgets/add_patrol_location_dialog.dart';
 import '../widgets/patrol_attendance_dialog.dart';
+import '../../../schedule/domain/repositories/schedule_repository.dart';
 
 class PatrolDetailPage extends StatelessWidget {
   final PatrolRoute route;
   final PatrolBloc? bloc; // Optional bloc from parent
+  final List<RouteTask>? listRoute; // Optional ListRoute data from get_current_task
+  final bool? isCheckedIn; // Checkin status from get_current API
 
   const PatrolDetailPage({
     super.key,
     required this.route,
     this.bloc,
+    this.listRoute,
+    this.isCheckedIn,
   });
 
   @override
@@ -33,10 +38,10 @@ class PatrolDetailPage extends StatelessWidget {
     return BlocProvider(
       create: (context) {
         final newBloc = getIt<PatrolBloc>();
-        // Always load areas from /Areas/list when locations are empty
-        // This uses the new API endpoint instead of /RouteDetail/list
+        // Use ListRoute data from get_current_task if available, otherwise use API
         if (route.locations.isEmpty) {
-          newBloc.add(LoadAreasByRouteId(route.id, route));
+          // Pass ListRoute data if available
+          newBloc.add(LoadAreasByRouteId(route.id, route, listRoute));
         } else {
           // Use existing route data, emit PatrolLoaded immediately
           newBloc.add(LoadPatrolRoutesFromData([route], route.id));
@@ -173,6 +178,7 @@ class PatrolDetailPage extends StatelessWidget {
                     child: _LocationCard(
                       location: location,
                       locationNumber: index + 1,
+                      isCheckedIn: isCheckedIn,
                       onAbsenTap: () async {
                         final result = await showDialog<bool>(
                           context: context,
@@ -189,9 +195,9 @@ class PatrolDetailPage extends StatelessWidget {
                         
                         // If success, show success dialog and reload
                         if (result == true) {
-                          // Reload areas to refresh list
+                          // Reload areas to refresh list (pass ListRoute if available)
                           context.read<PatrolBloc>().add(
-                            LoadAreasByRouteId(currentRoute.id, currentRoute),
+                            LoadAreasByRouteId(currentRoute.id, currentRoute, listRoute),
                           );
                           
                           // Show success dialog
@@ -367,11 +373,13 @@ class _LocationCard extends StatelessWidget {
   final PatrolLocation location;
   final int locationNumber;
   final VoidCallback onAbsenTap;
+  final bool? isCheckedIn; // Checkin status from get_current API
 
   const _LocationCard({
     required this.location,
     required this.locationNumber,
     required this.onAbsenTap,
+    this.isCheckedIn,
   });
 
   @override
@@ -526,12 +534,14 @@ class _LocationCard extends StatelessWidget {
 
               // Absen Button
               ElevatedButton(
-                onPressed: location.status == PatrolLocationStatus.completed
+                onPressed: (location.status == PatrolLocationStatus.completed || 
+                           (isCheckedIn != null && isCheckedIn == false))
                     ? null
                     : onAbsenTap,
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      location.status == PatrolLocationStatus.completed
+                      (location.status == PatrolLocationStatus.completed || 
+                       (isCheckedIn != null && isCheckedIn == false))
                           ? Colors.grey[400]
                           : primaryColor,
                   disabledBackgroundColor: Colors.grey[400],

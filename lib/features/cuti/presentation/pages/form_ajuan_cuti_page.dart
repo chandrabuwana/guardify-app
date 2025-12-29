@@ -14,6 +14,7 @@ import '../bloc/cuti_event.dart';
 import '../bloc/cuti_state.dart';
 import '../dialogs/success_dialog.dart';
 import '../../domain/entities/cuti_entity.dart';
+import '../../domain/entities/leave_request_type_entity.dart';
 
 class FormAjuanCutiPage extends StatefulWidget {
   final String userId;
@@ -33,20 +34,18 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
   final _formKey = GlobalKey<FormState>();
   final _alasanController = TextEditingController();
 
-  CutiType? _selectedTipeCuti;
+  LeaveRequestTypeEntity? _selectedLeaveRequestType;
   DateTime? _tanggalMulai;
   DateTime? _tanggalSelesai;
   int _jumlahHari = 0;
+  List<LeaveRequestTypeEntity> _leaveRequestTypes = [];
 
-  final List<DropdownItem<CutiType>> _tipeCutiOptions = [
-    DropdownItem(value: CutiType.tahunan, text: 'Cuti Tahunan'),
-    DropdownItem(value: CutiType.sakit, text: 'Cuti Sakit'),
-    DropdownItem(value: CutiType.melahirkan, text: 'Cuti Melahirkan'),
-    DropdownItem(value: CutiType.menikah, text: 'Cuti Menikah'),
-    DropdownItem(
-        value: CutiType.keluargaMeninggal, text: 'Cuti Keluarga Meninggal'),
-    DropdownItem(value: CutiType.lainnya, text: 'Lainnya'),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Load leave request types on init
+    context.read<CutiBloc>().add(const GetLeaveRequestTypeListEvent());
+  }
 
   @override
   void dispose() {
@@ -86,7 +85,13 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
             padding: REdgeInsets.all(16),
             child: BlocListener<CutiBloc, CutiState>(
               listener: (context, state) {
-                if (state is AjuanCutiCreated) {
+                if (state is LeaveRequestTypeListLoaded) {
+                  setState(() {
+                    _leaveRequestTypes = state.leaveRequestTypes;
+                  });
+                } else if (state is AjuanCutiCreated) {
+                  // Reload list cuti setelah submit berhasil
+                  context.read<CutiBloc>().add(GetDaftarCutiSayaEvent(widget.userId));
                   _showSuccessDialog();
                 } else if (state is CutiError) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -104,16 +109,33 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Form Fields
-                    CustomDropdown<CutiType>(
-                      label: 'Tipe Cuti',
-                      hint: 'Pilih tipe cuti',
-                      value: _selectedTipeCuti,
-                      items: _tipeCutiOptions,
-                      isRequired: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedTipeCuti = value;
-                        });
+                    BlocBuilder<CutiBloc, CutiState>(
+                      builder: (context, state) {
+                        if (state is CutiLoading && _leaveRequestTypes.isEmpty) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+
+                        final dropdownItems = _leaveRequestTypes
+                            .map((type) => DropdownItem<LeaveRequestTypeEntity>(
+                                  value: type,
+                                  text: type.name,
+                                ))
+                            .toList();
+
+                        return CustomDropdown<LeaveRequestTypeEntity>(
+                          label: 'Tipe Cuti',
+                          hint: 'Pilih tipe cuti',
+                          value: _selectedLeaveRequestType,
+                          items: dropdownItems,
+                          isRequired: true,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedLeaveRequestType = value;
+                            });
+                          },
+                        );
                       },
                     ),
 
@@ -360,7 +382,7 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
       return;
     }
 
-    if (_selectedTipeCuti == null) {
+    if (_selectedLeaveRequestType == null) {
       _showErrorSnackBar('Tipe cuti harus dipilih');
       return;
     }
@@ -385,7 +407,7 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
       context: context,
       title: 'Konfirmasi Ajuan Cuti',
       message: 'Apakah Anda yakin ingin mengajukan cuti ini?\n\n'
-          'Tipe: ${_selectedTipeCuti!.name}\n'
+          'Tipe: ${_selectedLeaveRequestType!.name}\n'
           'Durasi: $_jumlahHari hari\n'
           'Alasan: ${_alasanController.text.trim()}',
       confirmText: 'Ya, Ajukan',
@@ -395,17 +417,42 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
     );
 
     if (confirmed == true && mounted) {
+      // Map LeaveRequestType to CutiType for backward compatibility
+      // We'll use the ID from API in the datasource
+      final cutiType = _mapLeaveRequestTypeToCutiType(_selectedLeaveRequestType!);
+      
       context.read<CutiBloc>().add(
             BuatAjuanCutiEvent(
               userId: widget.userId,
               nama: widget.userName,
-              tipeCuti: _selectedTipeCuti!,
+              tipeCuti: cutiType,
+              leaveRequestTypeId: _selectedLeaveRequestType!.id,
               tanggalMulai: _tanggalMulai!,
               tanggalSelesai: _tanggalSelesai!,
               alasan: _alasanController.text.trim(),
               jumlahHari: _jumlahHari,
             ),
           );
+    }
+  }
+
+  /// Map LeaveRequestType to CutiType for backward compatibility
+  /// The actual ID will be used from the selected LeaveRequestType
+  CutiType _mapLeaveRequestTypeToCutiType(LeaveRequestTypeEntity type) {
+    // Try to match by name
+    final name = type.name.toLowerCase();
+    if (name.contains('tahunan')) {
+      return CutiType.tahunan;
+    } else if (name.contains('sakit')) {
+      return CutiType.sakit;
+    } else if (name.contains('melahirkan')) {
+      return CutiType.melahirkan;
+    } else if (name.contains('menikah')) {
+      return CutiType.menikah;
+    } else if (name.contains('meninggal')) {
+      return CutiType.keluargaMeninggal;
+    } else {
+      return CutiType.lainnya;
     }
   }
 

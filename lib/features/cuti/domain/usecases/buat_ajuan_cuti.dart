@@ -6,6 +6,7 @@ class BuatAjuanCutiParams {
   final String userId;
   final String nama;
   final CutiType tipeCuti;
+  final int leaveRequestTypeId; // ID dari API
   final DateTime tanggalMulai;
   final DateTime tanggalSelesai;
   final String alasan;
@@ -15,6 +16,7 @@ class BuatAjuanCutiParams {
     required this.userId,
     required this.nama,
     required this.tipeCuti,
+    required this.leaveRequestTypeId,
     required this.tanggalMulai,
     required this.tanggalSelesai,
     required this.alasan,
@@ -33,6 +35,7 @@ class BuatAjuanCuti {
       userId: params.userId,
       nama: params.nama,
       tipeCuti: params.tipeCuti,
+      leaveRequestTypeId: params.leaveRequestTypeId,
       tanggalMulai: params.tanggalMulai,
       tanggalSelesai: params.tanggalSelesai,
       alasan: params.alasan,

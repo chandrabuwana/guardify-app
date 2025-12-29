@@ -13,41 +13,44 @@ CreateLeaveRequestModel _$CreateLeaveRequestModelFromJson(
       json,
       ($checkedConvert) {
         final val = CreateLeaveRequestModel(
+          approveDate: $checkedConvert('ApproveDate', (v) => v as String?),
           endDate: $checkedConvert('EndDate', (v) => v as String),
-          fullname: $checkedConvert('Fullname', (v) => v as String),
           idLeaveRequestType:
               $checkedConvert('IdLeaveRequestType', (v) => (v as num).toInt()),
-          nip: $checkedConvert('Nip', (v) => v as String),
           notes: $checkedConvert('Notes', (v) => v as String),
-          notesApproval: $checkedConvert('NotesApproval', (v) => v as String?),
+          notesApproval: $checkedConvert('NotesApproval', (v) => v as String),
           startDate: $checkedConvert('StartDate', (v) => v as String),
           userId: $checkedConvert('UserId', (v) => v as String),
+          status: $checkedConvert('Status', (v) => v as String),
+          approveBy: $checkedConvert('ApproveBy', (v) => v as String),
         );
         return val;
       },
       fieldKeyMap: const {
+        'approveDate': 'ApproveDate',
         'endDate': 'EndDate',
-        'fullname': 'Fullname',
         'idLeaveRequestType': 'IdLeaveRequestType',
-        'nip': 'Nip',
         'notes': 'Notes',
         'notesApproval': 'NotesApproval',
         'startDate': 'StartDate',
-        'userId': 'UserId'
+        'userId': 'UserId',
+        'status': 'Status',
+        'approveBy': 'ApproveBy'
       },
     );
 
 Map<String, dynamic> _$CreateLeaveRequestModelToJson(
         CreateLeaveRequestModel instance) =>
     <String, dynamic>{
+      'ApproveDate': instance.approveDate,
       'EndDate': instance.endDate,
-      'Fullname': instance.fullname,
       'IdLeaveRequestType': instance.idLeaveRequestType,
-      'Nip': instance.nip,
       'Notes': instance.notes,
       'NotesApproval': instance.notesApproval,
       'StartDate': instance.startDate,
       'UserId': instance.userId,
+      'Status': instance.status,
+      'ApproveBy': instance.approveBy,
     };
 
 CreateLeaveRequestResponseModel _$CreateLeaveRequestResponseModelFromJson(

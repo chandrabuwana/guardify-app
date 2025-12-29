@@ -37,3 +37,60 @@ class ResetVerificationEvent extends PanicButtonEvent {
 class ShowPanicDialogEvent extends PanicButtonEvent {
   const ShowPanicDialogEvent();
 }
+
+// History Events
+class LoadPanicButtonHistoryEvent extends PanicButtonEvent {
+  final int start;
+  final int length;
+  final String? searchQuery;
+
+  const LoadPanicButtonHistoryEvent({
+    this.start = 0,
+    this.length = 10,
+    this.searchQuery,
+  });
+
+  @override
+  List<Object?> get props => [start, length, searchQuery];
+}
+
+class LoadMorePanicButtonHistoryEvent extends PanicButtonEvent {
+  const LoadMorePanicButtonHistoryEvent();
+}
+
+class SearchPanicButtonHistoryEvent extends PanicButtonEvent {
+  final String query;
+
+  const SearchPanicButtonHistoryEvent(this.query);
+
+  @override
+  List<Object?> get props => [query];
+}
+
+class RefreshPanicButtonHistoryEvent extends PanicButtonEvent {
+  const RefreshPanicButtonHistoryEvent();
+}
+
+class LoadPanicButtonDetailEvent extends PanicButtonEvent {
+  final String id;
+
+  const LoadPanicButtonDetailEvent(this.id);
+
+  @override
+  List<Object?> get props => [id];
+}
+
+class SubmitPanicButtonVerificationEvent extends PanicButtonEvent {
+  final String id;
+  final String status;
+  final String? notes;
+
+  const SubmitPanicButtonVerificationEvent({
+    required this.id,
+    required this.status,
+    this.notes,
+  });
+
+  @override
+  List<Object?> get props => [id, status, notes];
+}

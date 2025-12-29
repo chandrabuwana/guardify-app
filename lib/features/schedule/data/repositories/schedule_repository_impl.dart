@@ -317,14 +317,30 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
 
         // Filter by year and month
         if (shiftDate.year == year && shiftDate.month == month) {
-          // Tentukan shift type berdasarkan JAM di ShiftDate
-          // Shift Pagi: 07:00 - 19:00 (hour >= 7 && hour < 19)
-          // Shift Malam: 19:00 - 07:00 (hour >= 19 || hour < 7)
-          final hour = shiftDate.hour;
-          final shiftType = (hour >= 7 && hour < 19) ? 'Pagi' : 'Malam';
-
-          print(
-              '[ScheduleRepository] ✅ Shift found: $shiftType (hour: $hour) at ${item.location} on ${DateFormat('yyyy-MM-dd').format(shiftDate)}');
+          // Ambil shift type dari ShiftCategory.Name dari API
+          // Jika ShiftCategory tidak ada di response, fetch dari API atau gunakan fallback
+          String shiftType;
+          
+          if (item.shift.shiftCategory != null) {
+            // Gunakan ShiftCategory.Name langsung dari response
+            shiftType = item.shift.shiftCategory!.name;
+            print(
+                '[ScheduleRepository] ✅ Shift found: $shiftType (from ShiftCategory) at ${item.location} on ${DateFormat('yyyy-MM-dd').format(shiftDate)}');
+          } else {
+            // Fallback: fetch ShiftCategory dari API jika tidak ada di response
+            final shiftCategory = await _getShiftCategory(item.shift.idShiftCategory);
+            if (shiftCategory != null) {
+              shiftType = shiftCategory.name;
+              print(
+                  '[ScheduleRepository] ✅ Shift found: $shiftType (fetched from API) at ${item.location} on ${DateFormat('yyyy-MM-dd').format(shiftDate)}');
+            } else {
+              // Fallback terakhir: gunakan logika berdasarkan jam (untuk backward compatibility)
+              final hour = shiftDate.hour;
+              shiftType = (hour >= 7 && hour < 19) ? 'Shift Pagi' : 'Shift Malam';
+              print(
+                  '[ScheduleRepository] ⚠️ Shift category not found, using fallback: $shiftType at ${item.location} on ${DateFormat('yyyy-MM-dd').format(shiftDate)}');
+            }
+          }
 
           agendas.add(DailyAgenda(
             date: shiftDate,
@@ -445,6 +461,8 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
           );
         }).toList(),
         idShiftDetail: response.data!.idShiftDetail,
+        shiftDate: response.data!.shiftDate,
+        location: response.data!.location,
       );
 
       print('[ScheduleRepository] ✅ Found current shift: ${currentShift.name}');
@@ -499,6 +517,8 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
             filename: r.filename,
             fileUrl: r.fileUrl,
             status: r.status,
+            latitude: r.latitude,
+            longitude: r.longitude,
           );
         }).toList(),
         listCarryOver: response.data!.listCarryOver.map((c) {
@@ -516,6 +536,8 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
             status: c.status,
             updateBy: c.updateBy,
             updateDate: c.updateDate,
+            location: c.location,
+            file: c.file,
           );
         }).toList(),
       );
@@ -565,34 +587,49 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
 
       // Convert pengawas response to ShiftSchedule entity
       // The pengawas API returns multiple shifts (Pagi and Malam) with routes and personnel
-      // We'll create a combined entity that includes all shifts
+      // We need to separate personnel by shift type (Pagi and Malam)
       final pengawasData = response.data!;
       
-      // Collect all unique routes from all shifts, grouped by shift type
+      // Separate shifts by type (Pagi and Malam)
+      ShiftPengawasModel? shiftPagi;
+      ShiftPengawasModel? shiftMalam;
+      
+      for (final shift in pengawasData.listShift) {
+        // Determine shift type based on shift name or time
+        final shiftNameLower = shift.shiftName.toLowerCase();
+        if (shiftNameLower.contains('pagi') || shift.startTime.startsWith('07') || shift.startTime.startsWith('7')) {
+          shiftPagi = shift;
+        } else if (shiftNameLower.contains('malam') || shift.startTime.startsWith('19')) {
+          shiftMalam = shift;
+        }
+      }
+      
+      // Use the first shift as primary (or Pagi if available)
+      final primaryShift = shiftPagi ?? shiftMalam ?? pengawasData.listShift.first;
+      final primaryShiftName = primaryShift.shiftName;
+      final primaryStartTime = primaryShift.startTime;
+      final primaryEndTime = primaryShift.endTime;
+      
+      // Collect routes and personnel separately for each shift
       final routesByShift = <String, Map<String, List<PersonnelModel>>>{}; // shiftName -> {areaName -> [personnel]}
-      final allTeamMembers = <String, TeamMemberModel>{};
-      String? primaryShiftName;
-      String? primaryStartTime;
-      String? primaryEndTime;
+      final teamMembersByShift = <String, List<TeamMemberModel>>{}; // shiftName -> [teamMembers]
+      final allAreaNames = <String>{};
 
       for (final shift in pengawasData.listShift) {
-        // Store shift info
-        if (primaryShiftName == null) {
-          primaryShiftName = shift.shiftName;
-          primaryStartTime = shift.startTime;
-          primaryEndTime = shift.endTime;
-        }
-
-        // Group routes by shift
-        routesByShift[shift.shiftName] = {};
+        final shiftName = shift.shiftName;
+        routesByShift[shiftName] = {};
+        final teamMembersForShift = <String, TeamMemberModel>{};
         
         for (final route in shift.listRoute) {
-          routesByShift[shift.shiftName]![route.areasName] = route.listPersonel;
+          routesByShift[shiftName]![route.areasName] = route.listPersonel;
+          allAreaNames.add(route.areasName);
 
-          // Add all personnel to the team members map
+          // Add personnel to this shift's team members (don't merge across shifts)
           for (final personnel in route.listPersonel) {
-            if (!allTeamMembers.containsKey(personnel.userId)) {
-              allTeamMembers[personnel.userId] = TeamMemberModel(
+            // Use userId + shiftName as key to allow same person in different shifts
+            final key = '${personnel.userId}_$shiftName';
+            if (!teamMembersForShift.containsKey(key)) {
+              teamMembersForShift[key] = TeamMemberModel(
                 id: personnel.userId,
                 name: personnel.fullname,
                 position: route.areasName, // Use route/area as position
@@ -601,12 +638,8 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
             }
           }
         }
-      }
-
-      // Get all unique area names across all shifts
-      final allAreaNames = <String>{};
-      for (final routes in routesByShift.values) {
-        allAreaNames.addAll(routes.keys);
+        
+        teamMembersByShift[shiftName] = teamMembersForShift.values.toList();
       }
 
       // Convert to PatrolLocationModel list
@@ -618,10 +651,26 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
         );
       }).toList();
 
-      // Convert to TeamMemberModel list
-      final teamMembers = allTeamMembers.values.toList();
+      // Combine team members from all shifts but keep shift information
+      // We'll store shift info in position field temporarily: "AreaName|ShiftName"
+      final allTeamMembers = <TeamMemberModel>[];
+      
+      for (final shift in pengawasData.listShift) {
+        final shiftName = shift.shiftName;
+        final teamMembersForShift = teamMembersByShift[shiftName] ?? [];
+        
+        // Add shift information to each team member's position
+        for (final member in teamMembersForShift) {
+          allTeamMembers.add(TeamMemberModel(
+            id: member.id,
+            name: member.name,
+            position: '${member.position}|$shiftName', // Store shift info in position
+            photoUrl: member.photoUrl,
+          ));
+        }
+      }
 
-      // Create ShiftScheduleModel
+      // Create ShiftScheduleModel with all team members (will be filtered in UI)
       final shiftModel = ShiftScheduleModel(
         id: '', // Not provided by API
         date: DateFormat('yyyy-MM-dd').format(date),
@@ -631,7 +680,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
         position: 'Pengawas',
         route: allAreaNames.join(', '), // Combine all area names
         patrolLocations: patrolLocations,
-        teamMembers: teamMembers,
+        teamMembers: allTeamMembers,
       );
 
       final shiftDetail = shiftModel.toEntity();

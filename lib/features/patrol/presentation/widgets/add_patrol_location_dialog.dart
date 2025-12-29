@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../../../core/design/colors.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/services/location_service.dart';
 import '../bloc/patrol_bloc.dart';
+import '../../domain/entities/patrol_location.dart';
+import '../../domain/repositories/patrol_repository.dart';
 
 class AddPatrolLocationDialog extends StatefulWidget {
   final String routeId;
@@ -22,46 +28,165 @@ class AddPatrolLocationDialog extends StatefulWidget {
 
 class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _proofController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
   String? _selectedLocation;
-  String _currentLocationText = 'xxxx';
+  String _currentLocationText = 'Menunggu...';
   double? _latitude;
   double? _longitude;
   bool _isLocationVerified = false;
   bool _isLoading = false;
-
-  // Dummy locations for dropdown (API belum jadi)
-  final List<String> _availableLocations = [
-    'Pos Gajah',
-    'Pos Macan',
-    'Pos Harimau',
-    'Pos Singa',
-    'Lobby Utama',
-    'Parkiran Basement',
-  ];
+  bool _isLoadingAreas = true;
+  bool _isLoadingLocation = false;
+  List<PatrolLocation> _availableAreas = [];
+  String? _errorMessage;
+  File? _proofImage;
 
   @override
   void initState() {
     super.initState();
+    _loadAreas();
     _getCurrentLocation();
   }
 
-  Future<void> _getCurrentLocation() async {
-    try {
-      // Simulate getting current location
-      await Future.delayed(const Duration(seconds: 1));
+  @override
+  void dispose() {
+    _proofController.dispose();
+    super.dispose();
+  }
 
-      // Mock location (Jakarta area)
-      setState(() {
-        _latitude = -6.2088 + (0.001 * (DateTime.now().second % 10));
-        _longitude = 106.8456 + (0.001 * (DateTime.now().millisecond % 10));
-        _currentLocationText =
-            '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}';
-        _isLocationVerified = true;
-      });
+  Future<void> _loadAreas() async {
+    setState(() {
+      _isLoadingAreas = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final repository = getIt<PatrolRepository>();
+      final result = await repository.getAllAreas();
+
+      result.fold(
+        (failure) {
+          setState(() {
+            _isLoadingAreas = false;
+            _errorMessage = 'Gagal memuat daftar area: ${failure.message}';
+            _availableAreas = [];
+          });
+        },
+        (areas) {
+          // Filter out existing locations
+          final filteredAreas = areas
+              .where((area) => !widget.existingLocations.contains(area.name))
+              .toList();
+
+          setState(() {
+            _isLoadingAreas = false;
+            _availableAreas = filteredAreas;
+          });
+        },
+      );
     } catch (e) {
       setState(() {
-        _currentLocationText = 'Gagal mendapatkan lokasi';
+        _isLoadingAreas = false;
+        _errorMessage = 'Terjadi kesalahan: $e';
+        _availableAreas = [];
       });
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    // Only get current location if no area is selected yet
+    if (_selectedLocation == null) {
+      setState(() {
+        _isLoadingLocation = true;
+        _currentLocationText = 'Mengambil lokasi...';
+      });
+
+      try {
+        final locationService = getIt<LocationService>();
+        final position = await locationService.getCurrentLatLng();
+
+        if (position != null) {
+          setState(() {
+            _latitude = position.lat;
+            _longitude = position.lng;
+            _currentLocationText =
+                '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}';
+            _isLocationVerified = true;
+            _isLoadingLocation = false;
+          });
+        } else {
+          setState(() {
+            _currentLocationText = 'Gagal mendapatkan lokasi. Pastikan GPS aktif.';
+            _isLocationVerified = false;
+            _isLoadingLocation = false;
+          });
+        }
+      } catch (e) {
+        setState(() {
+          _currentLocationText = 'Error: $e';
+          _isLocationVerified = false;
+          _isLoadingLocation = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showImagePickerDialog() async {
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Pilih Sumber Foto'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                title: const Text('Kamera'),
+                onTap: () => Navigator.of(context).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.green),
+                title: const Text('Galeri'),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (source == null) return;
+
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+
+      if (image != null && mounted) {
+        setState(() {
+          _proofImage = File(image.path);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto berhasil dipilih'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error mengambil foto: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -192,35 +317,115 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _selectedLocation,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          hintText: 'xxxx',
-                        ),
-                        items: _availableLocations
-                            .where((loc) =>
-                                !widget.existingLocations.contains(loc))
-                            .map((location) {
-                          return DropdownMenuItem(
-                            value: location,
-                            child: Text(location),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedLocation = value;
-                          });
-                        },
+                      _isLoadingAreas
+                          ? Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Memuat daftar area...',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : _errorMessage != null
+                              ? Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red[50],
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.red[200]!),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _errorMessage!,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.red[700],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      TextButton(
+                                        onPressed: _loadAreas,
+                                        child: const Text('Coba Lagi'),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : _availableAreas.isEmpty
+                                  ? Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Text(
+                                        'Tidak ada lokasi patroli yang tersedia',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    )
+                                  : DropdownButtonFormField<String>(
+                                      value: _selectedLocation,
+                                      decoration: InputDecoration(
+                                        filled: true,
+                                        fillColor: Colors.grey[100],
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        hintText: 'Pilih lokasi patroli',
+                                      ),
+                                      items: _availableAreas.map((area) {
+                                        return DropdownMenuItem(
+                                          value: area.name,
+                                          child: Text(area.name),
+                                        );
+                                      }).toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedLocation = value;
+                                          
+                                          // Get latitude and longitude from selected Area
+                                          if (value != null) {
+                                            final selectedArea = _availableAreas
+                                                .firstWhere(
+                                                  (area) => area.name == value,
+                                                );
+                                            
+                                            // Use coordinates from Area
+                                            _latitude = selectedArea.latitude;
+                                            _longitude = selectedArea.longitude;
+                                            _currentLocationText =
+                                                '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}';
+                                            _isLocationVerified = true;
+                                          }
+                                        });
+                                      },
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Lokasi patroli harus dipilih';
@@ -251,19 +456,49 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                _currentLocationText,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black87,
-                                ),
-                              ),
+                              child: _isLoadingLocation
+                                  ? const Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                        SizedBox(width: 12),
+                                        Text(
+                                          'Mengambil lokasi...',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Text(
+                                      _currentLocationText,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: _isLocationVerified
+                                            ? Colors.black87
+                                            : Colors.red,
+                                      ),
+                                    ),
                             ),
                             if (_isLocationVerified)
                               const Icon(
                                 Icons.check_circle,
                                 color: Colors.green,
                                 size: 20,
+                              ),
+                            if (!_isLocationVerified && !_isLoadingLocation)
+                              IconButton(
+                                icon: const Icon(Icons.refresh),
+                                iconSize: 20,
+                                color: primaryColor,
+                                onPressed: _getCurrentLocation,
+                                tooltip: 'Refresh Lokasi',
                               ),
                           ],
                         ),
@@ -286,53 +521,79 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                           color: Colors.grey[100],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
+                        child: Column(
                           children: [
-                            Expanded(
-                              child: TextFormField(
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _proofController,
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
+                                      hintText: 'Lokasi Kejadian ---',
+                                    ),
                                   ),
-                                  hintText: 'Lokasi Kejadian ---',
                                 ),
-                                onChanged: (value) {
-                                  // Store proof note
-                                },
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                // TODO: Open camera
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content:
-                                        Text('Fitur kamera akan segera hadir'),
+                                IconButton(
+                                  onPressed: _showImagePickerDialog,
+                                  icon: const Icon(
+                                    Icons.camera_alt,
+                                    color: primaryColor,
                                   ),
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                // TODO: Attach file
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        'Fitur lampiran akan segera hadir'),
+                                  tooltip: 'Ambil Foto',
+                                ),
+                                IconButton(
+                                  onPressed: _showImagePickerDialog,
+                                  icon: const Icon(
+                                    Icons.photo_library,
+                                    color: primaryColor,
                                   ),
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.attach_file,
-                                color: Colors.grey,
-                              ),
+                                  tooltip: 'Pilih dari Galeri',
+                                ),
+                              ],
                             ),
+                            // Display selected image
+                            if (_proofImage != null)
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.file(
+                                        _proofImage!,
+                                        height: 100,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 4,
+                                      right: 4,
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                        style: IconButton.styleFrom(
+                                          backgroundColor: Colors.black54,
+                                          padding: const EdgeInsets.all(4),
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _proofImage = null;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                           ],
                         ),
                       ),

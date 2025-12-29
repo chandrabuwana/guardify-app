@@ -238,7 +238,7 @@ class _AddPatrolLocationPageState extends State<AddPatrolLocationPage> {
                                     horizontal: 16,
                                     vertical: 12,
                                   ),
-                                  hintText: '-6.2088',
+                                  hintText: '-6.173056780703297',
                                 ),
                                 keyboardType: const TextInputType.numberWithOptions(
                                   decimal: true,
@@ -284,7 +284,7 @@ class _AddPatrolLocationPageState extends State<AddPatrolLocationPage> {
                                     horizontal: 16,
                                     vertical: 12,
                                   ),
-                                  hintText: '106.8456',
+                                  hintText: '106.78692883979942',
                                 ),
                                 keyboardType: const TextInputType.numberWithOptions(
                                   decimal: true,
@@ -314,8 +314,8 @@ class _AddPatrolLocationPageState extends State<AddPatrolLocationPage> {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           // Mock current location
-                          _latitudeController.text = '-6.2088';
-                          _longitudeController.text = '106.8456';
+                          _latitudeController.text = '-6.173056780703297';
+                          _longitudeController.text = '106.78692883979942';
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Lokasi saat ini berhasil diambil'),

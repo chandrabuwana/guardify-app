@@ -10,6 +10,9 @@ abstract class LaporanKegiatanRepository {
     LaporanStatus? status,
     UserRole? role,
     String? userId,
+    String? search,
+    int start = 1,
+    int length = 10,
   });
 
   /// Get detail laporan kegiatan by ID
@@ -43,5 +46,12 @@ abstract class LaporanKegiatanRepository {
       getSupervisedLaporanList({
     required String supervisorId,
     LaporanStatus? status,
+  });
+
+  /// Verifikasi laporan kegiatan menggunakan API Attendance/verif
+  Future<Either<Failure, bool>> verifLaporan({
+    required String idAttendance,
+    required bool isVerif,
+    String? feedback,
   });
 }

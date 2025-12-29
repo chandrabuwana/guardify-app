@@ -51,6 +51,7 @@ class BuatAjuanCutiEvent extends CutiEvent {
   final String userId;
   final String nama;
   final CutiType tipeCuti;
+  final int leaveRequestTypeId; // ID dari API
   final DateTime tanggalMulai;
   final DateTime tanggalSelesai;
   final String alasan;
@@ -60,6 +61,7 @@ class BuatAjuanCutiEvent extends CutiEvent {
     required this.userId,
     required this.nama,
     required this.tipeCuti,
+    required this.leaveRequestTypeId,
     required this.tanggalMulai,
     required this.tanggalSelesai,
     required this.alasan,
@@ -71,6 +73,7 @@ class BuatAjuanCutiEvent extends CutiEvent {
         userId,
         nama,
         tipeCuti,
+        leaveRequestTypeId,
         tanggalMulai,
         tanggalSelesai,
         alasan,
@@ -135,15 +138,17 @@ class GetRekapCutiEvent extends CutiEvent {
   final DateTime? tanggalMulai;
   final DateTime? tanggalSelesai;
   final String? status;
+  final String? tipeCuti;
 
   const GetRekapCutiEvent({
     this.tanggalMulai,
     this.tanggalSelesai,
     this.status,
+    this.tipeCuti,
   });
 
   @override
-  List<Object?> get props => [tanggalMulai, tanggalSelesai, status];
+  List<Object?> get props => [tanggalMulai, tanggalSelesai, status, tipeCuti];
 }
 
 // Reset State Event
@@ -154,4 +159,9 @@ class ResetCutiStateEvent extends CutiEvent {
 // Clear Error Event
 class ClearCutiErrorEvent extends CutiEvent {
   const ClearCutiErrorEvent();
+}
+
+// Get Leave Request Type List Event
+class GetLeaveRequestTypeListEvent extends CutiEvent {
+  const GetLeaveRequestTypeListEvent();
 }

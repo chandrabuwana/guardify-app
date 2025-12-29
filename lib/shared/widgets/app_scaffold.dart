@@ -40,8 +40,11 @@ class AppScaffold extends StatelessWidget {
     }
 
     // Wrap with scrolling if enabled
+    // Note: Do not use SingleChildScrollView if child contains Expanded widgets
+    // Expanded requires bounded constraints which SingleChildScrollView doesn't provide
     if (enableScrolling) {
       bodyContent = SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
         child: bodyContent,
       );
     }

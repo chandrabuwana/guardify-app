@@ -1,6 +1,30 @@
 import 'company_rule_category_model.dart';
 import '../../domain/entities/document_entity.dart';
 
+class CompanyRuleFileModel {
+  final String filename;
+  final String url;
+
+  const CompanyRuleFileModel({
+    required this.filename,
+    required this.url,
+  });
+
+  factory CompanyRuleFileModel.fromJson(Map<String, dynamic> json) {
+    return CompanyRuleFileModel(
+      filename: json['Filename'] as String,
+      url: json['Url'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'Filename': filename,
+      'Url': url,
+    };
+  }
+}
+
 class CompanyRuleModel {
   final String id;
   final bool active;
@@ -15,6 +39,7 @@ class CompanyRuleModel {
   final String name;
   final String? updateBy;
   final DateTime? updateDate;
+  final CompanyRuleFileModel? files;
 
   const CompanyRuleModel({
     required this.id,
@@ -30,6 +55,7 @@ class CompanyRuleModel {
     required this.name,
     this.updateBy,
     this.updateDate,
+    this.files,
   });
 
   factory CompanyRuleModel.fromJson(Map<String, dynamic> json) {
@@ -52,6 +78,10 @@ class CompanyRuleModel {
       updateDate: json['UpdateDate'] != null
           ? DateTime.parse(json['UpdateDate'] as String)
           : null,
+      files: json['Files'] != null
+          ? CompanyRuleFileModel.fromJson(
+              json['Files'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -70,17 +100,26 @@ class CompanyRuleModel {
       'Name': name,
       'UpdateBy': updateBy,
       'UpdateDate': updateDate?.toIso8601String(),
+      'Files': files?.toJson(),
     };
   }
 
   // Convert to domain entity
   DocumentEntity toEntity() {
-    // Build file URL if repository file ID exists
+    // Prioritize Files.Url if available, otherwise use repository file ID
     String fileUrl = '';
-    if (idRepositoryFile != null &&
+    String? fileType;
+    
+    if (files != null && files!.url.isNotEmpty) {
+      // Use Files.Url from API response
+      fileUrl = files!.url;
+      fileType = _getFileType(files!.filename);
+    } else if (idRepositoryFile != null &&
         idRepositoryFile != '00000000-0000-0000-0000-000000000000' &&
         idRepositoryFile!.isNotEmpty) {
+      // Fallback to repository file ID
       fileUrl = '/api/v1/RepositoryFile/download/$idRepositoryFile';
+      fileType = _getFileType(fileName);
     }
 
     return DocumentEntity(
@@ -90,7 +129,7 @@ class CompanyRuleModel {
       date: createDate,
       fileUrl: fileUrl,
       description: description,
-      fileType: _getFileType(fileName),
+      fileType: fileType,
       version: code,
       author: createBy,
       tags: [companyRuleCategory?.name ?? 'Lainnya'],

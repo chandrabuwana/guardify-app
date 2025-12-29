@@ -71,7 +71,11 @@ class LaporanCard extends StatelessWidget {
           InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(12.r),
-            child: Padding(
+            child: Opacity(
+              opacity: (laporan.idAttendance != null && 
+                       laporan.checkIn != null && 
+                       laporan.checkOut != null) ? 1.0 : 0.6,
+              child: Padding(
               padding: REdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,6 +145,7 @@ class LaporanCard extends StatelessWidget {
                 ],
               ),
             ),
+            ),
           ),
         ],
       ),
@@ -153,20 +158,25 @@ class LaporanCard extends StatelessWidget {
     Color bgColor;
 
     switch (status) {
-      case LaporanStatus.menungguVerifikasi:
-        text = 'Menunggu';
-        textColor = Colors.grey[700]!;
-        bgColor = Colors.grey[100]!;
+      case LaporanStatus.checkIn:
+        text = 'Check In';
+        textColor = Colors.blue[700]!;
+        bgColor = Colors.blue[50]!;
         break;
-      case LaporanStatus.revisi:
-        text = 'Revisi';
+      case LaporanStatus.waiting:
+        text = 'Waiting';
+        textColor = Colors.blue[700]!;
+        bgColor = Colors.blue[50]!;
+        break;
+      case LaporanStatus.verified:
+        text = 'Verified';
+        textColor = Colors.lightBlue[700]!;
+        bgColor = Colors.lightBlue[50]!;
+        break;
+      case LaporanStatus.revision:
+        text = 'Revision';
         textColor = Colors.orange[700]!;
         bgColor = Colors.orange[50]!;
-        break;
-      case LaporanStatus.terverifikasi:
-        text = 'Terverifikasi';
-        textColor = const Color(0xFF1E88E5);
-        bgColor = const Color(0xFF1E88E5).withOpacity(0.1);
         break;
     }
 

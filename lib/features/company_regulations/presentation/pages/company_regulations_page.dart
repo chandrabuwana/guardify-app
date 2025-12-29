@@ -10,8 +10,8 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_search_bar.dart';
 import '../widgets/custom_filter_button.dart';
 import '../widgets/custom_document_card.dart';
-import '../navigation/company_regulations_routes.dart';
 import '../../domain/entities/document_entity.dart';
+import 'document_preview_page.dart';
 
 /// Halaman utama untuk menampilkan daftar peraturan perusahaan
 ///
@@ -402,7 +402,75 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
   }
 
   void _navigateToDocumentDetail(DocumentEntity document) {
-    context.pushToDocumentDetail(document);
+    // Jika ada file URL, buka preview file
+    if (document.fileUrl.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DocumentPreviewPage(
+            document: document,
+          ),
+        ),
+      );
+    } else {
+      // Jika tidak ada file, tampilkan popup validasi
+      _showFileNotAvailableDialog(document);
+    }
+  }
+
+  void _showFileNotAvailableDialog(DocumentEntity document) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: primaryColor,
+              size: 24.sp,
+            ),
+            8.horizontalSpace,
+            Expanded(
+              child: Text(
+                'File Tidak Tersedia',
+                style: TS.titleMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: neutral90,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'File untuk dokumen "${document.title}" tidak tersedia.',
+              style: TS.bodyMedium.copyWith(color: Colors.black),
+            ),
+            8.verticalSpace,
+            Text(
+              'Silakan hubungi administrator untuk informasi lebih lanjut.',
+              style: TS.bodySmall.copyWith(color: Colors.black),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Tutup',
+              style: TS.labelLarge.copyWith(color: primaryColor),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showDocumentOptions(DocumentEntity document) {

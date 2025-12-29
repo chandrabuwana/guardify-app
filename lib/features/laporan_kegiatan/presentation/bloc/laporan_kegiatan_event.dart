@@ -13,15 +13,23 @@ class GetLaporanListEvent extends LaporanKegiatanEvent {
   final LaporanStatus? status;
   final UserRole? role;
   final String? userId;
+  final String? search;
+  final int start;
+  final int length;
+  final bool isLoadMore;
 
   const GetLaporanListEvent({
     this.status,
     this.role,
     this.userId,
+    this.search,
+    this.start = 1,
+    this.length = 10,
+    this.isLoadMore = false,
   });
 
   @override
-  List<Object?> get props => [status, role, userId];
+  List<Object?> get props => [status, role, userId, search, start, length, isLoadMore];
 }
 
 /// Get detail laporan kegiatan
@@ -66,16 +74,16 @@ class AcceptLaporanEvent extends LaporanKegiatanEvent {
 
 /// Request revisi
 class RequestRevisiEvent extends LaporanKegiatanEvent {
-  final String id;
+  final String idAttendance;
   final String note;
 
   const RequestRevisiEvent({
-    required this.id,
+    required this.idAttendance,
     required this.note,
   });
 
   @override
-  List<Object?> get props => [id, note];
+  List<Object?> get props => [idAttendance, note];
 }
 
 /// Mark as Tidak Masuk
@@ -86,4 +94,20 @@ class MarkAsTidakMasukEvent extends LaporanKegiatanEvent {
 
   @override
   List<Object?> get props => [id];
+}
+
+/// Verifikasi laporan menggunakan API Attendance/verif
+class VerifLaporanEvent extends LaporanKegiatanEvent {
+  final String idAttendance;
+  final bool isVerif;
+  final String? feedback;
+
+  const VerifLaporanEvent({
+    required this.idAttendance,
+    required this.isVerif,
+    this.feedback,
+  });
+
+  @override
+  List<Object?> get props => [idAttendance, isVerif, feedback];
 }

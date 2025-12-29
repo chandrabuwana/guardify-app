@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/panic_alert.dart';
+import '../../domain/entities/panic_button_history_item.dart';
 
 enum PanicButtonStateStatus {
   initial,
@@ -18,6 +19,25 @@ class PanicButtonState extends Equatable {
   final String? errorMessage;
   final bool showPanicDialog;
 
+  // History state
+  final List<PanicButtonHistoryItem> historyItems;
+  final bool isLoadingHistory;
+  final bool isLoadingMoreHistory;
+  final bool hasReachedMaxHistory;
+  final int currentPageHistory;
+  final int totalCountHistory;
+  final int filteredCountHistory;
+  final String? historyErrorMessage;
+  final String? searchQuery;
+
+  // Detail state
+  final PanicButtonHistoryItem? detailItem;
+  final bool isLoadingDetail;
+  final String? detailErrorMessage;
+  final bool isSubmittingVerification;
+  final bool submitVerificationSuccess;
+  final String? submitVerificationError;
+
   const PanicButtonState({
     this.status = PanicButtonStateStatus.initial,
     this.verificationItems = const [],
@@ -25,6 +45,21 @@ class PanicButtonState extends Equatable {
     this.panicAlert,
     this.errorMessage,
     this.showPanicDialog = false,
+    this.historyItems = const [],
+    this.isLoadingHistory = false,
+    this.isLoadingMoreHistory = false,
+    this.hasReachedMaxHistory = false,
+    this.currentPageHistory = 0,
+    this.totalCountHistory = 0,
+    this.filteredCountHistory = 0,
+    this.historyErrorMessage,
+    this.searchQuery,
+    this.detailItem,
+    this.isLoadingDetail = false,
+    this.detailErrorMessage,
+    this.isSubmittingVerification = false,
+    this.submitVerificationSuccess = false,
+    this.submitVerificationError,
   });
 
   bool get allVerified =>
@@ -38,6 +73,21 @@ class PanicButtonState extends Equatable {
     PanicAlert? panicAlert,
     String? errorMessage,
     bool? showPanicDialog,
+    List<PanicButtonHistoryItem>? historyItems,
+    bool? isLoadingHistory,
+    bool? isLoadingMoreHistory,
+    bool? hasReachedMaxHistory,
+    int? currentPageHistory,
+    int? totalCountHistory,
+    int? filteredCountHistory,
+    String? historyErrorMessage,
+    String? searchQuery,
+    PanicButtonHistoryItem? detailItem,
+    bool? isLoadingDetail,
+    String? detailErrorMessage,
+    bool? isSubmittingVerification,
+    bool? submitVerificationSuccess,
+    String? submitVerificationError,
   }) {
     return PanicButtonState(
       status: status ?? this.status,
@@ -46,6 +96,21 @@ class PanicButtonState extends Equatable {
       panicAlert: panicAlert ?? this.panicAlert,
       errorMessage: errorMessage ?? this.errorMessage,
       showPanicDialog: showPanicDialog ?? this.showPanicDialog,
+      historyItems: historyItems ?? this.historyItems,
+      isLoadingHistory: isLoadingHistory ?? this.isLoadingHistory,
+      isLoadingMoreHistory: isLoadingMoreHistory ?? this.isLoadingMoreHistory,
+      hasReachedMaxHistory: hasReachedMaxHistory ?? this.hasReachedMaxHistory,
+      currentPageHistory: currentPageHistory ?? this.currentPageHistory,
+      totalCountHistory: totalCountHistory ?? this.totalCountHistory,
+      filteredCountHistory: filteredCountHistory ?? this.filteredCountHistory,
+      historyErrorMessage: historyErrorMessage ?? this.historyErrorMessage,
+      searchQuery: searchQuery ?? this.searchQuery,
+      detailItem: detailItem ?? this.detailItem,
+      isLoadingDetail: isLoadingDetail ?? this.isLoadingDetail,
+      detailErrorMessage: detailErrorMessage ?? this.detailErrorMessage,
+      isSubmittingVerification: isSubmittingVerification ?? this.isSubmittingVerification,
+      submitVerificationSuccess: submitVerificationSuccess ?? this.submitVerificationSuccess,
+      submitVerificationError: submitVerificationError ?? this.submitVerificationError,
     );
   }
 
@@ -57,5 +122,20 @@ class PanicButtonState extends Equatable {
         panicAlert,
         errorMessage,
         showPanicDialog,
+        historyItems,
+        isLoadingHistory,
+        isLoadingMoreHistory,
+        hasReachedMaxHistory,
+        currentPageHistory,
+        totalCountHistory,
+        filteredCountHistory,
+        historyErrorMessage,
+        searchQuery,
+        detailItem,
+        isLoadingDetail,
+        detailErrorMessage,
+        isSubmittingVerification,
+        submitVerificationSuccess,
+        submitVerificationError,
       ];
 }

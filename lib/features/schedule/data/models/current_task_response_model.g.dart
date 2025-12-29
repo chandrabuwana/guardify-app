@@ -91,6 +91,9 @@ RouteTaskModel _$RouteTaskModelFromJson(Map<String, dynamic> json) =>
           filename: $checkedConvert('Filename', (v) => v as String?),
           fileUrl: $checkedConvert('FileUrl', (v) => v as String?),
           status: $checkedConvert('Status', (v) => v as String),
+          latitude: $checkedConvert('Latitude', (v) => (v as num?)?.toDouble()),
+          longitude:
+              $checkedConvert('Longitude', (v) => (v as num?)?.toDouble()),
         );
         return val;
       },
@@ -100,7 +103,9 @@ RouteTaskModel _$RouteTaskModelFromJson(Map<String, dynamic> json) =>
         'checkIn': 'CheckIn',
         'filename': 'Filename',
         'fileUrl': 'FileUrl',
-        'status': 'Status'
+        'status': 'Status',
+        'latitude': 'Latitude',
+        'longitude': 'Longitude'
       },
     );
 
@@ -112,6 +117,8 @@ Map<String, dynamic> _$RouteTaskModelToJson(RouteTaskModel instance) =>
       'Filename': instance.filename,
       'FileUrl': instance.fileUrl,
       'Status': instance.status,
+      'Latitude': instance.latitude,
+      'Longitude': instance.longitude,
     };
 
 CarryOverTaskModel _$CarryOverTaskModelFromJson(Map<String, dynamic> json) =>
@@ -133,6 +140,8 @@ CarryOverTaskModel _$CarryOverTaskModelFromJson(Map<String, dynamic> json) =>
           status: $checkedConvert('Status', (v) => v as String),
           updateBy: $checkedConvert('UpdateBy', (v) => v as String?),
           updateDate: $checkedConvert('UpdateDate', (v) => v as String?),
+          location: $checkedConvert('Location', (v) => v as String?),
+          file: $checkedConvert('File', (v) => v as String?),
         );
         return val;
       },
@@ -149,7 +158,9 @@ CarryOverTaskModel _$CarryOverTaskModelFromJson(Map<String, dynamic> json) =>
         'solverNote': 'SolverNote',
         'status': 'Status',
         'updateBy': 'UpdateBy',
-        'updateDate': 'UpdateDate'
+        'updateDate': 'UpdateDate',
+        'location': 'Location',
+        'file': 'File'
       },
     );
 
@@ -168,4 +179,6 @@ Map<String, dynamic> _$CarryOverTaskModelToJson(CarryOverTaskModel instance) =>
       'Status': instance.status,
       'UpdateBy': instance.updateBy,
       'UpdateDate': instance.updateDate,
+      'Location': instance.location,
+      'File': instance.file,
     };

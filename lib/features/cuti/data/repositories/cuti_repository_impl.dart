@@ -1,6 +1,7 @@
 import 'package:injectable/injectable.dart';
 import '../../domain/entities/cuti_entity.dart';
 import '../../domain/entities/cuti_kuota_entity.dart';
+import '../../domain/entities/leave_request_type_entity.dart';
 import '../../domain/repositories/cuti_repository.dart';
 import '../datasources/cuti_remote_datasource.dart';
 
@@ -57,6 +58,7 @@ class CutiRepositoryImpl implements CutiRepository {
     required String userId,
     required String nama,
     required CutiType tipeCuti,
+    required int leaveRequestTypeId,
     required DateTime tanggalMulai,
     required DateTime tanggalSelesai,
     required String alasan,
@@ -67,6 +69,7 @@ class CutiRepositoryImpl implements CutiRepository {
         userId: userId,
         nama: nama,
         tipeCuti: tipeCuti,
+        leaveRequestTypeId: leaveRequestTypeId,
         tanggalMulai: tanggalMulai,
         tanggalSelesai: tanggalSelesai,
         alasan: alasan,
@@ -137,16 +140,28 @@ class CutiRepositoryImpl implements CutiRepository {
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
     String? status,
+    String? tipeCuti,
   }) async {
     try {
       final result = await remoteDataSource.getRekapCuti(
         tanggalMulai: tanggalMulai,
         tanggalSelesai: tanggalSelesai,
         status: status,
+        tipeCuti: tipeCuti,
       );
       return result.map((model) => model.toEntity()).toList();
     } catch (e) {
       throw Exception('Failed to get rekap cuti: $e');
+    }
+  }
+
+  @override
+  Future<List<LeaveRequestTypeEntity>> getLeaveRequestTypeList() async {
+    try {
+      final result = await remoteDataSource.getLeaveRequestTypeList();
+      return result.map((model) => model.toEntity()).toList();
+    } catch (e) {
+      throw Exception('Failed to get leave request types: $e');
     }
   }
 }

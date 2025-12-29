@@ -16,6 +16,7 @@ class PatrolLoaded extends PatrolState {
   final bool hasMore;
   final int totalCount;
   final bool isLoadingMore;
+  final List<RouteTask>? listRoute; // Store ListRoute data from get_current_task
 
   const PatrolLoaded({
     required this.routes,
@@ -25,6 +26,7 @@ class PatrolLoaded extends PatrolState {
     this.hasMore = false,
     this.totalCount = 0,
     this.isLoadingMore = false,
+    this.listRoute,
   });
 
   PatrolLoaded copyWith({
@@ -35,6 +37,7 @@ class PatrolLoaded extends PatrolState {
     bool? hasMore,
     int? totalCount,
     bool? isLoadingMore,
+    List<RouteTask>? listRoute,
   }) {
     return PatrolLoaded(
       routes: routes ?? this.routes,
@@ -44,6 +47,7 @@ class PatrolLoaded extends PatrolState {
       hasMore: hasMore ?? this.hasMore,
       totalCount: totalCount ?? this.totalCount,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      listRoute: listRoute ?? this.listRoute,
     );
   }
 }

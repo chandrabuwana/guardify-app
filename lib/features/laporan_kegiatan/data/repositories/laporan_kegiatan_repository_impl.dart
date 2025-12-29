@@ -19,12 +19,18 @@ class LaporanKegiatanRepositoryImpl implements LaporanKegiatanRepository {
     LaporanStatus? status,
     UserRole? role,
     String? userId,
+    String? search,
+    int start = 1,
+    int length = 10,
   }) async {
     try {
       final result = await remoteDataSource.getLaporanList(
         status: status,
         role: role,
         userId: userId,
+        search: search,
+        start: start,
+        length: length,
       );
       return Right(result.map((model) => model.toEntity()).toList());
     } catch (e) {
@@ -70,7 +76,7 @@ class LaporanKegiatanRepositoryImpl implements LaporanKegiatanRepository {
       String id) async {
     return await updateStatusLaporan(
       id: id,
-      status: LaporanStatus.terverifikasi,
+      status: LaporanStatus.verified,
       reviewerId: 'current_user_id', // Should be passed from context
       reviewerName: 'Current User',
     );
@@ -83,7 +89,7 @@ class LaporanKegiatanRepositoryImpl implements LaporanKegiatanRepository {
   }) async {
     return await updateStatusLaporan(
       id: id,
-      status: LaporanStatus.revisi,
+      status: LaporanStatus.revision,
       reviewerId: 'current_user_id', // Should be passed from context
       reviewerName: 'Current User',
       umpanBalik: note,
@@ -105,5 +111,23 @@ class LaporanKegiatanRepositoryImpl implements LaporanKegiatanRepository {
   }) async {
     // For now, get all laporan; implement filtering logic based on hierarchy
     return await getLaporanList(status: status);
+  }
+
+  @override
+  Future<Either<Failure, bool>> verifLaporan({
+    required String idAttendance,
+    required bool isVerif,
+    String? feedback,
+  }) async {
+    try {
+      final result = await remoteDataSource.verifLaporan(
+        idAttendance: idAttendance,
+        isVerif: isVerif,
+        feedback: feedback,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure('Failed to verify laporan: $e'));
+    }
   }
 }

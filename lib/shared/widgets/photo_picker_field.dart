@@ -155,6 +155,126 @@ class _PhotoPickerFieldState extends State<PhotoPickerField> {
     widget.onPhotosChanged(updatedPhotos);
   }
 
+  void _showFullImage(BuildContext context, String imagePath, int index) {
+    final isLocalFile = !imagePath.startsWith('http://') && 
+                       !imagePath.startsWith('https://');
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: REdgeInsets.all(0),
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: isLocalFile
+                    ? Image.file(
+                        File(imagePath),
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            padding: REdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 64.sp,
+                                  color: Colors.white,
+                                ),
+                                16.verticalSpace,
+                                Text(
+                                  'Gagal memuat gambar',
+                                  style: TS.bodyMedium.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      )
+                    : Image.network(
+                        imagePath,
+                        fit: BoxFit.contain,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            padding: REdgeInsets.all(20),
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            padding: REdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 64.sp,
+                                  color: Colors.white,
+                                ),
+                                16.verticalSpace,
+                                Text(
+                                  'Gagal memuat gambar',
+                                  style: TS.bodyMedium.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ),
+            Positioned(
+              top: 40.h,
+              right: 20.w,
+              child: IconButton(
+                icon: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 32,
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+            if (widget.photos.length > 1)
+              Positioned(
+                bottom: 20.h,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${index + 1} / ${widget.photos.length}',
+                      style: TS.bodyMedium.copyWith(
+                        color: Colors.white,
+                        backgroundColor: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showPhotoOptions() {
     showModalBottomSheet(
       context: context,
@@ -220,31 +340,85 @@ class _PhotoPickerFieldState extends State<PhotoPickerField> {
               ),
               itemCount: widget.photos.length,
               itemBuilder: (context, index) {
+                final photoPath = widget.photos[index];
+                final isLocalFile = !photoPath.startsWith('http://') && 
+                                   !photoPath.startsWith('https://');
+                
                 return Stack(
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(color: Colors.grey.shade300),
-                        color: Colors.grey.shade200,
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.image,
-                              size: 24.sp,
-                              color: Colors.grey.shade600,
-                            ),
-                            4.verticalSpace,
-                            Text(
-                              'Foto ${index + 1}',
-                              style: TS.bodySmall.copyWith(
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
+                    GestureDetector(
+                      onTap: () => _showFullImage(context, photoPath, index),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(color: Colors.grey.shade300),
+                          color: Colors.grey.shade200,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8.r),
+                          child: isLocalFile
+                              ? Image.file(
+                                  File(photoPath),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.broken_image,
+                                            size: 24.sp,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                          4.verticalSpace,
+                                          Text(
+                                            'Gagal memuat',
+                                            style: TS.bodySmall.copyWith(
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Image.network(
+                                  photoPath,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                        strokeWidth: 2,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.broken_image,
+                                            size: 24.sp,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                          4.verticalSpace,
+                                          Text(
+                                            'Gagal memuat',
+                                            style: TS.bodySmall.copyWith(
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                         ),
                       ),
                     ),

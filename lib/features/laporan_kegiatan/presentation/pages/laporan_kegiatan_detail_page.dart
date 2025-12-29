@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/constants/enums.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
@@ -47,14 +48,20 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      appBar: AppBar(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        title: const Text('Detail Laporan Kegiatan'),
-        centerTitle: true,
-      ),
-      child: BlocConsumer<LaporanKegiatanBloc, LaporanKegiatanState>(
+    return WillPopScope(
+      onWillPop: () async {
+        // Return true to allow pop and trigger refresh in list page
+        return true;
+      },
+      child: AppScaffold(
+        enableScrolling: false,
+        appBar: AppBar(
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          title: const Text('Detail Laporan Kegiatan'),
+          centerTitle: true,
+        ),
+        child: BlocConsumer<LaporanKegiatanBloc, LaporanKegiatanState>(
         listener: (context, state) {
           if (state is LaporanUpdated) {
             // Show success dialog
@@ -96,7 +103,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
                       text: 'OK',
                       onPressed: () {
                         Navigator.of(context).pop(); // Close dialog
-                        Navigator.of(context).pop(); // Go back to list
+                        Navigator.of(context).pop(true); // Go back to list with refresh flag
                       },
                     ),
                   ],
@@ -121,11 +128,13 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           return const SizedBox();
         },
       ),
+      ),
     );
   }
 
   Widget _buildDetailContent(LaporanKegiatanEntity laporan) {
     return Column(
+      mainAxisSize: MainAxisSize.max,
       children: [
         Expanded(
           child: PageView(
@@ -147,6 +156,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
             padding: REdgeInsets.all(16),
             child: UIButton(
               text: 'Selanjutnya →',
+              fullWidth: true,
               onPressed: () {
                 _pageController.nextPage(
                   duration: const Duration(milliseconds: 300),
@@ -245,7 +255,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           // Pakaian Personil
           _buildFileCard(
             'Pakaian Personil',
-            laporan.fotoPakaianPersonil ?? 'Foto.jpg',
+            laporan.fotoPakaianPersonil,
           ),
           16.verticalSpace,
 
@@ -254,12 +264,10 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           16.verticalSpace,
 
           // Foto Pengamanan
-          _buildFileCard(
-            'Foto Pengamanan',
-            laporan.fotoPengamanan?.isNotEmpty == true
-                ? laporan.fotoPengamanan!.first
-                : 'Foto.jpg',
-          ),
+          if (laporan.fotoPengamanan != null && laporan.fotoPengamanan!.isNotEmpty)
+            _buildFotoPengamananCard(laporan.fotoPengamanan!)
+          else
+            _buildFileCard('Foto Pengamanan', null),
           16.verticalSpace,
 
           // Tugas Lanjutan
@@ -288,17 +296,30 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           // Pakaian Personil (selesai)
           _buildFileCard(
             'Pakaian Personil',
-            laporan.fotoPakaianPersonil ?? 'Foto.jpg',
+            laporan.fotoPakaianPersonil,
           ),
           16.verticalSpace,
 
-          // Patroli Section
-          if (laporan.routeName != null && laporan.checkpoints != null) ...[
-            PatrolTimelineWidget(
-              routeName: laporan.routeName!,
-              checkpoints: laporan.checkpoints!,
-              isDiperiksa: laporan.checkpoints!
-                  .every((cp) => cp.isDiperiksa && cp.buktiUrl != null),
+          // Patroli Section - ambil dari ListRoute
+          if (laporan.checkpoints != null && laporan.checkpoints!.isNotEmpty) ...[
+            Builder(
+              builder: (context) {
+                // Determine route name and status
+                String routeDisplayName = laporan.routeName ?? 'Patroli';
+                bool isDiperiksa = laporan.checkpoints!
+                    .every((cp) => cp.isDiperiksa && cp.buktiUrl != null);
+                
+                // Add status suffix if not fully checked
+                if (!isDiperiksa && !routeDisplayName.contains('Belum Selesai Diperiksa')) {
+                  routeDisplayName = '$routeDisplayName (Belum Selesai Diperiksa)';
+                }
+                
+                return PatrolTimelineWidget(
+                  routeName: routeDisplayName,
+                  checkpoints: laporan.checkpoints!,
+                  isDiperiksa: isDiperiksa,
+                );
+              },
             ),
             16.verticalSpace,
           ],
@@ -308,12 +329,10 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           16.verticalSpace,
 
           // Foto Pengamanan
-          _buildFileCard(
-            'Foto Pengamanan',
-            laporan.fotoPengamanan?.isNotEmpty == true
-                ? laporan.fotoPengamanan!.first
-                : 'Foto.jpg',
-          ),
+          if (laporan.fotoPengamanan != null && laporan.fotoPengamanan!.isNotEmpty)
+            _buildFotoPengamananCard(laporan.fotoPengamanan!)
+          else
+            _buildFileCard('Foto Pengamanan', null),
           16.verticalSpace,
 
           // Tugas Tertunda
@@ -338,7 +357,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           if (laporan.lembur)
             _buildFileCard(
               'Bukti Lembur',
-              laporan.fotoLembur ?? 'Foto.jpg',
+              laporan.fotoLembur,
             )
           else
             _buildInfoCard('Bukti Lembur', '-'),
@@ -363,7 +382,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
 
   Widget _buildActionButtons(LaporanKegiatanEntity laporan) {
     final canTakeAction = widget.userRole.isHighAccess &&
-        laporan.status == LaporanStatus.menungguVerifikasi;
+        laporan.status == LaporanStatus.waiting;
 
     return Container(
       padding: REdgeInsets.all(16),
@@ -468,7 +487,62 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
     );
   }
 
-  Widget _buildFileCard(String label, String fileName) {
+  /// Helper method to build full image URL from relative or absolute URL
+  String _buildImageUrl(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty || imageUrl == 'Foto.jpg') {
+      return '';
+    }
+    
+    // If already a full URL, return as is
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    
+    // Get base URL
+    String baseUrl = AppConstants.baseUrl;
+    
+    // Check if URL is just a filename (no slashes, but has file extension)
+    final hasFileExtension = imageUrl.toLowerCase().contains('.jpg') || 
+        imageUrl.toLowerCase().contains('.jpeg') || 
+        imageUrl.toLowerCase().contains('.png') || 
+        imageUrl.toLowerCase().contains('.gif') || 
+        imageUrl.toLowerCase().contains('.webp');
+    
+    // If URL is just a filename (contains extension but no slashes), 
+    // construct URL with file endpoint
+    if (!imageUrl.contains('/') && hasFileExtension) {
+      // Use /api/v1/file/{filename} endpoint
+      return '$baseUrl/file/$imageUrl';
+    }
+    
+    // If relative path, construct full URL using base URL
+    // Remove leading slash if present
+    final cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+    
+    // If path doesn't start with api/v1, add it
+    if (!cleanPath.startsWith('api/')) {
+      return '$baseUrl/$cleanPath';
+    }
+    
+    // If path already has api, use base URL without /api/v1
+    String fileBaseUrl = baseUrl;
+    if (fileBaseUrl.endsWith('/api/v1')) {
+      fileBaseUrl = fileBaseUrl.substring(0, fileBaseUrl.length - 7);
+    } else if (fileBaseUrl.endsWith('/api')) {
+      fileBaseUrl = fileBaseUrl.substring(0, fileBaseUrl.length - 4);
+    }
+    
+    // Construct full URL
+    return '$fileBaseUrl/$cleanPath';
+  }
+
+  Widget _buildFileCard(String label, String? imageUrl) {
+    // Build full image URL
+    final fullImageUrl = _buildImageUrl(imageUrl);
+    // Consider it valid if we have a URL (even if it might fail to load)
+    // This ensures we always try to show image instead of text
+    final isValidImage = fullImageUrl.isNotEmpty && imageUrl != null && imageUrl.isNotEmpty;
+    
     return Container(
       width: double.infinity,
       padding: REdgeInsets.all(16),
@@ -486,20 +560,461 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          4.verticalSpace,
-          GestureDetector(
-            onTap: () {
-              // Open image preview
-            },
-            child: Text(
-              fileName,
-              style: TS.bodyMedium.copyWith(
-                color: const Color(0xFF1E88E5),
-                decoration: TextDecoration.underline,
+          8.verticalSpace,
+          if (isValidImage)
+            GestureDetector(
+              onTap: () => _showFullImage(fullImageUrl),
+              child: Container(
+                width: double.infinity,
+                height: 200.h,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.grey.shade300),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8.r),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.network(
+                        fullImageUrl,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            color: Colors.grey[100],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                                strokeWidth: 2,
+                                color: primaryColor,
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          // Even if image fails to load, show the URL as clickable text
+                          // so user can still see what the URL is
+                          return GestureDetector(
+                            onTap: () => _showFullImage(fullImageUrl),
+                            child: Container(
+                              color: Colors.grey[100],
+                              padding: REdgeInsets.all(12),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.broken_image,
+                                    size: 48.sp,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  8.verticalSpace,
+                                  Text(
+                                    'Gagal memuat gambar',
+                                    style: TS.bodySmall.copyWith(
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  4.verticalSpace,
+                                  Text(
+                                    fullImageUrl,
+                                    style: TS.bodySmall.copyWith(
+                                      color: primaryColor,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      // Overlay untuk indikasi bisa diklik
+                      Positioned(
+                        bottom: 8.h,
+                        right: 8.w,
+                        child: Container(
+                          padding: REdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(6.r),
+                          ),
+                          child: Icon(
+                            Icons.zoom_in,
+                            color: Colors.white,
+                            size: 16.sp,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else
+            Container(
+              padding: REdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.image_outlined,
+                    size: 20.sp,
+                    color: Colors.grey.shade600,
+                  ),
+                  8.horizontalSpace,
+                  Expanded(
+                    child: Text(
+                      'Tidak ada gambar',
+                      style: TS.bodyMedium.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFotoPengamananCard(List<String> imageUrls) {
+    // Build full URLs for all images
+    final fullImageUrls = imageUrls.map((url) => _buildImageUrl(url)).where((url) => url.isNotEmpty).toList();
+    
+    return Container(
+      width: double.infinity,
+      padding: REdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Foto Pengamanan',
+            style: TS.bodySmall.copyWith(
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          8.verticalSpace,
+          if (fullImageUrls.isEmpty)
+            Container(
+              padding: REdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.image_outlined,
+                    size: 20.sp,
+                    color: Colors.grey.shade600,
+                  ),
+                  8.horizontalSpace,
+                  Text(
+                    'Tidak ada gambar',
+                    style: TS.bodyMedium.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              children: fullImageUrls.asMap().entries.map((entry) {
+                final index = entry.key;
+                final fullImageUrl = entry.value;
+                return GestureDetector(
+                  onTap: () => _showFullImage(fullImageUrl, index, fullImageUrls),
+                child: Container(
+                  width: 100.w,
+                  height: 100.w,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: Image.network(
+                      fullImageUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Icon(
+                            Icons.broken_image,
+                            size: 24.sp,
+                            color: Colors.grey.shade400,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showFullImage(String imageUrl, [int index = 0, List<String>? allImages]) {
+    int currentIndex = index;
+    final pageController = PageController(initialPage: index);
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: REdgeInsets.all(0),
+          child: Stack(
+            children: [
+              // Image viewer dengan swipe navigation jika ada multiple images
+              if (allImages != null && allImages.length > 1)
+                PageView.builder(
+                  controller: pageController,
+                  itemCount: allImages.length,
+                  onPageChanged: (newIndex) {
+                    setState(() {
+                      currentIndex = newIndex;
+                    });
+                  },
+                  itemBuilder: (context, pageIndex) {
+                    return Center(
+                      child: InteractiveViewer(
+                        minScale: 0.5,
+                        maxScale: 4.0,
+                        child: Image.network(
+                          allImages[pageIndex],
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              padding: REdgeInsets.all(20),
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                                color: Colors.white,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              padding: REdgeInsets.all(20),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.broken_image,
+                                    size: 64.sp,
+                                    color: Colors.white,
+                                  ),
+                                  16.verticalSpace,
+                                  Text(
+                                    'Gagal memuat gambar',
+                                    style: TS.bodyMedium.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                )
+              else
+                Center(
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          padding: REdgeInsets.all(20),
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                            color: Colors.white,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          padding: REdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.broken_image,
+                                size: 64.sp,
+                                color: Colors.white,
+                              ),
+                              16.verticalSpace,
+                              Text(
+                                'Gagal memuat gambar',
+                                style: TS.bodyMedium.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              // Close button
+              Positioned(
+                top: 40.h,
+                right: 20.w,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ),
+              // Image counter dan navigation arrows
+              if (allImages != null && allImages.length > 1) ...[
+                // Previous button
+                if (currentIndex > 0)
+                  Positioned(
+                    left: 20.w,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.chevron_left,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                          onPressed: () {
+                            pageController.previousPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                // Next button
+                if (currentIndex < allImages.length - 1)
+                  Positioned(
+                    right: 20.w,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.chevron_right,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                          onPressed: () {
+                            pageController.nextPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                // Image counter
+                Positioned(
+                  bottom: 30.h,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: REdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Text(
+                        '${currentIndex + 1} / ${allImages.length}',
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -575,6 +1090,9 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
   }
 
   void _showAcceptConfirmation(LaporanKegiatanEntity laporan) {
+    // Get bloc reference before showing dialog to avoid context issues
+    final laporanBloc = context.read<LaporanKegiatanBloc>();
+    
     ConfirmDialog.show(
       context: context,
       title: 'Konfirmasi',
@@ -585,59 +1103,75 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
       iconColor: primaryColor,
     ).then((confirmed) {
       if (confirmed == true) {
-        context.read<LaporanKegiatanBloc>().add(AcceptLaporanEvent(laporan.id));
+        // Gunakan API verifikasi Attendance/verif
+        laporanBloc.add(
+          VerifLaporanEvent(
+            idAttendance: laporan.id,
+            isVerif: true,
+          ),
+        );
       }
     });
   }
 
   void _showRevisiDialog(LaporanKegiatanEntity laporan) {
     final noteController = TextEditingController();
+    // Get bloc reference before showing dialog to avoid context issues
+    final laporanBloc = context.read<LaporanKegiatanBloc>();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        title: Text(
-          'Request Revisi',
-          style: TS.titleMedium.copyWith(fontWeight: FontWeight.bold),
-        ),
-        content: TextField(
-          controller: noteController,
-          decoration: InputDecoration(
-            hintText: 'Masukkan catatan revisi...',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
+      builder: (dialogContext) => BlocProvider.value(
+        value: laporanBloc,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          title: Text(
+            'Request Revisi',
+            style: TS.titleMedium.copyWith(fontWeight: FontWeight.bold),
+          ),
+          content: TextField(
+            controller: noteController,
+            decoration: InputDecoration(
+              hintText: 'Masukkan catatan revisi...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
             ),
+            maxLines: 4,
           ),
-          maxLines: 4,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text('Batal', style: TS.bodyMedium),
+            ),
+            UIButton(
+              text: 'Kirim',
+              onPressed: () {
+                if (noteController.text.isNotEmpty) {
+                  // Gunakan idAttendance untuk API verif, fallback ke id jika idAttendance null
+                  final idAttendance = laporan.idAttendance ?? laporan.id;
+                  laporanBloc.add(
+                    RequestRevisiEvent(
+                      idAttendance: idAttendance,
+                      note: noteController.text,
+                    ),
+                  );
+                  Navigator.of(dialogContext).pop();
+                }
+              },
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Batal', style: TS.bodyMedium),
-          ),
-          UIButton(
-            text: 'Kirim',
-            onPressed: () {
-              if (noteController.text.isNotEmpty) {
-                context.read<LaporanKegiatanBloc>().add(
-                      RequestRevisiEvent(
-                        id: laporan.id,
-                        note: noteController.text,
-                      ),
-                    );
-                Navigator.of(context).pop();
-              }
-            },
-          ),
-        ],
       ),
     );
   }
 
   void _showMarkAsTidakMasukDialog(LaporanKegiatanEntity laporan) {
+    // Get bloc reference before showing dialog to avoid context issues
+    final laporanBloc = context.read<LaporanKegiatanBloc>();
+    
     ConfirmDialog.show(
       context: context,
       title: 'Konfirmasi',
@@ -649,9 +1183,9 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
       isDestructive: true,
     ).then((confirmed) {
       if (confirmed == true) {
-        context.read<LaporanKegiatanBloc>().add(
-              MarkAsTidakMasukEvent(laporan.id),
-            );
+        laporanBloc.add(
+          MarkAsTidakMasukEvent(laporan.id),
+        );
       }
     });
   }
@@ -659,9 +1193,8 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
   void _openWhatsApp(LaporanKegiatanEntity laporan) {
     // TODO: Add url_launcher package to pubspec.yaml
     // Format: https://wa.me/PHONENUMBER?text=MESSAGE
-    final phoneNumber = '6281234567890'; // Replace with actual phone number
-    final message = 'Halo, saya ingin membahas laporan kegiatan untuk ${laporan.namaPersonil}';
-    final url = 'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}';
+    // final phoneNumber = '6281234567890'; // Replace with actual phone number
+    // final message = 'Halo, saya ingin membahas laporan kegiatan untuk ${laporan.namaPersonil}';
 
     // For now, show a message that WhatsApp integration will be available after API integration
     ScaffoldMessenger.of(context).showSnackBar(
@@ -672,6 +1205,9 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
     );
 
     // Uncomment when url_launcher is added:
+    // final phoneNumber = '6281234567890';
+    // final message = 'Halo, saya ingin membahas laporan kegiatan untuk ${laporan.namaPersonil}';
+    // final url = 'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}';
     // if (await canLaunchUrl(Uri.parse(url))) {
     //   await launchUrl(Uri.parse(url));
     // } else {
