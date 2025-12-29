@@ -6,6 +6,8 @@ import '../models/cuti_model.dart';
 import '../models/cuti_kuota_model.dart';
 import '../models/leave_request_response_model.dart';
 import '../models/leave_request_filter_model.dart';
+import '../models/create_leave_request_model.dart';
+import '../models/leave_request_type_model.dart';
 import 'cuti_remote_datasource.dart';
 import '../../domain/entities/cuti_entity.dart';
 
@@ -61,19 +63,54 @@ class CutiRemoteDataSourceImpl implements CutiRemoteDataSource {
   @override
   Future<CutiKuotaModel> getCutiKuota(String userId) async {
     try {
-      // TODO: Implement real API call when endpoint is available
-      // For now, return mock data
-      await Future.delayed(const Duration(milliseconds: 500));
+      print('🔍 Fetching leave quota for user: $userId');
 
-      return CutiKuotaModel(
+      // Get current year
+      final currentYear = DateTime.now().year;
+
+      // Build request body
+      final requestBody = {
+        'UserId': userId,
+        'Year': currentYear,
+      };
+
+      print('📤 Request body: $requestBody');
+
+      // Call API
+      final response = await networkManager.post(
+        '/LeaveRequest/get_detail_employee',
+        data: requestBody,
+      );
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response data: ${response.data}');
+
+      // Parse response
+      final code = response.data['Code'] as int?;
+      final succeeded = response.data['Succeeded'] as bool?;
+      final message = response.data['Message'] as String?;
+      final data = response.data['Data'] as Map<String, dynamic>?;
+
+      if (succeeded != true || code != 200 || data == null) {
+        throw Exception(message ?? 'Failed to get kuota cuti');
+      }
+
+      // Extract quota data
+      final quota = data['Quota'] as int? ?? 0;
+      final remaining = data['Remaining'] as int? ?? 0;
+      final used = quota - remaining;
+
+      print('✅ Quota loaded: Total=$quota, Used=$used, Remaining=$remaining');
+
+      // Convert to CutiKuotaModel
+      return CutiKuotaModel.fromApiResponse(
         userId: userId,
-        totalKuotaPerTahun: 12,
-        kuotaTerpakai: 3,
-        kuotaSisa: 9,
-        tahun: DateTime.now().year,
-        lastUpdated: DateTime.now(),
+        quota: quota,
+        remaining: remaining,
+        year: currentYear,
       );
     } catch (e) {
+      print('❌ Error fetching leave quota: $e');
       throw Exception('Failed to get kuota cuti: $e');
     }
   }
@@ -86,15 +123,19 @@ class CutiRemoteDataSourceImpl implements CutiRemoteDataSource {
     DateTime? tanggalSelesai,
   }) async {
     try {
-      print('🔍 Fetching all leave requests for anggota');
+      print('🔍 Fetching leave requests for bawahan');
 
-      // Get all leave requests (no user filter)
-      final requestBody = const LeaveRequestFilterModel(
-        filter: [],
-        sort: SortModel(field: '', type: 0),
-        start: 0,
-        length: 0,
-      );
+      // Get userId atasan (current user) from secure storage
+      final atasanUserId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
+      
+      if (atasanUserId.isEmpty) {
+        throw Exception('User ID not found');
+      }
+
+      print('👤 Atasan UserId: $atasanUserId');
+
+      // Use filter "bawahan" with atasan userId
+      final requestBody = LeaveRequestFilterModel.byBawahan(atasanUserId);
 
       print('📤 Request body: ${requestBody.toJson()}');
 
@@ -160,6 +201,7 @@ class CutiRemoteDataSourceImpl implements CutiRemoteDataSource {
     required String userId,
     required String nama,
     required CutiType tipeCuti,
+    required int leaveRequestTypeId,
     required DateTime tanggalMulai,
     required DateTime tanggalSelesai,
     required String alasan,
@@ -167,66 +209,39 @@ class CutiRemoteDataSourceImpl implements CutiRemoteDataSource {
   }) async {
     try {
       print('📝 Creating leave request for user: $userId');
+      print('📝 Using LeaveRequestType ID: $leaveRequestTypeId');
 
-      // Map CutiType to IdLeaveRequestType
-      int idLeaveRequestType;
-      switch (tipeCuti) {
-        case CutiType.tahunan:
-          idLeaveRequestType = 1;
-          break;
-        case CutiType.sakit:
-          idLeaveRequestType = 2;
-          break;
-        case CutiType.melahirkan:
-          idLeaveRequestType = 3;
-          break;
-        case CutiType.menikah:
-          idLeaveRequestType = 4;
-          break;
-        case CutiType.keluargaMeninggal:
-          idLeaveRequestType = 5;
-          break;
-        case CutiType.lainnya:
-          idLeaveRequestType = 6;
-          break;
-      }
+      // Build request body sesuai dengan API spec
+      // Use ID from API instead of hardcoded mapping
+      final requestBody = CreateLeaveRequestModel.create(
+        startDate: tanggalMulai,
+        endDate: tanggalSelesai,
+        idLeaveRequestType: leaveRequestTypeId,
+        notes: alasan,
+        userId: userId,
+        approveDate: DateTime.now(), // ApproveDate menggunakan timestamp saat ini
+        notesApproval: '-',
+        status: '-',
+        approveBy: '-',
+      );
 
-      // Get NIP from secure storage (fallback to empty string if not available)
-      final nip = await SecurityManager.readSecurely('user_nip') ?? '';
-
-      // Format dates without timezone (remove 'Z' suffix)
-      final startDateStr = tanggalMulai.toIso8601String().replaceAll('Z', '');
-      final endDateStr = tanggalSelesai.toIso8601String().replaceAll('Z', '');
-
-      // Build request body
-      final requestBody = {
-        'StartDate': startDateStr,
-        'EndDate': endDateStr,
-        'Fullname': nama,
-        'IdLeaveRequestType': idLeaveRequestType,
-        'Nip': nip.isNotEmpty ? nip : '0000000000', // Provide default if empty
-        'Notes': alasan,
-        'NotesApproval': alasan, // Same as Notes (required field)
-        'UserId': userId,
-      };
-
-      print('📤 Request body: $requestBody');
+      print('📤 Request body: ${requestBody.toJson()}');
 
       final response = await networkManager.post(
         '/LeaveRequest/add',
-        data: requestBody,
+        data: requestBody.toJson(),
       );
 
       print('📥 Response status: ${response.statusCode}');
       print('📥 Response data: ${response.data}');
 
       // Parse response
-      final code = response.data['Code'] as int;
-      final succeeded = response.data['Succeeded'] as bool;
-      final message = response.data['Message'] as String;
+      final code = response.data['Code'] as int?;
+      final succeeded = response.data['Succeeded'] as bool?;
+      final message = response.data['Message'] as String?;
 
-      if (!succeeded || code != 200) {
-        throw Exception(message);
+      if (succeeded != true || code != 200) {
+        throw Exception(message ?? 'Failed to create leave request');
       }
 
       print('✅ Leave request created successfully');
@@ -262,11 +277,46 @@ class CutiRemoteDataSourceImpl implements CutiRemoteDataSource {
     String? umpanBalik,
   }) async {
     try {
-      // TODO: Implement real API call when endpoint is available
-      await Future.delayed(const Duration(milliseconds: 600));
+      print('📝 Updating leave request status for ID: $cutiId');
+      print('📝 Status: $status');
+      print('📝 Notes: $umpanBalik');
 
-      throw Exception('Update status cuti not implemented yet');
+      // Determine IsApproved based on status
+      final isApproved = status == CutiStatus.approved;
+
+      // Build request body sesuai dengan format API
+      final requestBody = {
+        'Id': cutiId,
+        'IsApproved': isApproved,
+        'Notes': umpanBalik ?? '',
+      };
+
+      print('📤 Request body: $requestBody');
+
+      // Call API endpoint untuk approve/reject
+      final response = await networkManager.post(
+        '/LeaveRequest/approve',
+        data: requestBody,
+      );
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response data: ${response.data}');
+
+      // Parse response sesuai format yang diberikan
+      final code = response.data['Code'] as int?;
+      final succeeded = response.data['Succeeded'] as bool?;
+      final message = response.data['Message'] as String?;
+
+      if (succeeded != true || code != 200) {
+        throw Exception(message ?? 'Failed to update status cuti');
+      }
+
+      print('✅ Leave request status updated successfully');
+
+      // Reload detail cuti untuk mendapatkan data terbaru
+      return await getDetailCuti(cutiId);
     } catch (e) {
+      print('❌ Error updating leave request status: $e');
       throw Exception('Failed to update status cuti: $e');
     }
   }
@@ -292,34 +342,26 @@ class CutiRemoteDataSourceImpl implements CutiRemoteDataSource {
     try {
       print('🔍 Fetching detail for leave request ID: $cutiId');
 
-      // Since there's no specific detail endpoint yet, we fetch from list and find by ID
-      // Request body to fetch all leave requests (no filter)
-      final requestBody = LeaveRequestFilterModel(
-        filter: [], // Empty filter to get all
-        sort: SortModel(field: '', type: 0),
-        start: 0,
-        length: 0, // 0 means get all
-      );
-
-      final response = await networkManager.post(
-        '/LeaveRequest/list',
-        data: requestBody.toJson(),
+      // Call GET endpoint for leave request detail
+      final response = await networkManager.get(
+        '/LeaveRequest/get/$cutiId',
       );
 
       print('📥 Response status: ${response.statusCode}');
+      print('📥 Response data: ${response.data}');
 
-      final leaveResponse = LeaveRequestResponseModel.fromJson(response.data);
+      // Parse response
+      final code = response.data['Code'] as int?;
+      final succeeded = response.data['Succeeded'] as bool?;
+      final message = response.data['Message'] as String?;
+      final data = response.data['Data'] as Map<String, dynamic>?;
 
-      if (!leaveResponse.succeeded) {
-        throw Exception(leaveResponse.message);
+      if (succeeded != true || code != 200 || data == null) {
+        throw Exception(message ?? 'Failed to get detail cuti');
       }
 
-      // Find the specific leave request by ID
-      final leaveItem = leaveResponse.list.firstWhere(
-        (item) => item.id == cutiId,
-        orElse: () =>
-            throw Exception('Leave request with ID $cutiId not found'),
-      );
+      // Parse leave request item from data
+      final leaveItem = LeaveRequestItemModel.fromJson(data);
 
       print(
           '✅ Found leave request detail: ${leaveItem.leaveRequestType?.name ?? 'Unknown'}');
@@ -337,11 +379,111 @@ class CutiRemoteDataSourceImpl implements CutiRemoteDataSource {
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
     String? status,
+    String? tipeCuti,
   }) async {
-    return await getDaftarCutiAnggota(
-      status: status,
-      tanggalMulai: tanggalMulai,
-      tanggalSelesai: tanggalSelesai,
-    );
+    try {
+      print('🔍 Fetching rekap cuti without filter');
+
+      // Use filter without any field filter (empty filter)
+      final requestBody = LeaveRequestFilterModel.withoutFilter();
+
+      print('📤 Request body: ${requestBody.toJson()}');
+
+      final response = await networkManager.post(
+        '/LeaveRequest/list',
+        data: requestBody.toJson(),
+      );
+
+      print('📥 Response status: ${response.statusCode}');
+
+      final leaveResponse = LeaveRequestResponseModel.fromJson(response.data);
+
+      if (!leaveResponse.succeeded) {
+        throw Exception(leaveResponse.message);
+      }
+
+      print('✅ Found ${leaveResponse.list.length} leave requests');
+
+      // Convert to CutiModel
+      var cutiList = leaveResponse.list
+          .map((item) => CutiModel.fromEntity(item.toEntity()))
+          .toList();
+
+      // Apply filters if provided (client-side filtering)
+      if (status != null) {
+        cutiList = cutiList
+            .where((cuti) => cuti.status.toString().split('.').last == status)
+            .toList();
+      }
+
+      if (tipeCuti != null) {
+        cutiList = cutiList
+            .where(
+                (cuti) => cuti.tipeCuti.toString().split('.').last == tipeCuti)
+            .toList();
+      }
+
+      if (tanggalMulai != null) {
+        cutiList = cutiList
+            .where((cuti) =>
+                cuti.tanggalMulai.isAfter(tanggalMulai) ||
+                cuti.tanggalMulai.isAtSameMomentAs(tanggalMulai))
+            .toList();
+      }
+
+      if (tanggalSelesai != null) {
+        cutiList = cutiList
+            .where((cuti) =>
+                cuti.tanggalSelesai.isBefore(tanggalSelesai) ||
+                cuti.tanggalSelesai.isAtSameMomentAs(tanggalSelesai))
+            .toList();
+      }
+
+      return cutiList;
+    } catch (e) {
+      print('❌ Error fetching rekap cuti: $e');
+      throw Exception('Failed to get rekap cuti: $e');
+    }
+  }
+
+  @override
+  Future<List<LeaveRequestTypeModel>> getLeaveRequestTypeList() async {
+    try {
+      print('🔍 Fetching leave request types');
+
+      // Build request body
+      final requestBody = LeaveRequestTypeListRequestModel.create();
+      print('📤 Request body: ${requestBody.toJson()}');
+
+      // Call API
+      final response = await networkManager.post(
+        '/LeaveRequestType/list',
+        data: requestBody.toJson(),
+      );
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response data: ${response.data}');
+
+      // Parse response
+      final leaveRequestTypeResponse =
+          LeaveRequestTypeListResponseModel.fromJson(response.data);
+
+      if (!leaveRequestTypeResponse.succeeded ||
+          leaveRequestTypeResponse.code != 200) {
+        throw Exception(leaveRequestTypeResponse.message);
+      }
+
+      print('✅ Found ${leaveRequestTypeResponse.list.length} leave request types');
+
+      // Filter only active types (default to true if null)
+      final activeTypes = leaveRequestTypeResponse.list
+          .where((type) => type.active ?? true)
+          .toList();
+
+      return activeTypes;
+    } catch (e) {
+      print('❌ Error fetching leave request types: $e');
+      throw Exception('Failed to get leave request types: $e');
+    }
   }
 }

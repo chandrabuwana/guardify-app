@@ -1,5 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/cuti_entity.dart';
+import 'leave_request_type_model.dart' show LeaveRequestTypeModel;
 
 part 'leave_request_response_model.g.dart';
 
@@ -91,6 +92,15 @@ class LeaveRequestItemModel {
   @JsonKey(name: 'User')
   final UserLeaveModel? user;
 
+  @JsonKey(name: 'Status')
+  final String? status;
+
+  @JsonKey(name: 'ApproveBy')
+  final String? approveBy;
+
+  @JsonKey(name: 'ApproveDate')
+  final String? approveDate;
+
   const LeaveRequestItemModel({
     required this.id,
     this.createBy,
@@ -107,6 +117,9 @@ class LeaveRequestItemModel {
     this.updateDate,
     required this.userId,
     this.user,
+    this.status,
+    this.approveBy,
+    this.approveDate,
   });
 
   factory LeaveRequestItemModel.fromJson(Map<String, dynamic> json) =>
@@ -116,14 +129,25 @@ class LeaveRequestItemModel {
 
   /// Convert to CutiEntity
   CutiEntity toEntity() {
-    // Parse status dari approval notes
-    CutiStatus status;
-    if (notesApproval != null && notesApproval!.isNotEmpty) {
-      // Jika ada notes approval, berarti sudah direview
-      // TODO: Add proper status field from API
-      status = CutiStatus.approved;
+    // Parse status dari field Status atau approval notes
+    CutiStatus cutiStatus;
+    if (status != null && status!.isNotEmpty) {
+      // Parse status dari API response
+      final statusLower = status!.toLowerCase();
+      if (statusLower.contains('approved') || statusLower.contains('disetujui')) {
+        cutiStatus = CutiStatus.approved;
+      } else if (statusLower.contains('rejected') || statusLower.contains('ditolak')) {
+        cutiStatus = CutiStatus.rejected;
+      } else if (statusLower.contains('cancelled') || statusLower.contains('dibatalkan')) {
+        cutiStatus = CutiStatus.cancelled;
+      } else {
+        cutiStatus = CutiStatus.pending;
+      }
+    } else if (notesApproval != null && notesApproval!.isNotEmpty) {
+      // Fallback: Jika ada notes approval, berarti sudah direview
+      cutiStatus = CutiStatus.approved;
     } else {
-      status = CutiStatus.pending;
+      cutiStatus = CutiStatus.pending;
     }
 
     // Parse tipe cuti dari LeaveRequestType
@@ -177,6 +201,18 @@ class LeaveRequestItemModel {
     // Get nama dari user atau fullname
     String nama = user?.fullname ?? fullname ?? 'Unknown';
 
+    // Parse tanggal review dari ApproveDate atau UpdateDate
+    DateTime? tanggalReview;
+    try {
+      if (approveDate != null && approveDate!.isNotEmpty) {
+        tanggalReview = DateTime.parse(approveDate!);
+      } else if (updateDate != null && updateDate!.isNotEmpty) {
+        tanggalReview = DateTime.parse(updateDate!);
+      }
+    } catch (e) {
+      tanggalReview = null;
+    }
+
     return CutiEntity(
       id: id,
       nama: nama,
@@ -185,59 +221,15 @@ class LeaveRequestItemModel {
       tanggalMulai: tanggalMulai,
       tanggalSelesai: tanggalSelesai,
       alasan: notes ?? '',
-      status: status,
+      status: cutiStatus,
       umpanBalik: notesApproval,
-      reviewerId: updateBy,
+      reviewerId: approveBy ?? updateBy,
       reviewerName: null, // Not available in API response
       tanggalPengajuan: tanggalPengajuan,
-      tanggalReview: updateDate != null ? DateTime.parse(updateDate!) : null,
+      tanggalReview: tanggalReview,
       jumlahHari: jumlahHari,
     );
   }
-}
-
-/// Model untuk tipe leave request
-@JsonSerializable()
-class LeaveRequestTypeModel {
-  @JsonKey(name: 'Id')
-  final int id;
-
-  @JsonKey(name: 'Active')
-  final bool? active;
-
-  @JsonKey(name: 'CreateBy')
-  final String? createBy;
-
-  @JsonKey(name: 'CreateDate')
-  final String? createDate;
-
-  @JsonKey(name: 'Description')
-  final String? description;
-
-  @JsonKey(name: 'Name')
-  final String? name;
-
-  @JsonKey(name: 'UpdateBy')
-  final String? updateBy;
-
-  @JsonKey(name: 'UpdateDate')
-  final String? updateDate;
-
-  const LeaveRequestTypeModel({
-    required this.id,
-    this.active,
-    this.createBy,
-    this.createDate,
-    this.description,
-    this.name,
-    this.updateBy,
-    this.updateDate,
-  });
-
-  factory LeaveRequestTypeModel.fromJson(Map<String, dynamic> json) =>
-      _$LeaveRequestTypeModelFromJson(json);
-
-  Map<String, dynamic> toJson() => _$LeaveRequestTypeModelToJson(this);
 }
 
 /// Model untuk user dalam leave request

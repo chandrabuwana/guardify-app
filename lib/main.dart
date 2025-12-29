@@ -13,6 +13,7 @@ import 'features/panic_button/presentation/pages/panic_disaster_selection_page.d
 import 'features/panic_button/presentation/pages/panic_incident_form_page.dart';
 import 'features/panic_button/presentation/pages/panic_security_form_page.dart';
 import 'features/panic_button/presentation/pages/panic_confirmation_page.dart';
+import 'features/panic_button/presentation/pages/panic_button_history_page.dart';
 import 'features/panic_button/presentation/bloc/panic_button_bloc.dart';
 import 'features/bmi/presentation/pages/bmi_navigation_page.dart';
 import 'features/profile/presentation/pages/profile_screen.dart';
@@ -21,6 +22,8 @@ import 'features/cuti/presentation/pages/form_ajuan_cuti_page.dart';
 import 'features/cuti/presentation/pages/detail_cuti_page.dart';
 import 'features/laporan_kegiatan/presentation/pages/laporan_kegiatan_page.dart';
 import 'features/laporan_kegiatan/presentation/bloc/laporan_kegiatan_bloc.dart';
+import 'features/laporan_kejadian/presentation/pages/incident_list_page.dart';
+import 'features/laporan_kejadian/presentation/bloc/incident_bloc.dart';
 import 'features/chat/presentation/pages/chat_list_page.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/news/presentation/pages/news_list_page.dart';
@@ -108,6 +111,10 @@ class GuardifyApp extends StatelessWidget {
                   create: (context) => getIt<PanicButtonBloc>(),
                   child: const PanicConfirmationPage(),
                 ),
+            '/panic-button-history': (context) => BlocProvider(
+                  create: (context) => getIt<PanicButtonBloc>(),
+                  child: const PanicButtonHistoryPage(),
+                ),
             '/profile': (context) {
               // Get user ID from arguments or secure storage
               final arguments = ModalRoute.of(context)?.settings.arguments
@@ -138,9 +145,8 @@ class GuardifyApp extends StatelessWidget {
                   final roleId = snapshot.data ?? 'AGT';
                   final userRole = UserRole.fromValue(roleId);
 
-                  // Check if user has access (only danton, pjo, deputy, pengawas)
-                  final allowedRoles = ['DTN', 'PJO', 'DPT', 'PGW'];
-                  if (!allowedRoles.contains(roleId)) {
+                  // Check if user has access (semua role selain anggota)
+                  if (userRole == UserRole.anggota) {
                     return Scaffold(
                       appBar: AppBar(
                         title: const Text('Akses Ditolak'),
@@ -253,6 +259,10 @@ class GuardifyApp extends StatelessWidget {
                 ),
               );
             },
+            '/laporan-kejadian': (context) => BlocProvider(
+                  create: (context) => getIt<IncidentBloc>(),
+                  child: const IncidentListPage(),
+                ),
           },
           initialRoute: '/',
         );

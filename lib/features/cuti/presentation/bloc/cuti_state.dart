@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/cuti_entity.dart';
 import '../../domain/entities/cuti_kuota_entity.dart';
+import '../../domain/entities/leave_request_type_entity.dart';
 
 abstract class CutiState extends Equatable {
   const CutiState();
@@ -136,4 +137,14 @@ class CutiMultipleDataLoaded extends CutiState {
       rekapCuti: rekapCuti ?? this.rekapCuti,
     );
   }
+}
+
+// Leave Request Type List Loaded State
+class LeaveRequestTypeListLoaded extends CutiState {
+  final List<LeaveRequestTypeEntity> leaveRequestTypes;
+
+  const LeaveRequestTypeListLoaded(this.leaveRequestTypes);
+
+  @override
+  List<Object> get props => [leaveRequestTypes];
 }

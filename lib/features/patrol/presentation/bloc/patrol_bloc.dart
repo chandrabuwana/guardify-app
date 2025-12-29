@@ -8,6 +8,8 @@ import '../../domain/usecases/get_patrol_routes_paginated.dart';
 import '../../domain/usecases/get_patrol_progress.dart';
 import '../../domain/usecases/add_patrol_location.dart';
 import '../../domain/repositories/patrol_repository.dart';
+import '../../../schedule/domain/repositories/schedule_repository.dart';
+import '../../data/mappers/route_task_mapper.dart';
 
 part 'patrol_event.dart';
 part 'patrol_state.dart';
@@ -182,10 +184,71 @@ class PatrolBloc extends Bloc<PatrolEvent, PatrolState> {
       (addedLocation) {
         print(
             '[PatrolBloc] Location added successfully: ${addedLocation.name}');
+        
+        // Get current state to preserve listRoute
+        final currentState = state;
+        
+        if (currentState is PatrolLoaded) {
+          // Find existing route and add the new location to it
+          final existingRoute = currentState.routes
+              .where((route) => route.id == event.routeId)
+              .firstOrNull;
+          
+          if (existingRoute != null) {
+            // Add new location to existing route (as additional location)
+            final updatedAdditionalLocations = List<PatrolLocation>.from(existingRoute.additionalLocations)
+              ..add(addedLocation);
+            
+            final updatedRoute = existingRoute.copyWith(
+              additionalLocations: updatedAdditionalLocations,
+            );
+            
+            // Update routes list
+            final updatedRoutes = currentState.routes.map((route) {
+              if (route.id == event.routeId) {
+                return updatedRoute;
+              }
+              return route;
+            }).toList();
+            
+            // Emit updated state with new location, preserving listRoute
+            emit(PatrolLoaded(
+              routes: updatedRoutes,
+              selectedRoute: updatedRoute,
+              currentPage: currentState.currentPage,
+              hasMore: currentState.hasMore,
+              totalCount: updatedRoutes.length,
+              isLoadingMore: currentState.isLoadingMore,
+              listRoute: currentState.listRoute, // Preserve listRoute - NO API CALL
+            ));
+            
+            print('[PatrolBloc] Route updated with new location, no API call needed');
+            return;
+          }
+        }
+        
+        // Fallback: If we can't update directly (shouldn't happen in normal flow)
+        // Get listRoute before emitting new state
+        List<RouteTask>? listRoute;
+        PatrolRoute? existingRoute;
+        
+        if (currentState is PatrolLoaded) {
+          listRoute = currentState.listRoute;
+          existingRoute = currentState.routes
+              .where((route) => route.id == event.routeId)
+              .firstOrNull;
+        }
+        
         // Emit success state
         emit(PatrolLocationAdded(event.routeId));
-        // Reload patrol routes and then select the route
-        add(ReloadAndSelectRoute(event.routeId));
+        // Reload patrol routes with listRoute preserved (but this should use listRoute, not API)
+        if (listRoute != null) {
+          // Use LoadAreasByRouteId directly with listRoute to avoid API call
+          add(LoadAreasByRouteId(event.routeId, existingRoute, listRoute));
+        } else {
+          // Only reload if listRoute is not available (shouldn't happen)
+          add(ReloadAndSelectRoute(event.routeId));
+        }
       },
     );
   }
@@ -195,10 +258,34 @@ class PatrolBloc extends Bloc<PatrolEvent, PatrolState> {
     Emitter<PatrolState> emit,
   ) async {
     print(
-        '[PatrolBloc] ReloadAndSelectRoute - Load areas from /Areas/list for route: ${event.routeId}');
+        '[PatrolBloc] ReloadAndSelectRoute - Reloading areas for route: ${event.routeId}');
 
-    // Use LoadAreasByRouteId instead
-    add(LoadAreasByRouteId(event.routeId));
+    // Get listRoute from current state if available
+    // Need to check previous state because current state might be PatrolLocationAdded
+    List<RouteTask>? listRoute;
+    PatrolRoute? existingRoute;
+    
+    // Try to get from current state
+    final currentState = state;
+    if (currentState is PatrolLoaded) {
+      listRoute = currentState.listRoute;
+      // Find existing route
+      existingRoute = currentState.routes
+          .where((route) => route.id == event.routeId)
+          .firstOrNull;
+    } else {
+      // If current state is not PatrolLoaded, try to get from history
+      // This can happen if state changed to PatrolLocationAdded
+      // We need to preserve listRoute, so we'll get it from the last PatrolLoaded state
+      // For now, we'll check if we can get it from a stored reference
+      // Actually, better approach: don't reload if we just added a location
+      // The location should already be added to the route in _onAddPatrolLocation
+      print('[PatrolBloc] Current state is not PatrolLoaded, skipping reload to avoid API call');
+      return;
+    }
+
+    // Use LoadAreasByRouteId with listRoute from state
+    add(LoadAreasByRouteId(event.routeId, existingRoute, listRoute));
   }
 
   Future<void> _onLoadAreasByRouteId(
@@ -210,66 +297,97 @@ class PatrolBloc extends Bloc<PatrolEvent, PatrolState> {
     // Emit loading state
     emit(PatrolLoading());
 
-    // Load areas from /Areas/list using routeId (which is actually IdAreas)
-    final areasResult = await patrolRepository.getAreasByIdAreas(event.routeId);
+    List<PatrolLocation> locations;
 
-    areasResult.fold(
-      (failure) {
-        print('[PatrolBloc] Error loading areas: ${failure.message}');
-        emit(PatrolError(failure.message));
-      },
-      (locations) {
-        print('[PatrolBloc] Successfully loaded ${locations.length} areas');
-        
-        // Use existing route if provided, otherwise create new one
-        final baseRoute = event.existingRoute;
-        final updatedRoute = baseRoute != null
-            ? baseRoute.copyWith(locations: locations)
-            : PatrolRoute(
-                id: event.routeId,
-                name: 'Patroli',
-                description: '${locations.length} Lokasi',
-                locations: locations,
-                additionalLocations: const [],
-                date: DateTime.now(),
-              );
+    // If ListRoute data is provided, use it instead of calling API
+    if (event.listRoute != null && event.listRoute!.isNotEmpty) {
+      print('[PatrolBloc] Using ListRoute data from get_current_task (${event.listRoute!.length} routes)');
+      
+      // Convert RouteTask list to PatrolLocation list
+      locations = RouteTaskMapper.toPatrolLocations(event.listRoute!);
+      
+      print('[PatrolBloc] Successfully converted ${locations.length} locations from ListRoute');
+    } else {
+      // Fallback to API call if ListRoute data is not provided
+      print('[PatrolBloc] ListRoute data not provided, calling API...');
+      
+      final areasResult = await patrolRepository.getAreasByIdAreas(event.routeId);
+      
+      return areasResult.fold(
+        (failure) {
+          print('[PatrolBloc] Error loading areas: ${failure.message}');
+          emit(PatrolError(failure.message));
+        },
+        (apiLocations) {
+          locations = apiLocations;
+          _emitPatrolLoadedState(emit, event, locations);
+        },
+      );
+    }
 
-        // Check if we have existing state
-        final currentState = state;
-        if (currentState is PatrolLoaded) {
-          // Update existing routes list
-          final updatedRoutes = currentState.routes.map((route) {
-            if (route.id == event.routeId) {
-              return updatedRoute;
-            }
-            return route;
-          }).toList();
+    // Emit loaded state with locations
+    _emitPatrolLoadedState(emit, event, locations);
+  }
 
-          // If route not in list, add it
-          if (!updatedRoutes.any((r) => r.id == event.routeId)) {
-            updatedRoutes.add(updatedRoute);
-          }
+  void _emitPatrolLoadedState(
+    Emitter<PatrolState> emit,
+    LoadAreasByRouteId event,
+    List<PatrolLocation> locations,
+  ) {
+    print('[PatrolBloc] Successfully loaded ${locations.length} locations');
+    
+    // Use existing route if provided, otherwise create new one
+    final baseRoute = event.existingRoute;
+    final updatedRoute = baseRoute != null
+        ? baseRoute.copyWith(locations: locations)
+        : PatrolRoute(
+            id: event.routeId,
+            name: 'Patroli',
+            description: '${locations.length} Lokasi',
+            locations: locations,
+            additionalLocations: const [],
+            date: DateTime.now(),
+          );
 
-          emit(PatrolLoaded(
-            routes: updatedRoutes,
-            selectedRoute: updatedRoute,
-            currentPage: currentState.currentPage,
-            hasMore: currentState.hasMore,
-            totalCount: updatedRoutes.length,
-            isLoadingMore: currentState.isLoadingMore,
-          ));
-        } else {
-          // No existing state, create new loaded state
-          emit(PatrolLoaded(
-            routes: [updatedRoute],
-            selectedRoute: updatedRoute,
-            currentPage: 1,
-            hasMore: false,
-            totalCount: 1,
-          ));
+    // Check if we have existing state
+    final currentState = state;
+    if (currentState is PatrolLoaded) {
+      // Update existing routes list
+      final updatedRoutes = currentState.routes.map((route) {
+        if (route.id == event.routeId) {
+          return updatedRoute;
         }
-      },
-    );
+        return route;
+      }).toList();
+
+      // If route not in list, add it
+      if (!updatedRoutes.any((r) => r.id == event.routeId)) {
+        updatedRoutes.add(updatedRoute);
+      }
+
+      // Preserve listRoute from current state or use from event
+      final preservedListRoute = event.listRoute ?? currentState.listRoute;
+
+      emit(PatrolLoaded(
+        routes: updatedRoutes,
+        selectedRoute: updatedRoute,
+        currentPage: currentState.currentPage,
+        hasMore: currentState.hasMore,
+        totalCount: updatedRoutes.length,
+        isLoadingMore: currentState.isLoadingMore,
+        listRoute: preservedListRoute, // Preserve listRoute
+      ));
+    } else {
+      // No existing state, create new loaded state
+      emit(PatrolLoaded(
+        routes: [updatedRoute],
+        selectedRoute: updatedRoute,
+        currentPage: 1,
+        hasMore: false,
+        totalCount: 1,
+        listRoute: event.listRoute, // Store listRoute from event
+      ));
+    }
   }
 
   void _onLoadPatrolRoutesFromData(

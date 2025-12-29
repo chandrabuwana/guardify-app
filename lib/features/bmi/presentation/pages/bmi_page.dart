@@ -20,12 +20,30 @@ class BMIPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<BMIBloc>(
-      create: (context) => getIt<BMIBloc>(),
-      child: userRole.isAnggota
-          ? _BMIDetailWrapper(userId: userId, userRole: userRole)
-          : BMIListPage(currentUserRole: userRole),
-    );
+    // Cek apakah bloc sudah ada di context (dari BMINavigationPage)
+    try {
+      final existingBloc = context.read<BMIBloc>();
+      // Jika bloc sudah ada, gunakan BlocProvider.value untuk menghindari membuat bloc baru
+      return BlocProvider.value(
+        value: existingBloc,
+        child: userRole.isAnggota
+            ? _BMIDetailWrapper(userId: userId, userRole: userRole)
+            : BMIListPage(currentUserRole: userRole),
+      );
+    } catch (e) {
+      // Jika bloc belum ada (seharusnya tidak terjadi), buat baru
+      print('⚠️ BMIPage: Bloc not found in context, creating new instance');
+      return BlocProvider<BMIBloc>(
+        key: const ValueKey('bmi_bloc_provider'),
+        create: (context) {
+          print('🔄 BMIPage: Creating new BMIBloc instance (fallback)');
+          return getIt<BMIBloc>();
+        },
+        child: userRole.isAnggota
+            ? _BMIDetailWrapper(userId: userId, userRole: userRole)
+            : BMIListPage(currentUserRole: userRole),
+      );
+    }
   }
 }
 
@@ -44,16 +62,40 @@ class _BMIDetailWrapper extends StatefulWidget {
 }
 
 class _BMIDetailWrapperState extends State<_BMIDetailWrapper> {
+  bool _hasInitialLoad = false; // Flag untuk mencegah multiple initial loads
+
   @override
   void initState() {
     super.initState();
+    print('🔄 _BMIDetailWrapper: initState called for userId=${widget.userId}');
     // Load user profile hanya sekali saat pertama kali dibuat
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
+      if (_hasInitialLoad) {
+        print('⏭️ _BMIDetailWrapper: Skip - _hasInitialLoad=true');
+        return; // Skip jika sudah pernah load
+      }
+      
       final bloc = context.read<BMIBloc>();
       final state = bloc.state;
-      // Hanya load jika belum ada data dan tidak sedang loading
-      if (state.currentUserProfile == null && !state.isLoading) {
+      
+      // Skip jika sudah ada data user yang sama
+      if (state.currentUserProfile?.id == widget.userId) {
+        print('⏭️ _BMIDetailWrapper: Skip - already has profile for user ${widget.userId}');
+        _hasInitialLoad = true;
+        return;
+      }
+      
+      // Hanya load jika belum ada data, user berbeda, dan tidak sedang loading
+      if ((state.currentUserProfile == null || 
+           state.currentUserProfile?.id != widget.userId) && 
+          !state.isLoading) {
+        print('🔄 _BMIDetailWrapper: Loading user profile for ${widget.userId}');
+        _hasInitialLoad = true;
         bloc.add(BMIGetUserProfile(widget.userId));
+      } else {
+        print('⏭️ _BMIDetailWrapper: Skip - conditions not met (isLoading=${state.isLoading})');
       }
     });
   }

@@ -1,5 +1,6 @@
 import '../entities/cuti_entity.dart';
 import '../entities/cuti_kuota_entity.dart';
+import '../entities/leave_request_type_entity.dart';
 
 abstract class CutiRepository {
   /// Get kuota cuti untuk user tertentu
@@ -21,6 +22,7 @@ abstract class CutiRepository {
     required String userId,
     required String nama,
     required CutiType tipeCuti,
+    required int leaveRequestTypeId, // ID dari API
     required DateTime tanggalMulai,
     required DateTime tanggalSelesai,
     required String alasan,
@@ -53,5 +55,9 @@ abstract class CutiRepository {
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
     String? status,
+    String? tipeCuti,
   });
+
+  /// Get list of leave request types
+  Future<List<LeaveRequestTypeEntity>> getLeaveRequestTypeList();
 }

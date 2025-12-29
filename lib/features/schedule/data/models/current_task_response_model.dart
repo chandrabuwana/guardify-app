@@ -75,6 +75,12 @@ class RouteTaskModel {
   @JsonKey(name: 'Status')
   final String status; // "BELUM" or other status
 
+  @JsonKey(name: 'Latitude')
+  final double? latitude;
+
+  @JsonKey(name: 'Longitude')
+  final double? longitude;
+
   RouteTaskModel({
     required this.idAreas,
     required this.areasName,
@@ -82,6 +88,8 @@ class RouteTaskModel {
     this.filename,
     this.fileUrl,
     required this.status,
+    this.latitude,
+    this.longitude,
   });
 
   factory RouteTaskModel.fromJson(Map<String, dynamic> json) =>
@@ -132,6 +140,12 @@ class CarryOverTaskModel {
   @JsonKey(name: 'UpdateDate')
   final String? updateDate;
 
+  @JsonKey(name: 'Location')
+  final String? location;
+
+  @JsonKey(name: 'File')
+  final String? file;
+
   CarryOverTaskModel({
     required this.id,
     required this.createBy,
@@ -146,6 +160,8 @@ class CarryOverTaskModel {
     required this.status,
     this.updateBy,
     this.updateDate,
+    this.location,
+    this.file,
   });
 
   factory CarryOverTaskModel.fromJson(Map<String, dynamic> json) =>

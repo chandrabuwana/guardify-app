@@ -53,4 +53,32 @@ class CutiKuotaModel extends CutiKuotaEntity {
       lastUpdated: lastUpdated,
     );
   }
+
+  /// Factory method to create CutiKuotaModel from API response
+  /// API response format:
+  /// {
+  ///   "Data": {
+  ///     "Quota": 12,
+  ///     "Remaining": 12
+  ///   },
+  ///   "Code": 200,
+  ///   "Succeeded": true,
+  ///   "Message": "All OK"
+  /// }
+  factory CutiKuotaModel.fromApiResponse({
+    required String userId,
+    required int quota,
+    required int remaining,
+    required int year,
+  }) {
+    final used = quota - remaining;
+    return CutiKuotaModel(
+      userId: userId,
+      totalKuotaPerTahun: quota,
+      kuotaTerpakai: used,
+      kuotaSisa: remaining,
+      tahun: year,
+      lastUpdated: DateTime.now(),
+    );
+  }
 }

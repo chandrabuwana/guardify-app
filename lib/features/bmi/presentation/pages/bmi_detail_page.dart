@@ -23,6 +23,7 @@ class BMIDetailPage extends StatefulWidget {
 
 class _BMIDetailPageState extends State<BMIDetailPage> {
   BMIBloc get _bmiBloc => context.read<BMIBloc>();
+  bool _hasInitialLoad = false; // Flag untuk mencegah multiple initial loads
 
   @override
   void initState() {
@@ -31,17 +32,67 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
   }
 
   void _loadBMIHistory() {
-    // Load user profile dengan data BMI dan history
+    // Load user profile dengan data BMI dan history hanya sekali
+    if (_hasInitialLoad) {
+      print('⏭️ BMIDetailPage: Skip _loadBMIHistory - _hasInitialLoad=true');
+      return; // Skip jika sudah pernah load
+    }
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final state = _bmiBloc.state;
-      // Load user profile dengan data BMI (dari Bmi/list API)
-      if (state.currentUserProfile?.id != widget.userProfile.id || 
-          widget.userProfile.currentBMI == null) {
-        _bmiBloc.add(BMIGetUserProfile(widget.userProfile.id));
+      if (!mounted) return;
+      
+      if (_hasInitialLoad) {
+        print('⏭️ BMIDetailPage: Skip _loadBMIHistory - _hasInitialLoad=true (double check)');
+        return; // Double check
       }
-      // Load BMI history
-      if (state.bmiHistory.isEmpty || state.bmiHistoryUserId != widget.userProfile.id) {
-        _bmiBloc.add(BMILoadHistory(widget.userProfile.id));
+      
+      final state = _bmiBloc.state;
+      bool shouldLoadProfile = false;
+      bool shouldLoadHistory = false;
+      
+      // Load user profile dengan data BMI (dari Bmi/list API)
+      // Hanya load jika user berbeda atau belum ada BMI data dan tidak sedang loading
+      // DAN belum ada profile untuk user ini di state
+      if (state.currentUserProfile?.id != widget.userProfile.id) {
+        // User berbeda atau belum ada profile
+        if (!state.isLoading) {
+          shouldLoadProfile = true;
+        } else {
+          print('⏭️ BMIDetailPage: Skip load profile - already loading');
+        }
+      } else {
+        // Sudah ada profile untuk user ini
+        print('⏭️ BMIDetailPage: Skip load profile - already has profile for user ${widget.userProfile.id}');
+      }
+      
+      // Load BMI history hanya jika belum pernah load untuk user ini
+      // Check: bmiHistoryUserId harus null atau berbeda dengan userProfile.id
+      if (state.bmiHistoryUserId != widget.userProfile.id) {
+        // Belum pernah load history untuk user ini
+        if (!state.isLoading) {
+          shouldLoadHistory = true;
+          print('🔄 BMIDetailPage: Will load history - history not loaded for user ${widget.userProfile.id}');
+        } else {
+          print('⏭️ BMIDetailPage: Skip load history - already loading');
+        }
+      } else {
+        // Sudah pernah load history untuk user ini (meskipun kosong)
+        print('⏭️ BMIDetailPage: Skip load history - already loaded history for user ${widget.userProfile.id} (${state.bmiHistory.length} records, bmiHistoryUserId=${state.bmiHistoryUserId})');
+      }
+      
+      if (shouldLoadProfile || shouldLoadHistory) {
+        _hasInitialLoad = true;
+        if (shouldLoadProfile) {
+          print('🔄 BMIDetailPage: Loading user profile for ${widget.userProfile.id}');
+          _bmiBloc.add(BMIGetUserProfile(widget.userProfile.id));
+        }
+        if (shouldLoadHistory) {
+          print('🔄 BMIDetailPage: Loading BMI history for ${widget.userProfile.id}');
+          _bmiBloc.add(BMILoadHistory(widget.userProfile.id));
+        }
+      } else {
+        print('⏭️ BMIDetailPage: Skip all loads - no need to load');
+        _hasInitialLoad = true; // Set flag meskipun tidak load untuk mencegah retry
       }
     });
   }
@@ -416,25 +467,58 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
 
             40.verticalSpace,
 
-            // Icon and Message
+            // Icon and Message dengan desain lebih menarik
             Container(
-              padding: REdgeInsets.all(24),
+              width: 160.w,
+              height: 160.w,
               decoration: BoxDecoration(
-                color: white,
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFFFFF5F5),
+                    const Color(0xFFFFF9F9),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: neutral50.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 5),
-                    spreadRadius: 2,
+                    color: const Color(0xFFB71C1C).withOpacity(0.15),
+                    blurRadius: 25,
+                    offset: const Offset(0, 8),
+                    spreadRadius: 3,
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFFB71C1C).withOpacity(0.05),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
+                    spreadRadius: 1,
                   ),
                 ],
               ),
-              child: Icon(
-                Icons.scale_outlined,
-                size: 80.w,
-                color: const Color(0xFFB71C1C).withOpacity(0.6),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Outer circle decoration
+                  Container(
+                    width: 140.w,
+                    height: 140.w,
+                    decoration: BoxDecoration(
+                      color: white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFB71C1C).withOpacity(0.2),
+                        width: 2.5,
+                      ),
+                    ),
+                  ),
+                  // Icon
+                  Icon(
+                    Icons.scale_outlined,
+                    size: 85.w,
+                    color: const Color(0xFFB71C1C).withOpacity(0.75),
+                  ),
+                ],
               ),
             ),
 
@@ -445,30 +529,16 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
               style: TS.headlineSmall.copyWith(
                 color: neutral90,
                 fontWeight: FontWeight.bold,
-                fontSize: 24.sp,
+                fontSize: 26.sp,
+                letterSpacing: 0.5,
               ),
               textAlign: TextAlign.center,
             ),
 
-            16.verticalSpace,
+            20.verticalSpace,
 
-            Padding(
-              padding: REdgeInsets.symmetric(horizontal: 32),
-              child: Text(
-                'Data Body Mass Index untuk user ini belum tersedia. Silakan hitung BMI terlebih dahulu untuk melihat status kesehatan.',
-                style: TS.bodyLarge.copyWith(
-                  color: neutral70,
-                  height: 1.6,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-
-            40.verticalSpace,
-
-            // Info Card
+            // Description dengan card style yang lebih menarik
             Container(
-              width: double.infinity,
               margin: REdgeInsets.symmetric(horizontal: 24),
               padding: REdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -487,51 +557,123 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFB71C1C).withOpacity(0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    color: const Color(0xFFB71C1C).withOpacity(0.08),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
                     spreadRadius: 0,
                   ),
                 ],
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  Container(
-                    padding: REdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFB71C1C).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Icon(
-                      Icons.info_outline,
-                      color: const Color(0xFFB71C1C),
-                      size: 24.w,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline,
+                        size: 22.w,
+                        color: const Color(0xFFB71C1C).withOpacity(0.8),
+                      ),
+                      10.horizontalSpace,
+                      Text(
+                        'Panduan',
+                        style: TS.titleMedium.copyWith(
+                          color: const Color(0xFF2C5F7C),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16.sp,
+                        ),
+                      ),
+                    ],
                   ),
-                  16.horizontalSpace,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Informasi',
-                          style: TS.titleMedium.copyWith(
-                            color: const Color(0xFF2C5F7C),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16.sp,
-                          ),
-                        ),
-                        8.verticalSpace,
-                        Text(
-                          'BMI (Body Mass Index) adalah indikator untuk menilai status gizi seseorang berdasarkan berat dan tinggi badan.',
-                          style: TS.bodyMedium.copyWith(
-                            color: const Color(0xFFB71C1C),
-                            height: 1.5,
-                            fontSize: 13.sp,
-                          ),
-                        ),
-                      ],
+                  16.verticalSpace,
+                  Text(
+                    'Data Body Mass Index untuk user ini belum tersedia. Silakan hitung BMI terlebih dahulu untuk melihat status kesehatan dan mendapatkan rekomendasi yang tepat.',
+                    style: TS.bodyLarge.copyWith(
+                      color: const Color(0xFFB71C1C),
+                      height: 1.7,
+                      fontSize: 14.sp,
                     ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+
+            40.verticalSpace,
+
+            // Info Card dengan desain lebih menarik
+            Container(
+              width: double.infinity,
+              margin: REdgeInsets.symmetric(horizontal: 24),
+              padding: REdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFFFFF5F5),
+                    const Color(0xFFFFF9F9),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(
+                  color: const Color(0xFFB71C1C).withOpacity(0.2),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFB71C1C).withOpacity(0.08),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                    spreadRadius: 0,
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: REdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFB71C1C).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFB71C1C).withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                              spreadRadius: 0,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.info_outline,
+                          color: const Color(0xFFB71C1C),
+                          size: 26.w,
+                        ),
+                      ),
+                      12.horizontalSpace,
+                      Text(
+                        'Informasi BMI',
+                        style: TS.titleMedium.copyWith(
+                          color: const Color(0xFF2C5F7C),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                  20.verticalSpace,
+                  Text(
+                    'BMI (Body Mass Index) adalah indikator untuk menilai status gizi seseorang berdasarkan berat dan tinggi badan. Nilai BMI membantu menentukan apakah seseorang memiliki berat badan normal, kurang, berlebih, atau obesitas.',
+                    style: TS.bodyMedium.copyWith(
+                      color: const Color(0xFFB71C1C),
+                      height: 1.7,
+                      fontSize: 14.sp,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),

@@ -15,10 +15,16 @@ import 'package:guardify_app/core/network/network_manager.dart' as _i39;
 import 'package:guardify_app/core/services/location_service.dart' as _i856;
 import 'package:guardify_app/features/attendance/data/datasources/attendance_local_data_source.dart'
     as _i1007;
+import 'package:guardify_app/features/attendance/data/datasources/attendance_rekap_remote_data_source.dart'
+    as _i247;
 import 'package:guardify_app/features/attendance/data/datasources/attendance_remote_data_source.dart'
     as _i109;
+import 'package:guardify_app/features/attendance/data/repositories/attendance_rekap_repository_impl.dart'
+    as _i14;
 import 'package:guardify_app/features/attendance/data/repositories/attendance_repository_impl.dart'
     as _i289;
+import 'package:guardify_app/features/attendance/domain/repositories/attendance_rekap_repository.dart'
+    as _i798;
 import 'package:guardify_app/features/attendance/domain/repositories/attendance_repository.dart'
     as _i311;
 import 'package:guardify_app/features/attendance/domain/usecases/check_attendance_status_usecase.dart'
@@ -29,14 +35,24 @@ import 'package:guardify_app/features/attendance/domain/usecases/check_out_useca
     as _i968;
 import 'package:guardify_app/features/attendance/domain/usecases/get_attendance_history_usecase.dart'
     as _i624;
+import 'package:guardify_app/features/attendance/domain/usecases/get_attendance_rekap_detail_usecase.dart'
+    as _i833;
+import 'package:guardify_app/features/attendance/domain/usecases/get_attendance_rekap_usecase.dart'
+    as _i687;
 import 'package:guardify_app/features/attendance/domain/usecases/get_attendance_status_usecase.dart'
     as _i385;
 import 'package:guardify_app/features/attendance/domain/usecases/submit_attendance_usecase.dart'
     as _i974;
+import 'package:guardify_app/features/attendance/domain/usecases/update_attendance_rekap_usecase.dart'
+    as _i27;
 import 'package:guardify_app/features/attendance/domain/usecases/validate_attendance_usecase.dart'
     as _i601;
 import 'package:guardify_app/features/attendance/presentation/bloc/attendance_bloc.dart'
     as _i908;
+import 'package:guardify_app/features/attendance/presentation/bloc/attendance_rekap_bloc.dart'
+    as _i682;
+import 'package:guardify_app/features/attendance/presentation/bloc/attendance_rekap_detail_bloc.dart'
+    as _i451;
 import 'package:guardify_app/features/auth/data/datasources/auth_remote_data_source.dart'
     as _i650;
 import 'package:guardify_app/features/auth/domain/repositories/auth_repository.dart'
@@ -111,6 +127,8 @@ import 'package:guardify_app/features/cuti/domain/usecases/get_daftar_cuti_saya.
     as _i1023;
 import 'package:guardify_app/features/cuti/domain/usecases/get_detail_cuti.dart'
     as _i505;
+import 'package:guardify_app/features/cuti/domain/usecases/get_leave_request_type_list.dart'
+    as _i479;
 import 'package:guardify_app/features/cuti/domain/usecases/get_rekap_cuti.dart'
     as _i515;
 import 'package:guardify_app/features/cuti/domain/usecases/update_status_cuti.dart'
@@ -131,8 +149,34 @@ import 'package:guardify_app/features/laporan_kegiatan/domain/usecases/get_lapor
     as _i970;
 import 'package:guardify_app/features/laporan_kegiatan/domain/usecases/update_status_laporan.dart'
     as _i189;
+import 'package:guardify_app/features/laporan_kegiatan/domain/usecases/verif_laporan.dart'
+    as _i353;
 import 'package:guardify_app/features/laporan_kegiatan/presentation/bloc/laporan_kegiatan_bloc.dart'
     as _i945;
+import 'package:guardify_app/features/laporan_kejadian/data/datasources/incident_remote_datasource.dart'
+    as _i650;
+import 'package:guardify_app/features/laporan_kejadian/data/datasources/incident_remote_datasource_impl.dart'
+    as _i561;
+import 'package:guardify_app/features/laporan_kejadian/data/repositories/incident_repository_impl.dart'
+    as _i40;
+import 'package:guardify_app/features/laporan_kejadian/domain/repositories/incident_repository.dart'
+    as _i97;
+import 'package:guardify_app/features/laporan_kejadian/domain/usecases/create_incident_report.dart'
+    as _i864;
+import 'package:guardify_app/features/laporan_kejadian/domain/usecases/get_incident_detail.dart'
+    as _i1070;
+import 'package:guardify_app/features/laporan_kejadian/domain/usecases/get_incident_list.dart'
+    as _i813;
+import 'package:guardify_app/features/laporan_kejadian/domain/usecases/get_incident_locations.dart'
+    as _i645;
+import 'package:guardify_app/features/laporan_kejadian/domain/usecases/get_incident_types.dart'
+    as _i296;
+import 'package:guardify_app/features/laporan_kejadian/domain/usecases/get_my_tasks.dart'
+    as _i754;
+import 'package:guardify_app/features/laporan_kejadian/domain/usecases/update_incident_status.dart'
+    as _i350;
+import 'package:guardify_app/features/laporan_kejadian/presentation/bloc/incident_bloc.dart'
+    as _i643;
 import 'package:guardify_app/features/news/data/datasources/news_remote_datasource.dart'
     as _i606;
 import 'package:guardify_app/features/news/data/datasources/news_remote_datasource_impl.dart'
@@ -145,8 +189,8 @@ import 'package:guardify_app/features/news/presentation/bloc/news_bloc.dart'
     as _i505;
 import 'package:guardify_app/features/panic_button/data/datasources/panic_button_datasource.dart'
     as _i460;
-import 'package:guardify_app/features/panic_button/data/datasources/panic_button_local_datasource.dart'
-    as _i754;
+import 'package:guardify_app/features/panic_button/data/datasources/panic_button_remote_data_source_impl.dart'
+    as _i1001;
 import 'package:guardify_app/features/panic_button/data/repositories/panic_button_repository_impl.dart'
     as _i908;
 import 'package:guardify_app/features/panic_button/domain/repositories/panic_button_repository.dart'
@@ -306,24 +350,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i856.LocationService>(() => _i856.LocationService());
     gh.lazySingleton<_i220.ProfileRemoteDataSource>(
         () => _i1020.ProfileRemoteDataSourceImpl(gh<_i361.Dio>()));
-    gh.lazySingleton<_i460.PanicButtonDataSource>(
-        () => _i754.PanicButtonLocalDataSource());
     gh.lazySingleton<_i415.ShiftRemoteDataSource>(
         () => _i415.ShiftRemoteDataSourceImpl(gh<_i361.Dio>()));
-    gh.lazySingleton<_i228.PanicButtonRepository>(() =>
-        _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
     gh.lazySingleton<_i606.NewsRemoteDataSource>(
         () => _i116.NewsRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i783.CutiRemoteDataSource>(
         () => _i222.CutiRemoteDataSourceImpl(gh<_i39.NetworkManager>()));
     gh.factory<_i1037.PatrolRemoteDataSource>(
         () => _i681.PatrolRemoteDataSourceImpl(gh<_i361.Dio>()));
-    gh.factory<_i491.ActivatePanicButtonUseCase>(() =>
-        _i491.ActivatePanicButtonUseCase(gh<_i228.PanicButtonRepository>()));
-    gh.factory<_i4.GetVerificationItemsUseCase>(() =>
-        _i4.GetVerificationItemsUseCase(gh<_i228.PanicButtonRepository>()));
-    gh.lazySingleton<_i590.LaporanKegiatanRemoteDataSource>(
-        () => _i590.LaporanKegiatanRemoteDataSourceImpl());
     gh.lazySingleton<_i650.AuthRemoteDataSource>(
         () => injectionModule.authRemoteDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i163.BmiRemoteDataSource>(
@@ -332,6 +366,10 @@ extension GetItInjectableX on _i174.GetIt {
         () => injectionModule.testResultApiDataSource(gh<_i361.Dio>()));
     gh.lazySingleton<_i599.PersonnelRemoteDataSource>(
         () => _i599.PersonnelRemoteDataSource(gh<_i361.Dio>()));
+    gh.factory<_i460.PanicButtonDataSource>(
+        () => _i1001.PanicButtonRemoteDataSourceImpl(gh<_i361.Dio>()));
+    gh.lazySingleton<_i650.IncidentRemoteDataSource>(
+        () => _i561.IncidentRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i176.TugasLanjutanRemoteDataSource>(
         () => _i176.TugasLanjutanRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i563.ScheduleRemoteDataSource>(
@@ -342,11 +380,15 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i313.ChatBloc>(
         () => injectionModule.chatBloc(gh<_i523.ChatRepository>()));
+    gh.lazySingleton<_i247.AttendanceRekapRemoteDataSource>(
+        () => _i247.AttendanceRekapRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.lazySingleton<_i125.DocumentRemoteDataSource>(
         () => _i125.DocumentRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.lazySingleton<_i652.TestResultRemoteDataSource>(() =>
         _i652.TestResultRemoteDataSourceImpl(
             gh<_i836.TestResultApiDataSource>()));
+    gh.lazySingleton<_i97.IncidentRepository>(() =>
+        _i40.IncidentRepositoryImpl(gh<_i650.IncidentRemoteDataSource>()));
     gh.factory<_i826.BMILocalDataSource>(
         () => _i826.BMILocalDataSource(gh<_i460.SharedPreferences>()));
     gh.lazySingleton<_i825.CutiRepository>(() => _i591.CutiRepositoryImpl(
@@ -358,28 +400,46 @@ extension GetItInjectableX on _i174.GetIt {
             remoteDataSource: gh<_i599.PersonnelRemoteDataSource>()));
     gh.lazySingleton<_i895.ProfileLocalDataSource>(
         () => _i895.ProfileLocalDataSourceImpl(gh<_i460.SharedPreferences>()));
+    gh.lazySingleton<_i590.LaporanKegiatanRemoteDataSource>(
+        () => _i590.LaporanKegiatanRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
     gh.lazySingleton<_i54.NewsRepository>(
         () => _i203.NewsRepositoryImpl(gh<_i606.NewsRemoteDataSource>()));
     gh.lazySingleton<_i352.LaporanKegiatanRepository>(() =>
         _i713.LaporanKegiatanRepositoryImpl(
             remoteDataSource: gh<_i590.LaporanKegiatanRemoteDataSource>()));
-    gh.factory<_i893.PanicButtonBloc>(() => _i893.PanicButtonBloc(
-          activatePanicButtonUseCase: gh<_i491.ActivatePanicButtonUseCase>(),
-          getVerificationItemsUseCase: gh<_i4.GetVerificationItemsUseCase>(),
-        ));
     gh.lazySingleton<_i313.DocumentLocalDataSource>(() =>
         _i313.DocumentLocalDataSourceImpl(
             sharedPreferences: gh<_i460.SharedPreferences>()));
     gh.lazySingleton<_i1007.AttendanceLocalDataSource>(() =>
         _i1007.AttendanceLocalDataSourceImpl(
             sharedPreferences: gh<_i460.SharedPreferences>()));
+    gh.factory<_i864.CreateIncidentReport>(
+        () => _i864.CreateIncidentReport(gh<_i97.IncidentRepository>()));
+    gh.factory<_i1070.GetIncidentDetail>(
+        () => _i1070.GetIncidentDetail(gh<_i97.IncidentRepository>()));
+    gh.factory<_i813.GetIncidentList>(
+        () => _i813.GetIncidentList(gh<_i97.IncidentRepository>()));
+    gh.factory<_i645.GetIncidentLocations>(
+        () => _i645.GetIncidentLocations(gh<_i97.IncidentRepository>()));
+    gh.factory<_i296.GetIncidentTypes>(
+        () => _i296.GetIncidentTypes(gh<_i97.IncidentRepository>()));
+    gh.factory<_i754.GetMyTasks>(
+        () => _i754.GetMyTasks(gh<_i97.IncidentRepository>()));
+    gh.factory<_i350.UpdateIncidentStatus>(
+        () => _i350.UpdateIncidentStatus(gh<_i97.IncidentRepository>()));
     gh.lazySingleton<_i144.AuthRepository>(
         () => injectionModule.authRepository(gh<_i650.AuthRemoteDataSource>()));
     gh.lazySingleton<_i551.LoginRepository>(() =>
         injectionModule.loginRepository(gh<_i650.AuthRemoteDataSource>()));
+    gh.lazySingleton<_i228.PanicButtonRepository>(() =>
+        _i908.PanicButtonRepositoryImpl(gh<_i460.PanicButtonDataSource>()));
     gh.lazySingleton<_i752.ScheduleRepository>(() =>
         _i343.ScheduleRepositoryImpl(
             remoteDataSource: gh<_i563.ScheduleRemoteDataSource>()));
+    gh.factory<_i491.ActivatePanicButtonUseCase>(() =>
+        _i491.ActivatePanicButtonUseCase(gh<_i228.PanicButtonRepository>()));
+    gh.factory<_i4.GetVerificationItemsUseCase>(() =>
+        _i4.GetVerificationItemsUseCase(gh<_i228.PanicButtonRepository>()));
     gh.factory<_i505.NewsBloc>(
         () => injectionModule.newsBloc(gh<_i54.NewsRepository>()));
     gh.lazySingleton<_i422.TestResultRepository>(() =>
@@ -415,6 +475,16 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i970.GetLaporanList(gh<_i352.LaporanKegiatanRepository>()));
     gh.factory<_i189.UpdateStatusLaporan>(
         () => _i189.UpdateStatusLaporan(gh<_i352.LaporanKegiatanRepository>()));
+    gh.factory<_i353.VerifLaporan>(
+        () => _i353.VerifLaporan(gh<_i352.LaporanKegiatanRepository>()));
+    gh.factory<_i798.AttendanceRekapRepository>(() =>
+        _i14.AttendanceRekapRepositoryImpl(
+            remoteDataSource: gh<_i247.AttendanceRekapRemoteDataSource>()));
+    gh.factory<_i893.PanicButtonBloc>(() => _i893.PanicButtonBloc(
+          activatePanicButtonUseCase: gh<_i491.ActivatePanicButtonUseCase>(),
+          getVerificationItemsUseCase: gh<_i4.GetVerificationItemsUseCase>(),
+          panicButtonRepository: gh<_i228.PanicButtonRepository>(),
+        ));
     gh.factory<_i341.BuatAjuanCuti>(
         () => _i341.BuatAjuanCuti(gh<_i825.CutiRepository>()));
     gh.factory<_i639.FilterCuti>(
@@ -427,6 +497,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i1023.GetDaftarCutiSaya(gh<_i825.CutiRepository>()));
     gh.factory<_i505.GetDetailCuti>(
         () => _i505.GetDetailCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i479.GetLeaveRequestTypeList>(
+        () => _i479.GetLeaveRequestTypeList(gh<_i825.CutiRepository>()));
     gh.factory<_i515.GetRekapCuti>(
         () => _i515.GetRekapCuti(gh<_i825.CutiRepository>()));
     gh.factory<_i688.UpdateStatusCuti>(
@@ -437,6 +509,12 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i547.GetCurrentTask>(),
               gh<_i170.GetCurrentShift>(),
             ));
+    gh.factory<_i945.LaporanKegiatanBloc>(() => _i945.LaporanKegiatanBloc(
+          getLaporanList: gh<_i970.GetLaporanList>(),
+          getLaporanDetail: gh<_i272.GetLaporanDetail>(),
+          updateStatusLaporan: gh<_i189.UpdateStatusLaporan>(),
+          verifLaporan: gh<_i353.VerifLaporan>(),
+        ));
     gh.factory<_i1003.ScheduleBloc>(() => _i1003.ScheduleBloc(
           getMonthlySchedule: gh<_i1034.GetMonthlySchedule>(),
           getShiftDetail: gh<_i947.GetShiftDetail>(),
@@ -483,22 +561,21 @@ extension GetItInjectableX on _i174.GetIt {
           gh<_i170.GetCurrentShift>(),
           gh<_i547.GetCurrentTask>(),
         ));
-    gh.factory<_i215.CutiBloc>(() => _i215.CutiBloc(
-          getCutiKuota: gh<_i1067.GetCutiKuota>(),
-          getDaftarCutiSaya: gh<_i1023.GetDaftarCutiSaya>(),
-          getDaftarCutiAnggota: gh<_i722.GetDaftarCutiAnggota>(),
-          buatAjuanCuti: gh<_i341.BuatAjuanCuti>(),
-          updateStatusCuti: gh<_i688.UpdateStatusCuti>(),
-          filterCuti: gh<_i639.FilterCuti>(),
-          getDetailCuti: gh<_i505.GetDetailCuti>(),
-          getRekapCuti: gh<_i515.GetRekapCuti>(),
-        ));
     gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
           getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
           getPatrolRoutesPaginated: gh<_i238.GetPatrolRoutesPaginated>(),
           getPatrolProgress: gh<_i820.GetPatrolProgress>(),
           addPatrolLocation: gh<_i198.AddPatrolLocation>(),
           patrolRepository: gh<_i824.PatrolRepository>(),
+        ));
+    gh.factory<_i643.IncidentBloc>(() => _i643.IncidentBloc(
+          getIncidentList: gh<_i813.GetIncidentList>(),
+          getMyTasks: gh<_i754.GetMyTasks>(),
+          getIncidentDetail: gh<_i1070.GetIncidentDetail>(),
+          createIncidentReport: gh<_i864.CreateIncidentReport>(),
+          getIncidentLocations: gh<_i645.GetIncidentLocations>(),
+          getIncidentTypes: gh<_i296.GetIncidentTypes>(),
+          updateIncidentStatus: gh<_i350.UpdateIncidentStatus>(),
         ));
     gh.factory<_i332.GetMemberTestsByPicUseCase>(() =>
         _i332.GetMemberTestsByPicUseCase(gh<_i422.TestResultRepository>()));
@@ -557,11 +634,25 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i778.GetTugasLanjutanList(gh<_i83.TugasLanjutanRepository>()));
     gh.factory<_i419.SelesaikanTugas>(
         () => _i419.SelesaikanTugas(gh<_i83.TugasLanjutanRepository>()));
-    gh.factory<_i945.LaporanKegiatanBloc>(() => _i945.LaporanKegiatanBloc(
-          getLaporanList: gh<_i970.GetLaporanList>(),
-          getLaporanDetail: gh<_i272.GetLaporanDetail>(),
-          updateStatusLaporan: gh<_i189.UpdateStatusLaporan>(),
+    gh.factory<_i215.CutiBloc>(() => _i215.CutiBloc(
+          getCutiKuota: gh<_i1067.GetCutiKuota>(),
+          getDaftarCutiSaya: gh<_i1023.GetDaftarCutiSaya>(),
+          getDaftarCutiAnggota: gh<_i722.GetDaftarCutiAnggota>(),
+          buatAjuanCuti: gh<_i341.BuatAjuanCuti>(),
+          updateStatusCuti: gh<_i688.UpdateStatusCuti>(),
+          filterCuti: gh<_i639.FilterCuti>(),
+          getDetailCuti: gh<_i505.GetDetailCuti>(),
+          getRekapCuti: gh<_i515.GetRekapCuti>(),
+          getLeaveRequestTypeList: gh<_i479.GetLeaveRequestTypeList>(),
         ));
+    gh.factory<_i833.GetAttendanceRekapDetailUseCase>(() =>
+        _i833.GetAttendanceRekapDetailUseCase(
+            gh<_i798.AttendanceRekapRepository>()));
+    gh.factory<_i687.GetAttendanceRekapUseCase>(() =>
+        _i687.GetAttendanceRekapUseCase(gh<_i798.AttendanceRekapRepository>()));
+    gh.factory<_i27.UpdateAttendanceRekapUseCase>(() =>
+        _i27.UpdateAttendanceRekapUseCase(
+            gh<_i798.AttendanceRekapRepository>()));
     gh.factory<_i849.PatrolAttendanceBloc>(() => _i849.PatrolAttendanceBloc(
           submitAttendance: gh<_i861.SubmitAttendance>(),
           verifyLocation: gh<_i9.VerifyLocation>(),
@@ -584,6 +675,12 @@ extension GetItInjectableX on _i174.GetIt {
           revisePersonnelUseCase: gh<_i136.RevisePersonnelUseCase>(),
         ));
     gh.factory<_i296.AuthBloc>(() => _i296.AuthBloc(gh<_i551.LoginUseCase>()));
+    gh.factory<_i451.AttendanceRekapDetailBloc>(() =>
+        _i451.AttendanceRekapDetailBloc(
+          getAttendanceRekapDetailUseCase:
+              gh<_i833.GetAttendanceRekapDetailUseCase>(),
+          updateAttendanceRekapUseCase: gh<_i27.UpdateAttendanceRekapUseCase>(),
+        ));
     gh.factory<_i21.BMIBloc>(() => _i21.BMIBloc(
           getUserProfile: gh<_i283.GetUserProfile>(),
           searchUserProfiles: gh<_i708.SearchUserProfiles>(),
@@ -598,6 +695,8 @@ extension GetItInjectableX on _i174.GetIt {
           getSummaryUseCase: gh<_i227.GetTestSummaryUseCase>(),
           getMemberTestsByPicUseCase: gh<_i332.GetMemberTestsByPicUseCase>(),
         ));
+    gh.factory<_i682.AttendanceRekapBloc>(() => _i682.AttendanceRekapBloc(
+        getAttendanceRekapUseCase: gh<_i687.GetAttendanceRekapUseCase>()));
     gh.factory<_i359.TugasLanjutanBloc>(() => _i359.TugasLanjutanBloc(
           getTugasLanjutanList: gh<_i778.GetTugasLanjutanList>(),
           getTugasLanjutanDetail: gh<_i237.GetTugasLanjutanDetail>(),

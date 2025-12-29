@@ -41,6 +41,26 @@ class CustomDocumentCard extends StatelessWidget {
   /// Border radius card
   final BorderRadius? borderRadius;
 
+  IconData _getFileIcon(String? fileType) {
+    if (fileType == null) return Icons.insert_drive_file;
+    
+    switch (fileType.toLowerCase()) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+        return Icons.image;
+      case 'doc':
+      case 'docx':
+        return Icons.description;
+      default:
+        return Icons.insert_drive_file;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -103,6 +123,28 @@ class CustomDocumentCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+
+                      // Tampilkan indicator file jika ada fileUrl
+                      if (document.fileUrl.isNotEmpty) ...[
+                        SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              _getFileIcon(document.fileType),
+                              size: 14,
+                              color: primaryColor,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Tersedia untuk Preview',
+                              style: TS.caption.copyWith(
+                                color: primaryColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
 
                       // Optional: Tampilkan status download jika ada
                       if (document.isDownloaded) ...[

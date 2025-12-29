@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/security/security_manager.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../bloc/cuti_bloc.dart';
@@ -77,7 +79,8 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
                 buttonText: 'Kembali',
                 onPressed: () {
                   Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).pop(); // Close detail page
+                  // Return true to indicate status was updated, so parent can reload
+                  Navigator.of(context).pop(true);
                 },
               );
             } else if (state is CutiError) {
@@ -163,7 +166,13 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
             ]),
           ],
 
-          if (widget.showActions && cuti.status == CutiStatus.pending) ...[
+          // Show action buttons for danton/pjo/deputy/pengawas when viewing from Ajuan Anggota/Ajuan Cuti tab
+          if (widget.showActions && 
+              cuti.status == CutiStatus.pending &&
+              (widget.currentUserRole == UserRole.danton ||
+               widget.currentUserRole == UserRole.pjo ||
+               widget.currentUserRole == UserRole.deputy ||
+               widget.currentUserRole == UserRole.pengawas)) ...[
             32.verticalSpace,
             _buildActionButtons(cuti),
           ],
@@ -275,7 +284,7 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
             12.horizontalSpace,
             Expanded(
               child: UIButton(
-                text: 'Setujui',
+                text: 'Terima',
                 variant: UIButtonVariant.success,
                 onPressed: () => _showApprovalDialog(cuti),
               ),
@@ -374,9 +383,9 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
     showDialog(
       context: context,
       builder: (context) => _buildFeedbackDialog(
-        title: 'Setujui Cuti',
-        message: 'Apakah Anda yakin ingin menyetujui ajuan cuti ini?',
-        confirmText: 'Setujui',
+        title: 'Terima Ajuan Cuti?',
+        message: 'Pastikan data sudah sesuai',
+        confirmText: 'Ya',
         isApproval: true,
         cuti: cuti,
       ),
@@ -387,7 +396,7 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
     showDialog(
       context: context,
       builder: (context) => _buildFeedbackDialog(
-        title: 'Tolak Cuti',
+        title: 'Tolak Ajuan Cuti?',
         message: 'Berikan alasan penolakan ajuan cuti ini:',
         confirmText: 'Tolak',
         isApproval: false,
@@ -421,7 +430,17 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
             message,
             style: TS.bodyMedium,
           ),
-          if (!isApproval) ...[
+          if (isApproval) ...[
+            16.verticalSpace,
+            TextField(
+              controller: _feedbackController,
+              decoration: const InputDecoration(
+                hintText: 'Umpan balik (opsional)...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ] else ...[
             16.verticalSpace,
             TextField(
               controller: _feedbackController,
@@ -440,12 +459,11 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
             _feedbackController.clear();
             Navigator.of(context).pop();
           },
-          child: const Text('Batal'),
+          child: Text(isApproval ? 'Tidak' : 'Batal'),
         ),
         ElevatedButton(
-          onPressed: () {
-            final feedback =
-                isApproval ? 'Cuti disetujui' : _feedbackController.text.trim();
+          onPressed: () async {
+            final feedback = _feedbackController.text.trim();
 
             if (!isApproval && feedback.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -457,12 +475,16 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
               return;
             }
 
+            // Get current user info from secure storage
+            final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
+            final userName = await SecurityManager.readSecurely('user_fullname') ?? 'Reviewer';
+
             _cutiBloc.add(
               UpdateStatusCutiEvent(
                 cutiId: cuti.id,
                 status: isApproval ? CutiStatus.approved : CutiStatus.rejected,
-                reviewerId: 'current_reviewer', // TODO: Get from auth
-                reviewerName: 'Current Reviewer', // TODO: Get from auth
+                reviewerId: userId,
+                reviewerName: userName,
                 umpanBalik: feedback,
               ),
             );

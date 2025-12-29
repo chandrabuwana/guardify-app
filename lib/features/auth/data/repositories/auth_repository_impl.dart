@@ -20,6 +20,7 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
       final response = await remoteDataSource.login({
         'Username': username,
         'Password': password,
+        'FromMobile': true,
       });
 
       // Check if request succeeded

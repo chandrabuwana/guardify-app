@@ -29,10 +29,30 @@ class LeaveRequestFilterModel {
 
   Map<String, dynamic> toJson() => _$LeaveRequestFilterModelToJson(this);
 
-  /// Factory untuk create filter by userId
+  /// Factory untuk create filter by userId (untuk tab Ajuan Saya)
   factory LeaveRequestFilterModel.byUserId(String userId) {
     return LeaveRequestFilterModel(
-      filter: [FilterFieldModel(field: 'UserId', search: userId)],
+      filter: [FilterFieldModel(field: 'userid', search: userId)],
+      sort: const SortModel(field: '', type: 0),
+      start: 0,
+      length: 0,
+    );
+  }
+
+  /// Factory untuk create filter by bawahan (untuk PJO/Deputy melihat cuti bawahan)
+  factory LeaveRequestFilterModel.byBawahan(String atasanUserId) {
+    return LeaveRequestFilterModel(
+      filter: [FilterFieldModel(field: 'bawahan', search: atasanUserId)],
+      sort: const SortModel(field: '', type: 0),
+      start: 0,
+      length: 0,
+    );
+  }
+
+  /// Factory untuk create filter tanpa filter (untuk rekap semua cuti)
+  factory LeaveRequestFilterModel.withoutFilter() {
+    return LeaveRequestFilterModel(
+      filter: null, // Tidak ada filter, ambil semua data
       sort: const SortModel(field: '', type: 0),
       start: 0,
       length: 0,

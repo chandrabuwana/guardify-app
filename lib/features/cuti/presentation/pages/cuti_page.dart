@@ -14,7 +14,7 @@ import '../bloc/cuti_event.dart';
 import '../bloc/cuti_state.dart';
 import '../widgets/cuti_card.dart';
 import '../widgets/kuota_cuti_card.dart';
-import '../widgets/filter_cuti_widget.dart';
+import '../widgets/search_filter_cuti_widget.dart';
 import 'form_ajuan_cuti_page.dart';
 import 'detail_cuti_page.dart';
 import '../../domain/entities/cuti_entity.dart';
@@ -259,6 +259,7 @@ class _CutiPageState extends State<CutiPage>
         } else if (index == 1) {
           _cutiBloc.add(GetCutiKuotaEvent(userId));
         } else if (index == 2) {
+          // Use UserId filter for Ajuan Saya
           _cutiBloc.add(GetDaftarCutiSayaEvent(userId));
         }
         break;
@@ -274,7 +275,7 @@ class _CutiPageState extends State<CutiPage>
   }
 
   bool _shouldShowFab() {
-    // Show FAB for anggota/danton and PJO/Deputy (for their personal leave)
+    // Show FAB for anggota, danton (always), and for PJO/Deputy (for their personal leave in tab "Ajuan Saya")
     final role = _currentUserRole ?? UserRole.anggota;
     final tabIndex = _tabController?.index ?? 0;
 
@@ -354,178 +355,121 @@ class _CutiPageState extends State<CutiPage>
   }
 
   Widget _buildAjuanCutiTab() {
-    return BlocBuilder<CutiBloc, CutiState>(
-      builder: (context, state) {
-        if (state is CutiLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: primaryColor),
-          );
-        }
-
-        if (state is CutiError) {
-          return _buildErrorWidget(state.message);
-        }
-
-        if (state is DaftarCutiSayaLoaded) {
-          if (state.daftarCuti.isEmpty) {
-            return _buildEmptyState('Belum ada ajuan cuti');
-          }
-
-          return _buildCutiList(state.daftarCuti, false);
-        }
-
-        return _buildEmptyState('Belum ada ajuan cuti');
-      },
+    return _AjuanCutiAnggotaTabContent(
+      cutiBloc: _cutiBloc,
+      userId: _currentUserId ?? 'user_1',
     );
   }
 
   Widget _buildAjuanSayaTab() {
-    return BlocBuilder<CutiBloc, CutiState>(
-      builder: (context, state) {
-        if (state is CutiLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: primaryColor),
-          );
-        }
-
-        if (state is CutiError) {
-          return _buildErrorWidget(state.message);
-        }
-
-        if (state is DaftarCutiSayaLoaded) {
-          if (state.daftarCuti.isEmpty) {
-            return _buildEmptyState('Belum ada ajuan cuti pribadi');
-          }
-
-          return _buildCutiList(state.daftarCuti, false);
-        }
-
-        return _buildEmptyState('Belum ada ajuan cuti pribadi');
-      },
+    return _AjuanSayaTabContent(
+      cutiBloc: _cutiBloc,
+      userId: _currentUserId ?? 'user_1',
     );
   }
 
   Widget _buildAjuanAnggotaTab() {
-    return BlocBuilder<CutiBloc, CutiState>(
-      builder: (context, state) {
-        if (state is CutiLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: primaryColor),
-          );
-        }
-
-        if (state is CutiError) {
-          return _buildErrorWidget(state.message);
-        }
-
-        if (state is DaftarCutiAnggotaLoaded) {
-          return Column(
-            children: [
-              FilterCutiWidget(
-                onFilterApplied:
-                    (status, tipeCuti, tanggalMulai, tanggalSelesai) {
-                  _cutiBloc.add(
-                    GetDaftarCutiAnggotaEvent(
-                      status: status,
-                      tipeCuti: tipeCuti,
-                      tanggalMulai: tanggalMulai,
-                      tanggalSelesai: tanggalSelesai,
-                    ),
-                  );
-                },
-              ),
-              Expanded(
-                child: state.daftarCuti.isEmpty
-                    ? _buildEmptyState('Belum ada ajuan cuti anggota')
-                    : _buildCutiList(state.daftarCuti, true),
-              ),
-            ],
-          );
-        }
-
-        return _buildEmptyState('Belum ada ajuan cuti anggota');
-      },
+    return _AjuanAnggotaTabContent(
+      cutiBloc: _cutiBloc,
+      showActions: true,
     );
   }
 
   Widget _buildAjuanCutiPengawasTab() {
-    return _buildAjuanAnggotaTab(); // Same as ajuan anggota for pengawas
+    // Tab Ajuan Cuti untuk pengawas: sama dengan danton, menggunakan filter bawahan
+    return _buildAjuanAnggotaTab();
   }
 
   Widget _buildRekapAjuanCutiTab() {
-    return BlocBuilder<CutiBloc, CutiState>(
-      builder: (context, state) {
-        if (state is CutiLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: primaryColor),
-          );
-        }
-
-        if (state is CutiError) {
-          return _buildErrorWidget(state.message);
-        }
-
-        if (state is RekapCutiLoaded) {
-          return Column(
-            children: [
-              FilterCutiWidget(
-                onFilterApplied:
-                    (status, tipeCuti, tanggalMulai, tanggalSelesai) {
-                  _cutiBloc.add(
-                    GetRekapCutiEvent(
-                      status: status,
-                      tanggalMulai: tanggalMulai,
-                      tanggalSelesai: tanggalSelesai,
-                    ),
-                  );
-                },
-              ),
-              Expanded(
-                child: state.rekapCuti.isEmpty
-                    ? _buildEmptyState('Belum ada data rekap cuti')
-                    : _buildCutiList(state.rekapCuti, true),
-              ),
-            ],
-          );
-        }
-
-        return _buildEmptyState('Belum ada data rekap cuti');
-      },
+    return _RekapAjuanCutiTabContent(
+      cutiBloc: _cutiBloc,
     );
   }
 
   Widget _buildCutiList(List<CutiEntity> cutiList, bool showActions) {
+    // Determine if actions should be shown in detail page based on user role
+    // showActions = true untuk tab yang bisa approve/reject (Ajuan Anggota untuk PJO/Deputy, Ajuan Cuti pengawas)
+    // showActions = false untuk tab rekap (hanya view)
+    // Note: Danton tidak memiliki tab Ajuan Anggota, jadi tidak bisa approve/reject
+    final canShowActions = showActions && 
+        (_currentUserRole == UserRole.pjo || 
+         _currentUserRole == UserRole.deputy ||
+         _currentUserRole == UserRole.pengawas);
+    
     return ListView.builder(
       padding: REdgeInsets.all(16),
       itemCount: cutiList.length,
       itemBuilder: (context, index) {
         final cuti = cutiList[index];
+        // Only show actions in detail page for pending cuti and if showActions is true
+        final shouldShowActions = canShowActions && cuti.status == CutiStatus.pending;
+        
         return Padding(
           padding: REdgeInsets.only(bottom: 12),
           child: CutiCard(
             cuti: cuti,
-            showActions: showActions,
-            onTap: () {
-              Navigator.push(
+            showActions: false, // Tidak tampilkan tombol di list, hanya di detail
+            onTap: () async {
+              // Navigate to detail page and wait for result
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => BlocProvider.value(
                     value: _cutiBloc,
                     child: DetailCutiPage(
                       cutiId: cuti.id,
-                      showActions: showActions,
+                      showActions: shouldShowActions,
                       currentUserRole: _currentUserRole ?? UserRole.anggota,
                     ),
                   ),
                 ),
               );
+              
+              // Reload data if status was updated
+              if (result == true) {
+                _reloadCurrentTab();
+              }
             },
-            onApprove: showActions ? () => _showApprovalDialog(cuti) : null,
-            onReject: showActions ? () => _showRejectionDialog(cuti) : null,
           ),
         );
       },
     );
+  }
+  
+  void _reloadCurrentTab() {
+    final role = _currentUserRole ?? UserRole.anggota;
+    final userId = _currentUserId ?? 'user_1';
+    final tabIndex = _tabController?.index ?? 0;
+
+    switch (role) {
+      case UserRole.anggota:
+      case UserRole.danton:
+        if (tabIndex == 0) {
+          _cutiBloc.add(GetCutiKuotaEvent(userId));
+        } else if (tabIndex == 1) {
+          _cutiBloc.add(GetDaftarCutiSayaEvent(userId));
+        }
+        break;
+      case UserRole.pjo:
+      case UserRole.deputy:
+        if (tabIndex == 0) {
+          // Reload Ajuan Anggota tab
+          _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+        } else if (tabIndex == 1) {
+          _cutiBloc.add(GetCutiKuotaEvent(userId));
+        } else if (tabIndex == 2) {
+          _cutiBloc.add(GetDaftarCutiSayaEvent(userId));
+        }
+        break;
+      case UserRole.pengawas:
+      case UserRole.admin:
+        if (tabIndex == 0) {
+          _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+        } else if (tabIndex == 1) {
+          _cutiBloc.add(const GetRekapCutiEvent());
+        }
+        break;
+    }
   }
 
   Widget _buildErrorWidget(String message) {
@@ -610,11 +554,1151 @@ class _CutiPageState extends State<CutiPage>
     );
   }
 
-  void _showApprovalDialog(CutiEntity cuti) {
-    // TODO: Implement approval dialog
+}
+
+// Widget untuk tab Ajuan Saya dengan search dan filter
+class _AjuanSayaTabContent extends StatefulWidget {
+  final CutiBloc cutiBloc;
+  final String userId;
+
+  const _AjuanSayaTabContent({
+    required this.cutiBloc,
+    required this.userId,
+  });
+
+  @override
+  State<_AjuanSayaTabContent> createState() => _AjuanSayaTabContentState();
+}
+
+class _AjuanSayaTabContentState extends State<_AjuanSayaTabContent> {
+  List<CutiEntity> _allCuti = [];
+  List<CutiEntity> _filteredCuti = [];
+  String _searchQuery = '';
+  String? _selectedStatus;
+  String? _selectedTipeCuti;
+  DateTime? _tanggalMulai;
+  DateTime? _tanggalSelesai;
+  String? _selectedSort = 'terbaru';
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<CutiBloc, CutiState>(
+      bloc: widget.cutiBloc,
+      listener: (context, state) {
+        // Handle state changes outside of build method
+        if (state is DaftarCutiSayaLoaded) {
+          if (_allCuti != state.daftarCuti) {
+            // Use post frame callback to avoid setState during build
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _allCuti = state.daftarCuti;
+                });
+                _applyFilters();
+              }
+            });
+          }
+        }
+      },
+      child: BlocBuilder<CutiBloc, CutiState>(
+        bloc: widget.cutiBloc,
+        builder: (context, state) {
+          if (state is CutiLoading) {
+            return const Center(
+              child: CircularProgressIndicator(color: primaryColor),
+            );
+          }
+
+          if (state is CutiError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64.r,
+                    color: Colors.red,
+                  ),
+                  16.verticalSpace,
+                  Text(
+                    'Terjadi Kesalahan',
+                    style: TS.titleMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  8.verticalSpace,
+                  Text(
+                    state.message,
+                    style: TS.bodyMedium.copyWith(color: Colors.grey.shade600),
+                    textAlign: TextAlign.center,
+                  ),
+                  24.verticalSpace,
+                  UIButton(
+                    text: 'Coba Lagi',
+                    onPressed: () {
+                      widget.cutiBloc.add(GetDaftarCutiSayaEvent(widget.userId));
+                    },
+                    size: UIButtonSize.medium,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (state is DaftarCutiSayaLoaded) {
+            return Column(
+            children: [
+              // Search and Filter Bar
+              SearchFilterCutiWidget(
+                onFilterApplied: (
+                  searchQuery,
+                  status,
+                  tipeCuti,
+                  tanggalMulai,
+                  tanggalSelesai,
+                  sort,
+                ) {
+                  setState(() {
+                    if (searchQuery != null) _searchQuery = searchQuery;
+                    // Handle status: null means "Semua", so reset filter
+                    _selectedStatus = status;
+                    // Handle tipeCuti: null means "Semua", so reset filter
+                    _selectedTipeCuti = tipeCuti;
+                    // Handle tanggalMulai: null means reset
+                    _tanggalMulai = tanggalMulai;
+                    // Handle tanggalSelesai: null means reset
+                    _tanggalSelesai = tanggalSelesai;
+                    if (sort != null) _selectedSort = sort;
+                  });
+                  _applyFilters();
+                },
+                onSearchChanged: (query) {
+                  setState(() {
+                    _searchQuery = query;
+                  });
+                  _applyFilters();
+                },
+              ),
+
+              // List
+              Expanded(
+                child: _filteredCuti.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.event_busy,
+                              size: 64.r,
+                              color: Colors.grey.shade400,
+                            ),
+                            16.verticalSpace,
+                            Text(
+                              _allCuti.isEmpty
+                                  ? 'Belum ada ajuan cuti pribadi'
+                                  : 'Tidak ada hasil yang ditemukan',
+                              style: TS.titleMedium.copyWith(
+                                color: Colors.grey.shade600,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            if (_allCuti.isEmpty) ...[
+                              24.verticalSpace,
+                              UIButton(
+                                text: 'Buat Ajuan Cuti',
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => BlocProvider.value(
+                                        value: widget.cutiBloc,
+                                        child: FormAjuanCutiPage(
+                                          userId: widget.userId,
+                                          userName: 'Current User', // TODO: Get from auth
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                size: UIButtonSize.medium,
+                              ),
+                            ],
+                          ],
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: ListView.builder(
+                              padding: REdgeInsets.all(16),
+                              itemCount: _filteredCuti.length,
+                              itemBuilder: (context, index) {
+                                final cuti = _filteredCuti[index];
+                                return Padding(
+                                  padding: REdgeInsets.only(bottom: 12),
+                                  child: CutiCard(
+                                    cuti: cuti,
+                                    showActions: false,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => BlocProvider.value(
+                                            value: widget.cutiBloc,
+                                            child: DetailCutiPage(
+                                              cutiId: cuti.id,
+                                              showActions: false,
+                                              currentUserRole: UserRole.anggota,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          // Button at bottom
+                          Container(
+                            padding: REdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.shade200,
+                                  blurRadius: 4,
+                                  offset: const Offset(0, -2),
+                                ),
+                              ],
+                            ),
+                            child: UIButton(
+                              text: 'Buat Ajuan Cuti',
+                              fullWidth: true,
+                              size: UIButtonSize.large,
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BlocProvider.value(
+                                      value: widget.cutiBloc,
+                                      child: FormAjuanCutiPage(
+                                        userId: widget.userId,
+                                        userName: 'Current User', // TODO: Get from auth
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+            );
+          }
+
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.event_busy,
+                  size: 64.r,
+                  color: Colors.grey.shade400,
+                ),
+                16.verticalSpace,
+                Text(
+                  'Belum ada ajuan cuti pribadi',
+                  style: TS.titleMedium.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
-  void _showRejectionDialog(CutiEntity cuti) {
-    // TODO: Implement rejection dialog
+  void _applyFilters() {
+    List<CutiEntity> filtered = List.from(_allCuti);
+
+    // Search filter
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((cuti) {
+        final query = _searchQuery.toLowerCase();
+        return cuti.id.toLowerCase().contains(query) ||
+            cuti.nama.toLowerCase().contains(query) ||
+            cuti.alasan.toLowerCase().contains(query) ||
+            cuti.tipeCutiDisplayName.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // Status filter
+    if (_selectedStatus != null) {
+      filtered = filtered.where((cuti) {
+        switch (_selectedStatus) {
+          case 'pending':
+            return cuti.status == CutiStatus.pending;
+          case 'approved':
+            return cuti.status == CutiStatus.approved;
+          case 'rejected':
+            return cuti.status == CutiStatus.rejected;
+          case 'cancelled':
+            return cuti.status == CutiStatus.cancelled;
+          default:
+            return true;
+        }
+      }).toList();
+    }
+
+    // Tipe Cuti filter
+    if (_selectedTipeCuti != null) {
+      filtered = filtered.where((cuti) {
+        switch (_selectedTipeCuti) {
+          case 'tahunan':
+            return cuti.tipeCuti == CutiType.tahunan;
+          case 'sakit':
+            return cuti.tipeCuti == CutiType.sakit;
+          case 'melahirkan':
+            return cuti.tipeCuti == CutiType.melahirkan;
+          case 'menikah':
+            return cuti.tipeCuti == CutiType.menikah;
+          case 'keluargaMeninggal':
+            return cuti.tipeCuti == CutiType.keluargaMeninggal;
+          case 'lainnya':
+            return cuti.tipeCuti == CutiType.lainnya;
+          default:
+            return true;
+        }
+      }).toList();
+    }
+
+    // Date range filter
+    if (_tanggalMulai != null) {
+      filtered = filtered.where((cuti) {
+        return cuti.tanggalMulai.isAfter(_tanggalMulai!) ||
+            cuti.tanggalMulai.isAtSameMomentAs(_tanggalMulai!);
+      }).toList();
+    }
+
+    if (_tanggalSelesai != null) {
+      filtered = filtered.where((cuti) {
+        return cuti.tanggalSelesai.isBefore(_tanggalSelesai!) ||
+            cuti.tanggalSelesai.isAtSameMomentAs(_tanggalSelesai!);
+      }).toList();
+    }
+
+    // Sort
+    if (_selectedSort == 'terbaru') {
+      filtered.sort((a, b) => b.tanggalPengajuan.compareTo(a.tanggalPengajuan));
+    } else if (_selectedSort == 'terlama') {
+      filtered.sort((a, b) => a.tanggalPengajuan.compareTo(b.tanggalPengajuan));
+    }
+
+    setState(() {
+      _filteredCuti = filtered;
+    });
+  }
+}
+
+// Widget untuk tab Ajuan Anggota dengan search dan filter
+class _AjuanAnggotaTabContent extends StatefulWidget {
+  final CutiBloc cutiBloc;
+  final bool showActions;
+
+  const _AjuanAnggotaTabContent({
+    required this.cutiBloc,
+    this.showActions = true,
+  });
+
+  @override
+  State<_AjuanAnggotaTabContent> createState() => _AjuanAnggotaTabContentState();
+}
+
+class _AjuanAnggotaTabContentState extends State<_AjuanAnggotaTabContent> {
+  List<CutiEntity> _allCuti = [];
+  List<CutiEntity> _filteredCuti = [];
+  String _searchQuery = '';
+  String? _selectedStatus;
+  String? _selectedTipeCuti;
+  DateTime? _tanggalMulai;
+  DateTime? _tanggalSelesai;
+  String? _selectedSort = 'terbaru';
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<CutiBloc, CutiState>(
+      bloc: widget.cutiBloc,
+      listener: (context, state) {
+        if (state is DaftarCutiAnggotaLoaded) {
+          if (_allCuti != state.daftarCuti) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _allCuti = state.daftarCuti;
+                });
+                _applyFilters();
+              }
+            });
+          }
+        }
+      },
+      child: BlocBuilder<CutiBloc, CutiState>(
+        bloc: widget.cutiBloc,
+        builder: (context, state) {
+          if (state is CutiLoading) {
+            return const Center(
+              child: CircularProgressIndicator(color: primaryColor),
+            );
+          }
+
+          if (state is CutiError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64.r,
+                    color: Colors.red,
+                  ),
+                  16.verticalSpace,
+                  Text(
+                    'Terjadi Kesalahan',
+                    style: TS.titleMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  8.verticalSpace,
+                  Text(
+                    state.message,
+                    style: TS.bodyMedium.copyWith(color: Colors.grey.shade600),
+                    textAlign: TextAlign.center,
+                  ),
+                  24.verticalSpace,
+                  UIButton(
+                    text: 'Coba Lagi',
+                    onPressed: () {
+                      widget.cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+                    },
+                    size: UIButtonSize.medium,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (state is DaftarCutiAnggotaLoaded) {
+            return Column(
+              children: [
+                SearchFilterCutiWidget(
+                  onFilterApplied: (
+                    searchQuery,
+                    status,
+                    tipeCuti,
+                    tanggalMulai,
+                    tanggalSelesai,
+                    sort,
+                  ) {
+                    setState(() {
+                      if (searchQuery != null) _searchQuery = searchQuery;
+                      _selectedStatus = status;
+                      _selectedTipeCuti = tipeCuti;
+                      _tanggalMulai = tanggalMulai;
+                      _tanggalSelesai = tanggalSelesai;
+                      if (sort != null) _selectedSort = sort;
+                    });
+                    // Apply API filters
+                    widget.cutiBloc.add(
+                      GetDaftarCutiAnggotaEvent(
+                        status: _selectedStatus,
+                        tipeCuti: _selectedTipeCuti,
+                        tanggalMulai: _tanggalMulai,
+                        tanggalSelesai: _tanggalSelesai,
+                      ),
+                    );
+                  },
+                  onSearchChanged: (query) {
+                    setState(() {
+                      _searchQuery = query;
+                    });
+                    _applyFilters();
+                  },
+                ),
+                Expanded(
+                  child: _filteredCuti.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.event_busy,
+                                size: 64.r,
+                                color: Colors.grey.shade400,
+                              ),
+                              16.verticalSpace,
+                              Text(
+                                _allCuti.isEmpty
+                                    ? 'Belum ada ajuan cuti anggota'
+                                    : 'Tidak ada hasil yang ditemukan',
+                                style: TS.titleMedium.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      : _buildCutiListFromState(_filteredCuti, widget.showActions),
+                ),
+              ],
+            );
+          }
+
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.event_busy,
+                  size: 64.r,
+                  color: Colors.grey.shade400,
+                ),
+                16.verticalSpace,
+                Text(
+                  'Belum ada ajuan cuti anggota',
+                  style: TS.titleMedium.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _applyFilters() {
+    List<CutiEntity> filtered = List.from(_allCuti);
+
+    // Search filter
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((cuti) {
+        final query = _searchQuery.toLowerCase();
+        return cuti.id.toLowerCase().contains(query) ||
+            cuti.nama.toLowerCase().contains(query) ||
+            cuti.alasan.toLowerCase().contains(query) ||
+            cuti.tipeCutiDisplayName.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // Sort
+    if (_selectedSort == 'terbaru') {
+      filtered.sort((a, b) => b.tanggalPengajuan.compareTo(a.tanggalPengajuan));
+    } else if (_selectedSort == 'terlama') {
+      filtered.sort((a, b) => a.tanggalPengajuan.compareTo(b.tanggalPengajuan));
+    }
+
+    setState(() {
+      _filteredCuti = filtered;
+    });
+  }
+
+  Widget _buildCutiListFromState(List<CutiEntity> cutiList, bool showActions) {
+    // Get current user role from parent
+    final parentState = context.findAncestorStateOfType<_CutiPageState>();
+    final currentUserRole = parentState?._currentUserRole ?? UserRole.anggota;
+    
+    // Note: Danton tidak memiliki tab Ajuan Anggota, jadi tidak bisa approve/reject
+    final canShowActions = showActions && 
+        (currentUserRole == UserRole.pjo || 
+         currentUserRole == UserRole.deputy ||
+         currentUserRole == UserRole.pengawas);
+    
+    return ListView.builder(
+      padding: REdgeInsets.all(16),
+      itemCount: cutiList.length,
+      itemBuilder: (context, index) {
+        final cuti = cutiList[index];
+        final shouldShowActions = canShowActions && cuti.status == CutiStatus.pending;
+        
+        return Padding(
+          padding: REdgeInsets.only(bottom: 12),
+          child: CutiCard(
+            cuti: cuti,
+            showActions: false,
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BlocProvider.value(
+                    value: widget.cutiBloc,
+                    child: DetailCutiPage(
+                      cutiId: cuti.id,
+                      showActions: shouldShowActions,
+                      currentUserRole: currentUserRole,
+                    ),
+                  ),
+                ),
+              );
+              
+              if (result == true) {
+                widget.cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+              }
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Widget untuk tab Rekap Ajuan Cuti dengan search dan filter
+class _RekapAjuanCutiTabContent extends StatefulWidget {
+  final CutiBloc cutiBloc;
+
+  const _RekapAjuanCutiTabContent({
+    required this.cutiBloc,
+  });
+
+  @override
+  State<_RekapAjuanCutiTabContent> createState() => _RekapAjuanCutiTabContentState();
+}
+
+class _RekapAjuanCutiTabContentState extends State<_RekapAjuanCutiTabContent> {
+  List<CutiEntity> _allCuti = [];
+  List<CutiEntity> _filteredCuti = [];
+  String _searchQuery = '';
+  String? _selectedStatus;
+  String? _selectedTipeCuti;
+  DateTime? _tanggalMulai;
+  DateTime? _tanggalSelesai;
+  String? _selectedSort = 'terbaru';
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<CutiBloc, CutiState>(
+      bloc: widget.cutiBloc,
+      listener: (context, state) {
+        if (state is RekapCutiLoaded) {
+          if (_allCuti != state.rekapCuti) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _allCuti = state.rekapCuti;
+                });
+                _applyFilters();
+              }
+            });
+          }
+        }
+      },
+      child: BlocBuilder<CutiBloc, CutiState>(
+        bloc: widget.cutiBloc,
+        builder: (context, state) {
+          if (state is CutiLoading) {
+            return const Center(
+              child: CircularProgressIndicator(color: primaryColor),
+            );
+          }
+
+          if (state is CutiError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64.r,
+                    color: Colors.red,
+                  ),
+                  16.verticalSpace,
+                  Text(
+                    'Terjadi Kesalahan',
+                    style: TS.titleMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  8.verticalSpace,
+                  Text(
+                    state.message,
+                    style: TS.bodyMedium.copyWith(color: Colors.grey.shade600),
+                    textAlign: TextAlign.center,
+                  ),
+                  24.verticalSpace,
+                  UIButton(
+                    text: 'Coba Lagi',
+                    onPressed: () {
+                      widget.cutiBloc.add(const GetRekapCutiEvent());
+                    },
+                    size: UIButtonSize.medium,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (state is RekapCutiLoaded) {
+            return Column(
+              children: [
+                SearchFilterCutiWidget(
+                  onFilterApplied: (
+                    searchQuery,
+                    status,
+                    tipeCuti,
+                    tanggalMulai,
+                    tanggalSelesai,
+                    sort,
+                  ) {
+                    setState(() {
+                      if (searchQuery != null) _searchQuery = searchQuery;
+                      _selectedStatus = status;
+                      _selectedTipeCuti = tipeCuti;
+                      _tanggalMulai = tanggalMulai;
+                      _tanggalSelesai = tanggalSelesai;
+                      if (sort != null) _selectedSort = sort;
+                    });
+                    // Apply API filters
+                    widget.cutiBloc.add(
+                      GetRekapCutiEvent(
+                        status: _selectedStatus,
+                        tipeCuti: _selectedTipeCuti,
+                        tanggalMulai: _tanggalMulai,
+                        tanggalSelesai: _tanggalSelesai,
+                      ),
+                    );
+                  },
+                  onSearchChanged: (query) {
+                    setState(() {
+                      _searchQuery = query;
+                    });
+                    _applyFilters();
+                  },
+                ),
+                Expanded(
+                  child: _filteredCuti.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.event_busy,
+                                size: 64.r,
+                                color: Colors.grey.shade400,
+                              ),
+                              16.verticalSpace,
+                              Text(
+                                _allCuti.isEmpty
+                                    ? 'Belum ada data rekap cuti'
+                                    : 'Tidak ada hasil yang ditemukan',
+                                style: TS.titleMedium.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      : _buildCutiListFromState(_filteredCuti, false),
+                ),
+              ],
+            );
+          }
+
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.event_busy,
+                  size: 64.r,
+                  color: Colors.grey.shade400,
+                ),
+                16.verticalSpace,
+                Text(
+                  'Belum ada data rekap cuti',
+                  style: TS.titleMedium.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _applyFilters() {
+    List<CutiEntity> filtered = List.from(_allCuti);
+
+    // Search filter
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((cuti) {
+        final query = _searchQuery.toLowerCase();
+        return cuti.id.toLowerCase().contains(query) ||
+            cuti.nama.toLowerCase().contains(query) ||
+            cuti.alasan.toLowerCase().contains(query) ||
+            cuti.tipeCutiDisplayName.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // Sort
+    if (_selectedSort == 'terbaru') {
+      filtered.sort((a, b) => b.tanggalPengajuan.compareTo(a.tanggalPengajuan));
+    } else if (_selectedSort == 'terlama') {
+      filtered.sort((a, b) => a.tanggalPengajuan.compareTo(b.tanggalPengajuan));
+    }
+
+    setState(() {
+      _filteredCuti = filtered;
+    });
+  }
+
+  Widget _buildCutiListFromState(List<CutiEntity> cutiList, bool showActions) {
+    // Get current user role from parent
+    final parentState = context.findAncestorStateOfType<_CutiPageState>();
+    final currentUserRole = parentState?._currentUserRole ?? UserRole.anggota;
+    
+    return ListView.builder(
+      padding: REdgeInsets.all(16),
+      itemCount: cutiList.length,
+      itemBuilder: (context, index) {
+        final cuti = cutiList[index];
+        
+        return Padding(
+          padding: REdgeInsets.only(bottom: 12),
+          child: CutiCard(
+            cuti: cuti,
+            showActions: false,
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BlocProvider.value(
+                    value: widget.cutiBloc,
+                    child: DetailCutiPage(
+                      cutiId: cuti.id,
+                      showActions: false, // Rekap tidak bisa approve/reject
+                      currentUserRole: currentUserRole,
+                    ),
+                  ),
+                ),
+              );
+              
+              if (result == true) {
+                widget.cutiBloc.add(const GetRekapCutiEvent());
+              }
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Widget untuk tab Ajuan Cuti anggota dengan search dan filter
+class _AjuanCutiAnggotaTabContent extends StatefulWidget {
+  final CutiBloc cutiBloc;
+  final String userId;
+
+  const _AjuanCutiAnggotaTabContent({
+    required this.cutiBloc,
+    required this.userId,
+  });
+
+  @override
+  State<_AjuanCutiAnggotaTabContent> createState() => _AjuanCutiAnggotaTabContentState();
+}
+
+class _AjuanCutiAnggotaTabContentState extends State<_AjuanCutiAnggotaTabContent> {
+  List<CutiEntity> _allCuti = [];
+  List<CutiEntity> _filteredCuti = [];
+  String _searchQuery = '';
+  String? _selectedStatus;
+  String? _selectedTipeCuti;
+  DateTime? _tanggalMulai;
+  DateTime? _tanggalSelesai;
+  String? _selectedSort = 'terbaru';
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<CutiBloc, CutiState>(
+      bloc: widget.cutiBloc,
+      listener: (context, state) {
+        if (state is DaftarCutiSayaLoaded) {
+          if (_allCuti != state.daftarCuti) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _allCuti = state.daftarCuti;
+                });
+                _applyFilters();
+              }
+            });
+          }
+        }
+      },
+      child: BlocBuilder<CutiBloc, CutiState>(
+        bloc: widget.cutiBloc,
+        builder: (context, state) {
+          if (state is CutiLoading) {
+            return const Center(
+              child: CircularProgressIndicator(color: primaryColor),
+            );
+          }
+
+          if (state is CutiError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64.r,
+                    color: Colors.red,
+                  ),
+                  16.verticalSpace,
+                  Text(
+                    'Terjadi Kesalahan',
+                    style: TS.titleMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  8.verticalSpace,
+                  Text(
+                    state.message,
+                    style: TS.bodyMedium.copyWith(color: Colors.grey.shade600),
+                    textAlign: TextAlign.center,
+                  ),
+                  24.verticalSpace,
+                  UIButton(
+                    text: 'Coba Lagi',
+                    onPressed: () {
+                      widget.cutiBloc.add(GetDaftarCutiSayaEvent(widget.userId));
+                    },
+                    size: UIButtonSize.medium,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (state is DaftarCutiSayaLoaded) {
+            return Column(
+              children: [
+                SearchFilterCutiWidget(
+                  onFilterApplied: (
+                    searchQuery,
+                    status,
+                    tipeCuti,
+                    tanggalMulai,
+                    tanggalSelesai,
+                    sort,
+                  ) {
+                    setState(() {
+                      if (searchQuery != null) _searchQuery = searchQuery;
+                      _selectedStatus = status;
+                      _selectedTipeCuti = tipeCuti;
+                      _tanggalMulai = tanggalMulai;
+                      _tanggalSelesai = tanggalSelesai;
+                      if (sort != null) _selectedSort = sort;
+                    });
+                    _applyFilters();
+                  },
+                  onSearchChanged: (query) {
+                    setState(() {
+                      _searchQuery = query;
+                    });
+                    _applyFilters();
+                  },
+                ),
+                Expanded(
+                  child: _filteredCuti.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.event_busy,
+                                size: 64.r,
+                                color: Colors.grey.shade400,
+                              ),
+                              16.verticalSpace,
+                              Text(
+                                _allCuti.isEmpty
+                                    ? 'Belum ada ajuan cuti'
+                                    : 'Tidak ada hasil yang ditemukan',
+                                style: TS.titleMedium.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      : _buildCutiListFromState(_filteredCuti, false),
+                ),
+              ],
+            );
+          }
+
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.event_busy,
+                  size: 64.r,
+                  color: Colors.grey.shade400,
+                ),
+                16.verticalSpace,
+                Text(
+                  'Belum ada ajuan cuti',
+                  style: TS.titleMedium.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _applyFilters() {
+    List<CutiEntity> filtered = List.from(_allCuti);
+
+    // Search filter
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((cuti) {
+        final query = _searchQuery.toLowerCase();
+        return cuti.id.toLowerCase().contains(query) ||
+            cuti.nama.toLowerCase().contains(query) ||
+            cuti.alasan.toLowerCase().contains(query) ||
+            cuti.tipeCutiDisplayName.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // Status filter
+    if (_selectedStatus != null) {
+      filtered = filtered.where((cuti) {
+        switch (_selectedStatus) {
+          case 'pending':
+            return cuti.status == CutiStatus.pending;
+          case 'approved':
+            return cuti.status == CutiStatus.approved;
+          case 'rejected':
+            return cuti.status == CutiStatus.rejected;
+          case 'cancelled':
+            return cuti.status == CutiStatus.cancelled;
+          default:
+            return true;
+        }
+      }).toList();
+    }
+
+    // Tipe Cuti filter
+    if (_selectedTipeCuti != null) {
+      filtered = filtered.where((cuti) {
+        switch (_selectedTipeCuti) {
+          case 'tahunan':
+            return cuti.tipeCuti == CutiType.tahunan;
+          case 'sakit':
+            return cuti.tipeCuti == CutiType.sakit;
+          case 'melahirkan':
+            return cuti.tipeCuti == CutiType.melahirkan;
+          case 'menikah':
+            return cuti.tipeCuti == CutiType.menikah;
+          case 'keluargaMeninggal':
+            return cuti.tipeCuti == CutiType.keluargaMeninggal;
+          case 'lainnya':
+            return cuti.tipeCuti == CutiType.lainnya;
+          default:
+            return true;
+        }
+      }).toList();
+    }
+
+    // Date range filter
+    if (_tanggalMulai != null) {
+      filtered = filtered.where((cuti) {
+        return cuti.tanggalMulai.isAfter(_tanggalMulai!) ||
+            cuti.tanggalMulai.isAtSameMomentAs(_tanggalMulai!);
+      }).toList();
+    }
+
+    if (_tanggalSelesai != null) {
+      filtered = filtered.where((cuti) {
+        return cuti.tanggalSelesai.isBefore(_tanggalSelesai!) ||
+            cuti.tanggalSelesai.isAtSameMomentAs(_tanggalSelesai!);
+      }).toList();
+    }
+
+    // Sort
+    if (_selectedSort == 'terbaru') {
+      filtered.sort((a, b) => b.tanggalPengajuan.compareTo(a.tanggalPengajuan));
+    } else if (_selectedSort == 'terlama') {
+      filtered.sort((a, b) => a.tanggalPengajuan.compareTo(b.tanggalPengajuan));
+    }
+
+    setState(() {
+      _filteredCuti = filtered;
+    });
+  }
+
+  Widget _buildCutiListFromState(List<CutiEntity> cutiList, bool showActions) {
+    // Get current user role from parent
+    final parentState = context.findAncestorStateOfType<_CutiPageState>();
+    final currentUserRole = parentState?._currentUserRole ?? UserRole.anggota;
+    
+    return ListView.builder(
+      padding: REdgeInsets.all(16),
+      itemCount: cutiList.length,
+      itemBuilder: (context, index) {
+        final cuti = cutiList[index];
+        
+        return Padding(
+          padding: REdgeInsets.only(bottom: 12),
+          child: CutiCard(
+            cuti: cuti,
+            showActions: false,
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BlocProvider.value(
+                    value: widget.cutiBloc,
+                    child: DetailCutiPage(
+                      cutiId: cuti.id,
+                      showActions: false,
+                      currentUserRole: currentUserRole,
+                    ),
+                  ),
+                ),
+              );
+              
+              if (result == true) {
+                widget.cutiBloc.add(GetDaftarCutiSayaEvent(widget.userId));
+              }
+            },
+          ),
+        );
+      },
+    );
   }
 }

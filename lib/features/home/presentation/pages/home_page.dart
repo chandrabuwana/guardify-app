@@ -6,8 +6,8 @@ import 'package:collection/collection.dart';
 import '../widgets/shift_card.dart';
 import '../widgets/task_card.dart';
 import '../widgets/menu_grid.dart';
+import 'location_tracking_page.dart';
 import '../widgets/custom_bottom_nav.dart';
-import '../widgets/panic_button_widget.dart';
 import '../bloc/home_bloc.dart';
 import '../bloc/home_event.dart';
 import '../bloc/home_state.dart';
@@ -15,15 +15,16 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/design/colors.dart';
 import '../../../attendance/presentation/pages/check_in_page.dart';
 import '../../../attendance/presentation/pages/check_out_page.dart';
+import '../../../attendance/presentation/pages/attendance_rekap_screen.dart';
 import '../../../bmi/presentation/pages/bmi_navigation_page.dart';
 import '../../../panic_button/presentation/pages/panic_verification_page.dart';
+import '../../../panic_button/presentation/pages/panic_button_history_page.dart';
 import '../../../panic_button/presentation/bloc/panic_button_bloc.dart';
 import '../../../company_regulations/presentation/pages/company_regulations_page.dart';
 import '../../../company_regulations/presentation/bloc/document_bloc.dart';
 import '../../../patrol/presentation/pages/patrol_detail_page.dart';
 import '../../../patrol/presentation/pages/home_patrol_page.dart';
 import '../../../patrol/domain/entities/patrol_route.dart';
-import '../../../patrol/domain/repositories/patrol_repository.dart';
 import '../../../profile/presentation/pages/profile_screen.dart';
 import '../../../test_result/presentation/pages/test_result_page.dart';
 import '../../../chat/presentation/pages/chat_list_page.dart';
@@ -144,6 +145,19 @@ class __HomePageViewState extends State<_HomePageView> {
                       prefillShiftDetailId: state
                           .navigationArguments?['shiftDetailId'] as String?,
                     ),
+                  ),
+                ).then((_) {
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
+                });
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/attendance-recap':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AttendanceRekapScreen(),
                   ),
                 ).then((_) {
                   context
@@ -306,6 +320,31 @@ class __HomePageViewState extends State<_HomePageView> {
                 // Clear navigation route after navigation
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
+              case '/emergency-history':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider(
+                      create: (context) => getIt<PanicButtonBloc>(),
+                      child: const PanicButtonHistoryPage(),
+                    ),
+                  ),
+                ).then((_) {
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
+                });
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/incident-report':
+              case '/laporan-kejadian':
+                Navigator.pushNamed(context, '/laporan-kejadian').then((_) {
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
+                });
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
               default:
                 // For other routes, show snackbar instead of navigating
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -402,6 +441,9 @@ class __HomePageViewState extends State<_HomePageView> {
                           attendanceInfo: state.attendanceInfo,
                           teamMembersImages: _getTeamMembersImages(state),
                           userRole: state.userRole,
+                          totalPersonil: state.currentShift?.listPersonel.length,
+                          hadirCount: state.currentShift?.listPersonel.length, // Semua personil di list sudah di-assign (hadir)
+                          location: state.currentShift?.location,
                           onWorkButtonPressed: () {
                             unawaited(
                               _handleWorkButtonPressed(context, state),
@@ -410,12 +452,27 @@ class __HomePageViewState extends State<_HomePageView> {
                           onTrackLocationPressed:
                               state.userRole == UserRole.pengawas
                                   ? () {
-                                      context.read<HomeBloc>().add(
-                                            const ShowSnackbarEvent(
-                                                'Fitur Lacak Lokasi sedang dalam pengembangan'),
-                                          );
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => LocationTrackingPage(
+                                            personnelList: state.currentShift?.listPersonel ?? [],
+                                          ),
+                                        ),
+                                      );
                                     }
                                   : null,
+                          onCardTap: state.userRole == UserRole.pengawas
+                              ? () {
+                                  // Navigasi ke halaman attendance rekap untuk pengawas
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const AttendanceRekapScreen(),
+                                    ),
+                                  );
+                                }
+                              : null,
                         ),
 
                         24.verticalSpace,
@@ -447,23 +504,7 @@ class __HomePageViewState extends State<_HomePageView> {
                         ),
 
                         24.verticalSpace,
-
-                        // Panic Button Widget
-                        PanicButtonWidget(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BlocProvider(
-                                  create: (context) => getIt<PanicButtonBloc>(),
-                                  child: const PanicVerificationPage(),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-
-                        80.verticalSpace, // Bottom padding for bottom nav
+                        100.verticalSpace, // Bottom padding for bottom nav with emergency button
                       ],
                     ),
                   ),
@@ -475,6 +516,17 @@ class __HomePageViewState extends State<_HomePageView> {
             currentIndex: state.currentBottomNavIndex,
             onTap: (index) {
               context.read<HomeBloc>().add(BottomNavigationTappedEvent(index));
+            },
+            onEmergencyPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BlocProvider(
+                    create: (context) => getIt<PanicButtonBloc>(),
+                    child: const PanicVerificationPage(),
+                  ),
+                ),
+              );
             },
           ),
         );
@@ -1122,90 +1174,37 @@ class __HomePageViewState extends State<_HomePageView> {
                                   final firstRoute = currentTask.listRoute.first;
                                   final idAreas = firstRoute.idAreas;
                                   
-                                  // Show loading
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (_) => const Center(child: CircularProgressIndicator()),
+                                  // Create PatrolRoute with empty locations - will be loaded from ListRoute
+                                  final patrolRoute = PatrolRoute(
+                                    id: idAreas,
+                                    name: firstRoute.areasName,
+                                    description: 'Status: ${firstRoute.status}',
+                                    locations: [], // Empty - will be loaded from ListRoute by bloc
+                                    additionalLocations: const [],
+                                    date: DateTime.now(),
+                                    status: firstRoute.status.toUpperCase() == 'SELESAI' || 
+                                            firstRoute.status.toUpperCase() == 'DONE'
+                                        ? PatrolRouteStatus.completed
+                                        : firstRoute.status.toUpperCase() == 'BELUM'
+                                            ? PatrolRouteStatus.pending
+                                            : PatrolRouteStatus.inProgress,
                                   );
-                                  
-                                  // Fetch areas from API using IdAreas
-                                  final patrolRepository = getIt<PatrolRepository>();
-                                  final areasResult = await patrolRepository.getAreasByIdAreas(idAreas);
-                                  
-                                  // Close loading
-                                  Navigator.of(context).pop();
-                                  
-                                  areasResult.fold(
-                                    (failure) {
-                                      print('❌ Error loading areas: ${failure.message}');
-                                      
-                                      // Show error message
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Gagal memuat data area. Silakan coba lagi.'),
-                                          backgroundColor: Colors.red,
-                                          duration: const Duration(seconds: 3),
-                                        ),
-                                      );
-                                      
-                                      // Still navigate but with empty locations
-                                      // PatrolDetailPage will handle empty locations
-                                      final patrolRoute = PatrolRoute(
-                                        id: idAreas,
-                                        name: firstRoute.areasName,
-                                        description: 'Status: ${firstRoute.status}',
-                                        locations: [], // Empty - will be loaded by page
-                                        additionalLocations: const [],
-                                        date: DateTime.now(),
-                                        status: firstRoute.status.toUpperCase() == 'SELESAI' || 
-                                                firstRoute.status.toUpperCase() == 'DONE'
-                                            ? PatrolRouteStatus.completed
-                                            : firstRoute.status.toUpperCase() == 'BELUM'
-                                                ? PatrolRouteStatus.pending
-                                                : PatrolRouteStatus.inProgress,
-                                      );
 
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => PatrolDetailPage(route: patrolRoute),
-                                        ),
-                                      ).then((_) {
-                                        context
-                                            .read<HomeBloc>()
-                                            .add(const BottomNavigationTappedEvent(0));
-                                      });
-                                    },
-                                    (locations) {
-                                      // Create PatrolRoute with locations from API
-                                      final patrolRoute = PatrolRoute(
-                                        id: idAreas,
-                                        name: firstRoute.areasName,
-                                        description: '${locations.length} Lokasi - Status: ${firstRoute.status}',
-                                        locations: locations,
-                                        additionalLocations: const [],
-                                        date: DateTime.now(),
-                                        status: firstRoute.status.toUpperCase() == 'SELESAI' || 
-                                                firstRoute.status.toUpperCase() == 'DONE'
-                                            ? PatrolRouteStatus.completed
-                                            : firstRoute.status.toUpperCase() == 'BELUM'
-                                                ? PatrolRouteStatus.pending
-                                                : PatrolRouteStatus.inProgress,
-                                      );
-
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => PatrolDetailPage(route: patrolRoute),
-                                        ),
-                                      ).then((_) {
-                                        context
-                                            .read<HomeBloc>()
-                                            .add(const BottomNavigationTappedEvent(0));
-                                      });
-                                    },
-                                  );
+                                  // Navigate with ListRoute data - bloc will use it instead of calling API
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PatrolDetailPage(
+                                        route: patrolRoute,
+                                        listRoute: currentTask.listRoute, // Pass ListRoute data
+                                        isCheckedIn: homeState.currentShift?.checkin,
+                                      ),
+                                    ),
+                                  ).then((_) {
+                                    context
+                                        .read<HomeBloc>()
+                                        .add(const BottomNavigationTappedEvent(0));
+                                  });
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
@@ -1244,7 +1243,7 @@ class __HomePageViewState extends State<_HomePageView> {
                                       id: matchingRoute.idAreas,
                                       name: matchingRoute.areasName,
                                       description: 'Status: ${matchingRoute.status}',
-                                      locations: [],
+                                      locations: [], // Empty - will be loaded from ListRoute by bloc
                                       additionalLocations: const [],
                                       date: DateTime.now(),
                                       status: matchingRoute.status.toUpperCase() == 'SELESAI' || 
@@ -1255,11 +1254,16 @@ class __HomePageViewState extends State<_HomePageView> {
                                               : PatrolRouteStatus.inProgress,
                                     );
 
+                                    // Navigate with ListRoute data - bloc will use it instead of calling API
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
-                                            PatrolDetailPage(route: patrolRoute),
+                                            PatrolDetailPage(
+                                              route: patrolRoute,
+                                              listRoute: currentTask.listRoute, // Pass ListRoute data
+                                              isCheckedIn: homeState.currentShift?.checkin,
+                                            ),
                                       ),
                                     ).then((_) {
                                       context
@@ -1297,7 +1301,10 @@ class __HomePageViewState extends State<_HomePageView> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        PatrolDetailPage(route: route),
+                                        PatrolDetailPage(
+                                          route: route,
+                                          isCheckedIn: homeState.currentShift?.checkin,
+                                        ),
                                   ),
                                 ).then((_) {
                                   context
@@ -1350,6 +1357,14 @@ class __HomePageViewState extends State<_HomePageView> {
                   .add(const BottomNavigationTappedEvent(0));
             });
           },
+        ),
+        MenuItem(
+          id: 'attendance_recap',
+          title: 'Rekapitulasi Kehadiran',
+          icon: Icons.assignment,
+          onTap: () => context
+              .read<HomeBloc>()
+              .add(const NavigateToAttendanceRecapEvent()),
         ),
         MenuItem(
           id: 'activity_report',
@@ -1407,7 +1422,7 @@ class __HomePageViewState extends State<_HomePageView> {
 
     // Menu default untuk role lainnya (Anggota, Danton, PJO, Deputy, Admin)
     print('✅ BUILDING DEFAULT MENU (With Rekapitulasi Kehadiran)');
-    return [
+    final menuItems = <MenuItem>[
       MenuItem(
         id: 'incident',
         title: 'Insiden Kejadian',
@@ -1424,13 +1439,22 @@ class __HomePageViewState extends State<_HomePageView> {
             .read<HomeBloc>()
             .add(const NavigateToAttendanceRecapEvent()),
       ),
-      MenuItem(
-        id: 'activity_report',
-        title: 'Laporan Kegiatan',
-        icon: Icons.description,
-        onTap: () =>
-            context.read<HomeBloc>().add(const NavigateToActivityReportEvent()),
-      ),
+    ];
+
+    // Laporan Kegiatan hanya untuk role selain anggota
+    if (userRole != UserRole.anggota) {
+      menuItems.add(
+        MenuItem(
+          id: 'activity_report',
+          title: 'Laporan Kegiatan',
+          icon: Icons.description,
+          onTap: () =>
+              context.read<HomeBloc>().add(const NavigateToActivityReportEvent()),
+        ),
+      );
+    }
+
+    menuItems.addAll([
       MenuItem(
         id: 'bmi',
         title: 'Body Mass Index (BMI)',
@@ -1474,7 +1498,9 @@ class __HomePageViewState extends State<_HomePageView> {
         onTap: () =>
             context.read<HomeBloc>().add(const NavigateToDisasterInfoEvent()),
       ),
-    ];
+    ]);
+
+    return menuItems;
   }
 
   List<String> _getTeamMembersImages(HomeLoaded state) {

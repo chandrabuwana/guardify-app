@@ -1,5 +1,6 @@
 import '../models/cuti_model.dart';
 import '../models/cuti_kuota_model.dart';
+import '../models/leave_request_type_model.dart';
 import '../../domain/entities/cuti_entity.dart';
 
 /// Abstract interface for Cuti remote data source
@@ -23,6 +24,7 @@ abstract class CutiRemoteDataSource {
     required String userId,
     required String nama,
     required CutiType tipeCuti,
+    required int leaveRequestTypeId, // ID dari API
     required DateTime tanggalMulai,
     required DateTime tanggalSelesai,
     required String alasan,
@@ -55,5 +57,9 @@ abstract class CutiRemoteDataSource {
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
     String? status,
+    String? tipeCuti,
   });
+
+  /// Get list of leave request types
+  Future<List<LeaveRequestTypeModel>> getLeaveRequestTypeList();
 }

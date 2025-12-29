@@ -17,6 +17,8 @@ class BMIState {
   final bool hasMoreData;
   final int totalCount; // Total jumlah data dari server
   final int filteredCount; // Total data setelah filter
+  final bool hasLoadedEmpty; // Flag untuk menandai data sudah pernah di-load dan kosong
+  final bool hasInitialLoadAttempted; // Flag untuk menandai sudah pernah attempt load
 
   const BMIState({
     this.isLoading = false,
@@ -35,6 +37,8 @@ class BMIState {
     this.hasMoreData = true,
     this.totalCount = 0,
     this.filteredCount = 0,
+    this.hasLoadedEmpty = false,
+    this.hasInitialLoadAttempted = false,
   });
 
   BMIState copyWith({
@@ -54,6 +58,8 @@ class BMIState {
     bool? hasMoreData,
     int? totalCount,
     int? filteredCount,
+    bool? hasLoadedEmpty,
+    bool? hasInitialLoadAttempted,
   }) {
     return BMIState(
       isLoading: isLoading ?? this.isLoading,
@@ -72,6 +78,8 @@ class BMIState {
       hasMoreData: hasMoreData ?? this.hasMoreData,
       totalCount: totalCount ?? this.totalCount,
       filteredCount: filteredCount ?? this.filteredCount,
+      hasLoadedEmpty: hasLoadedEmpty ?? this.hasLoadedEmpty,
+      hasInitialLoadAttempted: hasInitialLoadAttempted ?? this.hasInitialLoadAttempted,
     );
   }
 

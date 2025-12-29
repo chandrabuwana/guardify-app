@@ -162,6 +162,8 @@ class CurrentShiftData {
   final String? checkoutTime;
   final List<CurrentShiftPersonnel> listPersonel;
   final String? idShiftDetail;
+  final String? shiftDate;
+  final String? location;
 
   const CurrentShiftData({
     required this.id,
@@ -173,6 +175,8 @@ class CurrentShiftData {
     this.checkoutTime,
     required this.listPersonel,
     this.idShiftDetail,
+    this.shiftDate,
+    this.location,
   });
 }
 
@@ -233,6 +237,8 @@ class RouteTask {
   final String? filename;
   final String? fileUrl;
   final String status;
+  final double? latitude;
+  final double? longitude;
 
   const RouteTask({
     required this.idAreas,
@@ -241,6 +247,8 @@ class RouteTask {
     this.filename,
     this.fileUrl,
     required this.status,
+    this.latitude,
+    this.longitude,
   });
 }
 
@@ -259,6 +267,8 @@ class CarryOverTask {
   final String status;
   final String? updateBy;
   final String? updateDate;
+  final String? location;
+  final String? file;
 
   const CarryOverTask({
     required this.id,
@@ -274,5 +284,7 @@ class CarryOverTask {
     required this.status,
     this.updateBy,
     this.updateDate,
+    this.location,
+    this.file,
   });
 }

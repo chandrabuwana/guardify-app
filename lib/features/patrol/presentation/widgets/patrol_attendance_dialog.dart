@@ -7,7 +7,9 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../domain/entities/patrol_location.dart';
+import '../../domain/entities/patrol_route.dart';
 import '../../domain/repositories/patrol_repository.dart';
+import '../../../schedule/domain/repositories/schedule_repository.dart';
 import '../bloc/patrol_bloc.dart';
 
 class PatrolAttendanceDialog extends StatefulWidget {
@@ -62,9 +64,8 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
     // TODO: Implement actual GPS location
     // For now, use mock location near Jakarta
     setState(() {
-      _currentLatitude = -6.2088 + (DateTime.now().millisecond % 100) * 0.0001;
-      _currentLongitude =
-          106.8456 + (DateTime.now().millisecond % 100) * 0.0001;
+      _currentLatitude = -6.173056780703297;
+      _currentLongitude = 106.78692883979942;
       _isLocationVerified = true;
     });
   }
@@ -278,8 +279,22 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
             // Try to access PatrolBloc from context if available
             final patrolBloc = context.read<PatrolBloc>();
             print('[PatrolAttendanceDialog] ✅ Success! Reloading areas for route: ${widget.routeId}');
-            // Reload areas to refresh the list
-            patrolBloc.add(LoadAreasByRouteId(widget.routeId, null));
+            
+            // Get listRoute from current state if available
+            final currentState = patrolBloc.state;
+            List<RouteTask>? listRoute;
+            PatrolRoute? existingRoute;
+            
+            if (currentState is PatrolLoaded) {
+              listRoute = currentState.listRoute;
+              // Find existing route
+              existingRoute = currentState.routes
+                  .where((route) => route.id == widget.routeId)
+                  .firstOrNull;
+            }
+            
+            // Reload areas to refresh the list (use listRoute from state)
+            patrolBloc.add(LoadAreasByRouteId(widget.routeId, existingRoute, listRoute));
           } catch (e) {
             print('[PatrolAttendanceDialog] Could not access PatrolBloc: $e');
             // If bloc is not available, parent will handle reload via return value

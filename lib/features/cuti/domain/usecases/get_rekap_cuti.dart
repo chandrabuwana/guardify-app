@@ -6,11 +6,13 @@ class GetRekapCutiParams {
   final DateTime? tanggalMulai;
   final DateTime? tanggalSelesai;
   final String? status;
+  final String? tipeCuti;
 
   GetRekapCutiParams({
     this.tanggalMulai,
     this.tanggalSelesai,
     this.status,
+    this.tipeCuti,
   });
 }
 
@@ -25,6 +27,7 @@ class GetRekapCuti {
       tanggalMulai: params.tanggalMulai,
       tanggalSelesai: params.tanggalSelesai,
       status: params.status,
+      tipeCuti: params.tipeCuti,
     );
   }
 }

@@ -49,9 +49,17 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
   ) async {
     // Skip jika sudah ada data user yang sama dan tidak ada error
     if (state.currentUserProfile?.id == event.userId && !state.hasError) {
+      print('⏭️ BMI Bloc: Skip BMIGetUserProfile - already has profile for user ${event.userId}');
+      return;
+    }
+    
+    // Skip jika sedang loading untuk user yang sama
+    if (state.isLoading && state.currentUserProfile?.id == event.userId) {
+      print('⏭️ BMI Bloc: Skip BMIGetUserProfile - already loading for user ${event.userId}');
       return;
     }
 
+    print('🔄 BMI Bloc: Loading user profile for ${event.userId}');
     emit(state.copyWith(isLoading: true, error: null));
 
     final result = await getUserProfile(event.userId);
@@ -94,30 +102,62 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     BMILoadAllUsers event,
     Emitter<BMIState> emit,
   ) async {
+    // Skip jika sedang loading
+    if (state.isLoading) {
+      print('⏭️ BMI Bloc: Skip BMILoadAllUsers - already loading');
+      return;
+    }
+    
+    // Skip jika sudah pernah attempt load dan data kosong (hasLoadedEmpty = true)
+    if (state.hasInitialLoadAttempted && state.hasLoadedEmpty && state.searchResults.isEmpty && !state.hasError) {
+      print('⏭️ BMI Bloc: Skip BMILoadAllUsers - hasInitialLoadAttempted=true, hasLoadedEmpty=true, data is empty');
+      return;
+    }
+    
+    // Skip jika sudah ada data
+    if (state.searchResults.isNotEmpty && state.hasInitialLoadAttempted) {
+      print('⏭️ BMI Bloc: Skip BMILoadAllUsers - already has data (${state.searchResults.length} items)');
+      return;
+    }
+    
+    print('🔄 BMI Bloc: Loading all users...');
     emit(state.copyWith(
-      isSearching: true,
+      isLoading: true,
       error: null,
       currentPage: 1,
       searchResults: [],
       hasMoreData: true,
+      hasLoadedEmpty: false,
+      hasInitialLoadAttempted: true, // Set flag bahwa sudah pernah attempt
     ));
 
     final result = await getUserProfilesPaginated(page: 1, pageSize: 10);
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        isSearching: false,
-        error: _mapFailureToMessage(failure),
-      )),
-      (paginatedResponse) => emit(state.copyWith(
-        isSearching: false,
-        searchResults: paginatedResponse.data,
-        currentPage: paginatedResponse.currentPage,
-        hasMoreData: paginatedResponse.hasMore,
-        totalCount: paginatedResponse.totalCount,
-        filteredCount: paginatedResponse.filteredCount,
-        error: null,
-      )),
+      (failure) {
+        print('❌ BMI Bloc: Load all users failed - ${_mapFailureToMessage(failure)}');
+        emit(state.copyWith(
+          isLoading: false,
+          error: _mapFailureToMessage(failure),
+          hasLoadedEmpty: false,
+          hasInitialLoadAttempted: true, // Tetap set true meskipun error
+        ));
+      },
+      (paginatedResponse) {
+        final isEmpty = paginatedResponse.data.isEmpty && paginatedResponse.totalCount == 0;
+        print('✅ BMI Bloc: Load all users success - ${paginatedResponse.data.length} items, totalCount=${paginatedResponse.totalCount}, isEmpty=$isEmpty');
+        emit(state.copyWith(
+          isLoading: false,
+          searchResults: paginatedResponse.data,
+          currentPage: paginatedResponse.currentPage,
+          hasMoreData: paginatedResponse.hasMore,
+          totalCount: paginatedResponse.totalCount,
+          filteredCount: paginatedResponse.filteredCount,
+          error: null,
+          hasLoadedEmpty: isEmpty,
+          hasInitialLoadAttempted: true, // Pastikan flag tetap true
+        ));
+      },
     );
   }
 
@@ -261,14 +301,26 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     BMILoadHistory event,
     Emitter<BMIState> emit,
   ) async {
+    // Skip jika sedang loading
+    if (state.isLoading) {
+      print('⏭️ BMI Bloc: Skip BMILoadHistory - already loading');
+      return;
+    }
+    
     // Skip jika sudah ada history untuk user yang sama dan tidak force refresh
+    // Termasuk jika history kosong (sudah pernah di-load dan kosong)
     if (!event.forceRefresh &&
         state.bmiHistoryUserId == event.userId &&
-        state.bmiHistory.isNotEmpty &&
         !state.hasError) {
+      if (state.bmiHistory.isNotEmpty) {
+        print('⏭️ BMI Bloc: Skip BMILoadHistory - already has history for user ${event.userId} (${state.bmiHistory.length} records)');
+      } else {
+        print('⏭️ BMI Bloc: Skip BMILoadHistory - already loaded history for user ${event.userId} (empty, no need to retry)');
+      }
       return;
     }
 
+    print('🔄 BMI Bloc: Loading BMI history for user ${event.userId}');
     emit(state.copyWith(isLoading: true, error: null));
 
     final result = await getBMIHistory(event.userId);

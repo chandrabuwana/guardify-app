@@ -65,6 +65,12 @@ class CurrentShiftDataModel {
   @JsonKey(name: 'IdShiftDetail')
   final String? idShiftDetail;
 
+  @JsonKey(name: 'ShiftDate')
+  final String? shiftDate;
+
+  @JsonKey(name: 'Location')
+  final String? location;
+
   CurrentShiftDataModel({
     required this.id,
     required this.name,
@@ -75,6 +81,8 @@ class CurrentShiftDataModel {
     this.checkoutTime,
     required this.listPersonel,
     this.idShiftDetail,
+    this.shiftDate,
+    this.location,
   });
 
   factory CurrentShiftDataModel.fromJson(Map<String, dynamic> json) =>

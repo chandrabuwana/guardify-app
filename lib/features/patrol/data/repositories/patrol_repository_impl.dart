@@ -224,8 +224,8 @@ class PatrolRepositoryImpl implements PatrolRepository {
       await Future.delayed(const Duration(seconds: 1));
 
       // Mock location coordinates (Jakarta area)
-      const mockLat = -6.2088;
-      const mockLng = 106.8456;
+      const mockLat = -6.173056780703297;
+      const mockLng = 106.78692883979942;
 
       final address = 'Current Location: $mockLat, $mockLng';
       return Right(address);
@@ -258,6 +258,28 @@ class PatrolRepositoryImpl implements PatrolRepository {
       return Right(locations);
     } catch (e) {
       print('[PatrolRepository] Error fetching areas by IdAreas: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<PatrolLocation>>> getAllAreas() async {
+    try {
+      print('[PatrolRepository] Fetching all areas for dropdown');
+
+      // Get all areas without filter (empty filter)
+      final response = await remoteDataSource.getAreaList(
+        start: 0,
+        length: 0, // Length set to 0 to get all records
+        filter: [],
+      );
+
+      // Convert AreaModel list to PatrolLocation list
+      final locations = AreaMapper.toPatrolLocations(response.list);
+      print('[PatrolRepository] Success: ${locations.length} areas loaded');
+      return Right(locations);
+    } catch (e) {
+      print('[PatrolRepository] Error fetching all areas: $e');
       return Left(ServerFailure(e.toString()));
     }
   }

@@ -76,6 +76,8 @@ CarriedOverTaskItemModel _$CarriedOverTaskItemModelFromJson(
           status: $checkedConvert('Status', (v) => v as String),
           updateBy: $checkedConvert('UpdateBy', (v) => v as String?),
           updateDate: $checkedConvert('UpdateDate', (v) => v as String?),
+          location: $checkedConvert('Location', (v) => v as String?),
+          file: $checkedConvert('File', (v) => v as String?),
         );
         return val;
       },
@@ -93,7 +95,9 @@ CarriedOverTaskItemModel _$CarriedOverTaskItemModelFromJson(
         'solverNote': 'SolverNote',
         'status': 'Status',
         'updateBy': 'UpdateBy',
-        'updateDate': 'UpdateDate'
+        'updateDate': 'UpdateDate',
+        'location': 'Location',
+        'file': 'File'
       },
     );
 
@@ -114,6 +118,8 @@ Map<String, dynamic> _$CarriedOverTaskItemModelToJson(
       'Status': instance.status,
       'UpdateBy': instance.updateBy,
       'UpdateDate': instance.updateDate,
+      'Location': instance.location,
+      'File': instance.file,
     };
 
 ReportNameModel _$ReportNameModelFromJson(Map<String, dynamic> json) =>

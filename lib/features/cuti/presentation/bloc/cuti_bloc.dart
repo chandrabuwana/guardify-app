@@ -8,6 +8,7 @@ import '../../domain/usecases/update_status_cuti.dart';
 import '../../domain/usecases/filter_cuti.dart';
 import '../../domain/usecases/get_detail_cuti.dart';
 import '../../domain/usecases/get_rekap_cuti.dart';
+import '../../domain/usecases/get_leave_request_type_list.dart';
 import 'cuti_event.dart';
 import 'cuti_state.dart';
 
@@ -21,6 +22,7 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
   final FilterCuti filterCuti;
   final GetDetailCuti getDetailCuti;
   final GetRekapCuti getRekapCuti;
+  final GetLeaveRequestTypeList getLeaveRequestTypeList;
 
   CutiBloc({
     required this.getCutiKuota,
@@ -31,6 +33,7 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
     required this.filterCuti,
     required this.getDetailCuti,
     required this.getRekapCuti,
+    required this.getLeaveRequestTypeList,
   }) : super(CutiInitial()) {
     on<GetCutiKuotaEvent>(_onGetCutiKuota);
     on<GetDaftarCutiSayaEvent>(_onGetDaftarCutiSaya);
@@ -40,6 +43,7 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
     on<FilterCutiEvent>(_onFilterCuti);
     on<GetDetailCutiEvent>(_onGetDetailCuti);
     on<GetRekapCutiEvent>(_onGetRekapCuti);
+    on<GetLeaveRequestTypeListEvent>(_onGetLeaveRequestTypeList);
     on<ResetCutiStateEvent>(_onResetCutiState);
     on<ClearCutiErrorEvent>(_onClearCutiError);
   }
@@ -99,6 +103,7 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
         userId: event.userId,
         nama: event.nama,
         tipeCuti: event.tipeCuti,
+        leaveRequestTypeId: event.leaveRequestTypeId,
         tanggalMulai: event.tanggalMulai,
         tanggalSelesai: event.tanggalSelesai,
         alasan: event.alasan,
@@ -174,6 +179,7 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
         tanggalMulai: event.tanggalMulai,
         tanggalSelesai: event.tanggalSelesai,
         status: event.status,
+        tipeCuti: event.tipeCuti,
       );
       final rekapCuti = await getRekapCuti(params);
       emit(RekapCutiLoaded(rekapCuti));
@@ -187,6 +193,19 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
     Emitter<CutiState> emit,
   ) {
     emit(CutiInitial());
+  }
+
+  Future<void> _onGetLeaveRequestTypeList(
+    GetLeaveRequestTypeListEvent event,
+    Emitter<CutiState> emit,
+  ) async {
+    try {
+      emit(CutiLoading());
+      final leaveRequestTypes = await getLeaveRequestTypeList();
+      emit(LeaveRequestTypeListLoaded(leaveRequestTypes));
+    } catch (e) {
+      emit(CutiError('Gagal memuat jenis cuti: ${e.toString()}'));
+    }
   }
 
   void _onClearCutiError(

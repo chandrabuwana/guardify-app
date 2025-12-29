@@ -58,7 +58,9 @@ class TugasLanjutanRepositoryImpl implements TugasLanjutanRepository {
           return const Right([]);
         }
         
-        final tugasList = carryOverTasks.map((task) {
+        final tugasList = carryOverTasks.asMap().entries.map((entry) {
+          final index = entry.key;
+          final task = entry.value;
           final reportDate = task.reportDate != null
               ? DateTime.tryParse(task.reportDate!)
               : null;
@@ -71,20 +73,20 @@ class TugasLanjutanRepositoryImpl implements TugasLanjutanRepository {
 
           return TugasLanjutanEntity(
             id: task.id,
-            title: task.reportNote.isNotEmpty
-                ? task.reportNote
-                : 'Tugas Lanjutan',
-            lokasi: '',
+            title: 'Tugas Lanjutan ${index + 1}',
+            lokasi: task.location ?? '',
             pelapor: task.createBy ?? 'Unknown',
             tanggal: reportDate ?? DateTime.now(),
-            deskripsi: task.reportNote,
+            deskripsi: task.reportNote.isNotEmpty
+                ? task.reportNote
+                : 'Tugas lanjutan',
             status: status,
             diselesaikanOleh: task.solverId != null
                 ? '${task.updateBy ?? task.solverId}'
                 : null,
             diselesaikanOlehId: task.solverId,
             tanggalSelesai: solverDate,
-            buktiUrl: null,
+            buktiUrl: task.file,
             catatan: task.solverNote,
           );
         }).toList();

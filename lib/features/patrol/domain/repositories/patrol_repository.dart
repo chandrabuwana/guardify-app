@@ -31,6 +31,9 @@ abstract class PatrolRepository {
   /// Get areas list filtered by IdAreas
   Future<Either<Failure, List<PatrolLocation>>> getAreasByIdAreas(String idAreas);
 
+  /// Get all areas list (for dropdown in add location form)
+  Future<Either<Failure, List<PatrolLocation>>> getAllAreas();
+
   /// Submit patrol check point
   Future<Either<Failure, bool>> submitCheckPoint({
     required String idShiftDetail,

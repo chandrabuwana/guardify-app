@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../../../../core/design/colors.dart';
@@ -9,12 +10,16 @@ import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/utils/user_role_helper.dart';
+import '../../../../core/security/security_manager.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../bloc/tugas_lanjutan_bloc.dart';
 import '../../domain/entities/tugas_lanjutan_entity.dart';
 import '../widgets/tugas_lanjutan_card.dart';
 import '../widgets/progress_indicator_widget.dart';
+import '../../../attendance/domain/repositories/attendance_repository.dart';
+import '../../../schedule/domain/usecases/get_current_shift.dart';
 
 class TugasLanjutanPage extends StatefulWidget {
   final String? userId;
@@ -40,6 +45,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
   List<TugasLanjutanEntity>? _cachedHariIniList; // Cache for "Hari Ini" tab data
   Map<String, dynamic>? _cachedProgressSummary; // Cache for progress summary
   final TextEditingController _searchController = TextEditingController();
+  bool? _isCheckedIn; // Checkin status from get_current API
 
   @override
   void initState() {
@@ -59,6 +65,8 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
 
     // Load user role and determine tab structure
     _loadUserRole();
+    // Load checkin status from get_current
+    _loadCheckinStatus();
   }
 
   Future<void> _loadUserRole() async {
@@ -73,6 +81,27 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
 
     // Load initial data after role is loaded
     _loadData();
+  }
+
+  Future<void> _loadCheckinStatus() async {
+    try {
+      final getCurrentShift = getIt<GetCurrentShift>();
+      final result = await getCurrentShift(userId: _currentUserId);
+      if (result.isSuccess && result.currentShift != null) {
+        setState(() {
+          _isCheckedIn = result.currentShift!.checkin;
+        });
+      } else {
+        setState(() {
+          _isCheckedIn = false; // Default to false if no shift data
+        });
+      }
+    } catch (e) {
+      // If error, default to false
+      setState(() {
+        _isCheckedIn = false;
+      });
+    }
   }
 
   @override
@@ -411,6 +440,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
               final tugas = _cachedHariIniList![index];
               return TugasLanjutanCard(
                 tugas: tugas,
+                isCheckedIn: _isCheckedIn,
                 onTap: () {
                   _showSelesaikanDialog(context, tugas);
                 },
@@ -429,6 +459,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
                 final tugas = _cachedHariIniList![index];
                 return TugasLanjutanCard(
                   tugas: tugas,
+                  isCheckedIn: _isCheckedIn,
                   onTap: () {
                     _showSelesaikanDialog(context, tugas);
                   },
@@ -494,6 +525,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
               final tugas = filteredList[index];
               return TugasLanjutanCard(
                 tugas: tugas,
+                isCheckedIn: _isCheckedIn,
                 onTap: () {
                   _showSelesaikanDialog(context, tugas);
                 },
@@ -540,6 +572,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
               final tugas = filteredList[index];
               return TugasLanjutanCard(
                 tugas: tugas,
+                isCheckedIn: _isCheckedIn,
                 onTap: () {
                   _showSelesaikanDialog(context, tugas);
                 },
@@ -558,6 +591,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
                 final tugas = _cachedHariIniList![index];
                 return TugasLanjutanCard(
                   tugas: tugas,
+                  isCheckedIn: _isCheckedIn,
                   onTap: () {
                     _showSelesaikanDialog(context, tugas);
                   },
@@ -578,6 +612,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
               final tugas = _cachedHariIniList![index];
               return TugasLanjutanCard(
                 tugas: tugas,
+                isCheckedIn: _isCheckedIn,
                 onTap: () {
                   _showSelesaikanDialog(context, tugas);
                 },
@@ -593,21 +628,100 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
     );
   }
 
-  void _showSelesaikanDialog(
+  Future<void> _showSelesaikanDialog(
     BuildContext context,
     TugasLanjutanEntity tugas,
-  ) {
+  ) async {
     if (tugas.status == TugasLanjutanStatus.selesai) {
       // Already completed, show read-only view
       return;
     }
 
+    // Validasi check-in: cek apakah user sudah check-in di home
+    try {
+      // Get user ID
+      String? userIdFromStorage = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      final String userId = userIdFromStorage != null && userIdFromStorage.isNotEmpty
+          ? userIdFromStorage
+          : _currentUserId;
+
+      // Get attendance repository
+      final attendanceRepository = getIt<AttendanceRepository>();
+      
+      // Check if user has checked in today
+      final checkInResult = await attendanceRepository.hasCheckedInToday(userId);
+      
+      checkInResult.fold(
+        (failure) {
+          // Error checking check-in status, show error dialog
+          _showCheckInRequiredDialog(context, isError: true);
+        },
+        (hasCheckedIn) {
+          if (!hasCheckedIn) {
+            // User hasn't checked in, show information dialog
+            _showCheckInRequiredDialog(context);
+          } else {
+            // User has checked in, proceed with showing the completion dialog
+            showDialog(
+              context: context,
+              builder: (context) => _SelesaikanTugasDialog(
+                tugas: tugas,
+                userId: userId,
+                bloc: _bloc,
+              ),
+            );
+          }
+        },
+      );
+    } catch (e) {
+      // Error occurred, show error dialog
+      _showCheckInRequiredDialog(context, isError: true);
+    }
+  }
+
+  void _showCheckInRequiredDialog(BuildContext context, {bool isError = false}) {
     showDialog(
       context: context,
-      builder: (context) => _SelesaikanTugasDialog(
-        tugas: tugas,
-        userId: _currentUserId,
-        bloc: _bloc,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.info_outline,
+              color: isError ? Colors.red : primaryColor,
+              size: 24.sp,
+            ),
+            8.horizontalSpace,
+            Expanded(
+              child: Text(
+                isError ? 'Terjadi Kesalahan' : 'Informasi',
+                style: TS.titleLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          isError
+              ? 'Terjadi kesalahan saat memeriksa status check-in. Silakan coba lagi.'
+              : 'Anda harus melakukan check-in di halaman home terlebih dahulu sebelum dapat menyelesaikan tugas lanjutan.',
+          style: TS.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Mengerti',
+              style: TS.labelLarge.copyWith(
+                color: primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -656,57 +770,154 @@ class _SelesaikanTugasDialogState extends State<_SelesaikanTugasDialog> {
   }
 
   Future<void> _pickImage() async {
-    try {
-      // Request camera permission
-      final cameraPermission = await Permission.camera.request();
-      if (cameraPermission != PermissionStatus.granted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Akses kamera ditolak'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Initialize cameras if not already done
-      if (_cameras == null) {
-        _cameras = await availableCameras();
-      }
-
-      if (_cameras == null || _cameras!.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kamera tidak tersedia'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Navigate to camera capture page
-      final result = await Navigator.push<XFile?>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => _CameraCapturePage(cameras: _cameras!),
-        ),
-      );
-
-      if (result != null && mounted) {
-        setState(() {
-          _imageFile = File(result.path);
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Foto berhasil diambil'),
-            backgroundColor: Colors.green,
+    // Show dialog to choose between camera and gallery
+    final ImagePicker picker = ImagePicker();
+    
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Pilih Sumber Foto'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                title: const Text('Kamera'),
+                onTap: () => Navigator.of(context).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.green),
+                title: const Text('Galeri'),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+            ],
           ),
         );
+      },
+    );
+
+    if (source == null) return;
+
+    try {
+      if (source == ImageSource.camera) {
+        // Request camera permission
+        final cameraPermission = await Permission.camera.request();
+        if (cameraPermission != PermissionStatus.granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Akses kamera ditolak'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        // Initialize cameras if not already done
+        if (_cameras == null) {
+          _cameras = await availableCameras();
+        }
+
+        if (_cameras == null || _cameras!.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Kamera tidak tersedia'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        // Navigate to camera capture page
+        final result = await Navigator.push<XFile?>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => _CameraCapturePage(cameras: _cameras!),
+          ),
+        );
+
+        if (result != null && mounted) {
+          setState(() {
+            _imageFile = File(result.path);
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto berhasil diambil'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        // Pick from gallery
+        // For Android 13+, use photos permission, for older versions use storage
+        if (Platform.isAndroid) {
+          // Try photos permission first (Android 13+)
+          var photosStatus = await Permission.photos.status;
+          if (photosStatus.isDenied) {
+            photosStatus = await Permission.photos.request();
+          }
+          
+          // If photos permission is not available, try storage (older Android)
+          if (photosStatus.isPermanentlyDenied || photosStatus.isDenied) {
+            var storageStatus = await Permission.storage.status;
+            if (storageStatus.isDenied) {
+              storageStatus = await Permission.storage.request();
+            }
+            
+            if (storageStatus.isPermanentlyDenied || storageStatus.isDenied) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Akses galeri ditolak. Silakan aktifkan di pengaturan aplikasi.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+              return;
+            }
+          }
+        } else {
+          // For iOS, use photos permission
+          var photosStatus = await Permission.photos.status;
+          if (photosStatus.isDenied) {
+            photosStatus = await Permission.photos.request();
+          }
+          
+          if (photosStatus.isPermanentlyDenied || photosStatus.isDenied) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Akses galeri ditolak. Silakan aktifkan di pengaturan aplikasi.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            return;
+          }
+        }
+
+        final XFile? image = await picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 85,
+        );
+
+        if (image != null && mounted) {
+          setState(() {
+            _imageFile = File(image.path);
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto berhasil dipilih dari galeri'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -957,11 +1168,11 @@ class _SelesaikanTugasDialogState extends State<_SelesaikanTugasDialog> {
                             ),
                             IconButton(
                               icon: Icon(
-                                Icons.camera_alt,
+                                Icons.add_photo_alternate,
                                 color: primaryColor,
                               ),
                               onPressed: _isLoading ? null : _pickImage,
-                              tooltip: 'Ambil Foto',
+                              tooltip: 'Pilih Foto (Kamera/Galeri)',
                             ),
                           ],
                         ),

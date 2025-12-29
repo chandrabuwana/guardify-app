@@ -1,6 +1,5 @@
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
 import '../error/exceptions.dart';
 
 class BiometricManager {
@@ -40,13 +39,11 @@ class BiometricManager {
 
       final bool didAuthenticate = await _localAuth.authenticate(
         localizedReason: localizedReason,
-        options: AuthenticationOptions(
-          biometricOnly: biometricOnly,
-          stickyAuth: true,
-        ),
       );
 
       return didAuthenticate;
+    } on LocalAuthException catch (e) {
+      throw BiometricException(_mapLocalAuthException(e));
     } on PlatformException catch (e) {
       throw BiometricException(_mapPlatformException(e));
     } catch (e) {
@@ -54,18 +51,37 @@ class BiometricManager {
     }
   }
 
-  // Map platform exceptions to user-friendly messages
+  // Map LocalAuthException to user-friendly messages
+  static String _mapLocalAuthException(LocalAuthException e) {
+    // In local_auth 3.0.0, the exception code is a string
+    switch (e.code.toString()) {
+      case 'NotAvailable':
+        return 'Biometric authentication not available';
+      case 'NotEnrolled':
+        return 'No biometric credentials enrolled';
+      case 'LockedOut':
+        return 'Too many failed attempts. Try again later';
+      case 'PermanentlyLockedOut':
+        return 'Biometric authentication permanently locked';
+      case 'PasscodeNotSet':
+        return 'Device passcode not set';
+      default:
+        return 'Biometric authentication failed';
+    }
+  }
+
+  // Map platform exceptions to user-friendly messages (fallback for older API)
   static String _mapPlatformException(PlatformException e) {
     switch (e.code) {
-      case auth_error.notAvailable:
+      case 'NotAvailable':
         return 'Biometric authentication not available';
-      case auth_error.notEnrolled:
+      case 'NotEnrolled':
         return 'No biometric credentials enrolled';
-      case auth_error.lockedOut:
+      case 'LockedOut':
         return 'Too many failed attempts. Try again later';
-      case auth_error.permanentlyLockedOut:
+      case 'PermanentlyLockedOut':
         return 'Biometric authentication permanently locked';
-      case auth_error.passcodeNotSet:
+      case 'PasscodeNotSet':
         return 'Device passcode not set';
       default:
         return 'Biometric authentication failed';

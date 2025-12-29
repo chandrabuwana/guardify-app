@@ -22,12 +22,29 @@ class BMINavigationPage extends StatelessWidget {
     final String userRoleString = arguments?['userRole'] ?? 'anggota';
     final UserRole userRole = UserRole.fromValue(userRoleString);
 
-    return BlocProvider<BMIBloc>(
-      create: (context) => getIt<BMIBloc>(),
-      child: BMIPage(
-        userId: userId,
-        userRole: userRole,
-      ),
-    );
+    // Cek apakah bloc sudah ada di context
+    try {
+      final existingBloc = context.read<BMIBloc>();
+      // Jika bloc sudah ada, gunakan BlocProvider.value
+      print('✅ BMINavigationPage: Using existing BMIBloc from context');
+      return BlocProvider.value(
+        value: existingBloc,
+        child: BMIPage(
+          userId: userId,
+          userRole: userRole,
+        ),
+      );
+    } catch (e) {
+      // Jika bloc belum ada, buat baru dengan key untuk memastikan tidak dibuat ulang
+      print('🔄 BMINavigationPage: Creating new BMIBloc instance');
+      return BlocProvider<BMIBloc>(
+        key: const ValueKey('bmi_bloc_provider_navigation'), // Key untuk memastikan tidak dibuat ulang
+        create: (context) => getIt<BMIBloc>(),
+        child: BMIPage(
+          userId: userId,
+          userRole: userRole,
+        ),
+      );
+    }
   }
 }

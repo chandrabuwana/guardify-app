@@ -37,7 +37,7 @@ AttendanceModel _$AttendanceModelFromJson(Map<String, dynamic> json) =>
               'status',
               (v) =>
                   $enumDecodeNullable(_$AttendanceStatusEnumMap, v) ??
-                  AttendanceStatus.pending),
+                  AttendanceStatus.checkIn),
           rejectionReason:
               $checkedConvert('rejection_reason', (v) => v as String?),
           approvalChain: $checkedConvert(
@@ -110,7 +110,8 @@ const _$ShiftTypeEnumMap = {
 };
 
 const _$AttendanceStatusEnumMap = {
-  AttendanceStatus.pending: 'pending',
-  AttendanceStatus.approved: 'approved',
-  AttendanceStatus.rejected: 'rejected',
+  AttendanceStatus.checkIn: 'checkIn',
+  AttendanceStatus.waiting: 'waiting',
+  AttendanceStatus.verified: 'verified',
+  AttendanceStatus.revision: 'revision',
 };

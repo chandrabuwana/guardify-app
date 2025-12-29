@@ -23,14 +23,16 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
   DateTime? _tanggalSelesai;
   bool _isExpanded = false;
 
-  final List<Map<String, String>> _statusOptions = [
+  final List<Map<String, String?>> _statusOptions = [
+    {'value': null, 'label': 'Semua'},
     {'value': 'pending', 'label': 'Menunggu'},
     {'value': 'approved', 'label': 'Disetujui'},
     {'value': 'rejected', 'label': 'Ditolak'},
     {'value': 'cancelled', 'label': 'Dibatalkan'},
   ];
 
-  final List<Map<String, String>> _tipeCutiOptions = [
+  final List<Map<String, String?>> _tipeCutiOptions = [
+    {'value': null, 'label': 'Semua'},
     {'value': 'tahunan', 'label': 'Cuti Tahunan'},
     {'value': 'sakit', 'label': 'Cuti Sakit'},
     {'value': 'melahirkan', 'label': 'Cuti Melahirkan'},
@@ -59,6 +61,8 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header
           InkWell(
@@ -104,12 +108,14 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
             Container(
               padding: REdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Status Filter
                   Row(
                     children: [
-                      Expanded(
+                      Flexible(
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -120,13 +126,13 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
                               ),
                             ),
                             8.verticalSpace,
-                            CustomDropdown<String>(
+                            CustomDropdown<String?>(
                               label: '',
                               hint: 'Pilih Status',
                               value: _selectedStatus,
                               items: _statusOptions.map((option) {
-                                return DropdownItem<String>(
-                                  value: option['value']!,
+                                return DropdownItem<String?>(
+                                  value: option['value'],
                                   text: option['label']!,
                                 );
                               }).toList(),
@@ -140,8 +146,9 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
                         ),
                       ),
                       12.horizontalSpace,
-                      Expanded(
+                      Flexible(
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -152,13 +159,13 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
                               ),
                             ),
                             8.verticalSpace,
-                            CustomDropdown<String>(
+                            CustomDropdown<String?>(
                               label: '',
                               hint: 'Pilih Tipe',
                               value: _selectedTipeCuti,
                               items: _tipeCutiOptions.map((option) {
-                                return DropdownItem<String>(
-                                  value: option['value']!,
+                                return DropdownItem<String?>(
+                                  value: option['value'],
                                   text: option['label']!,
                                 );
                               }).toList(),
@@ -179,8 +186,9 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
                   // Date Range Filter
                   Row(
                     children: [
-                      Expanded(
+                      Flexible(
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -204,8 +212,9 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
                         ),
                       ),
                       12.horizontalSpace,
-                      Expanded(
+                      Flexible(
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -236,7 +245,7 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
                   // Action Buttons
                   Row(
                     children: [
-                      Expanded(
+                      Flexible(
                         child: OutlinedButton(
                           onPressed: _clearFilter,
                           style: OutlinedButton.styleFrom(
@@ -255,7 +264,7 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
                         ),
                       ),
                       12.horizontalSpace,
-                      Expanded(
+                      Flexible(
                         child: ElevatedButton(
                           onPressed: _applyFilter,
                           style: ElevatedButton.styleFrom(
@@ -300,14 +309,18 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
         onDateSelected(date);
       },
       child: Container(
+        constraints: BoxConstraints(
+          minHeight: 48.h,
+        ),
         padding: REdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade300),
           borderRadius: BorderRadius.circular(8.r),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
+            Flexible(
               child: Text(
                 selectedDate != null
                     ? '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}'
@@ -317,8 +330,10 @@ class _FilterCutiWidgetState extends State<FilterCutiWidget> {
                       ? Colors.black87
                       : Colors.grey.shade500,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
+            8.horizontalSpace,
             Icon(
               Icons.calendar_today,
               color: Colors.grey.shade600,

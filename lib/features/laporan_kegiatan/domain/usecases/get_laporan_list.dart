@@ -16,11 +16,17 @@ class GetLaporanList {
     LaporanStatus? status,
     UserRole? role,
     String? userId,
+    String? search,
+    int start = 1,
+    int length = 10,
   }) async {
     return await repository.getLaporanList(
       status: status,
       role: role,
       userId: userId,
+      search: search,
+      start: start,
+      length: length,
     );
   }
 }

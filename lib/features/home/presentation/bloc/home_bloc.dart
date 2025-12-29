@@ -93,10 +93,33 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     AttendanceInfo attendanceInfo;
     if (currentShiftResult.isSuccess && currentShiftResult.currentShift != null) {
       final shift = currentShiftResult.currentShift!;
-      // Format checkin time or show "-" if not checked in
-      final checkinTime = shift.checkin && shift.checkinTime != null
-          ? _formatTime(shift.checkinTime!)
-          : '-';
+      // Format checkin time with date and time or show "-" if not checked in
+      String checkinTime;
+      if (shift.checkin && shift.checkinTime != null) {
+        try {
+          // Parse checkinTime from API (format: 2025-12-22T21:34:28.9226071)
+          final checkinDateTime = DateTime.parse(shift.checkinTime!);
+          checkinTime = _formatDateTime(checkinDateTime);
+        } catch (e) {
+          // If parsing fails, use time only as fallback
+          checkinTime = _formatTime(shift.checkinTime!);
+        }
+      } else {
+        checkinTime = '-';
+      }
+      
+      // Parse ShiftDate from get_current response, fallback to DateTime.now() if not available
+      DateTime shiftDate;
+      if (shift.shiftDate != null && shift.shiftDate!.isNotEmpty) {
+        try {
+          shiftDate = DateTime.parse(shift.shiftDate!);
+        } catch (e) {
+          // If parsing fails, use current date as fallback
+          shiftDate = DateTime.now();
+        }
+      } else {
+        shiftDate = DateTime.now();
+      }
       
       attendanceInfo = AttendanceInfo(
         isCheckedIn: shift.checkin,
@@ -104,7 +127,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         currentTime: checkinTime,
         shift: shift.name,
         position: 'Security', // Position might need to come from another API
-        date: DateTime.now(),
+        date: shiftDate,
         hasShift: true, // There is shift data available
       );
     } else {
@@ -195,6 +218,30 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     } catch (e) {
       return timeString;
     }
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final months = [
+      '',
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember'
+    ];
+
+    // Format: "22 Desember 2025 - 21:34"
+    final dateStr = '${dateTime.day} ${months[dateTime.month]} ${dateTime.year}';
+    final timeStr = '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    
+    return '$dateStr - $timeStr';
   }
 
   void _onBottomNavigationTapped(

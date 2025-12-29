@@ -118,8 +118,8 @@ class _AttendanceFormPageState extends State<AttendanceFormPage> {
     
     context.read<PatrolAttendanceBloc>().add(
       VerifyLocationEvent(
-        currentLatitude: -6.2088, // Mock current location
-        currentLongitude: 106.8456,
+        currentLatitude: -6.173056780703297, // Mock current location
+        currentLongitude: 106.78692883979942,
         targetLatitude: widget.location.latitude,
         targetLongitude: widget.location.longitude,
       ),
