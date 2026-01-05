@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/services/location_service.dart';
-import '../bloc/patrol_bloc.dart';
+import '../../../../core/security/security_manager.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../domain/entities/patrol_location.dart';
 import '../../domain/repositories/patrol_repository.dart';
+import '../../domain/usecases/verify_location.dart';
 
 class AddPatrolLocationDialog extends StatefulWidget {
   final String routeId;
@@ -38,8 +40,10 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
   bool _isLoading = false;
   bool _isLoadingAreas = true;
   bool _isLoadingLocation = false;
+  bool _isVerifyingLocation = false;
   List<PatrolLocation> _availableAreas = [];
   String? _errorMessage;
+  String? _verificationMessage;
   File? _proofImage;
 
   @override
@@ -95,40 +99,136 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
   }
 
   Future<void> _getCurrentLocation() async {
-    // Only get current location if no area is selected yet
-    if (_selectedLocation == null) {
-      setState(() {
-        _isLoadingLocation = true;
-        _currentLocationText = 'Mengambil lokasi...';
-      });
+    setState(() {
+      _isLoadingLocation = true;
+      _currentLocationText = 'Mengambil lokasi GPS...';
+      _isLocationVerified = false;
+    });
 
-      try {
-        final locationService = getIt<LocationService>();
-        final position = await locationService.getCurrentLatLng();
+    try {
+      final locationService = getIt<LocationService>();
+      final position = await locationService.getCurrentLatLng();
 
-        if (position != null) {
-          setState(() {
-            _latitude = position.lat;
-            _longitude = position.lng;
-            _currentLocationText =
-                '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}';
-            _isLocationVerified = true;
-            _isLoadingLocation = false;
-          });
-        } else {
-          setState(() {
-            _currentLocationText = 'Gagal mendapatkan lokasi. Pastikan GPS aktif.';
-            _isLocationVerified = false;
-            _isLoadingLocation = false;
-          });
-        }
-      } catch (e) {
+      if (position != null) {
         setState(() {
-          _currentLocationText = 'Error: $e';
-          _isLocationVerified = false;
+          _latitude = position.lat;
+          _longitude = position.lng;
+          _currentLocationText =
+              '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}';
           _isLoadingLocation = false;
         });
+        
+        // Verify location with selected area if area is selected
+        if (_selectedLocation != null) {
+          await _verifyLocationWithArea();
+        }
+      } else {
+        // GPS tidak tersedia, minta user untuk mengaktifkan GPS
+        if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+          _isLocationVerified = false;
+          _verificationMessage = 'GPS tidak tersedia';
+          _currentLocationText = 'GPS tidak tersedia. Silakan aktifkan GPS dan coba lagi.';
+        });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('GPS tidak tersedia. Silakan aktifkan GPS dan coba lagi.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
+    } catch (e) {
+      // Error mendapatkan GPS
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+          _isLocationVerified = false;
+          _verificationMessage = 'Error mengambil lokasi GPS';
+          _currentLocationText = 'Error mengambil lokasi GPS: $e';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error mengambil lokasi GPS: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _verifyLocationWithArea() async {
+    if (_selectedLocation == null || _latitude == null || _longitude == null) {
+      setState(() {
+        _isLocationVerified = false;
+        _verificationMessage = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isVerifyingLocation = true;
+      _verificationMessage = 'Memverifikasi lokasi...';
+    });
+
+    try {
+      // Get selected area details
+      final selectedArea = _availableAreas.firstWhere(
+        (area) => area.name == _selectedLocation!,
+        orElse: () => _availableAreas.first,
+      );
+
+      // Use VerifyLocation usecase
+      final verifyLocation = getIt<VerifyLocation>();
+      final result = await verifyLocation.call(
+        VerifyLocationParams(
+          currentLatitude: _latitude!,
+          currentLongitude: _longitude!,
+          targetLatitude: selectedArea.latitude,
+          targetLongitude: selectedArea.longitude,
+        ),
+      );
+
+      result.fold(
+        (failure) {
+          setState(() {
+            _isLocationVerified = false;
+            _verificationMessage = 'Verifikasi gagal: ${failure.message}';
+            _isVerifyingLocation = false;
+          });
+        },
+        (isVerified) {
+          setState(() {
+            _isLocationVerified = isVerified;
+            _verificationMessage = isVerified
+                ? 'Verifikasi lokasi berhasil (dalam radius area)'
+                : 'Lokasi tidak berada dalam radius area yang dipilih (maksimal 100 meter)';
+            _isVerifyingLocation = false;
+          });
+
+          if (!isVerified && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Lokasi saat ini tidak berada dalam radius area "${_selectedLocation}". '
+                  'Pastikan Anda berada di lokasi yang benar.',
+                ),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _isLocationVerified = false;
+        _verificationMessage = 'Error verifikasi lokasi: $e';
+        _isVerifyingLocation = false;
+      });
     }
   }
 
@@ -190,7 +290,7 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -215,84 +315,167 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
       return;
     }
 
+    // Verify location is within radius of selected area
+    if (!_isLocationVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _verificationMessage ?? 
+            'Lokasi tidak berada dalam radius area yang dipilih. Pastikan Anda berada di lokasi yang benar.',
+          ),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
-    // Call API via BLoC
-    context.read<PatrolBloc>().add(
-          AddPatrolLocationEvent(
-            routeId: widget.routeId,
-            locationName: _selectedLocation!,
-            latitude: _latitude!,
-            longitude: _longitude!,
-            radius: 100, // Default radius 100 meters
-          ),
-        );
+    try {
+      // Get shift id from storage (saved from home when get_current is called)
+      // No need to hit API again, just read from storage
+      final idShiftDetail = await SecurityManager.readSecurely(
+        AppConstants.shiftDetailIdKey,
+      );
+      
+      if (idShiftDetail == null || idShiftDetail.isEmpty) {
+        print('⚠️ Shift id tidak ditemukan di storage');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Shift id tidak ditemukan. Silakan kembali ke home untuk memuat data shift.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      print('✅ Shift id dari storage: $idShiftDetail');
 
-    // Wait for BLoC response via BlocListener
-  }
+      // Get selected area details
+      final selectedArea = _availableAreas.firstWhere(
+        (area) => area.name == _selectedLocation!,
+      );
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<PatrolBloc, PatrolState>(
-      listener: (context, state) {
-        if (state is PatrolLocationAdded) {
-          // Success - location added, data will be reloaded automatically
-          if (mounted && _isLoading) {
+      // Get device name
+      final deviceName = await _resolveDeviceName();
+
+      // Get actual lat/long from GPS (must be available)
+      if (_latitude == null || _longitude == null || !_isLocationVerified) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Lokasi GPS belum tersedia. Silakan tunggu atau refresh lokasi.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      final actualLat = _latitude!;
+      final actualLng = _longitude!;
+
+      // Call new endpoint /AttendanceDetail/insert
+      final repository = getIt<PatrolRepository>();
+      final result = await repository.insertAttendanceDetail(
+        idShiftDetail: idShiftDetail,
+        device: deviceName,
+        idAreas: selectedArea.id, // IdAreas from selected location
+        latitude: actualLat,
+        locationName: selectedArea.name, // LocationName from selected location
+        longitude: actualLng,
+      );
+
+      result.fold(
+        (failure) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Gagal menambahkan lokasi: ${failure.message}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        (success) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Lokasi patroli berhasil ditambahkan'),
                 backgroundColor: Colors.green,
               ),
             );
-            // Keep loading, wait for data to reload
+            Navigator.of(context).pop(true); // Return true to indicate success
+            widget.onLocationAdded();
           }
-        } else if (state is PatrolLoaded && _isLoading) {
-          // Data reloaded successfully after adding location
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-            });
-
-            // Close dialog - data already refreshed by BLoC
-            Navigator.of(context).pop();
-          }
-        } else if (state is PatrolError) {
-          // Error
-          if (mounted && _isLoading) {
-            setState(() {
-              _isLoading = false;
-            });
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Gagal menambahkan lokasi: ${state.message}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      },
-      child: Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(16),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 600),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
           ),
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+        );
+      }
+    }
+  }
+
+  Future<String> _resolveDeviceName() async {
+    final deviceInfo = DeviceInfoPlugin();
+    String deviceName = 'Unknown Device';
+    try {
+      if (Platform.isAndroid) {
+        final info = await deviceInfo.androidInfo;
+        deviceName = '${info.manufacturer} ${info.model}';
+      } else if (Platform.isIOS) {
+        final info = await deviceInfo.iosInfo;
+        final machine = info.utsname.machine;
+        deviceName = machine.isNotEmpty ? machine : 'iPhone';
+      }
+    } catch (_) {}
+    return deviceName;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 600),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                       // Title
                       const Center(
                         child: Text(
@@ -387,6 +570,7 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                                     )
                                   : DropdownButtonFormField<String>(
                                       value: _selectedLocation,
+                                      isExpanded: true,
                                       decoration: InputDecoration(
                                         filled: true,
                                         fillColor: Colors.grey[100],
@@ -403,36 +587,33 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                                       items: _availableAreas.map((area) {
                                         return DropdownMenuItem(
                                           value: area.name,
-                                          child: Text(area.name),
+                                          child: Text(
+                                            area.name,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         );
                                       }).toList(),
                                       onChanged: (value) {
                                         setState(() {
                                           _selectedLocation = value;
-                                          
-                                          // Get latitude and longitude from selected Area
-                                          if (value != null) {
-                                            final selectedArea = _availableAreas
-                                                .firstWhere(
-                                                  (area) => area.name == value,
-                                                );
-                                            
-                                            // Use coordinates from Area
-                                            _latitude = selectedArea.latitude;
-                                            _longitude = selectedArea.longitude;
-                                            _currentLocationText =
-                                                '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}';
-                                            _isLocationVerified = true;
-                                          }
+                                          _isLocationVerified = false;
+                                          _verificationMessage = null;
                                         });
+                                        // Verify location with selected area
+                                        if (_latitude != null && _longitude != null) {
+                                          _verifyLocationWithArea();
+                                        } else {
+                                          // Get GPS location first, then verify
+                                          _getCurrentLocation();
+                                        }
                                       },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Lokasi patroli harus dipilih';
-                          }
-                          return null;
-                        },
-                      ),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Lokasi patroli harus dipilih';
+                                        }
+                                        return null;
+                                      },
+                                    ),
 
                       const SizedBox(height: 20),
 
@@ -601,41 +782,67 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                       const SizedBox(height: 20),
 
                       // Verifikasi Lokasi Berhasil
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8EAF6),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _isLocationVerified
-                                  ? Icons.check_circle
-                                  : Icons.info_outline,
+                      if (_selectedLocation != null)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _isLocationVerified
+                                ? Colors.green[50]
+                                : (_isVerifyingLocation
+                                    ? Colors.blue[50]
+                                    : Colors.orange[50]),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
                               color: _isLocationVerified
-                                  ? const Color(0xFF5C6BC0)
-                                  : Colors.orange,
-                              size: 20,
+                                  ? Colors.green[300]!
+                                  : (_isVerifyingLocation
+                                      ? Colors.blue[300]!
+                                      : Colors.orange[300]!),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _isLocationVerified
-                                    ? 'Verifikasi lokasi berhasil'
-                                    : 'Menunggu verifikasi lokasi...',
-                                style: TextStyle(
-                                  fontSize: 13,
+                          ),
+                          child: Row(
+                            children: [
+                              if (_isVerifyingLocation)
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              else
+                                Icon(
+                                  _isLocationVerified
+                                      ? Icons.check_circle
+                                      : Icons.error_outline,
                                   color: _isLocationVerified
-                                      ? const Color(0xFF5C6BC0)
+                                      ? Colors.green[700]
                                       : Colors.orange[800],
-                                  fontWeight: FontWeight.w500,
+                                  size: 20,
+                                ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _isVerifyingLocation
+                                      ? 'Memverifikasi lokasi...'
+                                      : (_verificationMessage ??
+                                          (_isLocationVerified
+                                              ? 'Verifikasi lokasi berhasil (dalam radius area)'
+                                              : 'Menunggu verifikasi lokasi...')),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: _isLocationVerified
+                                        ? Colors.green[700]
+                                        : (_isVerifyingLocation
+                                            ? Colors.blue[700]
+                                            : Colors.orange[800]),
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
 
                       const SizedBox(height: 24),
 
@@ -702,29 +909,28 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
+            ),
 
-              // Close button (X)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Text(
-                    'X',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+            // Close button (X)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Text(
+                  'X',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

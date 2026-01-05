@@ -7,6 +7,7 @@ import '../models/incident_location_model.dart';
 import '../models/incident_type_model.dart';
 import '../models/incident_list_request.dart';
 import '../models/incident_list_response.dart';
+import '../models/incident_detail_response.dart';
 import '../../domain/entities/incident_entity.dart';
 import 'incident_remote_datasource.dart';
 
@@ -141,11 +142,56 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
   @override
   Future<IncidentModel> getIncidentDetail(String incidentId) async {
     try {
-      // TODO: Replace with actual API endpoint when available
-      throw UnimplementedError('API endpoint not implemented yet');
+      print('[IncidentRemoteDataSource] Getting incident detail for ID: $incidentId');
+      
+      // Call GET /Incident/get/{id} endpoint
+      final response = await _dio.get(
+        '/Incident/get/$incidentId',
+      );
+
+      // Check response
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load incident detail: ${response.statusMessage}');
+      }
+
+      // Parse response
+      final responseData = IncidentDetailResponse.fromJson(response.data);
+      
+      if (!responseData.succeeded) {
+        final errorMessage = responseData.message.isNotEmpty 
+            ? responseData.message 
+            : responseData.description.isNotEmpty
+                ? responseData.description
+                : 'Failed to load incident detail';
+        throw Exception(errorMessage);
+      }
+
+      if (responseData.data == null) {
+        throw Exception('Incident detail data is null');
+      }
+
+      // Convert to IncidentModel
+      final incidentModel = responseData.data!.toIncidentModel();
+      
+      print('[IncidentRemoteDataSource] Successfully loaded incident detail: ${incidentModel.id}');
+      return incidentModel;
     } on DioException catch (e) {
+      print('[IncidentRemoteDataSource] DioException: ${e.message}');
+      print('[IncidentRemoteDataSource] Response: ${e.response?.data}');
+      
+      if (e.response != null) {
+        final errorData = e.response!.data;
+        if (errorData is Map<String, dynamic>) {
+          final errorMessage = errorData['Message']?.toString() ?? 
+                             errorData['message']?.toString() ??
+                             errorData['Description']?.toString() ??
+                             'Failed to load incident detail';
+          throw Exception(errorMessage);
+        }
+      }
       throw Exception('Network error: ${e.message}');
     } catch (e) {
+      print('[IncidentRemoteDataSource] Exception: $e');
       throw Exception('Failed to load incident detail: $e');
     }
   }

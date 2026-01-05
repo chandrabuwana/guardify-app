@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:camera/camera.dart';
 import 'dart:io';
+import '../../../../core/di/injection.dart';
+import '../../../../core/services/location_service.dart';
 import '../../domain/entities/patrol_location.dart';
 import '../bloc/attendance_bloc.dart';
 
@@ -28,16 +30,53 @@ class _AttendanceFormPageState extends State<AttendanceFormPage> {
   String _verificationMessage = '';
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
+  double? _currentLatitude;
+  double? _currentLongitude;
 
   @override
   void initState() {
     super.initState();
     _selectedPatrolLocation = widget.location.name;
     
+    // Get GPS location on init
+    _getCurrentGPSLocation();
+    
     // Add delay to ensure BlocProvider is ready
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PatrolAttendanceBloc>().add(GetCurrentLocationEvent());
     });
+  }
+
+  Future<void> _getCurrentGPSLocation() async {
+    try {
+      final locationService = getIt<LocationService>();
+      final position = await locationService.getCurrentLatLng();
+      
+      if (position != null) {
+        setState(() {
+          _currentLatitude = position.lat;
+          _currentLongitude = position.lng;
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('GPS tidak tersedia. Silakan aktifkan GPS.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error mengambil lokasi GPS: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -86,7 +125,7 @@ class _AttendanceFormPageState extends State<AttendanceFormPage> {
     }
   }
 
-  void _verifyLocation() {
+  Future<void> _verifyLocation() async {
     // Check if current location is loaded, if not show message
     if (_currentLocationController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -116,17 +155,35 @@ class _AttendanceFormPageState extends State<AttendanceFormPage> {
       ),
     );
     
+    // Get GPS location if not available
+    if (_currentLatitude == null || _currentLongitude == null) {
+      await _getCurrentGPSLocation();
+    }
+    
+    if (_currentLatitude == null || _currentLongitude == null) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lokasi GPS belum tersedia. Silakan aktifkan GPS dan coba lagi.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
     context.read<PatrolAttendanceBloc>().add(
       VerifyLocationEvent(
-        currentLatitude: -6.173056780703297, // Mock current location
-        currentLongitude: 106.78692883979942,
+        currentLatitude: _currentLatitude!,
+        currentLongitude: _currentLongitude!,
         targetLatitude: widget.location.latitude,
         targetLongitude: widget.location.longitude,
       ),
     );
   }
 
-  void _submitAttendance() {
+  Future<void> _submitAttendance() async {
     if (_formKey.currentState!.validate()) {
       if (_proofImage == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -148,11 +205,28 @@ class _AttendanceFormPageState extends State<AttendanceFormPage> {
         return;
       }
       
+      // Get GPS location if not available
+      if (_currentLatitude == null || _currentLongitude == null) {
+        await _getCurrentGPSLocation();
+      }
+      
+      if (_currentLatitude == null || _currentLongitude == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lokasi GPS belum tersedia. Silakan aktifkan GPS dan coba lagi.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
       context.read<PatrolAttendanceBloc>().add(
         SubmitAttendanceEvent(
           patrolLocationId: widget.location.id,
           currentAddress: _currentLocationController.text,
           proofImagePath: _proofImage!.path,
+          currentLatitude: _currentLatitude!,
+          currentLongitude: _currentLongitude!,
           notes: _notesController.text.isNotEmpty ? _notesController.text : null,
         ),
       );

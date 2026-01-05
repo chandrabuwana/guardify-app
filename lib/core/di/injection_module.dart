@@ -36,8 +36,8 @@ abstract class InjectionModule {
 
     // Base Configuration
     dio.options.baseUrl = AppConstants.baseUrl;
-    dio.options.connectTimeout = const Duration(seconds: 30);
-    dio.options.receiveTimeout = const Duration(seconds: 30);
+    dio.options.connectTimeout = const Duration(seconds: 60); // Increased to 60 seconds
+    dio.options.receiveTimeout = const Duration(seconds: 60); // Increased to 60 seconds
 
     // ValidateStatus - Jangan throw exception untuk 4xx error
     // Biarkan kita handle sendiri di repository
@@ -72,6 +72,18 @@ abstract class InjectionModule {
             print('🎯 Request Body: ${options.data}');
             print('🎯 ===================================');
           }
+          
+          // Log untuk Areas/list untuk debugging timeout
+          if (options.path.contains('Areas/list')) {
+            options.extra['start_time'] = DateTime.now();
+            print('📍 === AREAS/LIST REQUEST ===');
+            print('📍 URL: ${options.uri}');
+            print('📍 Method: ${options.method}');
+            print('📍 Headers: ${options.headers}');
+            print('📍 Request Body: ${options.data}');
+            print('📍 Timeout: ${dio.options.receiveTimeout}');
+            print('📍 ===========================');
+          }
 
           handler.next(options);
         },
@@ -83,6 +95,19 @@ abstract class InjectionModule {
             print('✅ Response Data: ${response.data}');
             print('✅ ===================================');
           }
+          
+          // Log response untuk Areas/list
+          if (response.requestOptions.path.contains('Areas/list')) {
+            final startTime = response.requestOptions.extra['start_time'] as DateTime?;
+            final duration = startTime != null 
+                ? DateTime.now().difference(startTime) 
+                : null;
+            print('✅ === AREAS/LIST RESPONSE ===');
+            print('✅ Status: ${response.statusCode}');
+            print('✅ Response time: ${duration?.inMilliseconds}ms');
+            print('✅ ===========================');
+          }
+          
           handler.next(response);
         },
         onError: (error, handler) async {

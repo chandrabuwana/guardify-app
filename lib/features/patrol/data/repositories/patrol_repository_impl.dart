@@ -7,6 +7,8 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/domain/entities/paginated_response.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/services/location_service.dart';
 import '../../domain/entities/patrol_route.dart';
 import '../../domain/entities/patrol_location.dart';
 import '../../domain/entities/patrol_attendance.dart';
@@ -220,17 +222,18 @@ class PatrolRepositoryImpl implements PatrolRepository {
   @override
   Future<Either<Failure, String>> getCurrentLocation() async {
     try {
-      // Mock current location for development
-      await Future.delayed(const Duration(seconds: 1));
+      // Get real GPS location from device
+      final locationService = getIt<LocationService>();
+      final position = await locationService.getCurrentLatLng();
 
-      // Mock location coordinates (Jakarta area)
-      const mockLat = -6.173056780703297;
-      const mockLng = 106.78692883979942;
-
-      final address = 'Current Location: $mockLat, $mockLng';
-      return Right(address);
+      if (position != null) {
+        final address = 'Current Location: ${position.lat.toStringAsFixed(6)}, ${position.lng.toStringAsFixed(6)}';
+        return Right(address);
+      } else {
+        return Left(ServerFailure('GPS tidak tersedia. Silakan aktifkan GPS.'));
+      }
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure('Error mengambil lokasi GPS: $e'));
     }
   }
 
@@ -284,9 +287,6 @@ class PatrolRepositoryImpl implements PatrolRepository {
     }
   }
 
-  static const double _hardcodedLatitude = -6.12407;
-  static const double _hardcodedLongitude = 106.8831;
-
   @override
   Future<Either<Failure, bool>> submitCheckPoint({
     required String idShiftDetail,
@@ -300,10 +300,12 @@ class PatrolRepositoryImpl implements PatrolRepository {
       print('  - IdShiftDetail: $idShiftDetail');
       print('  - IdAreas: $idAreas');
       print('  - Photo path: $photoPath');
+      print('  - Latitude: $latitude');
+      print('  - Longitude: $longitude');
 
-      // Use hardcoded lat/lng
-      final finalLatitude = _hardcodedLatitude;
-      final finalLongitude = _hardcodedLongitude;
+      // Use GPS coordinates from UI (real device location)
+      final finalLatitude = latitude;
+      final finalLongitude = longitude;
 
       // Build photo patroli
       PhotoPatroliModel? photoPatroli;
@@ -433,5 +435,44 @@ class PatrolRepositoryImpl implements PatrolRepository {
       fullName: fullName ?? '',
       mail: mail ?? '',
     );
+  }
+
+  @override
+  Future<Either<Failure, bool>> insertAttendanceDetail({
+    required String idShiftDetail,
+    required String device,
+    required String idAreas,
+    required double latitude,
+    required String locationName,
+    required double longitude,
+  }) async {
+    try {
+      print('[PatrolRepository] Inserting attendance detail...');
+      print('  - IdShiftDetail: $idShiftDetail');
+      print('  - Device: $device');
+      print('  - IdAreas: $idAreas');
+      print('  - LocationName: $locationName');
+      print('  - Latitude: $latitude');
+      print('  - Longitude: $longitude');
+
+      // Use GPS coordinates from UI (real device location)
+      final finalLatitude = latitude;
+      final finalLongitude = longitude;
+
+      // Call remote data source
+      final result = await remoteDataSource.insertAttendanceDetail(
+        idShiftDetail: idShiftDetail,
+        device: device,
+        idAreas: idAreas,
+        latitude: finalLatitude,
+        locationName: locationName,
+        longitude: finalLongitude,
+      );
+
+      return Right(result);
+    } catch (e) {
+      print('[PatrolRepository] Error inserting attendance detail: $e');
+      return Left(ServerFailure(e.toString()));
+    }
   }
 }

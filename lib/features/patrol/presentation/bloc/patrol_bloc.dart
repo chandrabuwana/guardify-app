@@ -335,19 +335,80 @@ class PatrolBloc extends Bloc<PatrolEvent, PatrolState> {
     List<PatrolLocation> locations,
   ) {
     print('[PatrolBloc] Successfully loaded ${locations.length} locations');
+    print('[PatrolBloc] Location details:');
+    for (var loc in locations) {
+      print('  - ${loc.name} (Status: ${loc.status}, ID: ${loc.id})');
+    }
     
     // Use existing route if provided, otherwise create new one
     final baseRoute = event.existingRoute;
+    List<PatrolLocation> finalLocations;
+    
+    if (baseRoute != null) {
+      print('[PatrolBloc] Base route has ${baseRoute.locations.length} locations before update');
+      print('[PatrolBloc] New locations from get_current_task: ${locations.length}');
+      
+      // Merge existing locations with new locations from get_current_task
+      // Strategy: Update existing locations if found in new data, add new ones that don't exist
+      final existingLocationIds = baseRoute.locations.map((loc) => loc.id).toSet();
+      final existingLocationNames = baseRoute.locations.map((loc) => loc.name).toSet();
+      
+      // Separate new locations into: ones that update existing, and truly new ones
+      final locationsToUpdate = <PatrolLocation>[];
+      final trulyNewLocations = <PatrolLocation>[];
+      
+      for (final newLoc in locations) {
+        // Check if this location exists in existing locations (by ID or name)
+        final existsById = existingLocationIds.contains(newLoc.id);
+        final existsByName = existingLocationNames.contains(newLoc.name);
+        
+        if (existsById || existsByName) {
+          // This location exists, use it to update existing one
+          locationsToUpdate.add(newLoc);
+        } else {
+          // This is a truly new location
+          trulyNewLocations.add(newLoc);
+        }
+      }
+      
+      print('[PatrolBloc] Locations to update existing: ${locationsToUpdate.length}');
+      print('[PatrolBloc] Truly new locations to add: ${trulyNewLocations.length}');
+      
+      // Update existing locations: replace with new data if found, otherwise keep existing
+      final updatedExistingLocations = baseRoute.locations.map((existingLoc) {
+        // Find matching location in update list (by ID first, then by name)
+        final matchingUpdate = locationsToUpdate.firstWhere(
+          (updateLoc) => updateLoc.id == existingLoc.id || 
+                        (updateLoc.id != existingLoc.id && updateLoc.name == existingLoc.name),
+          orElse: () => existingLoc, // Keep existing if no update found
+        );
+        
+        // If we found a matching update, use it; otherwise keep existing
+        return matchingUpdate;
+      }).toList();
+      
+      // Combine: updated existing locations + truly new locations
+      finalLocations = [...updatedExistingLocations, ...trulyNewLocations];
+      
+      print('[PatrolBloc] Final merged locations: ${finalLocations.length} (${updatedExistingLocations.length} existing + ${trulyNewLocations.length} new)');
+    } else {
+      // No existing route, use locations from get_current_task as is
+      finalLocations = locations;
+      print('[PatrolBloc] No existing route, using ${finalLocations.length} locations from get_current_task');
+    }
+    
     final updatedRoute = baseRoute != null
-        ? baseRoute.copyWith(locations: locations)
+        ? baseRoute.copyWith(locations: finalLocations)
         : PatrolRoute(
             id: event.routeId,
             name: 'Patroli',
-            description: '${locations.length} Lokasi',
-            locations: locations,
+            description: '${finalLocations.length} Lokasi',
+            locations: finalLocations,
             additionalLocations: const [],
             date: DateTime.now(),
           );
+    
+    print('[PatrolBloc] Updated route has ${updatedRoute.locations.length} locations after merge');
 
     // Check if we have existing state
     final currentState = state;

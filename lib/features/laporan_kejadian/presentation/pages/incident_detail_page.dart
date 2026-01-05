@@ -216,41 +216,66 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   ),
                   20.verticalSpace,
 
-                  // Tim Petugas (akan diisi dari API detail jika tersedia)
+                  // Tim Petugas
                   _buildReadOnlyField(
                     label: 'Tim Petugas',
-                    value: '-', // TODO: Add field to entity when API provides this data
+                    value: incident.incidentDetail != null && incident.incidentDetail!.isNotEmpty
+                        ? incident.incidentDetail!
+                            .map((detail) => detail['Fullname']?.toString() ?? detail['fullname']?.toString() ?? '-')
+                            .where((name) => name != '-')
+                            .join(', ')
+                        : '-',
                   ),
                   20.verticalSpace,
 
-                  // Tugas Penanganan (akan diisi dari API detail jika tersedia)
+                  // Tugas Penanganan
                   _buildReadOnlyField(
                     label: 'Tugas Penanganan',
-                    value: '-', // TODO: Add field to entity when API provides this data
+                    value: incident.notesAction ?? '-',
                     maxLines: 3,
                   ),
                   20.verticalSpace,
 
-                  // Note Penyelesaian (akan diisi dari API detail jika tersedia)
+                  // Note Penyelesaian
                   _buildReadOnlyField(
                     label: 'Note Penyelesaian',
-                    value: '-', // TODO: Add field to entity when API provides this data
+                    value: incident.solvedAction ?? '-',
                     maxLines: 3,
                   ),
                   20.verticalSpace,
 
-                  // Tanggal Penyelesaian (akan diisi dari API detail jika tersedia)
+                  // Tanggal Penyelesaian
                   _buildReadOnlyField(
                     label: 'Tanggal Penyelesaian',
-                    value: '-', // TODO: Add field to entity when API provides this data
+                    value: incident.solvedDate != null
+                        ? DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(incident.solvedDate!)
+                        : '-',
                   ),
                   20.verticalSpace,
 
-                  // Bukti Penyelesaian (akan diisi dari API detail jika tersedia)
-                  _buildReadOnlyField(
-                    label: 'Bukti Penyelesaian',
-                    value: '-', // TODO: Add field to entity when API provides this data
-                  ),
+                  // Bukti Penyelesaian (dari IncidentDetail jika ada)
+                  if (incident.incidentDetail != null && incident.incidentDetail!.isNotEmpty)
+                    ...incident.incidentDetail!
+                        .where((detail) => detail['File'] != null || detail['file'] != null)
+                        .map((detail) {
+                          final file = detail['File'] ?? detail['file'];
+                          final fileUrl = file is Map 
+                              ? (file['Url'] ?? file['url'] ?? file['FileUrl'] ?? file['fileUrl'])
+                              : file?.toString();
+                          if (fileUrl != null && fileUrl.toString().isNotEmpty) {
+                            return Column(
+                              children: [
+                                _buildReadOnlyField(
+                                  label: 'Bukti Penyelesaian',
+                                  value: fileUrl.toString(),
+                                ),
+                                20.verticalSpace,
+                              ],
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        })
+                        .toList(),
                   32.verticalSpace,
 
                   // Action Button (hanya untuk tab "Tugas Saya")

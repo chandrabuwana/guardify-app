@@ -6,6 +6,7 @@ import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../../../../shared/widgets/TextInput/input_primary.dart';
 import '../../../../shared/widgets/custom_dropdown.dart';
@@ -48,6 +49,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
   List<String> _buktiLembur = [];
   String _lembur = 'Tidak'; // Lembur dropdown
   ShiftCheckoutDetailData? _checkoutDetail;
+  double? _currentLatitude;
+  double? _currentLongitude;
 
   @override
   void initState() {
@@ -55,6 +58,25 @@ class _CheckOutPageState extends State<CheckOutPage> {
     _attendanceBloc = getIt<AttendanceBloc>();
     _checkoutDetail = widget.checkoutDetail;
     _applyPrefillDetail(_checkoutDetail);
+    _getCurrentGPSLocation();
+  }
+
+  Future<void> _getCurrentGPSLocation() async {
+    try {
+      final locationService = getIt<LocationService>();
+      final position = await locationService.getCurrentLatLng();
+      
+      if (position != null) {
+        setState(() {
+          _currentLatitude = position.lat;
+          _currentLongitude = position.lng;
+        });
+      } else {
+        print('⚠️ CheckOut - GPS tidak tersedia');
+      }
+    } catch (e) {
+      print('❌ CheckOut - Error mengambil lokasi GPS: $e');
+    }
   }
 
   void _applyPrefillDetail(ShiftCheckoutDetailData? detail) {
@@ -387,9 +409,27 @@ class _CheckOutPageState extends State<CheckOutPage> {
       print('  - fotoWajah (PhotoAbsen - foto pakaian): ${_pakaianPersonil.isNotEmpty ? "EXISTS (${_pakaianPersonil})" : "NULL"}');
       print('  - fotoPengamanan count: ${_fotoPengamanan.length}');
       print('  - buktiLaporan count: ${_buktiLembur.length}');
-      print('  - Note: Latitude/Longitude will be hardcoded in API call');
 
-      // Lat/lng akan di-hardcode di API call, jadi tidak perlu ambil dari location service
+      // Get GPS location if not available
+      if (_currentLatitude == null || _currentLongitude == null) {
+        await _getCurrentGPSLocation();
+      }
+      
+      if (_currentLatitude == null || _currentLongitude == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Lokasi GPS belum tersedia. Silakan aktifkan GPS dan coba lagi.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      print('  - latitude: $_currentLatitude (GPS real device)');
+      print('  - longitude: $_currentLongitude (GPS real device)');
+
       // fotoWajah harus diisi dengan foto pakaian (_pakaianPersonil) karena foto pakaian dikirim sebagai PhotoAbsen
       final request = CheckOutRequest(
         userId: widget.userId,
@@ -406,8 +446,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
             ? _tugasTertundaController.text
             : coTask,
         isOvertime: _lembur == 'Ya',
-        latitude: 0.0, // Will be replaced with hardcoded value in API
-        longitude: 0.0, // Will be replaced with hardcoded value in API
+        latitude: _currentLatitude, // Use GPS real device location
+        longitude: _currentLongitude, // Use GPS real device location
       );
 
       _attendanceBloc.add(CheckOutSubmittedEvent(request));
