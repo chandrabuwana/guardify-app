@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/design/colors.dart';
+import '../../../../core/security/security_manager.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../domain/entities/patrol_route.dart';
 import '../../domain/entities/patrol_location.dart';
 import '../bloc/patrol_bloc.dart';
@@ -9,8 +11,12 @@ import '../widgets/patrol_progress_widget.dart';
 import '../widgets/add_patrol_location_dialog.dart';
 import '../widgets/patrol_attendance_dialog.dart';
 import '../../../schedule/domain/repositories/schedule_repository.dart';
+import '../../../schedule/domain/usecases/get_current_task.dart';
+import '../../../home/presentation/bloc/home_bloc.dart';
+import '../../../home/presentation/bloc/home_event.dart';
+import '../../../home/presentation/bloc/home_state.dart';
 
-class PatrolDetailPage extends StatelessWidget {
+class PatrolDetailPage extends StatefulWidget {
   final PatrolRoute route;
   final PatrolBloc? bloc; // Optional bloc from parent
   final List<RouteTask>? listRoute; // Optional ListRoute data from get_current_task
@@ -25,31 +31,123 @@ class PatrolDetailPage extends StatelessWidget {
   });
 
   @override
+  State<PatrolDetailPage> createState() => _PatrolDetailPageState();
+}
+
+class _PatrolDetailPageState extends State<PatrolDetailPage> {
+  Future<void> _loadCurrentTask(PatrolBloc bloc) async {
+    try {
+      final shiftId = await SecurityManager.readSecurely(
+        AppConstants.shiftDetailIdKey,
+      );
+      
+      if (shiftId != null && shiftId.isNotEmpty) {
+        print('🔄 [PatrolDetailPage] Loading get_current_task...');
+        
+        final getCurrentTask = getIt<GetCurrentTask>();
+        final taskResult = await getCurrentTask.call(idShiftDetail: shiftId);
+        
+        if (taskResult.isSuccess && taskResult.currentTask != null) {
+          final listRoute = taskResult.currentTask!.listRoute;
+          print('✅ [PatrolDetailPage] get_current_task loaded: ${listRoute.length} routes');
+          
+          // Log all routes for debugging
+          print('🔄 [PatrolDetailPage] All routes from get_current_task:');
+          for (var route in listRoute) {
+            print('  - ${route.areasName} (idAreas: ${route.idAreas}, Status: ${route.status})');
+          }
+          
+          // Use ALL routes from get_current_task
+          // Each RouteTask represents one patrol location, so we need all of them
+          // The filtering by idAreas will be handled in the merge logic in bloc
+          print('🔄 [PatrolDetailPage] Using all ${listRoute.length} routes from get_current_task');
+          
+          // Update bloc with fresh data - use all routes
+          if (mounted) {
+            bloc.add(LoadAreasByRouteId(
+              widget.route.id,
+              widget.route,
+              listRoute, // Use all routes, not filtered
+            ));
+            print('✅ [PatrolDetailPage] LoadAreasByRouteId dispatched with ${listRoute.length} routes');
+          }
+        } else {
+          print('❌ [PatrolDetailPage] get_current_task failed: ${taskResult.failure?.message ?? "Unknown error"}');
+        }
+      } else {
+        print('⚠️ [PatrolDetailPage] Shift ID not found in storage');
+      }
+    } catch (e) {
+      print('❌ [PatrolDetailPage] Error loading get_current_task: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // If bloc provided from parent, use it. Otherwise create new one.
-    if (bloc != null) {
-      return BlocProvider.value(
-        value: bloc!,
-        child: _buildScaffold(context),
+    if (widget.bloc != null) {
+      // Load get_current_task after build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadCurrentTask(widget.bloc!);
+      });
+      
+      return PopScope(
+        onPopInvoked: (didPop) async {
+          if (didPop) {
+            // Reload home page data when back
+            await _reloadHomeData();
+          }
+        },
+        child: BlocProvider.value(
+          value: widget.bloc!,
+          child: _buildScaffold(context),
+        ),
       );
     }
 
     // Create new bloc if not provided (e.g., from dashboard)
-    return BlocProvider(
-      create: (context) {
-        final newBloc = getIt<PatrolBloc>();
-        // Use ListRoute data from get_current_task if available, otherwise use API
-        if (route.locations.isEmpty) {
-          // Pass ListRoute data if available
-          newBloc.add(LoadAreasByRouteId(route.id, route, listRoute));
-        } else {
-          // Use existing route data, emit PatrolLoaded immediately
-          newBloc.add(LoadPatrolRoutesFromData([route], route.id));
+    return PopScope(
+      onPopInvoked: (didPop) async {
+        if (didPop) {
+          // Reload home page data when back
+          await _reloadHomeData();
         }
-        return newBloc;
       },
-      child: _buildScaffold(context),
+      child: BlocProvider(
+        create: (context) {
+          final newBloc = getIt<PatrolBloc>();
+          // Load get_current_task after build
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _loadCurrentTask(newBloc);
+          });
+          return newBloc;
+        },
+        child: _buildScaffold(context),
+      ),
     );
+  }
+
+  Future<void> _reloadHomeData() async {
+    try {
+      final shiftId = await SecurityManager.readSecurely(
+        AppConstants.shiftDetailIdKey,
+      );
+      
+      if (shiftId != null && shiftId.isNotEmpty) {
+        print('🔄 [PatrolDetailPage] Reloading home data on back...');
+        try {
+          final homeBloc = getIt<HomeBloc>();
+          if (homeBloc.state is HomeLoaded) {
+            homeBloc.add(LoadCurrentTaskEvent(idShiftDetail: shiftId));
+            print('✅ [PatrolDetailPage] Home data reload triggered');
+          }
+        } catch (e) {
+          print('⚠️ [PatrolDetailPage] Could not reload home data: $e');
+        }
+      }
+    } catch (e) {
+      print('❌ [PatrolDetailPage] Error reloading home data: $e');
+    }
   }
 
   Widget _buildScaffold(BuildContext context) {
@@ -104,7 +202,7 @@ class PatrolDetailPage extends StatelessWidget {
           // Use route from state if available, otherwise use the prop route
           final currentRoute = (state is PatrolLoaded && state.selectedRoute != null)
               ? state.selectedRoute!
-              : route;
+              : widget.route;
 
           final completedCount = currentRoute.locations
               .where((loc) => loc.status == PatrolLocationStatus.completed)
@@ -178,7 +276,7 @@ class PatrolDetailPage extends StatelessWidget {
                     child: _LocationCard(
                       location: location,
                       locationNumber: index + 1,
-                      isCheckedIn: isCheckedIn,
+                      isCheckedIn: widget.isCheckedIn,
                       onAbsenTap: () async {
                         final result = await showDialog<bool>(
                           context: context,
@@ -197,7 +295,7 @@ class PatrolDetailPage extends StatelessWidget {
                         if (result == true) {
                           // Reload areas to refresh list (pass ListRoute if available)
                           context.read<PatrolBloc>().add(
-                            LoadAreasByRouteId(currentRoute.id, currentRoute, listRoute),
+                            LoadAreasByRouteId(currentRoute.id, currentRoute, widget.listRoute),
                           );
                           
                           // Show success dialog
@@ -323,9 +421,9 @@ class PatrolDetailPage extends StatelessWidget {
                   width: double.infinity,
                   margin: const EdgeInsets.symmetric(vertical: 16),
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       final patrolBloc = context.read<PatrolBloc>();
-                      showDialog(
+                      final result = await showDialog<bool>(
                         context: context,
                         builder: (dialogContext) => BlocProvider.value(
                           value: patrolBloc,
@@ -340,6 +438,14 @@ class PatrolDetailPage extends StatelessWidget {
                           ),
                         ),
                       );
+                      
+                      // If insert was successful, reload get_current_task in patrol page
+                      if (result == true) {
+                        print('🔄 [PatrolDetailPage] Location added successfully, reloading get_current_task...');
+                        // Reload get_current_task for patrol page
+                        final bloc = widget.bloc ?? context.read<PatrolBloc>();
+                        await _loadCurrentTask(bloc);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,

@@ -37,6 +37,7 @@ import 'core/constants/enums.dart';
 import 'core/security/security_manager.dart';
 import 'core/di/injection.dart';
 import 'core/design/colors.dart';
+import 'core/services/background_location_task.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,18 @@ void main() async {
   await initializeDateFormatting('id_ID', null);
 
   await configureDependencies();
+  
+  // Initialize background location update service
+  // Temporarily disabled due to Kotlin 2.1.0 compatibility issue with workmanager 0.5.2
+  // TODO: Update workmanager to 0.9.0+3 when ready
+  try {
+    await BackgroundLocationTaskManager.initialize();
+    await BackgroundLocationTaskManager.registerPeriodicTask();
+  } catch (e) {
+    print('⚠️ [Main] Failed to initialize workmanager: $e');
+    print('⚠️ [Main] Background location updates will be disabled');
+  }
+  
   runApp(const GuardifyApp());
 }
 

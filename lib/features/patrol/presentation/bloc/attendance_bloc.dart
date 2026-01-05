@@ -36,8 +36,8 @@ class PatrolAttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
       patrolLocationId: event.patrolLocationId,
       userId: 'current_user_id', // Replace with actual user ID
       timestamp: DateTime.now(),
-      currentLatitude: -6.173056780703297, // Replace with actual current location
-      currentLongitude: 106.78692883979942,
+      currentLatitude: event.currentLatitude, // Use GPS coordinates from event
+      currentLongitude: event.currentLongitude, // Use GPS coordinates from event
       currentAddress: event.currentAddress,
       proofImagePath: event.proofImagePath,
       notes: event.notes,

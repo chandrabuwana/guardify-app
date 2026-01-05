@@ -232,10 +232,7 @@ class _IncidentListPageState extends State<IncidentListPage>
             final result = await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => BlocProvider.value(
-                  value: context.read<IncidentBloc>(),
-                  child: const IncidentReportFormPage(),
-                ),
+                builder: (newContext) => IncidentReportFormPage.wrapped(context),
               ),
             );
             if (result == true && mounted) {

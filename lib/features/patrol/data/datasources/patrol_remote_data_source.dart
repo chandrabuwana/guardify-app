@@ -43,4 +43,14 @@ abstract class PatrolRemoteDataSource {
 
   /// Submit patrol check point
   Future<bool> submitCheckPoint(PatrolCheckPointRequest request);
+
+  /// Insert attendance detail
+  Future<bool> insertAttendanceDetail({
+    required String idShiftDetail,
+    required String device,
+    required String idAreas,
+    required double latitude,
+    required String locationName,
+    required double longitude,
+  });
 }
