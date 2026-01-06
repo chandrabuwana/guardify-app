@@ -177,7 +177,7 @@ class _LoginPageState extends State<LoginPage> {
 
                         // Title
                         Text(
-                          'Log in to your\nAccount',
+                          'Masuk Ke Akun\nAnda',
                           textAlign: TextAlign.center,
                           style: TS.headlineLarge.copyWith(
                             color: Colors.white,
@@ -189,7 +189,7 @@ class _LoginPageState extends State<LoginPage> {
 
                         // Subtitle
                         Text(
-                          'Enter your NRP and password to log in',
+                          'Masukkan NRP dan password untuk masuk ke aplikasi',
                           textAlign: TextAlign.center,
                           style: TS.bodyLarge.copyWith(
                             color: Colors.white,
@@ -300,7 +300,7 @@ class _LoginPageState extends State<LoginPage> {
                                     TextButton(
                                       onPressed: _onForgotPasswordPressed,
                                       child: Text(
-                                        'Forgot Password ?',
+                                        'Lupa Password ?',
                                         style: TS.bodyMedium.copyWith(
                                           color: const Color(0xFF4A90E2),
                                           fontWeight: FontWeight.w600,

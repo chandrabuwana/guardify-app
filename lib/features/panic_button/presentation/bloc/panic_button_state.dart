@@ -30,6 +30,11 @@ class PanicButtonState extends Equatable {
   final String? historyErrorMessage;
   final String? searchQuery;
 
+  final List<String> historyFilterStatuses;
+  final DateTime? historyFilterCreateDate;
+  final String historySortField;
+  final int historySortType; // 0 = ascending, 1 = descending
+
   // Detail state
   final PanicButtonHistoryItem? detailItem;
   final bool isLoadingDetail;
@@ -54,6 +59,10 @@ class PanicButtonState extends Equatable {
     this.filteredCountHistory = 0,
     this.historyErrorMessage,
     this.searchQuery,
+    this.historyFilterStatuses = const [],
+    this.historyFilterCreateDate,
+    this.historySortField = 'createDate',
+    this.historySortType = 0,
     this.detailItem,
     this.isLoadingDetail = false,
     this.detailErrorMessage,
@@ -82,6 +91,10 @@ class PanicButtonState extends Equatable {
     int? filteredCountHistory,
     String? historyErrorMessage,
     String? searchQuery,
+    List<String>? historyFilterStatuses,
+    DateTime? historyFilterCreateDate,
+    String? historySortField,
+    int? historySortType,
     PanicButtonHistoryItem? detailItem,
     bool? isLoadingDetail,
     String? detailErrorMessage,
@@ -105,6 +118,10 @@ class PanicButtonState extends Equatable {
       filteredCountHistory: filteredCountHistory ?? this.filteredCountHistory,
       historyErrorMessage: historyErrorMessage ?? this.historyErrorMessage,
       searchQuery: searchQuery ?? this.searchQuery,
+      historyFilterStatuses: historyFilterStatuses ?? this.historyFilterStatuses,
+      historyFilterCreateDate: historyFilterCreateDate ?? this.historyFilterCreateDate,
+      historySortField: historySortField ?? this.historySortField,
+      historySortType: historySortType ?? this.historySortType,
       detailItem: detailItem ?? this.detailItem,
       isLoadingDetail: isLoadingDetail ?? this.isLoadingDetail,
       detailErrorMessage: detailErrorMessage ?? this.detailErrorMessage,
@@ -131,6 +148,10 @@ class PanicButtonState extends Equatable {
         filteredCountHistory,
         historyErrorMessage,
         searchQuery,
+        historyFilterStatuses,
+        historyFilterCreateDate,
+        historySortField,
+        historySortType,
         detailItem,
         isLoadingDetail,
         detailErrorMessage,

@@ -134,7 +134,7 @@ class _ResetPasswordViewState extends State<_ResetPasswordView> {
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  'Reset Password',
+                                  'Ubah Password',
                                   textAlign: TextAlign.start,
                                   style: TS.headlineLarge.copyWith(
                                     color: Colors.white,
@@ -262,7 +262,6 @@ class _ResetPasswordViewState extends State<_ResetPasswordView> {
                             ),
                           ),
                         ),
-
                         40.verticalSpace,
                       ],
                     ),

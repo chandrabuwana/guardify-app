@@ -68,6 +68,24 @@ class ClearFilterEvent extends DocumentEvent {
   const ClearFilterEvent();
 }
 
+/// Event untuk apply server-side filter (CompanyRule/list)
+class ApplyCompanyRuleFilterEvent extends DocumentEvent {
+  final String? name;
+  final String? code;
+  final String sortField;
+  final int sortType;
+
+  const ApplyCompanyRuleFilterEvent({
+    this.name,
+    this.code,
+    this.sortField = 'CreateDate',
+    this.sortType = 1,
+  });
+
+  @override
+  List<Object?> get props => [name, code, sortField, sortType];
+}
+
 /// Event untuk download dokumen
 class DownloadDocumentEvent extends DocumentEvent {
   final DocumentEntity document;

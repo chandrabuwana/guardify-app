@@ -60,6 +60,14 @@ class PanicButtonHistoryItem {
         return PanicButtonStatusColor.red;
       case 'DONE':
         return PanicButtonStatusColor.orange;
+      case 'VERIFIED':
+        return PanicButtonStatusColor.blue;
+      case 'COMPLETED':
+        return PanicButtonStatusColor.blue;
+      case 'REVISI':
+      case 'REVISION':
+      case 'REVISED':
+        return PanicButtonStatusColor.orange;
       case 'CLOSED':
         return PanicButtonStatusColor.blue;
       default:
