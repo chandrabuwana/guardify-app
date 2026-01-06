@@ -385,6 +385,12 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
     if (state is! DocumentLoaded) return 0;
 
     int count = 0;
+    if (state.currentNameFilter != null && state.currentNameFilter!.trim().isNotEmpty) {
+      count++;
+    }
+    if (state.currentCodeFilter != null && state.currentCodeFilter!.trim().isNotEmpty) {
+      count++;
+    }
     if (state.currentCategoryFilter != null) count++;
     if (state.currentStartDate != null && state.currentEndDate != null) count++;
 
@@ -554,6 +560,21 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
   }
 
   Widget _buildFilterBottomSheet() {
+    final currentState = context.read<DocumentBloc>().state;
+    String initialName = '';
+    String initialCode = '';
+    String sortField = 'CreateDate';
+    int sortType = 1;
+    if (currentState is DocumentLoaded) {
+      initialName = currentState.currentNameFilter ?? '';
+      initialCode = currentState.currentCodeFilter ?? '';
+      sortField = currentState.sortField;
+      sortType = currentState.sortType;
+    }
+
+    final nameController = TextEditingController(text: initialName);
+    final codeController = TextEditingController(text: initialCode);
+
     return Container(
       padding: REdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -568,8 +589,67 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
             style: TS.titleMedium.copyWith(fontWeight: FontWeight.bold),
           ),
           16.verticalSpace,
-          // TODO: Add filter options (category, date range)
-          const Text('Filter options akan ditambahkan di sini'),
+          TextField(
+            controller: nameController,
+            decoration: const InputDecoration(
+              labelText: 'Nama Dokumen',
+              hintText: 'Cari berdasarkan Name',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          12.verticalSpace,
+          TextField(
+            controller: codeController,
+            decoration: const InputDecoration(
+              labelText: 'Kode Dokumen',
+              hintText: 'Cari berdasarkan Code',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          16.verticalSpace,
+          DropdownButtonFormField<String>(
+            value: sortField,
+            items: const [
+              DropdownMenuItem(value: 'CreateDate', child: Text('Tanggal Dibuat')),
+              DropdownMenuItem(value: 'Name', child: Text('Nama')),
+              DropdownMenuItem(value: 'Code', child: Text('Kode')),
+            ],
+            onChanged: (v) {
+              if (v == null) return;
+              sortField = v;
+            },
+            decoration: const InputDecoration(
+              labelText: 'Urutkan Berdasarkan',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          12.verticalSpace,
+          Row(
+            children: [
+              Expanded(
+                child: RadioListTile<int>(
+                  value: 0,
+                  groupValue: sortType,
+                  onChanged: (v) {
+                    if (v == null) return;
+                    sortType = v;
+                  },
+                  title: const Text('Ascending'),
+                ),
+              ),
+              Expanded(
+                child: RadioListTile<int>(
+                  value: 1,
+                  groupValue: sortType,
+                  onChanged: (v) {
+                    if (v == null) return;
+                    sortType = v;
+                  },
+                  title: const Text('Descending'),
+                ),
+              ),
+            ],
+          ),
           24.verticalSpace,
           Row(
             children: [
@@ -583,7 +663,14 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: Apply filter
+                    context.read<DocumentBloc>().add(
+                          ApplyCompanyRuleFilterEvent(
+                            name: nameController.text,
+                            code: codeController.text,
+                            sortField: sortField,
+                            sortType: sortType,
+                          ),
+                        );
                     Navigator.pop(context);
                   },
                   child: const Text('Terapkan'),

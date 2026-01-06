@@ -358,8 +358,8 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
               memberTestsError: null,
             ));
             
-            print('✅ State updated - memberTests count: ${memberTests.length}');
-            print('✅ State updated - filteredMemberTests count: ${memberTests.length}');
+            // print('✅ State updated - memberTests count: ${memberTests.length}');
+            // print('✅ State updated - filteredMemberTests count: ${memberTests.length}');
           },
         );
       } catch (e) {
