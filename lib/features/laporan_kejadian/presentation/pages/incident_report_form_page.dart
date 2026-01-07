@@ -9,6 +9,7 @@ import '../../../../shared/widgets/custom_dropdown.dart';
 import '../../../../shared/widgets/TextInput/input_primary.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/di/injection.dart';
 import '../bloc/incident_bloc.dart';
 import '../bloc/incident_event.dart';
 import '../bloc/incident_state.dart';
@@ -20,6 +21,33 @@ class IncidentReportFormPage extends StatefulWidget {
 
   @override
   State<IncidentReportFormPage> createState() => _IncidentReportFormPageState();
+
+  /// Wrapper widget yang memastikan IncidentBloc selalu tersedia
+  static Widget wrapped(BuildContext? parentContext) {
+    // Coba ambil dari parent context jika ada
+    IncidentBloc? existingBloc;
+    if (parentContext != null) {
+      try {
+        existingBloc = parentContext.read<IncidentBloc>();
+      } catch (e) {
+        // Bloc tidak ada di context, akan dibuat baru
+      }
+    }
+
+    if (existingBloc != null) {
+      // Gunakan bloc yang sudah ada
+      return BlocProvider.value(
+        value: existingBloc,
+        child: const IncidentReportFormPage(),
+      );
+    } else {
+      // Buat bloc baru
+      return BlocProvider(
+        create: (context) => getIt<IncidentBloc>(),
+        child: const IncidentReportFormPage(),
+      );
+    }
+  }
 }
 
 class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
@@ -38,8 +66,10 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
   void initState() {
     super.initState();
     // Load locations and types
-    context.read<IncidentBloc>().add(const LoadIncidentLocationsEvent());
-    context.read<IncidentBloc>().add(const LoadIncidentTypesEvent());
+    // Use BlocProvider.of with listen: false to avoid ProviderNotFoundException
+    final bloc = BlocProvider.of<IncidentBloc>(context, listen: false);
+    bloc.add(const LoadIncidentLocationsEvent());
+    bloc.add(const LoadIncidentTypesEvent());
   }
 
   @override
@@ -123,7 +153,7 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
     // Get current user ID
     final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
 
-    context.read<IncidentBloc>().add(
+    BlocProvider.of<IncidentBloc>(context, listen: false).add(
           CreateIncidentReportEvent(
             reporterId: userId,
             tanggalInsiden: _tanggalInsiden!,

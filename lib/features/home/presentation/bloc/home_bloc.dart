@@ -8,6 +8,8 @@ import '../../../patrol/domain/usecases/get_patrol_routes_paginated.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
 import '../../../schedule/domain/usecases/get_current_shift.dart';
 import '../../../schedule/domain/usecases/get_current_task.dart';
+import '../../../schedule/domain/usecases/get_shift_now.dart';
+import '../../../schedule/domain/repositories/schedule_repository.dart';
 import 'home_event.dart';
 import 'home_state.dart';
 
@@ -16,8 +18,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final GetPatrolRoutesPaginated _getPatrolRoutesPaginated;
   final GetCurrentShift _getCurrentShift;
   final GetCurrentTask _getCurrentTask;
+  final GetShiftNow _getShiftNow;
 
-  HomeBloc(this._getPatrolRoutesPaginated, this._getCurrentShift, this._getCurrentTask) : super(const HomeInitial()) {
+  HomeBloc(this._getPatrolRoutesPaginated, this._getCurrentShift, this._getCurrentTask, this._getShiftNow) : super(const HomeInitial()) {
     on<HomeInitialEvent>(_onHomeInitial);
     on<BottomNavigationTappedEvent>(_onBottomNavigationTapped);
     on<ShowSnackbarEvent>(_onShowSnackbar);
@@ -81,70 +84,133 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     // Get user ID for API calls
     final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
 
-    // Load current shift from API
-    print('');
-    print('🏠 Loading current shift from API...');
-    final currentShiftResult = await _getCurrentShift(userId: userId);
-    print('🏠 Current shift result:');
-    print('  - isSuccess: ${currentShiftResult.isSuccess}');
-    print('  - hasData: ${currentShiftResult.currentShift != null}');
-    if (currentShiftResult.currentShift != null) {
-      print('  - shift.id: ${currentShiftResult.currentShift!.id}');
-      print('  - shift.idShiftDetail: ${currentShiftResult.currentShift!.idShiftDetail}');
-      print('  - shift.name: ${currentShiftResult.currentShift!.name}');
-    }
-    
+    // For pengawas, use get_shift_now endpoint
+    // For other roles, use get_current endpoint
+    ShiftNowData? shiftNow;
+    CurrentShiftData? currentShift;
     AttendanceInfo attendanceInfo;
-    if (currentShiftResult.isSuccess && currentShiftResult.currentShift != null) {
-      final shift = currentShiftResult.currentShift!;
-      // Format checkin time with date and time or show "-" if not checked in
-      String checkinTime;
-      if (shift.checkin && shift.checkinTime != null) {
-        try {
-          // Parse checkinTime from API (format: 2025-12-22T21:34:28.9226071)
-          final checkinDateTime = DateTime.parse(shift.checkinTime!);
-          checkinTime = _formatDateTime(checkinDateTime);
-        } catch (e) {
-          // If parsing fails, use time only as fallback
-          checkinTime = _formatTime(shift.checkinTime!);
-        }
-      } else {
-        checkinTime = '-';
+
+    if (userRole == UserRole.pengawas) {
+      // Load shift now from API for pengawas
+      print('');
+      print('🏠 Loading shift now from API (pengawas)...');
+      final shiftNowResult = await _getShiftNow();
+      print('🏠 Shift now result:');
+      print('  - isSuccess: ${shiftNowResult.isSuccess}');
+      print('  - hasData: ${shiftNowResult.shiftNow != null}');
+      if (shiftNowResult.shiftNow != null) {
+        print('  - shiftName: ${shiftNowResult.shiftNow!.shiftName}');
+        print('  - totalPersonel: ${shiftNowResult.shiftNow!.totalPersonel}');
+        print('  - totalAttendance: ${shiftNowResult.shiftNow!.totalAttendance}');
+        shiftNow = shiftNowResult.shiftNow;
       }
-      
-      // Parse ShiftDate from get_current response, fallback to DateTime.now() if not available
+
+      // Parse ShiftDate from get_shift_now response
       DateTime shiftDate;
-      if (shift.shiftDate != null && shift.shiftDate!.isNotEmpty) {
+      if (shiftNowResult.isSuccess && shiftNowResult.shiftNow != null) {
+        final shift = shiftNowResult.shiftNow!;
         try {
-          shiftDate = DateTime.parse(shift.shiftDate!);
+          shiftDate = DateTime.parse(shift.shiftDate);
         } catch (e) {
-          // If parsing fails, use current date as fallback
           shiftDate = DateTime.now();
         }
+
+        attendanceInfo = AttendanceInfo(
+          isCheckedIn: false, // Pengawas doesn't have checkin/checkout
+          isCheckedOut: false,
+          currentTime: _getCurrentTime(),
+          shift: shift.shiftName,
+          position: 'Pengawas',
+          date: shiftDate,
+          hasShift: true,
+        );
       } else {
-        shiftDate = DateTime.now();
+        attendanceInfo = AttendanceInfo(
+          isCheckedIn: false,
+          isCheckedOut: false,
+          currentTime: _getCurrentTime(),
+          shift: 'Tidak ada shift hari ini',
+          position: 'Pengawas',
+          date: DateTime.now(),
+          hasShift: false,
+        );
       }
-      
-      attendanceInfo = AttendanceInfo(
-        isCheckedIn: shift.checkin,
-        isCheckedOut: shift.checkout,
-        currentTime: checkinTime,
-        shift: shift.name,
-        position: 'Security', // Position might need to come from another API
-        date: shiftDate,
-        hasShift: true, // There is shift data available
-      );
     } else {
-      // No shift data available - hide work button
-      attendanceInfo = AttendanceInfo(
-        isCheckedIn: false,
-        isCheckedOut: false,
-        currentTime: _getCurrentTime(),
-        shift: 'Tidak ada shift hari ini',
-        position: 'Security',
-        date: DateTime.now(),
-        hasShift: false, // No shift data available
-      );
+      // Load current shift from API for other roles
+      print('');
+      print('🏠 Loading current shift from API...');
+      final currentShiftResult = await _getCurrentShift(userId: userId);
+      print('🏠 Current shift result:');
+      print('  - isSuccess: ${currentShiftResult.isSuccess}');
+      print('  - hasData: ${currentShiftResult.currentShift != null}');
+      if (currentShiftResult.currentShift != null) {
+        print('  - shift.id: ${currentShiftResult.currentShift!.id}');
+        print('  - shift.idShiftDetail: ${currentShiftResult.currentShift!.idShiftDetail}');
+        print('  - shift.name: ${currentShiftResult.currentShift!.name}');
+      }
+      currentShift = currentShiftResult.isSuccess ? currentShiftResult.currentShift : null;
+
+      if (currentShiftResult.isSuccess && currentShiftResult.currentShift != null) {
+        final shift = currentShiftResult.currentShift!;
+        
+        // Save shift id to storage for use in AttendanceDetail/insert
+        if (shift.id.isNotEmpty) {
+          await SecurityManager.storeSecurely(
+            AppConstants.shiftDetailIdKey,
+            shift.id,
+          );
+          print('🏠 ✅ Saved shift id to storage: ${shift.id}');
+        }
+        
+        // Format checkin time with date and time or show "-" if not checked in
+        String checkinTime;
+        if (shift.checkin && shift.checkinTime != null) {
+          try {
+            // Parse checkinTime from API (format: 2025-12-22T21:34:28.9226071)
+            final checkinDateTime = DateTime.parse(shift.checkinTime!);
+            checkinTime = _formatDateTime(checkinDateTime);
+          } catch (e) {
+            // If parsing fails, use time only as fallback
+            checkinTime = _formatTime(shift.checkinTime!);
+          }
+        } else {
+          checkinTime = '-';
+        }
+        
+        // Parse ShiftDate from get_current response, fallback to DateTime.now() if not available
+        DateTime shiftDate;
+        if (shift.shiftDate != null && shift.shiftDate!.isNotEmpty) {
+          try {
+            shiftDate = DateTime.parse(shift.shiftDate!);
+          } catch (e) {
+            // If parsing fails, use current date as fallback
+            shiftDate = DateTime.now();
+          }
+        } else {
+          shiftDate = DateTime.now();
+        }
+        
+        attendanceInfo = AttendanceInfo(
+          isCheckedIn: shift.checkin,
+          isCheckedOut: shift.checkout,
+          currentTime: checkinTime,
+          shift: shift.name,
+          position: 'Security', // Position might need to come from another API
+          date: shiftDate,
+          hasShift: true, // There is shift data available
+        );
+      } else {
+        // No shift data available - hide work button
+        attendanceInfo = AttendanceInfo(
+          isCheckedIn: false,
+          isCheckedOut: false,
+          currentTime: _getCurrentTime(),
+          shift: 'Tidak ada shift hari ini',
+          position: 'Security',
+          date: DateTime.now(),
+          hasShift: false, // No shift data available
+        );
+      }
     }
 
     emit(HomeLoaded(
@@ -154,17 +220,20 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       todayTasks: [],
       isLoadingPatrolTasks: true,
       userRole: userRole, // Add user role to state
-      currentShift: currentShiftResult.isSuccess ? currentShiftResult.currentShift : null,
+      currentShift: currentShift,
+      shiftNow: shiftNow,
     ));
 
-    // Load current task if we have shift data
-    print('');
-    print('🏠 Checking if we should load current task...');
-    print('  - isSuccess: ${currentShiftResult.isSuccess}');
-    print('  - currentShift != null: ${currentShiftResult.currentShift != null}');
-    
-    if (currentShiftResult.isSuccess && currentShiftResult.currentShift != null) {
-      final shift = currentShiftResult.currentShift!;
+    // Load current task if we have shift data (only for non-pengawas roles)
+    if (userRole != UserRole.pengawas) {
+      print('');
+      print('🏠 Checking if we should load current task...');
+      final currentState = state as HomeLoaded;
+      final hasShift = currentState.currentShift != null;
+      print('  - currentShift != null: $hasShift');
+      
+      if (hasShift) {
+        final shift = currentState.currentShift!;
       print('🏠 ✅ Shift data available, preparing to load current task');
       
       // Try to get idShiftDetail, fallback to id if idShiftDetail is null
@@ -186,27 +255,25 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         add(LoadCurrentTaskEvent(idShiftDetail: shiftDetailId));
         print('🏠 ✅ Event dispatched in microtask');
       });
+      } else {
+        print('🏠 ⚠️ No shift data available');
+        print('🏠 No shift data - updating state to show empty tasks');
+        // Update state to show empty tasks (card will still appear with "Tidak ada tugas hari ini")
+        // State was already emitted above, so we can safely use copyWith
+        emit(currentState.copyWith(
+          todayTasks: [], // Empty tasks - card will show "Tidak ada tugas hari ini"
+          isLoadingPatrolTasks: false, // Stop loading so card appears
+        ));
+        print('🏠 ✅ State updated - card "Tugas Hari Ini" will appear with empty message');
+      }
     } else {
-      print('🏠 ⚠️ No shift data available');
-      if (!currentShiftResult.isSuccess) {
-        print('  - Reason: isSuccess is false');
-        if (currentShiftResult.failure != null) {
-          print('  - Failure: ${currentShiftResult.failure}');
-        }
-      }
-      if (currentShiftResult.currentShift == null) {
-        print('  - Reason: currentShift is null');
-      }
-      print('🏠 No shift data - updating state to show empty tasks');
-      // Update state to show empty tasks (card will still appear with "Tidak ada tugas hari ini")
-      // State was already emitted above, so we can safely use copyWith
+      // For pengawas, don't load current task
+      print('🏠 ⚠️ Pengawas role - skipping current task load');
       final currentState = state as HomeLoaded;
       emit(currentState.copyWith(
-        todayTasks: [], // Empty tasks - card will show "Tidak ada tugas hari ini"
-        isLoadingPatrolTasks: false, // Stop loading so card appears
-        currentShift: null,
+        todayTasks: [],
+        isLoadingPatrolTasks: false,
       ));
-      // print('🏠 ✅ State updated - card "Tugas Hari Ini" will appear with empty message');
     }
     print('');
   }

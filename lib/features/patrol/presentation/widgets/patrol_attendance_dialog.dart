@@ -6,6 +6,7 @@ import 'dart:io';
 import '../../../../core/di/injection.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../../core/services/location_service.dart';
 import '../../domain/entities/patrol_location.dart';
 import '../../domain/entities/patrol_route.dart';
 import '../../domain/repositories/patrol_repository.dart';
@@ -61,13 +62,50 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
   }
 
   Future<void> _getCurrentLocation() async {
-    // TODO: Implement actual GPS location
-    // For now, use mock location near Jakarta
     setState(() {
-      _currentLatitude = -6.173056780703297;
-      _currentLongitude = 106.78692883979942;
-      _isLocationVerified = true;
+      _isLocationVerified = false;
     });
+
+    try {
+      final locationService = getIt<LocationService>();
+      final position = await locationService.getCurrentLatLng();
+
+      if (position != null) {
+        setState(() {
+          _currentLatitude = position.lat;
+          _currentLongitude = position.lng;
+          _isLocationVerified = true;
+        });
+      } else {
+        // GPS tidak tersedia
+        if (mounted) {
+          setState(() {
+            _isLocationVerified = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('GPS tidak tersedia. Silakan aktifkan GPS dan coba lagi.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Error mendapatkan GPS
+      if (mounted) {
+        setState(() {
+          _isLocationVerified = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error mengambil lokasi GPS: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _pickImage() async {
@@ -157,13 +195,15 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
       return;
     }
 
-    if (_currentLatitude == null || _currentLongitude == null) {
+    if (_currentLatitude == null || _currentLongitude == null || !_isLocationVerified) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Lokasi belum terdeteksi'),
+          content: Text('Lokasi GPS belum tersedia. Silakan tunggu atau refresh lokasi GPS.'),
           backgroundColor: Colors.red,
         ),
       );
+      // Try to get location again
+      await _getCurrentLocation();
       return;
     }
 

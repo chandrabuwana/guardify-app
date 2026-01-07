@@ -5,8 +5,8 @@ class AppConstants {
 
   // API Configuration
   static const String baseUrl = 'https://api-guardify.abb-apps.com/api/v1';
-  static const int connectTimeout = 30000;
-  static const int receiveTimeout = 30000;
+  static const int connectTimeout = 60000; // Increased to 60 seconds
+  static const int receiveTimeout = 60000; // Increased to 60 seconds
 
   // Storage Keys
   static const String tokenKey = 'token_guardify';

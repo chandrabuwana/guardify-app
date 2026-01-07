@@ -45,6 +45,12 @@ abstract class PatrolApiClient {
   Future<dynamic> submitCheckPoint(
     @Body() PatrolCheckPointRequest request,
   );
+
+  @POST('/AttendanceDetail/insert')
+  @DioResponseType(ResponseType.json)
+  Future<dynamic> insertAttendanceDetail(
+    @Body() Map<String, dynamic> request,
+  );
 }
 
 @Injectable(as: PatrolRemoteDataSource)
@@ -423,14 +429,103 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
       throw CheckPointException('Failed to submit check point: $e');
     }
   }
+
+  @override
+  Future<bool> insertAttendanceDetail({
+    required String idShiftDetail,
+    required String device,
+    required String idAreas,
+    required double latitude,
+    required String locationName,
+    required double longitude,
+  }) async {
+    try {
+      print('[PatrolRemoteDataSource] Inserting attendance detail...');
+      print('  - IdShiftDetail: $idShiftDetail');
+      print('  - Device: $device');
+      print('  - IdAreas: $idAreas');
+      print('  - LocationName: $locationName');
+      print('  - Latitude: $latitude');
+      print('  - Longitude: $longitude');
+
+      final request = {
+        'IdShiftDetail': idShiftDetail,
+        'Device': device,
+        'IdAreas': idAreas,
+        'Latitude': latitude,
+        'LocationName': locationName,
+        'Longitude': longitude,
+      };
+
+      final response = await apiClient.insertAttendanceDetail(request);
+
+      // Handle response wrapper
+      if (response is Map<String, dynamic>) {
+        final code = response['Code'] as int?;
+        final succeeded = response['Succeeded'] as bool?;
+
+        if (succeeded == true && (code == 200 || code == null)) {
+          print('[PatrolRemoteDataSource] Attendance detail inserted successfully');
+          return true;
+        } else {
+          final message = response['Message'] as String? ?? 'Failed to insert attendance detail';
+          final description = response['Description'] as String?;
+          final errorMessage = description?.isNotEmpty == true
+              ? '$message\n$description'
+              : message;
+          print('[PatrolRemoteDataSource] Attendance detail insertion failed: $errorMessage');
+          throw Exception(errorMessage);
+        }
+      }
+
+      return true;
+    } on DioException catch (e) {
+      print('[PatrolRemoteDataSource] DioException inserting attendance detail: ${e.response?.statusCode}');
+      print('[PatrolRemoteDataSource] DioException response data: ${e.response?.data}');
+
+      String? errorMessage;
+
+      if (e.response?.data != null) {
+        if (e.response!.data is Map<String, dynamic>) {
+          final responseData = e.response!.data as Map<String, dynamic>;
+          errorMessage = responseData['Message'] as String? ??
+              responseData['message'] as String?;
+          if (errorMessage == null || errorMessage.isEmpty) {
+            errorMessage = responseData['Description'] as String? ??
+                responseData['description'] as String? ??
+                responseData['error'] as String?;
+          }
+        } else if (e.response!.data is String) {
+          try {
+            final jsonData = jsonDecode(e.response!.data as String) as Map<String, dynamic>;
+            errorMessage = jsonData['Message'] as String? ??
+                jsonData['message'] as String?;
+          } catch (_) {
+            errorMessage = e.response!.data as String;
+          }
+        }
+      }
+
+      final finalMessage = errorMessage ??
+          e.response?.statusMessage ??
+          e.message ??
+          'Failed to insert attendance detail';
+
+      print('[PatrolRemoteDataSource] Error message extracted: $finalMessage');
+      throw Exception(finalMessage);
+    } catch (e) {
+      print('[PatrolRemoteDataSource] Error inserting attendance detail: $e');
+      throw Exception('Failed to insert attendance detail: $e');
+    }
+  }
 }
 
 // Custom exception class for check point errors
 class CheckPointException implements Exception {
   final String message;
-  
+
   CheckPointException(this.message);
-  
+
   @override
   String toString() => message;
 }

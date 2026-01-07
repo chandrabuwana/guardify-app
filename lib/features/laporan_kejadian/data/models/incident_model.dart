@@ -20,6 +20,10 @@ class IncidentModel extends IncidentEntity {
     super.picId,
     super.createDate,
     super.createBy,
+    super.notesAction,
+    super.solvedAction,
+    super.solvedDate,
+    super.incidentDetail,
   });
 
   factory IncidentModel.fromJson(Map<String, dynamic> json) {
@@ -55,6 +59,21 @@ class IncidentModel extends IncidentEntity {
           ? DateTime.parse(json['createDate'])
           : null,
       createBy: json['createBy']?.toString(),
+      notesAction: json['notesAction']?.toString(),
+      solvedAction: json['solvedAction']?.toString(),
+      solvedDate: json['solvedDate'] != null
+          ? DateTime.tryParse(json['solvedDate'].toString())
+          : null,
+      incidentDetail: json['incidentDetail'] != null
+          ? (json['incidentDetail'] as List)
+              .map((item) {
+                if (item is Map) {
+                  return Map<String, dynamic>.from(item);
+                }
+                return <String, dynamic>{};
+              })
+              .toList()
+          : null,
     );
   }
 
@@ -78,6 +97,10 @@ class IncidentModel extends IncidentEntity {
       'picId': picId,
       'createDate': createDate?.toIso8601String(),
       'createBy': createBy,
+      'notesAction': notesAction,
+      'solvedAction': solvedAction,
+      'solvedDate': solvedDate?.toIso8601String(),
+      'incidentDetail': incidentDetail,
     };
   }
 
@@ -101,6 +124,10 @@ class IncidentModel extends IncidentEntity {
       picId: entity.picId,
       createDate: entity.createDate,
       createBy: entity.createBy,
+      notesAction: entity.notesAction,
+      solvedAction: entity.solvedAction,
+      solvedDate: entity.solvedDate,
+      incidentDetail: entity.incidentDetail,
     );
   }
 
@@ -124,6 +151,10 @@ class IncidentModel extends IncidentEntity {
       picId: picId,
       createDate: createDate,
       createBy: createBy,
+      notesAction: notesAction,
+      solvedAction: solvedAction,
+      solvedDate: solvedDate,
+      incidentDetail: incidentDetail,
     );
   }
 

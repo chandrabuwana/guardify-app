@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/utils/validators.dart' as validator;
 import '../../domain/usecases/login_use_case.dart';
+import '../../data/datasources/auth_remote_data_source.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -9,8 +10,9 @@ part 'auth_state.dart';
 @injectable
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUseCase loginUseCase;
+  final AuthRemoteDataSource authRemoteDataSource;
 
-  AuthBloc(this.loginUseCase) : super(AuthState.initial()) {
+  AuthBloc(this.loginUseCase, this.authRemoteDataSource) : super(AuthState.initial()) {
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthLogoutRequested>(_onLogoutRequested);
@@ -52,11 +54,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
         print('');
         print('✅ ========================================');
-        print('✅ AUTH BLOC - EMITTING AUTHENTICATED STATE');
+        print('✅ AUTH BLOC - LOGIN SUCCESS');
         print('✅ ========================================');
         print('✅ User ID: ${user.id}');
         print('✅ User Name: ${user.name}');
         print('✅ User Email: ${user.email}');
+        print('✅ ========================================');
+        print('');
+
+        // Note: Employee locations are now fetched in the location tracking page
+        // No need to fetch them during login
+
+        print('✅ ========================================');
+        print('✅ AUTH BLOC - EMITTING AUTHENTICATED STATE');
+        print('✅ ========================================');
         print('✅ About to emit AuthState.authenticated...');
         emit(AuthState.authenticated(user));
         print('✅ Authenticated state emitted!');

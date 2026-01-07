@@ -218,6 +218,19 @@ class IncidentApiModel {
       picId: picId,
       createDate: createDate,
       createBy: createBy,
+      notesAction: notesAction,
+      solvedAction: solvedAction,
+      solvedDate: solvedDate,
+      incidentDetail: incidentDetail != null
+          ? incidentDetail!
+              .map((item) {
+                if (item is Map) {
+                  return Map<String, dynamic>.from(item);
+                }
+                return <String, dynamic>{};
+              })
+              .toList()
+          : null,
     );
   }
 }
