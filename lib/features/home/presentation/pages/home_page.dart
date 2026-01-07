@@ -6,7 +6,7 @@ import 'package:collection/collection.dart';
 import '../widgets/shift_card.dart';
 import '../widgets/task_card.dart';
 import '../widgets/menu_grid.dart';
-import 'location_tracking_page.dart';
+import 'employee_location_tracking_page.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../bloc/home_bloc.dart';
 import '../bloc/home_event.dart';
@@ -40,6 +40,7 @@ import '../../../../core/security/security_manager.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../shift/data/datasources/shift_remote_data_source.dart';
 import '../../../schedule/data/datasources/schedule_remote_data_source.dart';
+import '../../../schedule/domain/repositories/schedule_repository.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -441,9 +442,15 @@ class __HomePageViewState extends State<_HomePageView> {
                           attendanceInfo: state.attendanceInfo,
                           teamMembersImages: _getTeamMembersImages(state),
                           userRole: state.userRole,
-                          totalPersonil: state.currentShift?.listPersonel.length,
-                          hadirCount: state.currentShift?.listPersonel.length, // Semua personil di list sudah di-assign (hadir)
-                          location: state.currentShift?.location,
+                          totalPersonil: state.userRole == UserRole.pengawas
+                              ? state.shiftNow?.totalPersonel
+                              : state.currentShift?.listPersonel.length,
+                          hadirCount: state.userRole == UserRole.pengawas
+                              ? state.shiftNow?.totalAttendance
+                              : state.currentShift?.listPersonel.length, // Semua personil di list sudah di-assign (hadir)
+                          location: state.userRole == UserRole.pengawas
+                              ? null
+                              : state.currentShift?.location,
                           onWorkButtonPressed: () {
                             unawaited(
                               _handleWorkButtonPressed(context, state),
@@ -452,12 +459,11 @@ class __HomePageViewState extends State<_HomePageView> {
                           onTrackLocationPressed:
                               state.userRole == UserRole.pengawas
                                   ? () {
+                                      // Navigasi ke halaman lacak lokasi yang akan fetch data dari API
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => LocationTrackingPage(
-                                            personnelList: state.currentShift?.listPersonel ?? [],
-                                          ),
+                                          builder: (context) => const EmployeeLocationTrackingPage(),
                                         ),
                                       );
                                     }
@@ -1200,7 +1206,20 @@ class __HomePageViewState extends State<_HomePageView> {
                                         isCheckedIn: homeState.currentShift?.checkin,
                                       ),
                                     ),
-                                  ).then((_) {
+                                  ).then((shouldReload) async {
+                                    // Always reload data when returning from patrol detail to ensure fresh data
+                                    final homeBloc = context.read<HomeBloc>();
+                                    final shiftId = await SecurityManager.readSecurely(
+                                      AppConstants.shiftDetailIdKey,
+                                    );
+                                    if (shiftId != null && shiftId.isNotEmpty) {
+                                      print('🔄 Reloading home data after returning from patrol detail');
+                                      print('🔄 Shift ID: $shiftId');
+                                      // Force reload by dispatching LoadCurrentTaskEvent
+                                      homeBloc.add(LoadCurrentTaskEvent(idShiftDetail: shiftId));
+                                      // Wait a bit to ensure the event is processed
+                                      await Future.delayed(const Duration(milliseconds: 100));
+                                    }
                                     context
                                         .read<HomeBloc>()
                                         .add(const BottomNavigationTappedEvent(0));
@@ -1265,7 +1284,17 @@ class __HomePageViewState extends State<_HomePageView> {
                                               isCheckedIn: homeState.currentShift?.checkin,
                                             ),
                                       ),
-                                    ).then((_) {
+                                    ).then((shouldReload) async {
+                                      // Always reload data when returning from patrol detail
+                                      final homeBloc = context.read<HomeBloc>();
+                                      final shiftId = await SecurityManager.readSecurely(
+                                        AppConstants.shiftDetailIdKey,
+                                      );
+                                      if (shiftId != null && shiftId.isNotEmpty) {
+                                        print('🔄 Reloading home data after returning from patrol detail');
+                                        homeBloc.add(LoadCurrentTaskEvent(idShiftDetail: shiftId));
+                                        await Future.delayed(const Duration(milliseconds: 100));
+                                      }
                                       context
                                           .read<HomeBloc>()
                                           .add(const BottomNavigationTappedEvent(0));
@@ -1306,7 +1335,17 @@ class __HomePageViewState extends State<_HomePageView> {
                                           isCheckedIn: homeState.currentShift?.checkin,
                                         ),
                                   ),
-                                ).then((_) {
+                                ).then((shouldReload) async {
+                                  // Always reload data when returning from patrol detail
+                                  final homeBloc = context.read<HomeBloc>();
+                                  final shiftId = await SecurityManager.readSecurely(
+                                    AppConstants.shiftDetailIdKey,
+                                  );
+                                  if (shiftId != null && shiftId.isNotEmpty) {
+                                    print('🔄 Reloading home data after returning from patrol detail');
+                                    homeBloc.add(LoadCurrentTaskEvent(idShiftDetail: shiftId));
+                                    await Future.delayed(const Duration(milliseconds: 100));
+                                  }
                                   context
                                       .read<HomeBloc>()
                                       .add(const BottomNavigationTappedEvent(0));
@@ -1504,16 +1543,26 @@ class __HomePageViewState extends State<_HomePageView> {
   }
 
   List<String> _getTeamMembersImages(HomeLoaded state) {
-    // Get team members from current shift if available
-    if (state.currentShift != null && state.currentShift!.listPersonel.isNotEmpty) {
-      return state.currentShift!.listPersonel
-          .map((personnel) => (personnel.images != null && personnel.images!.isNotEmpty) 
-              ? personnel.images! 
-              : '')
-          .toList();
+    // For pengawas, use shiftNow data
+    if (state.userRole == UserRole.pengawas) {
+      if (state.shiftNow != null && state.shiftNow!.listPersonel.isNotEmpty) {
+        return state.shiftNow!.listPersonel
+            .map((personnel) => (personnel.images != null && personnel.images!.isNotEmpty) 
+                ? personnel.images! 
+                : '')
+            .toList();
+      }
+    } else {
+      // For other roles, use currentShift data
+      if (state.currentShift != null && state.currentShift!.listPersonel.isNotEmpty) {
+        return state.currentShift!.listPersonel
+            .map((personnel) => (personnel.images != null && personnel.images!.isNotEmpty) 
+                ? personnel.images! 
+                : '')
+            .toList();
+      }
     }
     // Fallback to empty list
-    // Mock team members images
     return [
       '', // Empty for default avatar
       '', // Empty for default avatar
@@ -1521,6 +1570,7 @@ class __HomePageViewState extends State<_HomePageView> {
       '', // Empty for default avatar
     ];
   }
+
 
   void _showPanicDialog() {
     showDialog(

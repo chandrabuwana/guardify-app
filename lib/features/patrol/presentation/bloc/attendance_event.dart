@@ -9,11 +9,15 @@ class SubmitAttendanceEvent extends AttendanceEvent {
   final String currentAddress;
   final String proofImagePath;
   final String? notes;
+  final double currentLatitude;
+  final double currentLongitude;
 
   const SubmitAttendanceEvent({
     required this.patrolLocationId,
     required this.currentAddress,
     required this.proofImagePath,
+    required this.currentLatitude,
+    required this.currentLongitude,
     this.notes,
   });
 }

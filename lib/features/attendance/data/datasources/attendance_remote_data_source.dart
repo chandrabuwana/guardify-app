@@ -33,9 +33,6 @@ abstract class AttendanceRemoteDataSource {
 
 @LazySingleton(as: AttendanceRemoteDataSource)
 class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
-  static const double _hardcodedLatitude = -6.12407;
-  static const double _hardcodedLongitude = 106.8831;
-
   final Dio dio;
   final ScheduleRemoteDataSource scheduleRemoteDataSource;
 
@@ -203,21 +200,22 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         print('🔑 Token Payload: null');
       }
 
-      // Gunakan hardcoded lat/lng seperti di get_current_location jika 0 atau null
-      final shouldUseHardcodedLat = request.latitude == null || request.latitude == 0;
-      final shouldUseHardcodedLng = request.longitude == null || request.longitude == 0;
+      // Use GPS coordinates from request (real device location)
+      // If lat/lng is 0 or null, it means GPS is not available - should not happen in production
+      if (request.latitude == null || request.latitude == 0 || 
+          request.longitude == null || request.longitude == 0) {
+        print('⚠️ Warning: GPS coordinates are missing or invalid');
+        print('  Latitude: ${request.latitude ?? "null"}');
+        print('  Longitude: ${request.longitude ?? "null"}');
+        // Still use the provided values (even if 0) - let backend handle validation
+      }
       
-      final latitude = shouldUseHardcodedLat 
-          ? _hardcodedLatitude 
-          : request.latitude!;
-      final longitude = shouldUseHardcodedLng 
-          ? _hardcodedLongitude 
-          : request.longitude!;
+      final latitude = request.latitude ?? 0.0;
+      final longitude = request.longitude ?? 0.0;
       
-      print('📍 Location:');
-      print('  Original lat: ${request.latitude ?? "null"}, lng: ${request.longitude ?? "null"}');
-      print('  Final lat: $latitude, lng: $longitude');
-      print('  Using hardcoded: ${shouldUseHardcodedLat ? "YES" : "NO"}');
+      print('📍 Location (GPS real device):');
+      print('  Latitude: $latitude');
+      print('  Longitude: $longitude');
 
       final Map<String, dynamic> apiBody = {
         'PhotoAbsen': photoAbsen,
@@ -451,14 +449,22 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       print('  photoPengamanan: ${photoPengamanan != null ? "✅ encoded (${photoPengamanan['Filename']}, ${photoPengamanan['MimeType']}, base64Length: ${(photoPengamanan['Base64'] as String).length})" : "❌ null"}');
       print('  photoLembur: ${photoLembur != null ? "✅ encoded (${photoLembur['Filename']}, ${photoLembur['MimeType']}, base64Length: ${(photoLembur['Base64'] as String).length})" : "❌ null"}');
 
-      // Selalu gunakan hardcoded lat/lng untuk konsistensi (sama seperti check_in)
-      final latitude = _hardcodedLatitude;
-      final longitude = _hardcodedLongitude;
+      // Use GPS coordinates from request (real device location)
+      // If lat/lng is 0 or null, it means GPS is not available - should not happen in production
+      if (request.latitude == null || request.latitude == 0 || 
+          request.longitude == null || request.longitude == 0) {
+        print('⚠️ Warning: GPS coordinates are missing or invalid');
+        print('  Latitude: ${request.latitude ?? "null"}');
+        print('  Longitude: ${request.longitude ?? "null"}');
+        // Still use the provided values (even if 0) - let backend handle validation
+      }
       
-      print('📍 Location:');
-      print('  Original lat: ${request.latitude ?? "null"}, lng: ${request.longitude ?? "null"}');
-      print('  Final lat: $latitude, lng: $longitude');
-      print('  Using hardcoded: YES (always)');
+      final latitude = request.latitude ?? 0.0;
+      final longitude = request.longitude ?? 0.0;
+      
+      print('📍 Location (GPS real device):');
+      print('  Latitude: $latitude');
+      print('  Longitude: $longitude');
       
       final Map<String, dynamic> apiBody = {
         if (photoAbsen != null) 'PhotoAbsen': photoAbsen,

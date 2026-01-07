@@ -42,4 +42,14 @@ abstract class PatrolRepository {
     required double latitude,
     required double longitude,
   });
+
+  /// Insert attendance detail for patrol location
+  Future<Either<Failure, bool>> insertAttendanceDetail({
+    required String idShiftDetail,
+    required String device,
+    required String idAreas,
+    required double latitude,
+    required String locationName,
+    required double longitude,
+  });
 }

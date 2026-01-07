@@ -13,6 +13,8 @@ import 'package:get_it/get_it.dart' as _i174;
 import 'package:guardify_app/core/di/injection_module.dart' as _i381;
 import 'package:guardify_app/core/network/network_manager.dart' as _i39;
 import 'package:guardify_app/core/services/location_service.dart' as _i856;
+import 'package:guardify_app/core/services/location_update_service.dart'
+    as _i765;
 import 'package:guardify_app/features/attendance/data/datasources/attendance_local_data_source.dart'
     as _i1007;
 import 'package:guardify_app/features/attendance/data/datasources/attendance_rekap_remote_data_source.dart'
@@ -285,6 +287,8 @@ import 'package:guardify_app/features/schedule/domain/usecases/get_schedule_peng
     as _i376;
 import 'package:guardify_app/features/schedule/domain/usecases/get_shift_detail.dart'
     as _i947;
+import 'package:guardify_app/features/schedule/domain/usecases/get_shift_now.dart'
+    as _i408;
 import 'package:guardify_app/features/schedule/presentation/bloc/schedule_bloc.dart'
     as _i1003;
 import 'package:guardify_app/features/shift/data/datasources/shift_remote_data_source.dart'
@@ -459,6 +463,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i376.GetSchedulePengawas(gh<_i752.ScheduleRepository>()));
     gh.factory<_i947.GetShiftDetail>(
         () => _i947.GetShiftDetail(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i408.GetShiftNow>(
+        () => _i408.GetShiftNow(gh<_i752.ScheduleRepository>()));
     gh.lazySingleton<_i109.AttendanceRemoteDataSource>(
         () => _i109.AttendanceRemoteDataSourceImpl(
               dio: gh<_i361.Dio>(),
@@ -556,11 +562,6 @@ extension GetItInjectableX on _i174.GetIt {
           gh<_i826.BMILocalDataSource>(),
           gh<_i163.BmiRemoteDataSource>(),
         ));
-    gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc(
-          gh<_i238.GetPatrolRoutesPaginated>(),
-          gh<_i170.GetCurrentShift>(),
-          gh<_i547.GetCurrentTask>(),
-        ));
     gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
           getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
           getPatrolRoutesPaginated: gh<_i238.GetPatrolRoutesPaginated>(),
@@ -599,6 +600,12 @@ extension GetItInjectableX on _i174.GetIt {
           searchDocumentsUseCase: gh<_i1020.SearchDocumentsUseCase>(),
           filterDocumentsUseCase: gh<_i1037.FilterDocumentsUseCase>(),
           downloadDocumentUseCase: gh<_i179.DownloadDocumentUseCase>(),
+        ));
+    gh.factory<_i890.HomeBloc>(() => _i890.HomeBloc(
+          gh<_i238.GetPatrolRoutesPaginated>(),
+          gh<_i170.GetCurrentShift>(),
+          gh<_i547.GetCurrentTask>(),
+          gh<_i408.GetShiftNow>(),
         ));
     gh.factory<_i283.CalculateBMI>(
         () => _i283.CalculateBMI(gh<_i814.BMIRepository>()));
@@ -658,6 +665,10 @@ extension GetItInjectableX on _i174.GetIt {
           verifyLocation: gh<_i9.VerifyLocation>(),
           repository: gh<_i824.PatrolRepository>(),
         ));
+    gh.factory<_i296.AuthBloc>(() => _i296.AuthBloc(
+          gh<_i551.LoginUseCase>(),
+          gh<_i650.AuthRemoteDataSource>(),
+        ));
     gh.factory<_i264.GetProfileDetailsUseCase>(
         () => _i264.GetProfileDetailsUseCase(gh<_i252.ProfileRepository>()));
     gh.factory<_i936.LogoutUseCase>(
@@ -674,7 +685,6 @@ extension GetItInjectableX on _i174.GetIt {
           approvePersonnelUseCase: gh<_i635.ApprovePersonnelUseCase>(),
           revisePersonnelUseCase: gh<_i136.RevisePersonnelUseCase>(),
         ));
-    gh.factory<_i296.AuthBloc>(() => _i296.AuthBloc(gh<_i551.LoginUseCase>()));
     gh.factory<_i451.AttendanceRekapDetailBloc>(() =>
         _i451.AttendanceRekapDetailBloc(
           getAttendanceRekapDetailUseCase:
@@ -697,6 +707,12 @@ extension GetItInjectableX on _i174.GetIt {
         ));
     gh.factory<_i682.AttendanceRekapBloc>(() => _i682.AttendanceRekapBloc(
         getAttendanceRekapUseCase: gh<_i687.GetAttendanceRekapUseCase>()));
+    gh.lazySingleton<_i765.LocationUpdateService>(() =>
+        _i765.LocationUpdateService(
+          dio: gh<_i361.Dio>(),
+          attendanceRepository: gh<_i311.AttendanceRepository>(),
+          getAttendanceStatusUseCase: gh<_i385.GetAttendanceStatusUseCase>(),
+        ));
     gh.factory<_i359.TugasLanjutanBloc>(() => _i359.TugasLanjutanBloc(
           getTugasLanjutanList: gh<_i778.GetTugasLanjutanList>(),
           getTugasLanjutanDetail: gh<_i237.GetTugasLanjutanDetail>(),

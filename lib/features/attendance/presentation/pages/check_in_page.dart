@@ -21,6 +21,7 @@ import '../../../shift/data/datasources/shift_remote_data_source.dart';
 import '../../../shift/data/models/shift_current_location_response.dart';
 import '../../../schedule/data/datasources/schedule_remote_data_source.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/services/location_update_service.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../../../core/constants/app_constants.dart';
 
@@ -339,6 +340,24 @@ class _CheckInPageState extends State<CheckInPage> {
                   print('✅ CheckIn - attendanceId saved to storage: ${state.attendance.id}');
                 });
               }
+              
+              // Update lokasi ke CurrentLocation/update setelah checkin berhasil
+              try {
+                final locationUpdateService = getIt<LocationUpdateService>();
+                print('📍 [CheckIn] Updating location to CurrentLocation/update...');
+                locationUpdateService.updateLocation().then((success) {
+                  if (success) {
+                    print('✅ [CheckIn] Location updated successfully to CurrentLocation/update');
+                  } else {
+                    print('⚠️ [CheckIn] Failed to update location to CurrentLocation/update');
+                  }
+                }).catchError((error) {
+                  print('❌ [CheckIn] Error updating location: $error');
+                });
+              } catch (e) {
+                print('❌ [CheckIn] Error getting LocationUpdateService: $e');
+              }
+              
               // Show success dialog when check-in is successful
               // Return true to indicate successful check-in, so home page can reload data
               _showSuccessDialog().then((shouldReload) {

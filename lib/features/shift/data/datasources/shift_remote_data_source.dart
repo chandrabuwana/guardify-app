@@ -20,9 +20,6 @@ abstract class ShiftRemoteDataSource {
 
 @LazySingleton(as: ShiftRemoteDataSource)
 class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
-  static const double _hardcodedLatitude = -6.12407;
-  static const double _hardcodedLongitude = 106.8831;
-
   final Dio dio;
   ShiftRemoteDataSourceImpl(this.dio);
 
@@ -31,16 +28,22 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
     required double latitude,
     required double longitude,
   }) async {
-    if (latitude != _hardcodedLatitude || longitude != _hardcodedLongitude) {
-      // TODO(guardify): Use actual coordinates once attendance flow is ready.
+    // Use GPS coordinates from parameters (real device location)
+    // Validate that coordinates are valid (not 0,0)
+    if (latitude == 0.0 && longitude == 0.0) {
+      print('⚠️ Warning: GPS coordinates are (0, 0) - GPS may not be available');
     }
 
     final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
     final body = {
       'IdUser': userId,
-      'Latitude': _hardcodedLatitude,
-      'Longitude': _hardcodedLongitude,
+      'Latitude': latitude, // Use real GPS coordinates
+      'Longitude': longitude, // Use real GPS coordinates
     };
+    
+    print('📍 getCurrentLocation - Using GPS real device:');
+    print('  Latitude: $latitude');
+    print('  Longitude: $longitude');
     final response = await dio.post(
       '/Shift/get_current_location',
       data: body,
@@ -54,18 +57,22 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
     required double latitude,
     required double longitude,
   }) async {
-    // Gunakan hardcoded lat/lng seperti di check-in/check-out
-    // Selalu gunakan hardcoded untuk konsistensi
+    // Use GPS coordinates from parameters (real device location)
+    // Validate that coordinates are valid (not 0,0)
+    if (latitude == 0.0 && longitude == 0.0) {
+      print('⚠️ Warning: GPS coordinates are (0, 0) - GPS may not be available');
+    }
+    
     final body = {
       'IdShiftDetail': shiftDetailId,
-      'Latitude': _hardcodedLatitude,
-      'Longitude': _hardcodedLongitude,
+      'Latitude': latitude, // Use real GPS coordinates
+      'Longitude': longitude, // Use real GPS coordinates
     };
 
     print('📤 getCheckoutDetail - Request body:');
     print('  - IdShiftDetail: $shiftDetailId');
-    print('  - Latitude: ${_hardcodedLatitude} (hardcoded)');
-    print('  - Longitude: ${_hardcodedLongitude} (hardcoded)');
+    print('  - Latitude: $latitude (GPS real device)');
+    print('  - Longitude: $longitude (GPS real device)');
 
     final response = await dio.post(
       '/Shift/get_detail_checkout',

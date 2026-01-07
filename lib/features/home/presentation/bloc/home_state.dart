@@ -143,6 +143,7 @@ class HomeLoaded extends HomeState {
   final UserRole userRole; // Add user role to state
   final CurrentShiftData? currentShift; // Current shift data from API
   final CurrentTaskData? currentTask; // Current task data from API
+  final ShiftNowData? shiftNow; // Shift now data for pengawas
 
   const HomeLoaded({
     required this.currentBottomNavIndex,
@@ -158,6 +159,7 @@ class HomeLoaded extends HomeState {
     this.userRole = UserRole.anggota, // Default to anggota
     this.currentShift,
     this.currentTask,
+    this.shiftNow,
   });
 
   HomeLoaded copyWith({
@@ -174,6 +176,7 @@ class HomeLoaded extends HomeState {
     UserRole? userRole,
     CurrentShiftData? currentShift,
     CurrentTaskData? currentTask,
+    ShiftNowData? shiftNow,
     bool clearSnackbar = false,
     bool clearNavigation = false,
   }) {
@@ -196,6 +199,7 @@ class HomeLoaded extends HomeState {
       userRole: userRole ?? this.userRole,
       currentShift: currentShift ?? this.currentShift,
       currentTask: currentTask ?? this.currentTask,
+      shiftNow: shiftNow ?? this.shiftNow,
     );
   }
 
@@ -214,6 +218,7 @@ class HomeLoaded extends HomeState {
         userRole,
         currentShift ?? '',
         currentTask ?? '',
+        shiftNow ?? '',
       ];
 }
 

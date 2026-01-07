@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/services/location_service.dart';
 import '../../domain/entities/patrol_location.dart';
 
 class AddPatrolLocationPage extends StatefulWidget {
@@ -312,16 +314,39 @@ class _AddPatrolLocationPageState extends State<AddPatrolLocationPage> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          // Mock current location
-                          _latitudeController.text = '-6.173056780703297';
-                          _longitudeController.text = '106.78692883979942';
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Lokasi saat ini berhasil diambil'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
+                        onPressed: () async {
+                          // Get GPS real location
+                          try {
+                            final locationService = getIt<LocationService>();
+                            final position = await locationService.getCurrentLatLng();
+                            
+                            if (position != null) {
+                              setState(() {
+                                _latitudeController.text = position.lat.toStringAsFixed(6);
+                                _longitudeController.text = position.lng.toStringAsFixed(6);
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Lokasi GPS berhasil diambil'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('GPS tidak tersedia. Silakan aktifkan GPS.'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error mengambil lokasi GPS: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         },
                         icon: const Icon(
                           Icons.my_location,

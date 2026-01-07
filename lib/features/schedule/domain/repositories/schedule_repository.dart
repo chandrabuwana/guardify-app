@@ -43,6 +43,9 @@ abstract class ScheduleRepository {
   Future<ShiftDetailResult> getSchedulePengawas({
     required DateTime date,
   });
+
+  /// Get shift now using get_shift_now API (for pengawas)
+  Future<ShiftNowResult> getShiftNow();
 }
 
 // Custom Result Classes
@@ -286,5 +289,60 @@ class CarryOverTask {
     this.updateDate,
     this.location,
     this.file,
+  });
+}
+
+class ShiftNowResult {
+  final ShiftNowData? shiftNow;
+  final Failure? failure;
+  final bool isSuccess;
+
+  const ShiftNowResult._({
+    this.shiftNow,
+    this.failure,
+    required this.isSuccess,
+  });
+
+  factory ShiftNowResult.success(ShiftNowData shiftNow) {
+    return ShiftNowResult._(
+      shiftNow: shiftNow,
+      isSuccess: true,
+    );
+  }
+
+  factory ShiftNowResult.failure(Failure failure) {
+    return ShiftNowResult._(
+      failure: failure,
+      isSuccess: false,
+    );
+  }
+}
+
+/// Entity for shift now data
+class ShiftNowData {
+  final String shiftDate;
+  final String shiftName;
+  final int totalPersonel;
+  final int totalAttendance;
+  final List<ShiftNowPersonnel> listPersonel;
+
+  const ShiftNowData({
+    required this.shiftDate,
+    required this.shiftName,
+    required this.totalPersonel,
+    required this.totalAttendance,
+    required this.listPersonel,
+  });
+}
+
+class ShiftNowPersonnel {
+  final String userId;
+  final String fullname;
+  final String? images;
+
+  const ShiftNowPersonnel({
+    required this.userId,
+    required this.fullname,
+    this.images,
   });
 }

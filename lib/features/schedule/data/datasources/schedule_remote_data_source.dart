@@ -8,6 +8,7 @@ import '../models/schedule_detail_response_model.dart';
 import '../models/current_shift_response_model.dart';
 import '../models/current_task_response_model.dart';
 import '../models/schedule_pengawas_response_model.dart';
+import '../models/shift_now_response_model.dart';
 
 part 'schedule_remote_data_source.g.dart';
 
@@ -57,6 +58,12 @@ abstract class ScheduleApiClient {
   Future<SchedulePengawasResponseModel> getSchedulePengawas(
     @Body() Map<String, dynamic> body,
   );
+
+  /// Get shift now using POST /Shift/get_shift_now
+  @POST('/Shift/get_shift_now')
+  Future<ShiftNowResponseModel> getShiftNow(
+    @Body() Map<String, dynamic> body,
+  );
 }
 
 /// Abstract interface for schedule remote data source
@@ -73,6 +80,8 @@ abstract class ScheduleRemoteDataSource {
   Future<CurrentTaskResponseModel> getCurrentTask(
     Map<String, dynamic> body);
   Future<SchedulePengawasResponseModel> getSchedulePengawas(
+    Map<String, dynamic> body);
+  Future<ShiftNowResponseModel> getShiftNow(
     Map<String, dynamic> body);
 }
 
@@ -122,5 +131,11 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
   Future<SchedulePengawasResponseModel> getSchedulePengawas(
     Map<String, dynamic> body) {
     return apiClient.getSchedulePengawas(body);
+  }
+
+  @override
+  Future<ShiftNowResponseModel> getShiftNow(
+    Map<String, dynamic> body) {
+    return apiClient.getShiftNow(body);
   }
 }

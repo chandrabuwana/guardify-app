@@ -37,6 +37,10 @@ class IncidentEntity extends Equatable {
   final String? picId; // PIC ID
   final DateTime? createDate; // Created date
   final String? createBy; // Created by
+  final String? notesAction; // Tugas Penanganan / Notes Action
+  final String? solvedAction; // Note Penyelesaian / Solved Action
+  final DateTime? solvedDate; // Tanggal Penyelesaian / Solved Date
+  final List<Map<String, dynamic>>? incidentDetail; // Detail insiden (untuk Tim Petugas dll)
 
   const IncidentEntity({
     required this.id,
@@ -57,6 +61,10 @@ class IncidentEntity extends Equatable {
     this.picId,
     this.createDate,
     this.createBy,
+    this.notesAction,
+    this.solvedAction,
+    this.solvedDate,
+    this.incidentDetail,
   });
 
   String get formattedId {
@@ -144,6 +152,10 @@ class IncidentEntity extends Equatable {
     String? picId,
     DateTime? createDate,
     String? createBy,
+    String? notesAction,
+    String? solvedAction,
+    DateTime? solvedDate,
+    List<Map<String, dynamic>>? incidentDetail,
   }) {
     return IncidentEntity(
       id: id ?? this.id,
@@ -164,6 +176,10 @@ class IncidentEntity extends Equatable {
       picId: picId ?? this.picId,
       createDate: createDate ?? this.createDate,
       createBy: createBy ?? this.createBy,
+      notesAction: notesAction ?? this.notesAction,
+      solvedAction: solvedAction ?? this.solvedAction,
+      solvedDate: solvedDate ?? this.solvedDate,
+      incidentDetail: incidentDetail ?? this.incidentDetail,
     );
   }
 
@@ -187,6 +203,10 @@ class IncidentEntity extends Equatable {
         picId,
         createDate,
         createBy,
+        notesAction,
+        solvedAction,
+        solvedDate,
+        incidentDetail,
       ];
 }
 
