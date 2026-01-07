@@ -169,7 +169,7 @@ class _LoginPageState extends State<LoginPage> {
                             shape: BoxShape.circle,
                           ),
                           child: SvgPicture.asset(
-                            'assets/images/shield_logo.svg',
+                            'assets/images/guardify-round-white.svg',
                           ),
                         ),
 
