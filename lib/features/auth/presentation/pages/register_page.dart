@@ -242,7 +242,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               shape: BoxShape.circle,
                             ),
                             child: SvgPicture.asset(
-                              'assets/images/shield_logo.svg',
+                              'assets/images/guardify-round-white.svg',
                             ),
                           ),
 

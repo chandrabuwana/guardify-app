@@ -105,20 +105,20 @@ class _ResetPasswordViewState extends State<_ResetPasswordView> {
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
                                   Container(
-                                    width: 30.w,
-                                    height: 30.h,
+                                    width: 50.w,
+                                    height: 50.h,
                                     padding: EdgeInsets.all(5.r),
                                     decoration: const BoxDecoration(
                                       // color: Colors.white,
                                       shape: BoxShape.circle,
                                     ),
                                     child: SvgPicture.asset(
-                                      'assets/images/shield_logo.svg',
-                                      color: Colors.blue,
+                                      'assets/images/guardify-round-white.svg',
+                                      // color: Colors.blue,
                                     ),
                                   ),
                                   Text(
-                                    'Logoipsum',
+                                    'Guardify',
                                     style: TextStyle(
                                       fontSize: 18.sp,
                                       fontWeight: FontWeight.bold,
