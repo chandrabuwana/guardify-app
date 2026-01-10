@@ -38,6 +38,7 @@ import 'core/security/security_manager.dart';
 import 'core/di/injection.dart';
 import 'core/design/colors.dart';
 import 'core/services/background_location_task.dart';
+import 'shared/widgets/api_log_overlay_button.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,8 +62,15 @@ void main() async {
   runApp(const GuardifyApp());
 }
 
-class GuardifyApp extends StatelessWidget {
+class GuardifyApp extends StatefulWidget {
   const GuardifyApp({super.key});
+
+  @override
+  State<GuardifyApp> createState() => _GuardifyAppState();
+}
+
+class _GuardifyAppState extends State<GuardifyApp> {
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +80,7 @@ class GuardifyApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
           title: 'Guardify App',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
@@ -85,6 +94,14 @@ class GuardifyApp extends StatelessWidget {
               elevation: 0,
             ),
           ),
+          builder: (context, child) {
+            return Stack(
+              children: [
+                child ?? const SizedBox.shrink(),
+                ApiLogOverlayButton(navigatorKey: navigatorKey),
+              ],
+            );
+          },
           routes: {
             '/': (context) => BlocProvider(
                   create: (context) => getIt<AuthBloc>(),
