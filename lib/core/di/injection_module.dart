@@ -14,6 +14,7 @@ import '../../features/news/presentation/bloc/news_bloc.dart';
 import '../../features/test_result/data/datasources/test_result_api_data_source.dart';
 import '../constants/app_constants.dart';
 import '../security/security_manager.dart';
+import '../services/api_log_service.dart';
 
 /// Injection Module - Centralized Dependency Registration
 /// Semua dependencies diregister di sini untuk memudahkan maintenance
@@ -136,6 +137,13 @@ abstract class InjectionModule {
 
     return dio;
   }
+
+  // ========================================
+  // API Log Service Dependencies
+  // ========================================
+
+  // ApiLogService is auto-registered by @LazySingleton annotation in api_log_service.dart
+  // No manual registration needed here
 
   // ========================================
   // Auth Feature Dependencies
