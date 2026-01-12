@@ -12,6 +12,7 @@ import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:guardify_app/core/di/injection_module.dart' as _i381;
 import 'package:guardify_app/core/network/network_manager.dart' as _i39;
+import 'package:guardify_app/core/services/api_log_service.dart' as _i17;
 import 'package:guardify_app/core/services/location_service.dart' as _i856;
 import 'package:guardify_app/core/services/location_update_service.dart'
     as _i765;
@@ -356,6 +357,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i1020.ProfileRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i415.ShiftRemoteDataSource>(
         () => _i415.ShiftRemoteDataSourceImpl(gh<_i361.Dio>()));
+    gh.lazySingleton<_i17.ApiLogService>(
+        () => _i17.ApiLogService(gh<_i460.SharedPreferences>()));
     gh.lazySingleton<_i606.NewsRemoteDataSource>(
         () => _i116.NewsRemoteDataSourceImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i783.CutiRemoteDataSource>(

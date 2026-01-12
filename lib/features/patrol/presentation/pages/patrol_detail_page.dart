@@ -293,10 +293,10 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                         
                         // If success, show success dialog and reload
                         if (result == true) {
-                          // Reload areas to refresh list (pass ListRoute if available)
-                          context.read<PatrolBloc>().add(
-                            LoadAreasByRouteId(currentRoute.id, currentRoute, widget.listRoute),
-                          );
+                          // Reload get_current_task to refresh list data (same as add location)
+                          print('🔄 [PatrolDetailPage] Check point submitted successfully, reloading get_current_task...');
+                          final bloc = widget.bloc ?? context.read<PatrolBloc>();
+                          await _loadCurrentTask(bloc);
                           
                           // Show success dialog
                           showDialog(
@@ -396,8 +396,8 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                       child: _LocationCard(
                         location: location,
                         locationNumber: currentRoute.locations.length + entry.key + 1,
-                        onAbsenTap: () {
-                          showDialog(
+                        onAbsenTap: () async {
+                          final result = await showDialog<bool>(
                             context: context,
                             barrierDismissible: false,
                             builder: (dialogContext) => BlocProvider.value(
@@ -410,6 +410,83 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                               ),
                             ),
                           );
+                          
+                          // If success, reload get_current_task to refresh list data
+                          if (result == true) {
+                            print('🔄 [PatrolDetailPage] Check point submitted successfully (additional), reloading get_current_task...');
+                            final bloc = widget.bloc ?? context.read<PatrolBloc>();
+                            await _loadCurrentTask(bloc);
+                            
+                            // Show success dialog
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (dialogContext) => AlertDialog(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 80,
+                                      height: 80,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF8B0000),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.thumb_up,
+                                        color: Colors.white,
+                                        size: 40,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    const Text(
+                                      'Absen Patroli Berhasil',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Terima Kasih',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.of(dialogContext).pop();
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF8B0000),
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'OK',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
                         },
                       ),
                     );
