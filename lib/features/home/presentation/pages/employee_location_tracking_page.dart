@@ -23,6 +23,7 @@ class EmployeeLocationTrackingPage extends StatefulWidget {
 class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingPage> {
   final TextEditingController _searchController = TextEditingController();
   final MapController _mapController = MapController();
+  final ScrollController _areaScrollController = ScrollController();
   
   List<EmployeeLocationModel> _filteredLocations = [];
   List<patrol_models.AreaModel> _areas = [];
@@ -41,6 +42,7 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
   void dispose() {
     _searchController.dispose();
     _mapController.dispose();
+    _areaScrollController.dispose();
     super.dispose();
   }
 
@@ -132,16 +134,24 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
 
         // Process location response
         if (locationResponse.succeeded) {
-          // Filter out invalid locations (removed print statements from filter for performance)
+          print('📍 [LocationTracking] Raw employee locations from API: ${locationResponse.list.length}');
+          // Filter out invalid locations
           validLocations = locationResponse.list.where((emp) {
             final lat = emp.latitude;
             final lng = emp.longitude;
-            return lat != 0.0 && lng != 0.0 && 
+            final isValid = lat != 0.0 && lng != 0.0 && 
                    lat >= -90 && lat <= 90 && 
                    lng >= -180 && lng <= 180;
+            if (!isValid) {
+              print('⚠️ [LocationTracking] Filtered out invalid location: lat=$lat, lng=$lng, user=${emp.user?.fullname ?? "Unknown"}');
+            }
+            return isValid;
           }).toList();
           
           print('📍 [LocationTracking] Valid employee locations: ${validLocations.length}');
+          for (var emp in validLocations) {
+            print('📍   - ${emp.user?.fullname ?? "Unknown"}: lat=${emp.latitude}, lng=${emp.longitude}');
+          }
           
           // Jika ada search query dan ada data employee, pindah map ke area dari employee pertama
           if (searchQuery.isNotEmpty && validLocations.isNotEmpty && allAreas.isNotEmpty) {
@@ -179,10 +189,20 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
           });
 
           // Zoom ke area yang dipilih setelah areas dimuat
+          // Jika ada employee locations, zoom untuk menampilkan semua marker
+          // Jika tidak ada employee, tetap tampilkan map sesuai area yang dipilih
           if (allAreas.isNotEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                _zoomToSelectedArea();
+                // Scroll ke area yang dipilih setelah areas dimuat
+                _scrollToSelectedArea();
+                
+                if (validLocations.isNotEmpty) {
+                  _zoomToShowAllMarkers();
+                } else {
+                  // Jika tidak ada employee, tetap zoom ke area yang dipilih
+                  _zoomToSelectedArea();
+                }
               }
             });
           }
@@ -332,14 +352,71 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
     });
   }
 
+  /// Scroll list area ke area yang dipilih
+  void _scrollToSelectedArea() {
+    if (_selectedAreaId == null || _areas.isEmpty) {
+      return;
+    }
+
+    // Tunggu sampai ScrollController sudah terhubung dengan widget
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_areaScrollController.hasClients) {
+        return;
+      }
+
+      try {
+        final selectedIndex = _areas.indexWhere((area) => area.id == _selectedAreaId);
+        if (selectedIndex < 0) {
+          return;
+        }
+
+        // Gunakan pendekatan yang lebih akurat dengan mencoba scroll ke posisi
+        // Kita akan scroll agar chip yang dipilih terlihat dengan baik
+        // Estimasi: setiap chip + padding = sekitar 130-150 pixels
+        const estimatedChipWidth = 130.0;
+        const padding = 16.0; // padding horizontal ListView
+        
+        final screenWidth = MediaQuery.of(context).size.width;
+        final chipWidth = estimatedChipWidth;
+        final accumulatedWidth = selectedIndex * chipWidth;
+        
+        // Scroll agar chip berada di tengah layar (dikurangi padding)
+        final targetOffset = accumulatedWidth - (screenWidth / 2) + (chipWidth / 2) + padding;
+        
+        // Pastikan offset dalam range yang valid
+        final maxScrollExtent = _areaScrollController.position.maxScrollExtent;
+        final finalOffset = targetOffset.clamp(0.0, maxScrollExtent);
+        
+        _areaScrollController.animateTo(
+          finalOffset,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+        
+        print('📍 [LocationTracking] Scrolling to area at index: $selectedIndex, offset: $finalOffset (max: $maxScrollExtent)');
+      } catch (e) {
+        print('⚠️ [LocationTracking] Error scrolling to selected area: $e');
+      }
+    });
+  }
+
   void _onAreaSelected(String? areaId) {
     setState(() {
       _selectedAreaId = areaId;
     });
+    
+    // Scroll ke area yang dipilih (method ini sudah handle postFrameCallback)
+    _scrollToSelectedArea();
+    
     _loadDataTogether();
     // Zoom ke area yang dipilih setelah data dimuat
+    // Jika ada employee locations, zoom untuk menampilkan semua marker
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _zoomToSelectedArea();
+      if (_filteredLocations.isNotEmpty) {
+        _zoomToShowAllMarkers();
+      } else {
+        _zoomToSelectedArea();
+      }
     });
   }
 
@@ -433,6 +510,108 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
       } catch (e) {
         print('❌ [LocationTracking] Error moving map: $e');
       }
+    }
+  }
+
+  /// Zoom map untuk menampilkan semua marker (area + employee)
+  void _zoomToShowAllMarkers() {
+    final List<LatLng> allPoints = [];
+    
+    // Tambahkan koordinat area yang dipilih
+    if (_selectedAreaId != null && _areas.isNotEmpty) {
+      try {
+        final selectedArea = _areas.firstWhere(
+          (area) => area.id == _selectedAreaId,
+        );
+        if (selectedArea.latitude != null && selectedArea.longitude != null) {
+          var lat = selectedArea.latitude!;
+          var lng = selectedArea.longitude!;
+          
+          // Normalisasi koordinat
+          if (lat < -90) lat = -90;
+          if (lat > 90) lat = 90;
+          if (lng > 180) lng = lng - 360;
+          lng = ((lng + 180) % 360) - 180;
+          if (lng < -180) lng = -180;
+          if (lng > 180) lng = 180;
+          
+          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            allPoints.add(LatLng(lat, lng));
+            print('📍 [LocationTracking] Added area point: ($lat, $lng)');
+          }
+        }
+      } catch (e) {
+        print('⚠️ [LocationTracking] Error getting selected area: $e');
+      }
+    }
+    
+    // Tambahkan koordinat semua employee
+    for (var emp in _filteredLocations) {
+      final lat = emp.latitude;
+      final lng = emp.longitude;
+      if (lat != 0.0 && lng != 0.0 && 
+          lat >= -90 && lat <= 90 && 
+          lng >= -180 && lng <= 180) {
+        allPoints.add(LatLng(lat, lng));
+        print('📍 [LocationTracking] Added employee point: ${emp.user?.fullname ?? "Unknown"} ($lat, $lng)');
+      }
+    }
+    
+    if (allPoints.isEmpty) {
+      print('⚠️ [LocationTracking] No valid points to zoom to');
+      // Fallback ke area yang dipilih
+      _zoomToSelectedArea();
+      return;
+    }
+    
+    // Hitung bounds dari semua points
+    double minLat = allPoints.first.latitude;
+    double maxLat = allPoints.first.latitude;
+    double minLng = allPoints.first.longitude;
+    double maxLng = allPoints.first.longitude;
+    
+    for (var point in allPoints) {
+      if (point.latitude < minLat) minLat = point.latitude;
+      if (point.latitude > maxLat) maxLat = point.latitude;
+      if (point.longitude < minLng) minLng = point.longitude;
+      if (point.longitude > maxLng) maxLng = point.longitude;
+    }
+    
+    // Hitung center dan padding
+    final centerLat = (minLat + maxLat) / 2;
+    final centerLng = (minLng + maxLng) / 2;
+    
+    // Hitung zoom level berdasarkan jarak
+    final latDiff = maxLat - minLat;
+    final lngDiff = maxLng - minLng;
+    final maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
+    
+    double zoom = 11.0;
+    if (maxDiff > 0.1) {
+      zoom = 9.0;
+    } else if (maxDiff > 0.05) {
+      zoom = 10.0;
+    } else if (maxDiff > 0.01) {
+      zoom = 10.5;
+    } else {
+      zoom = 11.0;
+    }
+    
+    print('📍 [LocationTracking] Zooming to show all markers');
+    print('📍   Center: ($centerLat, $centerLng)');
+    print('📍   Bounds: lat($minLat to $maxLat), lng($minLng to $maxLng)');
+    print('📍   Zoom level: $zoom');
+    print('📍   Total points: ${allPoints.length}');
+    
+    try {
+      _mapController.move(
+        LatLng(centerLat, centerLng),
+        zoom,
+      );
+    } catch (e) {
+      print('❌ [LocationTracking] Error moving map to show all markers: $e');
+      // Fallback ke area yang dipilih
+      _zoomToSelectedArea();
     }
   }
 
@@ -614,6 +793,7 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
                         ),
                       )
                     : ListView(
+                        controller: _areaScrollController,
                         scrollDirection: Axis.horizontal,
                         padding: REdgeInsets.symmetric(horizontal: 16),
                         children: _areas.map((area) {
@@ -681,6 +861,8 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
                               // Pastikan menggunakan koordinat dari API
                               final lat = employee.latitude;
                               final lng = employee.longitude;
+                              
+                              print('📍 [LocationTracking] Creating marker for ${employee.user?.fullname ?? "Unknown"} at ($lat, $lng)');
                               
                               return Marker(
                                 point: LatLng(
@@ -750,23 +932,42 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
                         ),
                       ),
                     
+                    // Tampilkan pesan kecil di pojok bawah saat tidak ada employee
+                    // Map tetap terlihat dan terpusat pada area yang dipilih
                     if (!_isLoadingLocations && _filteredLocations.isEmpty)
-                      Container(
-                        color: Colors.white.withOpacity(0.9),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                      Positioned(
+                        bottom: 80,
+                        left: 16,
+                        right: 16,
+                        child: Container(
+                          padding: REdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.95),
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(color: Colors.grey[300]!),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.location_off,
-                                size: 64.sp,
-                                color: Colors.grey[400],
+                                Icons.info_outline,
+                                size: 20.sp,
+                                color: Colors.grey[600],
                               ),
-                              16.verticalSpace,
-                              Text(
-                                _errorMessage ?? 'Tidak ada lokasi ditemukan',
-                                style: TS.bodyMedium.copyWith(
-                                  color: Colors.grey[600],
+                              8.horizontalSpace,
+                              Expanded(
+                                child: Text(
+                                  _errorMessage ?? 'Tidak ada lokasi employee ditemukan',
+                                  style: TS.bodySmall.copyWith(
+                                    color: Colors.grey[700],
+                                  ),
                                 ),
                               ),
                             ],

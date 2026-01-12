@@ -234,9 +234,10 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
       final patrolRepository = getIt<PatrolRepository>();
 
       // Submit check point using new API
+      // Use currentLocation.id as idAreas since it's the selected location from the list
       final result = await patrolRepository.submitCheckPoint(
         idShiftDetail: shiftDetailId,
-        idAreas: widget.routeId, // This is actually IdAreas
+        idAreas: widget.currentLocation.id, // Use the selected location's id from the list
         photoPath: _imageFile?.path,
         latitude: _currentLatitude!,
         longitude: _currentLongitude!,
