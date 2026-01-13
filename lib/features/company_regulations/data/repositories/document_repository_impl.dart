@@ -26,31 +26,36 @@ class DocumentRepositoryImpl implements DocumentRepository {
   Future<Either<Failure, List<DocumentEntity>>> getDocuments({
     int start = 0,
     int length = 10,
-    String? searchQuery,
+    Map<String, String>? filters,
+    String? sortField,
+    int? sortType,
   }) async {
     try {
       // Ensure start and length are valid (internally 0-based, will be converted to 1-based in request)
       final validStart = start < 0 ? 0 : start;
       final validLength = length <= 0 ? 10 : length;
 
+      final cleanedFilters = <CompanyRuleFilterItem>[];
+      final inputFilters = filters ?? const {};
+      for (final entry in inputFilters.entries) {
+        final key = entry.key.trim();
+        final value = entry.value.trim();
+        if (key.isEmpty || value.isEmpty) continue;
+        cleanedFilters.add(CompanyRuleFilterItem(field: key, search: value));
+      }
+
       // Create request
-      final request = searchQuery != null && searchQuery.isNotEmpty
-          ? CompanyRuleListRequest(
-              filter: [
-                CompanyRuleFilterItem(field: 'Name', search: searchQuery),
-              ],
-              sort: const CompanyRuleSortItem(field: 'CreateDate', type: 1),
-              start: validStart,
-              length: validLength,
-            )
-          : CompanyRuleListRequest(
-              filter: const [
-                CompanyRuleFilterItem(field: '', search: ''),
-              ],
-              sort: const CompanyRuleSortItem(field: 'CreateDate', type: 1),
-              start: validStart,
-              length: validLength,
-            );
+      final request = CompanyRuleListRequest(
+        filter: cleanedFilters,
+        sort: CompanyRuleSortItem(
+          field: (sortField != null && sortField.trim().isNotEmpty)
+              ? sortField.trim()
+              : 'CreateDate',
+          type: sortType ?? 1,
+        ),
+        start: validStart,
+        length: validLength,
+      );
 
       final response = await remoteDataSource.getDocumentsList(request);
       final entities = response.list.map((model) => model.toEntity()).toList();

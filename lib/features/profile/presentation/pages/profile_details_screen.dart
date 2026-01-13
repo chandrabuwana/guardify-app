@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:pdfx/pdfx.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
@@ -27,6 +31,67 @@ class ProfileDetailsScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => getIt<ProfileBloc>()..add(LoadProfileEvent(userId)),
       child: ProfileDetailsScreenView(userId: userId),
+    );
+  }
+}
+
+class _PdfPreview extends StatefulWidget {
+  final String url;
+
+  const _PdfPreview({required this.url});
+
+  @override
+  State<_PdfPreview> createState() => _PdfPreviewState();
+}
+
+class _PdfPreviewState extends State<_PdfPreview> {
+  late final PdfControllerPinch _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PdfControllerPinch(
+      document: _loadDocument(widget.url),
+    );
+  }
+
+  Future<PdfDocument> _loadDocument(String url) async {
+    final response = await Dio().get<List<int>>(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final bytes = Uint8List.fromList(response.data ?? const <int>[]);
+    return PdfDocument.openData(bytes);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PdfViewPinch(
+      controller: _controller,
+      scrollDirection: Axis.vertical,
+      builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+        options: const DefaultBuilderOptions(),
+        documentLoaderBuilder: (_) => const CircularProgressIndicator(
+          color: Colors.white,
+        ),
+        pageLoaderBuilder: (_) => const CircularProgressIndicator(
+          color: Colors.white,
+        ),
+        errorBuilder: (_, error) => Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Text(
+            'Gagal memuat PDF',
+            style: TS.bodyMedium.copyWith(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -269,14 +334,8 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
           ProfileDetailItem(
             label: 'Nama',
             value: profile.name,
-            onTap: () => _navigateToEditName(profile),
+            // onTap: () => _navigateToEditName(profile),
           ),
-
-          ProfileDetailItem(
-            label: 'Username',
-            value: profile.nrp,
-          ),
-
           ProfileDetailItem(
             label: 'No NRP',
             value: profile.nrp,
@@ -388,7 +447,7 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
   /// Build tab dokumen
   Widget _buildDokumenTab(dynamic profile) {
     final documents = profile.documents as Map<String, String>?;
-    
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(20.w),
       child: Column(
@@ -432,7 +491,8 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
             'Pernyataan Tidak Merokok',
             documents?['pernyataan_tidak_merokok'] ?? 'Belum diupload',
             () => _uploadDocument('Tidak_Merokok'),
-            hasDocument: documents?['pernyataan_tidak_merokok']?.isNotEmpty ?? false,
+            hasDocument:
+                documents?['pernyataan_tidak_merokok']?.isNotEmpty ?? false,
           ),
         ],
       ),
@@ -441,58 +501,177 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
 
   /// Build document item widget
   Widget _buildDocumentItem(
-    String title, 
-    String filename, 
-    VoidCallback onUpload,
-    {bool hasDocument = false}
-  ) {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      String title, String filename, VoidCallback onUpload,
+      {bool hasDocument = false}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: hasDocument ? primaryColor.withOpacity(0.3) : Colors.grey.shade300,
-          width: 1,
+        onTap: () {
+          if (hasDocument) {
+            _showDocumentPreview(title: title, source: filename);
+            return;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$title belum diupload'),
+            ),
+          );
+        },
+        child: Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: hasDocument
+                  ? primaryColor.withOpacity(0.3)
+                  : Colors.grey.shade300,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                hasDocument ? Icons.check_circle : Icons.upload_file,
+                color: hasDocument ? Colors.green : Colors.grey.shade400,
+                size: 24.w,
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TS.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      filename,
+                      style: TS.bodySmall.copyWith(
+                        color:
+                            hasDocument ? Colors.green : Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.grey.shade400,
+                size: 16.w,
+              ),
+            ],
+          ),
         ),
       ),
-      child: Row(
-        children: [
-          Icon(
-            hasDocument ? Icons.check_circle : Icons.upload_file,
-            color: hasDocument ? Colors.green : Colors.grey.shade400,
-            size: 24.w,
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
+    );
+  }
+
+  void _showDocumentPreview({required String title, required String source}) {
+    final trimmed = source.trim();
+    if (trimmed.isEmpty || trimmed.toLowerCase() == 'belum diupload') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$title belum diupload'),
+        ),
+      );
+      return;
+    }
+
+    final lower = trimmed.toLowerCase();
+    final isImage = lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.webp') ||
+        lower.endsWith('.gif');
+    final isPdf = lower.endsWith('.pdf');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.black,
+      builder: (context) {
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.9,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TS.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w600,
+                Padding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TS.titleMedium.copyWith(color: Colors.white),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.white),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 4.h),
-                Text(
-                  filename,
-                  style: TS.bodySmall.copyWith(
-                    color: hasDocument ? Colors.green : Colors.grey.shade600,
+                const Divider(height: 1, color: Colors.white24),
+                Expanded(
+                  child: Center(
+                    child: isImage
+                        ? InteractiveViewer(
+                            minScale: 0.5,
+                            maxScale: 4.0,
+                            child: Image.network(
+                              trimmed,
+                              fit: BoxFit.contain,
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const CircularProgressIndicator(
+                                  color: Colors.white,
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Padding(
+                                  padding: EdgeInsets.all(16.w),
+                                  child: Text(
+                                    'Gagal memuat gambar',
+                                    style: TS.bodyMedium.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : isPdf
+                            ? _PdfPreview(url: trimmed)
+                            : Padding(
+                                padding: EdgeInsets.all(16.w),
+                                child: Text(
+                                  'Preview hanya tersedia untuk gambar.\nSumber: $trimmed',
+                                  style: TS.bodyMedium
+                                      .copyWith(color: Colors.white),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          Icon(
-            Icons.arrow_forward_ios,
-            color: Colors.grey.shade400,
-            size: 16.w,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

@@ -148,17 +148,17 @@ class ScheduleBloc extends Bloc<ScheduleEvent, ScheduleState> {
       // Success case - shiftDetail can be null (no schedule for this date)
       if (result.shiftDetail == null) {
         // Explicitly clear selectedShift when no data
-        print('[ScheduleBloc] ✅ No schedule data - clearing selectedShift');
+        // print('[ScheduleBloc] ✅ No schedule data - clearing selectedShift');
         final newState = state.copyWith(
           isLoadingDetail: false,
           clearSelectedShift: true,
           clearError: true,
         );
         emit(newState);
-        print('[ScheduleBloc] ✅ State updated - selectedShift is now: ${newState.selectedShift}');
+        // print('[ScheduleBloc] ✅ State updated - selectedShift is now: ${newState.selectedShift}');
       } else {
         // Has data
-        print('[ScheduleBloc] ✅ Schedule data found: ${result.shiftDetail!.shiftName}');
+        // print('[ScheduleBloc] ✅ Schedule data found: ${result.shiftDetail!.shiftName}');
         emit(state.copyWith(
           isLoadingDetail: false,
           selectedShift: result.shiftDetail,
@@ -167,7 +167,7 @@ class ScheduleBloc extends Bloc<ScheduleEvent, ScheduleState> {
       }
     } else {
       // Failure case - show error
-      print('[ScheduleBloc] ❌ Error loading schedule: ${result.failure?.message}');
+      // print('[ScheduleBloc] ❌ Error loading schedule: ${result.failure?.message}');
       emit(state.copyWith(
         isLoadingDetail: false,
         error: result.failure?.message ?? 'Gagal memuat detail jadwal',
