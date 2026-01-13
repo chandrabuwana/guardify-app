@@ -25,6 +25,8 @@ class DocumentLoaded extends DocumentState {
   final List<DocumentEntity> filteredDocuments;
   final List<String> categories;
   final String? currentQuery;
+  final String? currentNameFilter;
+  final String? currentCodeFilter;
   final String? currentCategoryFilter;
   final DateTime? currentStartDate;
   final DateTime? currentEndDate;
@@ -34,11 +36,16 @@ class DocumentLoaded extends DocumentState {
   final bool hasReachedMax;
   final int currentPage;
 
+  final String sortField;
+  final int sortType;
+
   const DocumentLoaded({
     required this.documents,
     required this.filteredDocuments,
     this.categories = const [],
     this.currentQuery,
+    this.currentNameFilter,
+    this.currentCodeFilter,
     this.currentCategoryFilter,
     this.currentStartDate,
     this.currentEndDate,
@@ -47,6 +54,8 @@ class DocumentLoaded extends DocumentState {
     this.isLoadingMore = false,
     this.hasReachedMax = false,
     this.currentPage = 0,
+    this.sortField = 'CreateDate',
+    this.sortType = 1,
   });
 
   @override
@@ -55,6 +64,8 @@ class DocumentLoaded extends DocumentState {
         filteredDocuments,
         categories,
         currentQuery,
+        currentNameFilter,
+        currentCodeFilter,
         currentCategoryFilter,
         currentStartDate,
         currentEndDate,
@@ -63,6 +74,8 @@ class DocumentLoaded extends DocumentState {
         isLoadingMore,
         hasReachedMax,
         currentPage,
+        sortField,
+        sortType,
       ];
 
   /// Copy with method untuk membuat state baru dengan perubahan tertentu
@@ -71,6 +84,8 @@ class DocumentLoaded extends DocumentState {
     List<DocumentEntity>? filteredDocuments,
     List<String>? categories,
     String? currentQuery,
+    String? currentNameFilter,
+    String? currentCodeFilter,
     String? currentCategoryFilter,
     DateTime? currentStartDate,
     DateTime? currentEndDate,
@@ -79,12 +94,16 @@ class DocumentLoaded extends DocumentState {
     bool? isLoadingMore,
     bool? hasReachedMax,
     int? currentPage,
+    String? sortField,
+    int? sortType,
   }) {
     return DocumentLoaded(
       documents: documents ?? this.documents,
       filteredDocuments: filteredDocuments ?? this.filteredDocuments,
       categories: categories ?? this.categories,
       currentQuery: currentQuery ?? this.currentQuery,
+      currentNameFilter: currentNameFilter ?? this.currentNameFilter,
+      currentCodeFilter: currentCodeFilter ?? this.currentCodeFilter,
       currentCategoryFilter:
           currentCategoryFilter ?? this.currentCategoryFilter,
       currentStartDate: currentStartDate ?? this.currentStartDate,
@@ -94,6 +113,8 @@ class DocumentLoaded extends DocumentState {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       currentPage: currentPage ?? this.currentPage,
+      sortField: sortField ?? this.sortField,
+      sortType: sortType ?? this.sortType,
     );
   }
 
@@ -104,6 +125,8 @@ class DocumentLoaded extends DocumentState {
       filteredDocuments: documents,
       categories: categories,
       currentQuery: null,
+      currentNameFilter: currentNameFilter,
+      currentCodeFilter: currentCodeFilter,
       currentCategoryFilter: currentCategoryFilter,
       currentStartDate: currentStartDate,
       currentEndDate: currentEndDate,
@@ -112,6 +135,8 @@ class DocumentLoaded extends DocumentState {
       isLoadingMore: false,
       hasReachedMax: false,
       currentPage: 0,
+      sortField: sortField,
+      sortType: sortType,
     );
   }
 
@@ -121,6 +146,8 @@ class DocumentLoaded extends DocumentState {
       filteredDocuments: documents,
       categories: categories,
       currentQuery: currentQuery,
+      currentNameFilter: null,
+      currentCodeFilter: null,
       currentCategoryFilter: null,
       currentStartDate: null,
       currentEndDate: null,
@@ -129,6 +156,8 @@ class DocumentLoaded extends DocumentState {
       isLoadingMore: false,
       hasReachedMax: false,
       currentPage: 0,
+      sortField: sortField,
+      sortType: sortType,
     );
   }
 }

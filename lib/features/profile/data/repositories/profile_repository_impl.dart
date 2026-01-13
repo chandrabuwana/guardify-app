@@ -35,11 +35,29 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
       // Fetch dari remote
       final remoteProfile = await remoteDataSource.getProfileDetails(userId);
+
+      ProfileUser enrichedProfile = remoteProfile.toEntity();
+      final supervisorId = enrichedProfile.atasan;
+      final hasSupervisorId = supervisorId.isNotEmpty &&
+          supervisorId != '-' &&
+          supervisorId.toLowerCase() != 'null';
+
+      if (hasSupervisorId) {
+        try {
+          final supervisorProfile =
+              await remoteDataSource.getProfileDetails(supervisorId);
+          enrichedProfile = enrichedProfile.copyWith(
+            atasan: supervisorProfile.name,
+          );
+        } catch (e) {
+          // Keep original supervisorId if resolving fails
+        }
+      }
       
       // Cache data yang baru
-      await localDataSource.cacheProfileData(remoteProfile);
+      await localDataSource.cacheProfileData(ProfileUserModel.fromEntity(enrichedProfile));
       
-      return remoteProfile.toEntity();
+      return enrichedProfile;
     } catch (e) {
       // Jika remote gagal, coba ambil dari cache
       final cachedProfile = await localDataSource.getCachedProfileData(userId);

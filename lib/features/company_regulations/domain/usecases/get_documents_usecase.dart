@@ -20,7 +20,19 @@ class GetDocumentsUseCase {
   /// Returns:
   /// - Left(Failure): Jika terjadi error saat mengambil data
   /// - Right(List<DocumentEntity>): List dokumen yang berhasil diambil
-  Future<Either<Failure, List<DocumentEntity>>> call() async {
-    return await repository.getAllDocuments();
+  Future<Either<Failure, List<DocumentEntity>>> call({
+    int start = 0,
+    int length = 10,
+    Map<String, String>? filters,
+    String? sortField,
+    int? sortType,
+  }) async {
+    return await repository.getDocuments(
+      start: start,
+      length: length,
+      filters: filters,
+      sortField: sortField,
+      sortType: sortType,
+    );
   }
 }

@@ -13,7 +13,9 @@ abstract class DocumentRepository {
   /// Parameters:
   /// - [start]: Starting index for pagination (0-based internally)
   /// - [length]: Number of items to fetch
-  /// - [searchQuery]: Optional search query
+  /// - [filters]: Optional server-side filters (e.g. {'Name': 'abc', 'Code': 'CR0001'})
+  /// - [sortField]: Optional server-side sort field (e.g. 'CreateDate')
+  /// - [sortType]: Optional server-side sort type (0 = ascending, 1 = descending)
   ///
   /// Returns:
   /// - Left(Failure): Jika terjadi error saat mengambil data
@@ -21,7 +23,9 @@ abstract class DocumentRepository {
   Future<Either<Failure, List<DocumentEntity>>> getDocuments({
     int start = 0,
     int length = 10,
-    String? searchQuery,
+    Map<String, String>? filters,
+    String? sortField,
+    int? sortType,
   });
 
   /// Mengambil semua dokumen yang tersedia
