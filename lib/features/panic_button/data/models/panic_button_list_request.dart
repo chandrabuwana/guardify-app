@@ -46,13 +46,17 @@ class PanicButtonListRequest {
   });
 
   Map<String, dynamic> toJson() {
-    // API uses 1-based indexing, so convert 0-based to 1-based
-    // Ensure start is at least 1 and length is positive
-    final validStart = start < 0 ? 1 : start + 1;
-    final validLength = length <= 0 ? 10 : length;
+    final validStart = start < 1 ? 1 : start;
+    final validLength = length < 0 ? 0 : length;
+
+    final cleanedFilter = filter
+        .where(
+          (f) => f.field.trim().isNotEmpty && f.search.trim().isNotEmpty,
+        )
+        .toList();
 
     return {
-      'Filter': filter.map((f) => f.toJson()).toList(),
+      'Filter': cleanedFilter.map((f) => f.toJson()).toList(),
       'Sort': sort.toJson(),
       'Start': validStart,
       'Length': validLength,
@@ -62,24 +66,105 @@ class PanicButtonListRequest {
   // Default request for initial load
   factory PanicButtonListRequest.initial({int length = 10}) {
     return PanicButtonListRequest(
-      filter: const [
-        PanicButtonFilterItem(field: '', search: ''),
-      ],
-      sort: const PanicButtonSortItem(field: '', type: 0),
-      start: 0,
+      filter: const [],
+      sort: const PanicButtonSortItem(field: 'status', type: 0),
+      start: 1,
       length: length,
     );
   }
 
-  // Create request with search filter
-  PanicButtonListRequest withSearch(String searchQuery) {
+  PanicButtonListRequest copyWith({
+    List<PanicButtonFilterItem>? filter,
+    PanicButtonSortItem? sort,
+    int? start,
+    int? length,
+  }) {
     return PanicButtonListRequest(
-      filter: [
-        PanicButtonFilterItem(field: '', search: searchQuery),
-      ],
-      sort: sort,
-      start: 0,
-      length: length,
+      filter: filter ?? this.filter,
+      sort: sort ?? this.sort,
+      start: start ?? this.start,
+      length: length ?? this.length,
+    );
+  }
+
+  PanicButtonListRequest withDescriptionSearch(String searchQuery) {
+    final query = searchQuery.trim();
+    final nextFilter = [
+      ...filter.where((f) => f.field.toLowerCase() != 'description'),
+      if (query.isNotEmpty) const PanicButtonFilterItem(field: 'description', search: ''),
+    ];
+
+    return copyWith(
+      filter: nextFilter
+          .map(
+            (f) => f.field.toLowerCase() == 'description'
+                ? PanicButtonFilterItem(field: 'description', search: query)
+                : f,
+          )
+          .toList(),
+      start: 1,
+    );
+  }
+
+  PanicButtonListRequest withStatusesFilter(List<String> statuses) {
+    final cleaned = statuses.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+
+    final withoutStatus = filter.where((f) => f.field.toLowerCase() != 'status').toList();
+    final statusFilters = cleaned
+        .map((s) => PanicButtonFilterItem(field: 'status', search: s))
+        .toList();
+
+    return copyWith(
+      filter: [...withoutStatus, ...statusFilters],
+      start: 1,
+    );
+  }
+
+  PanicButtonListRequest withStatusFilter(String? status) {
+    final value = status?.trim() ?? '';
+    final nextFilter = [
+      ...filter.where((f) => f.field.toLowerCase() != 'status'),
+      if (value.isNotEmpty) const PanicButtonFilterItem(field: 'status', search: ''),
+    ];
+
+    return copyWith(
+      filter: nextFilter
+          .map(
+            (f) => f.field.toLowerCase() == 'status'
+                ? PanicButtonFilterItem(field: 'status', search: value)
+                : f,
+          )
+          .toList(),
+      start: 1,
+    );
+  }
+
+  PanicButtonListRequest withCreateDateFilter(String field, String? dateValue) {
+    final f = field.trim();
+    final v = dateValue?.trim() ?? '';
+    if (f.isEmpty) return this;
+
+    final nextFilter = [
+      ...filter.where((it) => it.field.toLowerCase() != f.toLowerCase()),
+      if (v.isNotEmpty) PanicButtonFilterItem(field: f, search: ''),
+    ];
+
+    return copyWith(
+      filter: nextFilter
+          .map(
+            (it) => it.field.toLowerCase() == f.toLowerCase()
+                ? PanicButtonFilterItem(field: f, search: v)
+                : it,
+          )
+          .toList(),
+      start: 1,
+    );
+  }
+
+  PanicButtonListRequest withSort({required String field, required int type}) {
+    return copyWith(
+      sort: PanicButtonSortItem(field: field, type: type),
+      start: 1,
     );
   }
 

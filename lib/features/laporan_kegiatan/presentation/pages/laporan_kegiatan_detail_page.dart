@@ -50,7 +50,14 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Return true to allow pop and trigger refresh in list page
+        if (_currentPage > 0) {
+          _pageController.previousPage(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+          return false;
+        }
+
         return true;
       },
       child: AppScaffold(
@@ -58,6 +65,22 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
         appBar: AppBar(
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () async {
+              if (_currentPage > 0) {
+                await _pageController.previousPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+                return;
+              }
+
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
           title: const Text('Detail Laporan Kegiatan'),
           centerTitle: true,
         ),

@@ -101,8 +101,10 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
           if (state.detailItem != null) {
             // Pre-fill editable fields if they exist
             final item = state.detailItem!;
-            if (item.resolveAction != null && _tindakanPenyelesaianController.text.isEmpty) {
-              _tindakanPenyelesaianController.text = item.resolveAction!;
+            if (item.feedback != null &&
+                item.feedback!.trim().isNotEmpty &&
+                _tindakanPenyelesaianController.text.isEmpty) {
+              _tindakanPenyelesaianController.text = item.feedback!.trim();
             }
           }
 
@@ -176,155 +178,81 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header Section with Status
-                        _buildHeaderSection(historyItem),
-                        20.verticalSpace,
-
-                        // Informasi Kejadian Section
                         Padding(
-                          padding: REdgeInsets.symmetric(horizontal: 16),
+                          padding: REdgeInsets.fromLTRB(16, 16, 16, 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildSectionTitle('Informasi Kejadian', Icons.info_outline),
+                              _buildFieldLabel('Status'),
+                              8.verticalSpace,
+                              _buildGreyField(historyItem.status),
                               12.verticalSpace,
-                              _buildInfoCard(
-                                icon: Icons.category,
-                                label: 'Jenis Keadaan Darurat',
-                                value: historyItem.incidentTypeName ?? '-',
-                              ),
-                              12.verticalSpace,
-                              _buildInfoCard(
-                                icon: Icons.location_on,
-                                label: 'Lokasi Kejadian',
-                                value: historyItem.areaName ?? '-',
-                              ),
-                              12.verticalSpace,
-                              _buildInfoCard(
-                                icon: Icons.description,
-                                label: 'Kejadian',
-                                value: historyItem.description,
-                                isMultiline: true,
-                              ),
-                              12.verticalSpace,
-                              // Tindakan Yang Dibutuhkan
-                              if (historyItem.feedback != null && historyItem.feedback!.isNotEmpty)
-                                _buildInfoCard(
-                                  icon: Icons.assignment,
-                                  label: 'Tindakan Yang Dibutuhkan',
-                                  value: historyItem.feedback!,
-                                  isMultiline: true,
-                                ),
-                              if (historyItem.feedback != null && historyItem.feedback!.isNotEmpty)
-                                12.verticalSpace,
-                            ],
-                          ),
-                        ),
 
-                        // Foto Kejadian Section
-                        if (historyItem.files.isNotEmpty) ...[
-                          20.verticalSpace,
-                          Padding(
-                            padding: REdgeInsets.symmetric(horizontal: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildSectionTitle('Foto Kejadian', Icons.photo_library),
-                                12.verticalSpace,
+                              _buildFieldLabel('Jenis Keadaan Darurat'),
+                              8.verticalSpace,
+                              _buildGreyField(historyItem.incidentTypeName ?? '-'),
+                              12.verticalSpace,
+
+                              _buildFieldLabel('Lokasi Kejadian'),
+                              8.verticalSpace,
+                              _buildGreyField(historyItem.areaName ?? '-'),
+                              12.verticalSpace,
+
+                              _buildFieldLabel('Kejadian'),
+                              8.verticalSpace,
+                              _buildGreyField(historyItem.description, isMultiline: true),
+                              12.verticalSpace,
+
+                              if (historyItem.files.isNotEmpty) ...[
+                                _buildFieldLabel('Foto Kejadian'),
+                                8.verticalSpace,
                                 _buildPhotoGrid(historyItem.files),
+                                12.verticalSpace,
                               ],
-                            ),
-                          ),
-                        ],
 
-                        // Informasi Pelapor Section
-                        20.verticalSpace,
-                        Padding(
-                          padding: REdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildSectionTitle('Informasi Pelapor', Icons.person),
+                              if (historyItem.feedback != null && historyItem.feedback!.trim().isNotEmpty) ...[
+                                _buildFieldLabel('Tindakan Yang Dibutuhkan'),
+                                8.verticalSpace,
+                                _buildGreyField(historyItem.feedback!, isMultiline: true),
+                                12.verticalSpace,
+                              ],
+
+                              _buildFieldLabel('Pelapor'),
+                              8.verticalSpace,
+                              _buildGreyField(_formatReporter(historyItem)),
                               12.verticalSpace,
-                              _buildInfoCard(
-                                icon: Icons.badge,
-                                label: 'Pelapor',
-                                value: _formatReporter(historyItem),
-                              ),
+
+                              _buildFieldLabel('Tanggal Kejadian'),
+                              8.verticalSpace,
+                              _buildGreyField(_formatIncidentDate(historyItem)),
                               12.verticalSpace,
-                              _buildInfoCard(
-                                icon: Icons.calendar_today,
-                                label: 'Tanggal Kejadian',
-                                value: _formatIncidentDate(historyItem),
-                              ),
+
+                              _buildFieldLabel('Tindakan Penyelesaian'),
+                              8.verticalSpace,
+                              _buildGreyField(historyItem.resolveAction ?? 'xxxx', isMultiline: true),
+                              12.verticalSpace,
+
+                              if (!_isPengawas) ...[
+                                _buildBuktiPenyelesaianField(),
+                                12.verticalSpace,
+                              ],
+
+                              _buildFieldLabel('Diselesaikan Oleh'),
+                              8.verticalSpace,
+                              _buildGreyField(_formatSolver(historyItem)),
+                              12.verticalSpace,
+
+                              _buildFieldLabel('Tanggal Penyelesaian'),
+                              8.verticalSpace,
+                              _buildGreyField(_formatSolverDate(historyItem)),
+                              12.verticalSpace,
+
+                              _buildFieldLabel('Umpan Balik'),
+                              8.verticalSpace,
+                              _buildFeedbackField(historyItem),
                             ],
                           ),
                         ),
-
-                        // Tindakan Penyelesaian Section
-                        if (_canVerify) ...[
-                          20.verticalSpace,
-                          Padding(
-                            padding: REdgeInsets.symmetric(horizontal: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildSectionTitle('Tindakan Penyelesaian', Icons.task_alt),
-                                12.verticalSpace,
-                                // Bukti Penyelesaian hanya untuk PJO/Deputy, bukan untuk Pengawas
-                                if (!_isPengawas) _buildBuktiPenyelesaianField(),
-                                // Feedback field untuk Pengawas
-                                if (_isPengawas) ...[
-                                  _buildEditableField(
-                                    'Feedback',
-                                    _tindakanPenyelesaianController,
-                                    maxLines: 4,
-                                    hintText: 'Masukkan feedback...',
-                                    icon: Icons.feedback,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        // Informasi Penyelesaian Section
-                        if (historyItem.solverName != null || historyItem.createDate != null) ...[
-                          20.verticalSpace,
-                          Padding(
-                            padding: REdgeInsets.symmetric(horizontal: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildSectionTitle('Informasi Penyelesaian', Icons.check_circle_outline),
-                                12.verticalSpace,
-                                if (historyItem.solverName != null)
-                                  _buildInfoCard(
-                                    icon: Icons.person_outline,
-                                    label: 'Diselesaikan Oleh',
-                                    value: _formatSolver(historyItem),
-                                  ),
-                                if (historyItem.solverName != null) 12.verticalSpace,
-                                if (historyItem.createDate != null)
-                                  _buildInfoCard(
-                                    icon: Icons.date_range,
-                                    label: 'Tanggal Pelaporan',
-                                    value: _formatCreateDate(historyItem),
-                                  ),
-                                if (historyItem.createDate != null) 12.verticalSpace,
-                                _buildInfoCard(
-                                  icon: Icons.feedback,
-                                  label: 'Umpan Balik Pengawas',
-                                  value: historyItem.feedback ?? '-',
-                                  isMultiline: true,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        // Bottom padding
-                        20.verticalSpace,
                       ],
                     ),
                   ),
@@ -348,6 +276,24 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                       top: false,
                       child: Row(
                         children: [
+                          Container(
+                            width: 52.w,
+                            height: 52.h,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(color: Colors.red[700]!, width: 1.5),
+                              color: Colors.white,
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Fitur panggilan akan segera tersedia')),
+                                );
+                              },
+                              icon: Icon(Icons.call, color: Colors.red[700], size: 22.sp),
+                            ),
+                          ),
+                          12.horizontalSpace,
                           if (_canRevisi) ...[
                             Expanded(
                               child: BlocBuilder<PanicButtonBloc, PanicButtonState>(
@@ -421,21 +367,15 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                           ),
                                         )
-                                      : Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.check_circle, size: 20.sp, color: Colors.white),
-                                            8.horizontalSpace,
-                                            Text(
-                                              'Tandai Sebagai Selesai',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 16.sp,
-                                                fontWeight: FontWeight.w700,
-                                                letterSpacing: 0.3,
-                                              ),
-                                            ),
-                                          ],
+                                      : Text(
+                                          'Tandai Sebagai Selesai',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14.sp,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.2,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                 );
                               },
@@ -451,6 +391,127 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
         ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 13.sp,
+        fontWeight: FontWeight.w700,
+        color: Colors.black87,
+      ),
+    );
+  }
+
+  Widget _buildGreyField(String value, {bool isMultiline = false}) {
+    return Container(
+      width: double.infinity,
+      padding: REdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 255, 255, 255),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Text(
+        value,
+        style: TextStyle(
+          fontSize: 13.sp,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+          height: isMultiline ? 1.45 : 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeedbackField(PanicButtonHistoryItem item) {
+    if (_isPengawas && _canVerify) {
+      return Container(
+        width: double.infinity,
+        padding: REdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white10,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: TextField(
+          controller: _tindakanPenyelesaianController,
+          maxLines: 4,
+          decoration: InputDecoration(
+            hintText: '....',
+            hintStyle: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+            ),
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+          ),
+          style: TextStyle(
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+      );
+    }
+
+    final feedbackValue = (item.feedback != null && item.feedback!.trim().isNotEmpty)
+        ? item.feedback!.trim()
+        : '-';
+    return _buildGreyField(feedbackValue, isMultiline: true);
+  }
+
+  void _showImagePreview(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: REdgeInsets.all(16),
+          child: Stack(
+            children: [
+              InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Center(
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
+                        child: Text(
+                          'Gagal memuat gambar',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -474,17 +535,62 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ID : ${item.formattedId}',
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      10.verticalSpace,
+                      Text(
+                        item.incidentTypeName ?? '-',
+                        style: TextStyle(
+                          fontSize: 22.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      6.verticalSpace,
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 16.sp, color: Colors.grey[700]),
+                          6.horizontalSpace,
+                          Expanded(
+                            child: Text(
+                              item.areaName ?? '-',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[700],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                12.horizontalSpace,
                 Container(
-                  padding: REdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: REdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: statusColor,
                     borderRadius: BorderRadius.circular(20.r),
                     boxShadow: [
                       BoxShadow(
-                        color: statusColor.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        color: statusColor.withOpacity(0.25),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
@@ -492,39 +598,20 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                     item.status,
                     style: TextStyle(
                       fontSize: 12.sp,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       color: Colors.white,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-                12.horizontalSpace,
-                Expanded(
-                  child: Text(
-                    item.formattedId,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[700],
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ),
               ],
             ),
-            16.verticalSpace,
-            Text(
-              'Detail Laporan Panic Button',
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-              ),
-            ),
-            8.verticalSpace,
+            12.verticalSpace,
             Text(
               _formatIncidentDate(item),
               style: TextStyle(
-                fontSize: 14.sp,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w500,
                 color: Colors.grey[600],
               ),
             ),
@@ -898,40 +985,51 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.network(
-                  file.url,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: Colors.grey[100],
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
-                              : null,
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.red[700]!),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showImagePreview(file.url),
+                    child: Image.network(
+                      file.url,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: Colors.grey[100],
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.red[700]!),
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey[100],
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Colors.grey[400],
+                              size: 32.sp,
+                            ),
+                            8.verticalSpace,
+                            Text(
+                              'Gagal memuat',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey[100],
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, color: Colors.grey[400], size: 32.sp),
-                        8.verticalSpace,
-                        Text(
-                          'Gagal memuat',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -1248,13 +1346,13 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
   }
 
   String _formatIncidentDate(PanicButtonHistoryItem item) {
-    if (item.reporterDate == null) return '-';
+    if (item.createDate == null) return '-';
     
     final dateFormat = DateFormat('dd MMMM yyyy', 'id_ID');
     final timeFormat = DateFormat('HH.mm', 'id_ID');
     
-    final dateStr = dateFormat.format(item.reporterDate!);
-    final timeStr = timeFormat.format(item.reporterDate!);
+    final dateStr = dateFormat.format(item.createDate!);
+    final timeStr = timeFormat.format(item.createDate!);
     
     return '$dateStr - $timeStr WIB';
   }
@@ -1264,5 +1362,15 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
     
     final dateFormat = DateFormat('dd MMMM yyyy', 'id_ID');
     return dateFormat.format(item.createDate!);
+  }
+
+  String _formatSolverDate(PanicButtonHistoryItem item) {
+    if (item.solverDate == null) return 'xxxx';
+
+    final dateFormat = DateFormat('dd MMMM yyyy', 'id_ID');
+    final timeFormat = DateFormat('HH.mm', 'id_ID');
+    final dateStr = dateFormat.format(item.solverDate!);
+    final timeStr = timeFormat.format(item.solverDate!);
+    return '$dateStr - $timeStr WIB';
   }
 }
