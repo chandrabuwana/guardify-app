@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:intl/intl.dart';
 import '../../domain/repositories/panic_button_repository.dart';
 import '../../domain/usecases/activate_panic_button_usecase.dart';
 import '../../domain/usecases/get_verification_items_usecase.dart';
@@ -31,12 +32,58 @@ class PanicButtonBloc extends Bloc<PanicButtonEvent, PanicButtonState> {
     on<LoadMorePanicButtonHistoryEvent>(_onLoadMorePanicButtonHistory);
     on<SearchPanicButtonHistoryEvent>(_onSearchPanicButtonHistory);
     on<RefreshPanicButtonHistoryEvent>(_onRefreshPanicButtonHistory);
+    on<ApplyPanicButtonHistoryFilterEvent>(_onApplyPanicButtonHistoryFilter);
     
     // Detail event
     on<LoadPanicButtonDetailEvent>(_onLoadPanicButtonDetail);
     
     // Verification event
     on<SubmitPanicButtonVerificationEvent>(_onSubmitPanicButtonVerification);
+  }
+
+  Future<void> _onApplyPanicButtonHistoryFilter(
+    ApplyPanicButtonHistoryFilterEvent event,
+    Emitter<PanicButtonState> emit,
+  ) async {
+    emit(state.copyWith(
+      isLoadingHistory: true,
+      historyErrorMessage: null,
+      hasReachedMaxHistory: false,
+      currentPageHistory: 0,
+      historyFilterStatuses: event.statuses,
+      historyFilterCreateDate: event.createDate,
+      historySortField: event.sortField,
+      historySortType: event.sortType,
+    ));
+
+    try {
+      final request = _buildHistoryRequest(
+        start: 1,
+        length: pageSize,
+        searchQuery: state.searchQuery,
+        statuses: event.statuses,
+        createDate: event.createDate,
+        sortField: event.sortField,
+        sortType: event.sortType,
+      );
+
+      final (items, totalCount, filteredCount) =
+          await panicButtonRepository.getPanicButtonHistory(request);
+
+      emit(state.copyWith(
+        isLoadingHistory: false,
+        historyItems: items,
+        totalCountHistory: totalCount,
+        filteredCountHistory: filteredCount,
+        hasReachedMaxHistory: items.length < pageSize,
+        currentPageHistory: 0,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        isLoadingHistory: false,
+        historyErrorMessage: 'Gagal menerapkan filter: ${e.toString()}',
+      ));
+    }
   }
 
   Future<void> _onLoadVerificationItems(
@@ -114,6 +161,39 @@ class PanicButtonBloc extends Bloc<PanicButtonEvent, PanicButtonState> {
   }
 
   // History handlers
+  PanicButtonListRequest _buildHistoryRequest({
+    required int start,
+    required int length,
+    String? searchQuery,
+    List<String>? statuses,
+    DateTime? createDate,
+    String? sortField,
+    int? sortType,
+  }) {
+    final dateFormatter = DateFormat('yyyy-MM-dd');
+
+    var request = PanicButtonListRequest.initial(length: length);
+
+    request = request.withSort(
+      field: (sortField != null && sortField.trim().isNotEmpty)
+          ? sortField.trim()
+          : 'status',
+      type: sortType ?? 0,
+    );
+
+    request = request.withStatusesFilter(statuses ?? const []);
+
+    if (createDate != null) {
+      request = request.withCreateDateFilter('createDate', dateFormatter.format(createDate));
+    }
+
+    if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+      request = request.withDescriptionSearch(searchQuery);
+    }
+
+    return request.copyWith(start: start);
+  }
+
   Future<void> _onLoadPanicButtonHistory(
     LoadPanicButtonHistoryEvent event,
     Emitter<PanicButtonState> emit,
@@ -126,10 +206,15 @@ class PanicButtonBloc extends Bloc<PanicButtonEvent, PanicButtonState> {
     ));
 
     try {
-      final request = event.searchQuery != null && event.searchQuery!.isNotEmpty
-          ? PanicButtonListRequest.initial(length: event.length)
-              .withSearch(event.searchQuery!)
-          : PanicButtonListRequest.initial(length: event.length);
+      final request = _buildHistoryRequest(
+        start: event.start,
+        length: event.length,
+        searchQuery: event.searchQuery ?? state.searchQuery,
+        statuses: state.historyFilterStatuses,
+        createDate: state.historyFilterCreateDate,
+        sortField: state.historySortField,
+        sortType: state.historySortType,
+      );
 
       final (items, totalCount, filteredCount) =
           await panicButtonRepository.getPanicButtonHistory(request);
@@ -161,14 +246,17 @@ class PanicButtonBloc extends Bloc<PanicButtonEvent, PanicButtonState> {
 
     try {
       final nextPage = state.currentPageHistory + 1;
-      final start = nextPage * pageSize;
+      final start = nextPage + 1;
 
-      final request = state.searchQuery != null && state.searchQuery!.isNotEmpty
-          ? PanicButtonListRequest.initial(length: pageSize)
-              .withSearch(state.searchQuery!)
-              .copyWithPagination(start)
-          : PanicButtonListRequest.initial(length: pageSize)
-              .copyWithPagination(start);
+      final request = _buildHistoryRequest(
+        start: start,
+        length: pageSize,
+        searchQuery: state.searchQuery,
+        statuses: state.historyFilterStatuses,
+        createDate: state.historyFilterCreateDate,
+        sortField: state.historySortField,
+        sortType: state.historySortType,
+      );
 
       final (newItems, totalCount, filteredCount) =
           await panicButtonRepository.getPanicButtonHistory(request);
@@ -204,9 +292,15 @@ class PanicButtonBloc extends Bloc<PanicButtonEvent, PanicButtonState> {
     ));
 
     try {
-      final request = event.query.isEmpty
-          ? PanicButtonListRequest.initial(length: pageSize)
-          : PanicButtonListRequest.initial(length: pageSize).withSearch(event.query);
+      final request = _buildHistoryRequest(
+        start: 1,
+        length: pageSize,
+        searchQuery: event.query,
+        statuses: state.historyFilterStatuses,
+        createDate: state.historyFilterCreateDate,
+        sortField: state.historySortField,
+        sortType: state.historySortType,
+      );
 
       final (items, totalCount, filteredCount) =
           await panicButtonRepository.getPanicButtonHistory(request);
@@ -240,10 +334,15 @@ class PanicButtonBloc extends Bloc<PanicButtonEvent, PanicButtonState> {
     ));
 
     try {
-      final request = state.searchQuery != null && state.searchQuery!.isNotEmpty
-          ? PanicButtonListRequest.initial(length: pageSize)
-              .withSearch(state.searchQuery!)
-          : PanicButtonListRequest.initial(length: pageSize);
+      final request = _buildHistoryRequest(
+        start: 1,
+        length: pageSize,
+        searchQuery: state.searchQuery,
+        statuses: state.historyFilterStatuses,
+        createDate: state.historyFilterCreateDate,
+        sortField: state.historySortField,
+        sortType: state.historySortType,
+      );
 
       final (items, totalCount, filteredCount) =
           await panicButtonRepository.getPanicButtonHistory(request);

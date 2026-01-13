@@ -19,6 +19,8 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
   final FilterDocumentsUseCase filterDocumentsUseCase;
   final DownloadDocumentUseCase downloadDocumentUseCase;
 
+  static const int pageSize = 10;
+
   DocumentBloc({
     required this.getDocumentsUseCase,
     required this.searchDocumentsUseCase,
@@ -33,6 +35,7 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
     on<FilterDocumentsByCategoryEvent>(_onFilterDocumentsByCategory);
     on<FilterDocumentsByDateEvent>(_onFilterDocumentsByDate);
     on<ClearFilterEvent>(_onClearFilter);
+    on<ApplyCompanyRuleFilterEvent>(_onApplyCompanyRuleFilter);
     on<DownloadDocumentEvent>(_onDownloadDocument);
     on<ShowSnackbarEvent>(_onShowSnackbar);
   }
@@ -44,7 +47,12 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
   ) async {
     emit(const DocumentLoading());
 
-    final result = await getDocumentsUseCase.call();
+    final result = await getDocumentsUseCase.call(
+      start: 0,
+      length: pageSize,
+      sortField: 'CreateDate',
+      sortType: 1,
+    );
 
     result.fold(
       (failure) => emit(DocumentError(message: failure.message)),
@@ -52,6 +60,8 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
         documents: documents,
         filteredDocuments: documents,
         categories: _extractCategories(documents),
+        hasReachedMax: documents.length < pageSize,
+        currentPage: 0,
       )),
     );
   }
@@ -69,7 +79,29 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
       emit(const DocumentLoading());
     }
 
-    final result = await getDocumentsUseCase.call();
+    final filters = <String, String>{};
+    var sortField = 'CreateDate';
+    var sortType = 1;
+    if (currentState is DocumentLoaded) {
+      if (currentState.currentNameFilter != null &&
+          currentState.currentNameFilter!.trim().isNotEmpty) {
+        filters['Name'] = currentState.currentNameFilter!.trim();
+      }
+      if (currentState.currentCodeFilter != null &&
+          currentState.currentCodeFilter!.trim().isNotEmpty) {
+        filters['Code'] = currentState.currentCodeFilter!.trim();
+      }
+      sortField = currentState.sortField;
+      sortType = currentState.sortType;
+    }
+
+    final result = await getDocumentsUseCase.call(
+      start: 0,
+      length: pageSize,
+      sortField: sortField,
+      sortType: sortType,
+      filters: filters.isEmpty ? null : filters,
+    );
 
     result.fold(
       (failure) => emit(DocumentError(message: failure.message)),
@@ -104,15 +136,67 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
             documents: documents,
             filteredDocuments: filteredDocs,
             categories: _extractCategories(documents),
+            isLoadingMore: false,
+            hasReachedMax: documents.length < pageSize,
+            currentPage: 0,
           ));
         } else {
           emit(DocumentLoaded(
             documents: documents,
             filteredDocuments: documents,
             categories: _extractCategories(documents),
+            hasReachedMax: documents.length < pageSize,
+            currentPage: 0,
           ));
         }
       },
+    );
+  }
+
+  Future<void> _onApplyCompanyRuleFilter(
+    ApplyCompanyRuleFilterEvent event,
+    Emitter<DocumentState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is DocumentLoaded) {
+      emit(currentState.copyWith(
+        isFilterMode: true,
+        isLoadingMore: false,
+        hasReachedMax: false,
+        currentPage: 0,
+      ));
+    } else {
+      emit(const DocumentLoading());
+    }
+
+    final filters = <String, String>{};
+    final name = event.name?.trim() ?? '';
+    final code = event.code?.trim() ?? '';
+    if (name.isNotEmpty) filters['Name'] = name;
+    if (code.isNotEmpty) filters['Code'] = code;
+
+    final result = await getDocumentsUseCase.call(
+      start: 0,
+      length: pageSize,
+      filters: filters.isEmpty ? null : filters,
+      sortField: event.sortField,
+      sortType: event.sortType,
+    );
+
+    result.fold(
+      (failure) => emit(DocumentError(message: failure.message)),
+      (documents) => emit(DocumentLoaded(
+        documents: documents,
+        filteredDocuments: documents,
+        categories: _extractCategories(documents),
+        currentNameFilter: filters['Name'],
+        currentCodeFilter: filters['Code'],
+        isFilterMode: filters.isNotEmpty,
+        sortField: event.sortField,
+        sortType: event.sortType,
+        hasReachedMax: documents.length < pageSize,
+        currentPage: 0,
+      )),
     );
   }
 
@@ -209,7 +293,32 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
     final currentState = state;
     if (currentState is! DocumentLoaded) return;
 
-    emit(currentState.clearFilter());
+    emit(currentState.copyWith(
+      isFilterMode: false,
+      currentNameFilter: null,
+      currentCodeFilter: null,
+      currentPage: 0,
+      hasReachedMax: false,
+      isLoadingMore: false,
+    ));
+
+    final result = await getDocumentsUseCase.call(
+      start: 0,
+      length: pageSize,
+      sortField: currentState.sortField,
+      sortType: currentState.sortType,
+    );
+
+    result.fold(
+      (failure) => emit(DocumentError(message: failure.message)),
+      (documents) => emit(currentState.copyWith(
+        documents: documents,
+        filteredDocuments: documents,
+        categories: _extractCategories(documents),
+        currentPage: 0,
+        hasReachedMax: documents.length < pageSize,
+      )),
+    );
   }
 
   /// Handler untuk download document event

@@ -51,8 +51,14 @@ class CompanyRuleListRequest {
     final validStart = start < 0 ? 1 : start + 1;
     final validLength = length <= 0 ? 10 : length;
 
+    final cleanedFilter = filter
+        .where(
+          (f) => f.field.trim().isNotEmpty && f.search.trim().isNotEmpty,
+        )
+        .toList();
+
     return {
-      'Filter': filter.map((f) => f.toJson()).toList(),
+      'Filter': cleanedFilter.map((f) => f.toJson()).toList(),
       'Sort': sort.toJson(),
       'Start': validStart,
       'Length': validLength,
@@ -62,12 +68,24 @@ class CompanyRuleListRequest {
   // Default request for initial load
   factory CompanyRuleListRequest.initial({int length = 10}) {
     return CompanyRuleListRequest(
-      filter: const [
-        CompanyRuleFilterItem(field: '', search: ''),
-      ],
+      filter: const [],
       sort: const CompanyRuleSortItem(field: 'CreateDate', type: 1),
       start: 0, // Internal 0-based, will be converted to 1 in toJson
       length: length,
+    );
+  }
+
+  CompanyRuleListRequest copyWith({
+    List<CompanyRuleFilterItem>? filter,
+    CompanyRuleSortItem? sort,
+    int? start,
+    int? length,
+  }) {
+    return CompanyRuleListRequest(
+      filter: filter ?? this.filter,
+      sort: sort ?? this.sort,
+      start: start ?? this.start,
+      length: length ?? this.length,
     );
   }
 

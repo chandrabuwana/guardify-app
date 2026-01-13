@@ -1,4 +1,4 @@
-package com.example.guardify_app
+package com.binarnusapersada.guardify
 
 import io.flutter.embedding.android.FlutterActivity
 
