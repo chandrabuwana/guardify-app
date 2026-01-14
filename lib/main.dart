@@ -34,6 +34,7 @@ import 'features/schedule/presentation/bloc/schedule_bloc.dart';
 import 'features/tugas_lanjutan/presentation/pages/tugas_lanjutan_page.dart';
 import 'features/tugas_lanjutan/presentation/bloc/tugas_lanjutan_bloc.dart';
 import 'core/constants/enums.dart';
+import 'core/constants/app_constants.dart';
 import 'core/security/security_manager.dart';
 import 'core/di/injection.dart';
 import 'core/design/colors.dart';
@@ -103,10 +104,7 @@ class _GuardifyAppState extends State<GuardifyApp> {
             );
           },
           routes: {
-            '/': (context) => BlocProvider(
-                  create: (context) => getIt<AuthBloc>(),
-                  child: const LoginPage(),
-                ),
+            '/': (context) => const _AuthGate(),
             '/home': (context) => const HomePage(),
             '/login': (context) => BlocProvider(
                   create: (context) => getIt<AuthBloc>(),
@@ -295,6 +293,36 @@ class _GuardifyAppState extends State<GuardifyApp> {
                 ),
           },
           initialRoute: '/',
+        );
+      },
+    );
+  }
+}
+
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: SecurityManager.readSecurely(AppConstants.tokenKey),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final token = snapshot.data;
+        final hasToken = token != null && token.trim().isNotEmpty;
+
+        if (hasToken) {
+          return const HomePage();
+        }
+
+        return BlocProvider(
+          create: (context) => getIt<AuthBloc>(),
+          child: const LoginPage(),
         );
       },
     );

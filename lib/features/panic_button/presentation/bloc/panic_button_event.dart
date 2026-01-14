@@ -71,6 +71,23 @@ class RefreshPanicButtonHistoryEvent extends PanicButtonEvent {
   const RefreshPanicButtonHistoryEvent();
 }
 
+class ApplyPanicButtonHistoryFilterEvent extends PanicButtonEvent {
+  final List<String> statuses;
+  final DateTime? createDate;
+  final String sortField;
+  final int sortType; // 0 = ascending, 1 = descending
+
+  const ApplyPanicButtonHistoryFilterEvent({
+    required this.sortField,
+    required this.sortType,
+    this.statuses = const [],
+    this.createDate,
+  });
+
+  @override
+  List<Object?> get props => [statuses, createDate, sortField, sortType];
+}
+
 class LoadPanicButtonDetailEvent extends PanicButtonEvent {
   final String id;
 

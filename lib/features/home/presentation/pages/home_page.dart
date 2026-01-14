@@ -1460,7 +1460,7 @@ class __HomePageViewState extends State<_HomePageView> {
     }
 
     // Menu default untuk role lainnya (Anggota, Danton, PJO, Deputy, Admin)
-    print('✅ BUILDING DEFAULT MENU (With Rekapitulasi Kehadiran)');
+    // print('✅ BUILDING DEFAULT MENU (With Rekapitulasi Kehadiran)');
     final menuItems = <MenuItem>[
       MenuItem(
         id: 'incident',
