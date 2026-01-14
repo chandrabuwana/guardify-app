@@ -207,6 +207,19 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
       return;
     }
 
+    // Validasi: lat/long tidak boleh 0
+    if (_currentLatitude == 0.0 || _currentLongitude == 0.0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Koordinat GPS tidak valid (0,0). Silakan refresh lokasi GPS atau pastikan GPS aktif.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      // Try to get location again
+      await _getCurrentLocation();
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });

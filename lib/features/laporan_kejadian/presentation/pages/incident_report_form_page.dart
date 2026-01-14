@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../../../../shared/widgets/custom_dropdown.dart';
 import '../../../../shared/widgets/TextInput/input_primary.dart';
+import '../../../../shared/widgets/photo_picker_field.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection.dart';
@@ -54,13 +54,12 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _detailLokasiController = TextEditingController();
   final _deskripsiController = TextEditingController();
-  final _fotoController = TextEditingController();
 
   DateTime? _tanggalInsiden;
   TimeOfDay? _jamInsiden;
   IncidentLocationEntity? _selectedLocation;
   IncidentTypeEntity? _selectedType;
-  String? _fotoPath;
+  List<String> _fotoPaths = [];
 
   @override
   void initState() {
@@ -76,7 +75,6 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
   void dispose() {
     _detailLokasiController.dispose();
     _deskripsiController.dispose();
-    _fotoController.dispose();
     super.dispose();
   }
 
@@ -159,10 +157,11 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
             tanggalInsiden: _tanggalInsiden!,
             jamInsiden: dateTime,
             lokasiInsidenId: _selectedLocation!.id,
+            lokasiInsidenName: _selectedLocation!.name,
             detailLokasiInsiden: _detailLokasiController.text.trim(),
             tipeInsidenId: _selectedType!.id,
             deskripsiInsiden: _deskripsiController.text.trim(),
-            fotoInsiden: _fotoPath,
+            fotoInsiden: _fotoPaths.isNotEmpty ? _fotoPaths.first : null,
           ),
         );
   }
@@ -525,56 +524,16 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
   }
 
   Widget _buildPhotoField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Foto Insiden',
-          style: TS.labelLarge,
-        ),
-        8.verticalSpace,
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding: REdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(10.r),
-                  color: Colors.white,
-                ),
-                child: Text(
-                  _fotoPath ?? 'Pilih foto',
-                  style: TS.bodyLarge.copyWith(
-                    color: _fotoPath != null
-                        ? Colors.black87
-                        : Colors.grey.shade500,
-                  ),
-                ),
-              ),
-            ),
-            8.horizontalSpace,
-            IconButton(
-              icon: Icon(Icons.camera_alt, color: primaryColor),
-              onPressed: () {
-                // TODO: Implement camera functionality
-                setState(() {
-                  _fotoPath = 'Foto.jpg';
-                });
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.attach_file, color: primaryColor),
-              onPressed: () {
-                // TODO: Implement file picker functionality
-                setState(() {
-                  _fotoPath = 'Foto.jpg';
-                });
-              },
-            ),
-          ],
-        ),
-      ],
+    return PhotoPickerField(
+      label: 'Foto Insiden',
+      photos: _fotoPaths,
+      onPhotosChanged: (photos) {
+        setState(() {
+          _fotoPaths = photos;
+        });
+      },
+      multiple: false,
+      maxPhotos: 1,
     );
   }
 }

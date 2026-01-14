@@ -204,8 +204,8 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
           setState(() {
             _isLocationVerified = isVerified;
             _verificationMessage = isVerified
-                ? 'Verifikasi lokasi berhasil (dalam radius area)'
-                : 'Lokasi tidak berada dalam radius area yang dipilih (maksimal 100 meter)';
+                ? 'Verifikasi lokasi berhasil'
+                : 'Verifikasi lokasi gagal';
             _isVerifyingLocation = false;
           });
 
@@ -315,20 +315,7 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
       return;
     }
 
-    // Verify location is within radius of selected area
-    if (!_isLocationVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _verificationMessage ?? 
-            'Lokasi tidak berada dalam radius area yang dipilih. Pastikan Anda berada di lokasi yang benar.',
-          ),
-          backgroundColor: Colors.orange,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-      return;
-    }
+    // Validasi radius dihapus - tidak perlu cek lokasi lagi
 
     setState(() {
       _isLoading = true;
@@ -368,7 +355,7 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
       final deviceName = await _resolveDeviceName();
 
       // Get actual lat/long from GPS (must be available)
-      if (_latitude == null || _longitude == null || !_isLocationVerified) {
+      if (_latitude == null || _longitude == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -827,7 +814,7 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                                       ? 'Memverifikasi lokasi...'
                                       : (_verificationMessage ??
                                           (_isLocationVerified
-                                              ? 'Verifikasi lokasi berhasil (dalam radius area)'
+                                              ? 'Verifikasi lokasi berhasil'
                                               : 'Menunggu verifikasi lokasi...')),
                                   style: TextStyle(
                                     fontSize: 13,
