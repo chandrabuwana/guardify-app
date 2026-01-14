@@ -67,5 +67,45 @@ class IncidentTypeModel extends IncidentTypeEntity {
         return 'lainnya';
     }
   }
+
+  /// Create IncidentTypeModel from API model
+  factory IncidentTypeModel.fromApiModel(dynamic apiModel) {
+    // Handle both IncidentTypeApiModel and Map<String, dynamic>
+    String name;
+    int id;
+    
+    if (apiModel is Map<String, dynamic>) {
+      name = apiModel['Name']?.toString() ?? '';
+      id = apiModel['Id'] is int ? apiModel['Id'] : int.tryParse(apiModel['Id']?.toString() ?? '0') ?? 0;
+    } else {
+      // Assume it's an IncidentTypeApiModel
+      name = apiModel.name;
+      id = apiModel.id;
+    }
+    
+    return IncidentTypeModel(
+      id: id.toString(),
+      name: name,
+      type: _parseTypeFromName(name),
+    );
+  }
+
+  /// Parse IncidentType from name string
+  static IncidentType _parseTypeFromName(String name) {
+    final lowerName = name.toLowerCase();
+    if (lowerName.contains('keamanan')) {
+      return IncidentType.keamanan;
+    } else if (lowerName.contains('kebakaran')) {
+      return IncidentType.kebakaran;
+    } else if (lowerName.contains('kesehatan') || 
+               lowerName.contains('kecelakaan') || 
+               lowerName.contains('medis')) {
+      return IncidentType.medis;
+    } else if (lowerName.contains('bencana')) {
+      return IncidentType.lainnya;
+    } else {
+      return IncidentType.lainnya;
+    }
+  }
 }
 

@@ -100,6 +100,7 @@ class CreateIncidentReportEvent extends IncidentEvent {
   final DateTime tanggalInsiden;
   final DateTime jamInsiden;
   final String lokasiInsidenId;
+  final String lokasiInsidenName;
   final String detailLokasiInsiden;
   final String tipeInsidenId;
   final String deskripsiInsiden;
@@ -111,6 +112,7 @@ class CreateIncidentReportEvent extends IncidentEvent {
     required this.tanggalInsiden,
     required this.jamInsiden,
     required this.lokasiInsidenId,
+    required this.lokasiInsidenName,
     required this.detailLokasiInsiden,
     required this.tipeInsidenId,
     required this.deskripsiInsiden,
@@ -124,6 +126,7 @@ class CreateIncidentReportEvent extends IncidentEvent {
         tanggalInsiden,
         jamInsiden,
         lokasiInsidenId,
+        lokasiInsidenName,
         detailLokasiInsiden,
         tipeInsidenId,
         deskripsiInsiden,
@@ -158,6 +161,59 @@ class UpdateIncidentStatusEvent extends IncidentEvent {
 
   @override
   List<Object?> get props => [incidentId, status, notes, file];
+}
+
+// Edit incident (for PJO/Deputy to assign)
+class EditIncidentEvent extends IncidentEvent {
+  final String incidentId;
+  final String areasDescription;
+  final String areasId;
+  final int idIncidentType;
+  final DateTime incidentDate;
+  final String incidentTime;
+  final String incidentDescription;
+  final String reportId;
+  final String? notesAction;
+  final String? picId;
+  final String? pjId;
+  final String? solvedAction;
+  final DateTime? solvedDate;
+  final String status;
+
+  const EditIncidentEvent({
+    required this.incidentId,
+    required this.areasDescription,
+    required this.areasId,
+    required this.idIncidentType,
+    required this.incidentDate,
+    required this.incidentTime,
+    required this.incidentDescription,
+    required this.reportId,
+    this.notesAction,
+    this.picId,
+    this.pjId,
+    this.solvedAction,
+    this.solvedDate,
+    required this.status,
+  });
+
+  @override
+  List<Object?> get props => [
+        incidentId,
+        areasDescription,
+        areasId,
+        idIncidentType,
+        incidentDate,
+        incidentTime,
+        incidentDescription,
+        reportId,
+        notesAction,
+        picId,
+        pjId,
+        solvedAction,
+        solvedDate,
+        status,
+      ];
 }
 
 // Clear error

@@ -4,8 +4,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
+import '../../../../core/utils/user_role_helper.dart';
+import '../../../../core/constants/enums.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
+import '../../../../shared/widgets/custom_dropdown.dart';
+import '../../../../shared/widgets/TextInput/input_primary.dart';
+import '../../../../core/di/injection.dart';
 import '../../domain/entities/incident_entity.dart';
+import '../../data/datasources/incident_remote_datasource.dart';
 import '../bloc/incident_bloc.dart';
 import '../bloc/incident_event.dart';
 import '../bloc/incident_state.dart';
@@ -27,6 +33,22 @@ class IncidentDetailPage extends StatefulWidget {
 class _IncidentDetailPageState extends State<IncidentDetailPage> {
   bool _hasLoadedDetail = false;
   bool _statusUpdated = false;
+  UserRole? _userRole;
+  bool _isPJOOrDeputy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    final role = await UserRoleHelper.getUserRole();
+    setState(() {
+      _userRole = role;
+      _isPJOOrDeputy = role == UserRole.pjo || role == UserRole.deputy;
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -46,6 +68,28 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           }
         }
       });
+    }
+  }
+
+  /// Convert IncidentStatus to API status string
+  String _getApiStatus(IncidentStatus status) {
+    switch (status) {
+      case IncidentStatus.menunggu:
+        return 'OPEN';
+      case IncidentStatus.tidakValid:
+        return 'INVALID';
+      case IncidentStatus.diterima:
+        return 'ACKNOWLEDGE';
+      case IncidentStatus.eskalasi:
+        return 'ESCALATED';
+      case IncidentStatus.ditugaskan:
+        return 'ASSIGNED';
+      case IncidentStatus.proses:
+        return 'PROGRESS';
+      case IncidentStatus.selesai:
+        return 'COMPLETED';
+      case IncidentStatus.terverifikasi:
+        return 'VERIFIED';
     }
   }
 
@@ -278,8 +322,16 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                         .toList(),
                   32.verticalSpace,
 
-                  // Action Button (hanya untuk tab "Tugas Saya")
-                  if (widget.isFromMyTasks) _buildActionButton(incident),
+                  // Action Buttons
+                  // Untuk PJO/Deputy di tab "Daftar Insiden": Tugaskan, Eskalasi, Verifikasi, Revisi
+                  // Untuk danton di tab "Daftar Insiden": Konfirmasi dan Tandai Tidak Valid
+                  // Untuk tab "Tugas Saya" (anggota): Proses dan Tandai Sebagai Selesai
+                  if (!widget.isFromMyTasks) 
+                    _isPJOOrDeputy 
+                      ? _buildPJOOrDeputyActionButtons(incident)
+                      : _buildDantonActionButtons(incident)
+                  else 
+                    _buildActionButton(incident),
                   16.verticalSpace,
                 ],
               ),
@@ -368,6 +420,169 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     );
   }
 
+  Widget _buildPJOOrDeputyActionButtons(IncidentEntity incident) {
+    // Untuk PJO/Deputy di tab "Daftar Insiden"
+    final apiStatus = _getApiStatus(incident.status);
+    
+    return BlocBuilder<IncidentBloc, IncidentState>(
+      builder: (context, state) {
+        final buttons = <Widget>[];
+        
+        // Tombol Tugaskan dan Eskalasi untuk status OPEN atau ACKNOWLEDGE
+        if (apiStatus == 'OPEN' || apiStatus == 'ACKNOWLEDGE') {
+          buttons.addAll([
+            // Tombol Tugaskan
+            UIButton(
+              text: 'Tugaskan',
+              fullWidth: true,
+              size: UIButtonSize.large,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _showAssignDialog(context, incident);
+                    },
+            ),
+            16.verticalSpace,
+            // Tombol Eskalasi
+            UIButton(
+              text: 'Eskalasi',
+              fullWidth: true,
+              size: UIButtonSize.large,
+              buttonType: UIButtonType.outline,
+              variant: UIButtonVariant.warning,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _statusUpdated = true;
+                      context.read<IncidentBloc>().add(
+                            UpdateIncidentStatusEvent(
+                              incidentId: incident.id,
+                              status: 'ESCALATED',
+                              notes: 'Dieskalasi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                            ),
+                          );
+                    },
+            ),
+          ]);
+        }
+        
+        // Tombol Verifikasi dan Revisi untuk status COMPLETED
+        if (apiStatus == 'COMPLETED') {
+          buttons.addAll([
+            // Tombol Verifikasi
+            UIButton(
+              text: 'Verifikasi',
+              fullWidth: true,
+              size: UIButtonSize.large,
+              variant: UIButtonVariant.success,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _statusUpdated = true;
+                      context.read<IncidentBloc>().add(
+                            UpdateIncidentStatusEvent(
+                              incidentId: incident.id,
+                              status: 'VERIFIED',
+                              notes: 'Diverifikasi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                            ),
+                          );
+                    },
+            ),
+            16.verticalSpace,
+            // Tombol Revisi
+            UIButton(
+              text: 'Revisi',
+              fullWidth: true,
+              size: UIButtonSize.large,
+              buttonType: UIButtonType.outline,
+              variant: UIButtonVariant.warning,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _statusUpdated = true;
+                      context.read<IncidentBloc>().add(
+                            UpdateIncidentStatusEvent(
+                              incidentId: incident.id,
+                              status: 'PROGRESS',
+                              notes: 'Direvisi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                            ),
+                          );
+                    },
+            ),
+          ]);
+        }
+        
+        if (buttons.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        return Column(children: buttons);
+      },
+    );
+  }
+
+  Widget _buildDantonActionButtons(IncidentEntity incident) {
+    // Untuk danton di tab "Daftar Insiden"
+    // Hanya tampilkan jika status masih "menunggu" (OPEN)
+    if (incident.status != IncidentStatus.menunggu) {
+      return const SizedBox.shrink();
+    }
+
+    return BlocBuilder<IncidentBloc, IncidentState>(
+      builder: (context, state) {
+        return Column(
+          children: [
+            // Tombol Konfirmasi
+            UIButton(
+              text: 'Konfirmasi',
+              fullWidth: true,
+              size: UIButtonSize.large,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _statusUpdated = true;
+                      context.read<IncidentBloc>().add(
+                            UpdateIncidentStatusEvent(
+                              incidentId: incident.id,
+                              status: 'ACKNOWLEDGE',
+                              notes: 'Dikonfirmasi oleh danton',
+                            ),
+                          );
+                    },
+            ),
+            16.verticalSpace,
+            // Tombol Tandai Tidak Valid
+            UIButton(
+              text: 'Tandai Tidak Valid',
+              fullWidth: true,
+              size: UIButtonSize.large,
+              buttonType: UIButtonType.outline,
+              variant: UIButtonVariant.error,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _statusUpdated = true;
+                      context.read<IncidentBloc>().add(
+                            UpdateIncidentStatusEvent(
+                              incidentId: incident.id,
+                              status: 'INVALID',
+                              notes: 'Ditandai tidak valid oleh danton',
+                            ),
+                          );
+                    },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildActionButton(IncidentEntity incident) {
     // Tentukan status dari API
     // OPEN (menunggu) -> tombol "Proses" -> update ke PROGRESS
@@ -424,6 +639,202 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                 },
         );
       },
+    );
+  }
+
+  Future<void> _showAssignDialog(BuildContext context, IncidentEntity incident) async {
+    final datasource = getIt<IncidentRemoteDataSource>();
+    String? selectedPjId;
+    String? selectedPicId;
+    final tugasPenangananController = TextEditingController();
+    bool isLoading = true;
+    bool isSubmitting = false;
+    List<Map<String, String>> userList = [];
+    Map<String, String>? incidentApiData;
+
+    // Load user list and incident detail
+    try {
+      final users = await datasource.getUserList();
+      final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+      
+      userList = users;
+      incidentApiData = {
+        'areasDescription': apiModel.areasDescription ?? apiModel.areas?.name ?? '',
+        'areasId': apiModel.areasId ?? '',
+        'idIncidentType': apiModel.idIncidentType?.toString() ?? '0',
+        'incidentDate': apiModel.incidentDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'incidentTime': apiModel.incidentTime ?? '00:00:00',
+        'incidentDescription': apiModel.incidentDescription ?? '',
+        'reportId': apiModel.reportId ?? '',
+      };
+      isLoading = false;
+    } catch (e) {
+      isLoading = false;
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+    final apiData = incidentApiData;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            'Tugaskan Insiden',
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+          ),
+          content: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Penanggung Jawab
+                      CustomDropdown<String?>(
+                        label: 'Penanggung Jawab',
+                        hint: 'Pilih Penanggung Jawab',
+                        value: selectedPjId,
+                        items: userList.map((user) => DropdownItem<String?>(
+                          value: user['id'],
+                          text: user['name'] ?? '',
+                        )).toList(),
+                        isRequired: true,
+                        onChanged: (value) {
+                          setState(() {
+                            selectedPjId = value;
+                          });
+                        },
+                      ),
+                      20.verticalSpace,
+                      // Tim
+                      CustomDropdown<String?>(
+                        label: 'Tim',
+                        hint: 'Pilih Tim',
+                        value: selectedPicId,
+                        items: userList.map((user) => DropdownItem<String?>(
+                          value: user['id'],
+                          text: user['name'] ?? '',
+                        )).toList(),
+                        isRequired: true,
+                        onChanged: (value) {
+                          setState(() {
+                            selectedPicId = value;
+                          });
+                        },
+                      ),
+                      20.verticalSpace,
+                      // Tugas Penanganan
+                      InputPrimary(
+                        label: 'Tugas Penanganan',
+                        controller: tugasPenangananController,
+                        hint: 'Masukkan tugas penanganan',
+                        isRequired: true,
+                        maxLines: 3,
+                        validation: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Tugas penanganan harus diisi';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.of(context).pop(),
+              child: const Text('Batal'),
+            ),
+            TextButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      if (selectedPjId == null || selectedPicId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Mohon pilih Penanggung Jawab dan Tim'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (tugasPenangananController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Mohon isi Tugas Penanganan'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      setState(() {
+                        isSubmitting = true;
+                      });
+
+                      try {
+                        final incidentDate = DateTime.parse(apiData['incidentDate']!);
+                        final idIncidentType = int.parse(apiData['idIncidentType']!);
+                        
+                        if (!context.mounted) return;
+                        
+                        context.read<IncidentBloc>().add(
+                          EditIncidentEvent(
+                            incidentId: incident.id,
+                            areasDescription: apiData['areasDescription']!,
+                            areasId: apiData['areasId']!,
+                            idIncidentType: idIncidentType,
+                            incidentDate: incidentDate,
+                            incidentTime: apiData['incidentTime']!,
+                            incidentDescription: apiData['incidentDescription']!,
+                            reportId: apiData['reportId']!,
+                            notesAction: tugasPenangananController.text.trim(),
+                            picId: selectedPicId,
+                            pjId: selectedPjId,
+                            status: 'ASSIGNED',
+                          ),
+                        );
+
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          _statusUpdated = true;
+                        }
+                      } catch (e) {
+                        setState(() {
+                          isSubmitting = false;
+                        });
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Gagal menugaskan: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Tugaskan'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

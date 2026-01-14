@@ -166,6 +166,8 @@ import 'package:guardify_app/features/laporan_kejadian/domain/repositories/incid
     as _i97;
 import 'package:guardify_app/features/laporan_kejadian/domain/usecases/create_incident_report.dart'
     as _i864;
+import 'package:guardify_app/features/laporan_kejadian/domain/usecases/edit_incident.dart'
+    as _i320;
 import 'package:guardify_app/features/laporan_kejadian/domain/usecases/get_incident_detail.dart'
     as _i1070;
 import 'package:guardify_app/features/laporan_kejadian/domain/usecases/get_incident_list.dart'
@@ -422,6 +424,8 @@ extension GetItInjectableX on _i174.GetIt {
             sharedPreferences: gh<_i460.SharedPreferences>()));
     gh.factory<_i864.CreateIncidentReport>(
         () => _i864.CreateIncidentReport(gh<_i97.IncidentRepository>()));
+    gh.factory<_i320.EditIncident>(
+        () => _i320.EditIncident(gh<_i97.IncidentRepository>()));
     gh.factory<_i1070.GetIncidentDetail>(
         () => _i1070.GetIncidentDetail(gh<_i97.IncidentRepository>()));
     gh.factory<_i813.GetIncidentList>(
@@ -447,6 +451,16 @@ extension GetItInjectableX on _i174.GetIt {
         _i491.ActivatePanicButtonUseCase(gh<_i228.PanicButtonRepository>()));
     gh.factory<_i4.GetVerificationItemsUseCase>(() =>
         _i4.GetVerificationItemsUseCase(gh<_i228.PanicButtonRepository>()));
+    gh.factory<_i643.IncidentBloc>(() => _i643.IncidentBloc(
+          getIncidentList: gh<_i813.GetIncidentList>(),
+          getMyTasks: gh<_i754.GetMyTasks>(),
+          getIncidentDetail: gh<_i1070.GetIncidentDetail>(),
+          createIncidentReport: gh<_i864.CreateIncidentReport>(),
+          getIncidentLocations: gh<_i645.GetIncidentLocations>(),
+          getIncidentTypes: gh<_i296.GetIncidentTypes>(),
+          updateIncidentStatus: gh<_i350.UpdateIncidentStatus>(),
+          editIncident: gh<_i320.EditIncident>(),
+        ));
     gh.factory<_i505.NewsBloc>(
         () => injectionModule.newsBloc(gh<_i54.NewsRepository>()));
     gh.lazySingleton<_i422.TestResultRepository>(() =>
@@ -571,15 +585,6 @@ extension GetItInjectableX on _i174.GetIt {
           getPatrolProgress: gh<_i820.GetPatrolProgress>(),
           addPatrolLocation: gh<_i198.AddPatrolLocation>(),
           patrolRepository: gh<_i824.PatrolRepository>(),
-        ));
-    gh.factory<_i643.IncidentBloc>(() => _i643.IncidentBloc(
-          getIncidentList: gh<_i813.GetIncidentList>(),
-          getMyTasks: gh<_i754.GetMyTasks>(),
-          getIncidentDetail: gh<_i1070.GetIncidentDetail>(),
-          createIncidentReport: gh<_i864.CreateIncidentReport>(),
-          getIncidentLocations: gh<_i645.GetIncidentLocations>(),
-          getIncidentTypes: gh<_i296.GetIncidentTypes>(),
-          updateIncidentStatus: gh<_i350.UpdateIncidentStatus>(),
         ));
     gh.factory<_i332.GetMemberTestsByPicUseCase>(() =>
         _i332.GetMemberTestsByPicUseCase(gh<_i422.TestResultRepository>()));

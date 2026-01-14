@@ -67,6 +67,7 @@ class IncidentRepositoryImpl implements IncidentRepository {
     required DateTime tanggalInsiden,
     required DateTime jamInsiden,
     required String lokasiInsidenId,
+    required String lokasiInsidenName,
     required String detailLokasiInsiden,
     required String tipeInsidenId,
     required String deskripsiInsiden,
@@ -79,6 +80,7 @@ class IncidentRepositoryImpl implements IncidentRepository {
         tanggalInsiden: tanggalInsiden,
         jamInsiden: jamInsiden,
         lokasiInsidenId: lokasiInsidenId,
+        lokasiInsidenName: lokasiInsidenName,
         detailLokasiInsiden: detailLokasiInsiden,
         tipeInsidenId: tipeInsidenId,
         deskripsiInsiden: deskripsiInsiden,
@@ -127,6 +129,54 @@ class IncidentRepositoryImpl implements IncidentRepository {
       );
     } catch (e) {
       throw Exception('Failed to update incident status: $e');
+    }
+  }
+
+  @override
+  Future<bool> editIncident({
+    required String incidentId,
+    required String areasDescription,
+    required String areasId,
+    required int idIncidentType,
+    required DateTime incidentDate,
+    required String incidentTime,
+    required String incidentDescription,
+    required String reportId,
+    String? notesAction,
+    String? picId,
+    String? pjId,
+    String? solvedAction,
+    DateTime? solvedDate,
+    required String status,
+  }) async {
+    try {
+      return await remoteDataSource.editIncident(
+        incidentId: incidentId,
+        areasDescription: areasDescription,
+        areasId: areasId,
+        idIncidentType: idIncidentType,
+        incidentDate: incidentDate,
+        incidentTime: incidentTime,
+        incidentDescription: incidentDescription,
+        reportId: reportId,
+        notesAction: notesAction,
+        picId: picId,
+        pjId: pjId,
+        solvedAction: solvedAction,
+        solvedDate: solvedDate,
+        status: status,
+      );
+    } catch (e) {
+      throw Exception('Failed to edit incident: $e');
+    }
+  }
+
+  @override
+  Future<List<Map<String, String>>> getUserList() async {
+    try {
+      return await remoteDataSource.getUserList();
+    } catch (e) {
+      throw Exception('Failed to get user list: $e');
     }
   }
 
