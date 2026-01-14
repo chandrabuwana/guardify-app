@@ -59,20 +59,24 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   void _onHomeInitial(HomeInitialEvent event, Emitter<HomeState> emit) async {
     // Get user role from secure storage
     final userRole = await UserRoleHelper.getUserRole();
+    final savedFullName = await SecurityManager.readSecurely('user_fullname');
     
-    print('');
-    print('🏠 ========================================');
-    print('🏠 HOME BLOC - INITIALIZATION');
-    print('🏠 ========================================');
-    print('🏠 Loaded user role: ${userRole.displayName}');
-    print('🏠 User role value: ${userRole.value}');
-    print('🏠 Is Pengawas: ${userRole == UserRole.pengawas}');
-    print('🏠 ========================================');
-    print('');
+    // print('');
+    // print('🏠 ========================================');
+    // print('🏠 HOME BLOC - INITIALIZATION');
+    // print('🏠 ========================================');
+    // print('🏠 Loaded user full name: $savedFullName');
+    // print('🏠 Loaded user role: ${userRole.displayName}');
+    // print('🏠 User role value: ${userRole.value}');
+    // print('🏠 Is Pengawas: ${userRole == UserRole.pengawas}');
+    // print('🏠 ========================================');
+    // print('');
     
     // Initialize with default data
     final userProfile = UserProfile(
-      name: 'Arsyada Rahmasyah',
+      name: (savedFullName != null && savedFullName.trim().isNotEmpty)
+          ? savedFullName.trim()
+          : 'User',
       position: 'Security',
       greeting: _getGreeting(),
     );

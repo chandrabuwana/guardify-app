@@ -22,6 +22,15 @@ class _PanicButtonHistoryPageState extends State<PanicButtonHistoryPage> {
   final ScrollController _scrollController = ScrollController();
   Timer? _searchDebounce;
 
+  static const List<String> _statusOptions = <String>[
+    'OPEN',
+    'VERIFIED',
+    'COMPLETED',
+    'DONE',
+    'CLOSED',
+    'REVISI',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -30,7 +39,7 @@ class _PanicButtonHistoryPageState extends State<PanicButtonHistoryPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<PanicButtonBloc>().add(
-              const LoadPanicButtonHistoryEvent(start: 0, length: 10),
+              const LoadPanicButtonHistoryEvent(start: 1, length: 10),
             );
       }
     });
@@ -64,6 +73,287 @@ class _PanicButtonHistoryPageState extends State<PanicButtonHistoryPage> {
     _searchDebounce = Timer(const Duration(milliseconds: 500), () {
       context.read<PanicButtonBloc>().add(SearchPanicButtonHistoryEvent(query));
     });
+  }
+
+  Future<void> _showFilterBottomSheet(PanicButtonState state) async {
+    final parentContext = context;
+    final selectedStatuses = <String>[...state.historyFilterStatuses];
+    DateTime? selectedCreateDate = state.historyFilterCreateDate;
+    String sortField = state.historySortField;
+    int sortType = state.historySortType;
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> pickDate() async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: selectedCreateDate ?? DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2100),
+              );
+              if (picked != null) {
+                setModalState(() {
+                  selectedCreateDate = picked;
+                });
+              }
+            }
+
+            final dateText = selectedCreateDate == null
+                ? '-'
+                : DateFormat('dd/MM/yyyy', 'id_ID').format(selectedCreateDate!);
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16.w,
+                  right: 16.w,
+                  top: 12.h,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16.h,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Filter',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    8.verticalSpace,
+
+                    Text(
+                      'Status',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    8.verticalSpace,
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[200]!),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Column(
+                        children: [
+                          CheckboxListTile(
+                            value: selectedStatuses.isEmpty,
+                            onChanged: (v) {
+                              if (v == true) {
+                                setModalState(() => selectedStatuses.clear());
+                              }
+                            },
+                            title: const Text('Semua'),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                          ..._statusOptions.map(
+                            (s) {
+                              final checked = selectedStatuses.contains(s);
+                              return CheckboxListTile(
+                                value: checked,
+                                onChanged: (v) {
+                                  setModalState(() {
+                                    if (v == true) {
+                                      selectedStatuses.add(s);
+                                    } else {
+                                      selectedStatuses.remove(s);
+                                    }
+                                  });
+                                },
+                                title: Text(s),
+                                controlAffinity: ListTileControlAffinity.leading,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    12.verticalSpace,
+
+                    // Text(
+                    //   'Tanggal Dibuat',
+                    //   style: TextStyle(
+                    //     fontSize: 13.sp,
+                    //     fontWeight: FontWeight.w700,
+                    //     color: Colors.black87,
+                    //   ),
+                    // ),
+                    // 8.verticalSpace,
+                    // Row(
+                    //   children: [
+                    //     Expanded(
+                    //       child: Container(
+                    //         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                    //         decoration: BoxDecoration(
+                    //           border: Border.all(color: Colors.grey[300]!),
+                    //           borderRadius: BorderRadius.circular(12.r),
+                    //           color: Colors.white,
+                    //         ),
+                    //         child: Text(
+                    //           dateText,
+                    //           style: TextStyle(
+                    //             fontSize: 13.sp,
+                    //             fontWeight: FontWeight.w600,
+                    //             color: Colors.black87,
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ),
+                    //     10.horizontalSpace,
+                    //     OutlinedButton(
+                    //       onPressed: pickDate,
+                    //       style: OutlinedButton.styleFrom(
+                    //         foregroundColor: const Color(0xFFE74C3C),
+                    //         side: const BorderSide(color: Color(0xFFE74C3C)),
+                    //         shape: RoundedRectangleBorder(
+                    //           borderRadius: BorderRadius.circular(12.r),
+                    //         ),
+                    //       ),
+                    //       child: const Text('Pilih'),
+                    //     ),
+                    //     8.horizontalSpace,
+                    //     IconButton(
+                    //       onPressed: () => setModalState(() => selectedCreateDate = null),
+                    //       icon: const Icon(Icons.clear),
+                    //       tooltip: 'Hapus tanggal',
+                    //     ),
+                    //   ],
+                    // ),
+                    // 12.verticalSpace,
+
+                    Text(
+                      'Sort',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    8.verticalSpace,
+                    DropdownButtonFormField<String>(
+                      value: sortField,
+                      items: const [
+                        DropdownMenuItem(value: 'status', child: Text('Status')),
+                        DropdownMenuItem(value: 'description', child: Text('Description')),
+                        DropdownMenuItem(value: 'createDate', child: Text('Create Date')),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setModalState(() => sortField = v);
+                      },
+                      decoration: InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                      ),
+                    ),
+                    8.verticalSpace,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: RadioListTile<int>(
+                            value: 0,
+                            groupValue: sortType,
+                            onChanged: (v) => setModalState(() => sortType = v ?? 0),
+                            title: const Text('Ascending'),
+                          ),
+                        ),
+                        Expanded(
+                          child: RadioListTile<int>(
+                            value: 1,
+                            groupValue: sortType,
+                            onChanged: (v) => setModalState(() => sortType = v ?? 1),
+                            title: const Text('Descending'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    12.verticalSpace,
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                selectedStatuses.clear();
+                                selectedCreateDate = null;
+                                sortField = 'createDate';
+                                sortType = 0;
+                              });
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFE74C3C),
+                              side: const BorderSide(color: Color(0xFFE74C3C)),
+                              padding: EdgeInsets.symmetric(vertical: 14.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                            ),
+                            child: const Text('Clear'),
+                          ),
+                        ),
+                        12.horizontalSpace,
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              parentContext.read<PanicButtonBloc>().add(
+                                    ApplyPanicButtonHistoryFilterEvent(
+                                      statuses: List<String>.from(selectedStatuses),
+                                      createDate: selectedCreateDate,
+                                      sortField: sortField,
+                                      sortType: sortType,
+                                    ),
+                                  );
+                              Navigator.pop(sheetContext, true);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE74C3C),
+                              padding: EdgeInsets.symmetric(vertical: 14.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                            ),
+                            child: const Text('Apply'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result == true && mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   @override
@@ -108,7 +398,7 @@ class _PanicButtonHistoryPageState extends State<PanicButtonHistoryPage> {
                   color: Colors.white,
                   child: Row(
                     children: [
-                      // Search Bar
+                      // Search Bar 0:ascending 1:descending
                       Expanded(
                         child: Container(
                           decoration: BoxDecoration(
@@ -151,7 +441,7 @@ class _PanicButtonHistoryPageState extends State<PanicButtonHistoryPage> {
                         child: IconButton(
                           icon: const Icon(Icons.filter_list, color: Colors.white),
                           onPressed: () {
-                            // TODO: Implement filter dialog
+                            _showFilterBottomSheet(state);
                           },
                         ),
                       ),
@@ -262,31 +552,23 @@ class _PanicButtonHistoryPageState extends State<PanicButtonHistoryPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ID and Status
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    item.formattedId,
+                    'ID : ${item.formattedId}',
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
                   ),
-                  Container(
-                    padding: REdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6.r),
-                    ),
-                    child: Text(
-                      item.status,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                        color: statusTextColor,
-                      ),
+                  Text(
+                    'Dibuat : ${_formatDate(item.createDate)}',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[700],
                     ),
                   ),
                 ],
@@ -302,11 +584,37 @@ class _PanicButtonHistoryPageState extends State<PanicButtonHistoryPage> {
               _buildInfoRow('Kejadian', item.description),
               8.verticalSpace,
               // Tindakan
-              if (item.feedback != null && item.feedback!.isNotEmpty)
-                _buildInfoRow('Tindakan', item.feedback!),
-              if (item.feedback != null && item.feedback!.isNotEmpty) 8.verticalSpace,
-              // Dibuat
-              _buildInfoRow('dibuat', _formatDate(item.createDate)),
+              if (item.resolveAction != null && item.resolveAction!.isNotEmpty)
+                _buildInfoRow('Tindakan', item.resolveAction!),
+              if (item.resolveAction != null && item.resolveAction!.isNotEmpty) 8.verticalSpace,
+              Align(
+                alignment: Alignment.centerRight,
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: 'Status : ',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      TextSpan(
+                        text: item.status,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: statusTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
