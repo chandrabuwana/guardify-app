@@ -232,12 +232,8 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
     try {
       await Future.delayed(const Duration(seconds: 1));
 
-      // Calculate distance between current and target location
-      final distance =
-          _calculateDistance(currentLat, currentLng, targetLat, targetLng);
-
-      // Return true if within 100 meters
-      return distance <= 100;
+      // Validasi radius dihapus - selalu return true
+      return true;
     } catch (e) {
       throw Exception('Failed to verify location: $e');
     }

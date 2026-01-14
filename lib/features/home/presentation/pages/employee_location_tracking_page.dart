@@ -352,51 +352,67 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
     });
   }
 
-  /// Scroll list area ke area yang dipilih
+  /// Scroll list area ke area yang dipilih (ke tengah)
   void _scrollToSelectedArea() {
     if (_selectedAreaId == null || _areas.isEmpty) {
       return;
     }
 
-    // Tunggu sampai ScrollController sudah terhubung dengan widget
+    // Tunggu sampai layout selesai dan ScrollController sudah terhubung
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_areaScrollController.hasClients) {
-        return;
-      }
-
-      try {
-        final selectedIndex = _areas.indexWhere((area) => area.id == _selectedAreaId);
-        if (selectedIndex < 0) {
+      // Double postFrameCallback untuk memastikan layout benar-benar selesai
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_areaScrollController.hasClients) {
           return;
         }
 
-        // Gunakan pendekatan yang lebih akurat dengan mencoba scroll ke posisi
-        // Kita akan scroll agar chip yang dipilih terlihat dengan baik
-        // Estimasi: setiap chip + padding = sekitar 130-150 pixels
-        const estimatedChipWidth = 130.0;
-        const padding = 16.0; // padding horizontal ListView
-        
-        final screenWidth = MediaQuery.of(context).size.width;
-        final chipWidth = estimatedChipWidth;
-        final accumulatedWidth = selectedIndex * chipWidth;
-        
-        // Scroll agar chip berada di tengah layar (dikurangi padding)
-        final targetOffset = accumulatedWidth - (screenWidth / 2) + (chipWidth / 2) + padding;
-        
-        // Pastikan offset dalam range yang valid
-        final maxScrollExtent = _areaScrollController.position.maxScrollExtent;
-        final finalOffset = targetOffset.clamp(0.0, maxScrollExtent);
-        
-        _areaScrollController.animateTo(
-          finalOffset,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        );
-        
-        print('📍 [LocationTracking] Scrolling to area at index: $selectedIndex, offset: $finalOffset (max: $maxScrollExtent)');
-      } catch (e) {
-        print('⚠️ [LocationTracking] Error scrolling to selected area: $e');
-      }
+        try {
+          final selectedIndex = _areas.indexWhere((area) => area.id == _selectedAreaId);
+          if (selectedIndex < 0) {
+            return;
+          }
+
+          final screenWidth = MediaQuery.of(context).size.width;
+          const padding = 16.0; // padding horizontal ListView
+          
+          // Estimasi width chip berdasarkan panjang text area
+          // FilterChip biasanya memiliki padding internal dan width dinamis berdasarkan text
+          // Kita estimasi: base width + (character count * average char width)
+          final areaName = _areas[selectedIndex].name ?? '';
+          final estimatedCharWidth = 8.0; // average width per character
+          final baseChipWidth = 40.0; // base padding dan icon
+          final estimatedChipWidth = baseChipWidth + (areaName.length * estimatedCharWidth);
+          
+          // Hitung total width dari awal sampai sebelum chip yang dipilih
+          double accumulatedWidth = padding; // mulai dari padding kiri
+          for (int i = 0; i < selectedIndex; i++) {
+            final name = _areas[i].name ?? '';
+            final chipWidth = baseChipWidth + (name.length * estimatedCharWidth) + 8.0;
+            accumulatedWidth += chipWidth;
+          }
+          
+          // Tambahkan setengah width dari chip yang dipilih
+          accumulatedWidth += estimatedChipWidth / 2;
+          
+          // Hitung offset agar chip berada di tengah layar
+          // Offset = accumulatedWidth - (screenWidth / 2)
+          final targetOffset = accumulatedWidth - (screenWidth / 2);
+          
+          // Pastikan offset dalam range yang valid
+          final maxScrollExtent = _areaScrollController.position.maxScrollExtent;
+          final finalOffset = targetOffset.clamp(0.0, maxScrollExtent);
+          
+          _areaScrollController.animateTo(
+            finalOffset,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+          
+          print('📍 [LocationTracking] Scrolling to area at index: $selectedIndex, offset: $finalOffset (max: $maxScrollExtent)');
+        } catch (e) {
+          print('⚠️ [LocationTracking] Error scrolling to selected area: $e');
+        }
+      });
     });
   }
 

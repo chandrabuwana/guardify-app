@@ -7,6 +7,7 @@ import '../../domain/usecases/create_incident_report.dart';
 import '../../domain/usecases/get_incident_locations.dart';
 import '../../domain/usecases/get_incident_types.dart';
 import '../../domain/usecases/update_incident_status.dart';
+import '../../domain/usecases/edit_incident.dart';
 import 'incident_event.dart';
 import 'incident_state.dart';
 
@@ -19,6 +20,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
   final GetIncidentLocations getIncidentLocations;
   final GetIncidentTypes getIncidentTypes;
   final UpdateIncidentStatus updateIncidentStatus;
+  final EditIncident editIncident;
 
   static const int pageSize = 10;
 
@@ -30,6 +32,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
     required this.getIncidentLocations,
     required this.getIncidentTypes,
     required this.updateIncidentStatus,
+    required this.editIncident,
   }) : super(const IncidentState()) {
     on<LoadIncidentListEvent>(_onLoadIncidentList);
     on<LoadMoreIncidentListEvent>(_onLoadMoreIncidentList);
@@ -44,6 +47,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
     on<LoadIncidentLocationsEvent>(_onLoadIncidentLocations);
     on<LoadIncidentTypesEvent>(_onLoadIncidentTypes);
     on<UpdateIncidentStatusEvent>(_onUpdateIncidentStatus);
+    on<EditIncidentEvent>(_onEditIncident);
     on<ClearIncidentErrorEvent>(_onClearError);
   }
 
@@ -380,6 +384,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         tanggalInsiden: event.tanggalInsiden,
         jamInsiden: event.jamInsiden,
         lokasiInsidenId: event.lokasiInsidenId,
+        lokasiInsidenName: event.lokasiInsidenName,
         detailLokasiInsiden: event.detailLokasiInsiden,
         tipeInsidenId: event.tipeInsidenId,
         deskripsiInsiden: event.deskripsiInsiden,
@@ -458,6 +463,51 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
       emit(state.copyWith(
         isLoading: false,
         errorMessage: 'Gagal memperbarui status insiden: ${e.toString()}',
+      ));
+    }
+  }
+
+  Future<void> _onEditIncident(
+    EditIncidentEvent event,
+    Emitter<IncidentState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    try {
+      final success = await editIncident(
+        incidentId: event.incidentId,
+        areasDescription: event.areasDescription,
+        areasId: event.areasId,
+        idIncidentType: event.idIncidentType,
+        incidentDate: event.incidentDate,
+        incidentTime: event.incidentTime,
+        incidentDescription: event.incidentDescription,
+        reportId: event.reportId,
+        notesAction: event.notesAction,
+        picId: event.picId,
+        pjId: event.pjId,
+        solvedAction: event.solvedAction,
+        solvedDate: event.solvedDate,
+        status: event.status,
+      );
+
+      if (success) {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: null,
+        ));
+        // Refresh lists after edit
+        add(const RefreshIncidentListEvent());
+        add(const RefreshMyTasksEvent());
+      } else {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: 'Gagal mengedit insiden',
+        ));
+      }
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: 'Gagal mengedit insiden: ${e.toString()}',
       ));
     }
   }
