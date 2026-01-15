@@ -315,6 +315,16 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
       return;
     }
 
+    if (_proofImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bukti patroli (foto) wajib diisi'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     // Validasi radius dihapus - tidak perlu cek lokasi lagi
 
     setState(() {

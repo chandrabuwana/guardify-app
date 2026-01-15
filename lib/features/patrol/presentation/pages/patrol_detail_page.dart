@@ -690,20 +690,62 @@ class _LocationCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                location.proofImagePath != null
-                                    ? location.proofImagePath!
-                                    : '-',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: location.proofImagePath != null
-                                      ? primaryColor
-                                      : Colors.black87,
+                              if (location.proofImagePath != null)
+                                ElevatedButton(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => Dialog(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            AppBar(
+                                              title: const Text('Bukti Patroli'),
+                                              leading: IconButton(
+                                                icon: const Icon(Icons.close),
+                                                onPressed: () => Navigator.pop(context),
+                                              ),
+                                            ),
+                                            Image.network(
+                                              location.proofImagePath!,
+                                              fit: BoxFit.contain,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return const Padding(
+                                                  padding: EdgeInsets.all(16.0),
+                                                  child: Text('Gagal memuat gambar'),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryColor,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Lihat',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                )
+                              else
+                                const Text(
+                                  '-',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
                             ],
                           ),
                         ),

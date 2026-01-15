@@ -624,18 +624,24 @@ class LaporanKegiatanRemoteDataSourceImpl
       fotoPengamanan: fotoPengamanan,
       tugasLanjutan: data['Patrol'] as String? ?? '',
       tugasTertunda: tugasTertunda,
+      carryOver: data['CarryOver'] as String?,
       status: laporanStatus,
       kehadiran: kehadiran,
       lembur: data['IsOvertime'] as bool? ?? false,
       fotoLembur: fotoLembur,
       jamSelesaiBekerja: jamSelesaiBekerja,
       umpanBalik: null, // Not in detail response, might be in review
+      statusKerja: statusKerja.isNotEmpty ? statusKerja : null,
       // Prioritize route name from ListRoute, fallback to Route field
       routeName: routeNameFromListRoute ?? data['Route'] as String? ?? data['RouteName'] as String?,
       checkpoints: checkpoints,
       reviewerId: null, // Not in detail response
       reviewerName: null, // Not in detail response
       tanggalReview: null, // Not in detail response
+      updateBy: data['UpdateBy'] as String?,
+      updateDate: data['UpdateDate'] != null
+          ? DateTime.tryParse(data['UpdateDate'] as String)
+          : null,
       // Attendance info
       idAttendance: data['IdAttendance'] as String?,
       checkIn: checkIn,

@@ -45,5 +45,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Guardify needs access to your location to track and record your patrol routes and security checkpoints during duty.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Guardify needs access to your location at all times to track your patrol routes and provide accurate location data for security reports, even when the app is in the background.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Guardify needs access to your camera to capture photos of incidents, security checkpoints, and evidence during patrols.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Guardify needs access to your photo library to attach images to incident reports and security documentation.</string>
 </dict>
 </plist>

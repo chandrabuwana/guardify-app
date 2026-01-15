@@ -10,6 +10,7 @@ import 'package:path/path.dart' as path;
 import '../../../../shared/widgets/app_scaffold.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/design/colors.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
 import '../../../patrol/domain/repositories/patrol_repository.dart';
@@ -209,7 +210,8 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
                               )
                             : _availableAreas.isEmpty
                                 ? Padding(
-                                    padding: REdgeInsets.symmetric(vertical: 12),
+                                    padding:
+                                        REdgeInsets.symmetric(vertical: 12),
                                     child: Text(
                                       'Tidak ada lokasi yang tersedia',
                                       style: TextStyle(
@@ -270,6 +272,9 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
                     child: TextField(
                       controller: _kejadianController,
                       maxLines: 3,
+                      onChanged: (value) {
+                        setState(() {});
+                      },
                       decoration: InputDecoration(
                         hintText: 'Kejadian ---',
                         hintStyle: TextStyle(
@@ -314,7 +319,7 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
                   ],
                   24.verticalSpace,
 
-                  // Tindakan field (disabled)
+                  // Tindakan field
                   Text(
                     'Tindakan',
                     style: TextStyle(
@@ -328,53 +333,30 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey[300]!),
                       borderRadius: BorderRadius.circular(8.r),
-                      color: Colors.grey[100],
+                      color: Colors.white,
                     ),
                     child: TextField(
                       controller: _tindakanController,
-                      enabled: false, // Disable field
+                      enabled: true,
                       maxLines: 3,
+                      onChanged: (value) {
+                        setState(() {});
+                      },
                       decoration: InputDecoration(
-                        hintText: 'Tindakan (tidak dapat diisi)',
+                        hintText: 'Masukkan tindakan yang dilakukan',
                         hintStyle: TextStyle(
                           fontSize: 14.sp,
                           color: Colors.grey[400],
                         ),
                         border: InputBorder.none,
                         contentPadding: REdgeInsets.all(12),
-                        suffixIcon: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: null, // Disabled
-                              icon: Icon(
-                                Icons.camera_alt,
-                                color: Colors.grey[400],
-                                size: 20.r,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: null, // Disabled
-                              icon: Icon(
-                                Icons.attach_file,
-                                color: Colors.grey[400],
-                                size: 20.r,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                       style: TextStyle(
                         fontSize: 14.sp,
-                        color: Colors.grey[600],
+                        color: Colors.black87,
                       ),
                     ),
                   ),
-                  // Display tindakan attachments
-                  if (_tindakanFiles.isNotEmpty) ...[
-                    8.verticalSpace,
-                    _buildAttachmentsList('tindakan', _tindakanFiles),
-                  ],
 
                   60.verticalSpace,
 
@@ -390,8 +372,9 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
                         backgroundColor: (_isFormValid() && !_isSubmitting)
                             ? const Color(0xFFE74C3C)
                             : Colors.grey[300],
-                        foregroundColor:
-                            (_isFormValid() && !_isSubmitting) ? Colors.white : Colors.grey[600],
+                        foregroundColor: (_isFormValid() && !_isSubmitting)
+                            ? Colors.white
+                            : Colors.grey[600],
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.r),
                         ),
@@ -526,9 +509,12 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
   }
 
   bool _isFormValid() {
-    // Tindakan tidak wajib karena field di-disable
-    return _selectedLocation != null &&
-        _kejadianController.text.isNotEmpty;
+    // Kejadian must have text and at least one image
+    // Tindakan must have text (no images required)
+    return _selectedLocation != null && 
+           _kejadianController.text.isNotEmpty && 
+           _kejadianFiles.isNotEmpty &&
+           _tindakanController.text.isNotEmpty;
   }
 
   /// Convert image file to base64
@@ -562,9 +548,10 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
   }
 
   /// Convert all image files to base64
-  Future<List<IncidentFileModel>> _convertFilesToBase64(List<File> files) async {
+  Future<List<IncidentFileModel>> _convertFilesToBase64(
+      List<File> files) async {
     final List<IncidentFileModel> fileModels = [];
-    
+
     for (final file in files) {
       // Only convert image files
       if (_isImageFile(file.path)) {
@@ -572,7 +559,6 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
           final base64 = await _convertImageToBase64(file);
           final fileName = path.basename(file.path);
           final mimeType = _getMimeType(fileName);
-          
           fileModels.add(IncidentFileModel(
             filename: fileName,
             mimeType: mimeType,
@@ -584,7 +570,6 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
         }
       }
     }
-    
     return fileModels;
   }
 
@@ -594,11 +579,12 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
     print('═══════════════════════════════════════════════════════════');
     print('🚨 [PANIC BUTTON] SUBMIT INCIDENT START');
     print('═══════════════════════════════════════════════════════════');
-    
+
     if (!_isFormValid()) {
       print('❌ Form validation failed');
       print('  - Selected Location: $_selectedLocation');
-      print('  - Kejadian: ${_kejadianController.text.isEmpty ? "EMPTY" : "FILLED"}');
+      print(
+          '  - Kejadian: ${_kejadianController.text.isEmpty ? "EMPTY" : "FILLED"}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Harap lengkapi semua field yang wajib diisi'),
@@ -616,7 +602,8 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
     try {
       // Get user ID from secure storage
       print('📋 Step 1: Getting user ID from secure storage...');
-      final reporterId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      final reporterId =
+          await SecurityManager.readSecurely(AppConstants.userIdKey);
       if (reporterId == null || reporterId.isEmpty) {
         print('❌ User ID not found in secure storage');
         throw Exception('User ID tidak ditemukan. Silakan login ulang.');
@@ -638,15 +625,18 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
       // Combine all image files (kejadian + tindakan)
       print('📋 Step 3: Processing image files...');
       final allImageFiles = <File>[];
-      allImageFiles.addAll(_kejadianFiles.where((file) => _isImageFile(file.path)));
-      allImageFiles.addAll(_tindakanFiles.where((file) => _isImageFile(file.path)));
+      allImageFiles
+          .addAll(_kejadianFiles.where((file) => _isImageFile(file.path)));
+      allImageFiles
+          .addAll(_tindakanFiles.where((file) => _isImageFile(file.path)));
       print('  - Kejadian Files Count: ${_kejadianFiles.length}');
       print('  - Tindakan Files Count: ${_tindakanFiles.length}');
       print('  - Total Image Files: ${allImageFiles.length}');
       for (int i = 0; i < allImageFiles.length; i++) {
         final file = allImageFiles[i];
         final fileSize = await file.length();
-        print('    File[$i]: ${file.path} (${(fileSize / 1024).toStringAsFixed(2)} KB)');
+        print(
+            '    File[$i]: ${file.path} (${(fileSize / 1024).toStringAsFixed(2)} KB)');
       }
 
       // Convert images to base64
@@ -657,20 +647,19 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
       for (int i = 0; i < files.length; i++) {
         final file = files[i];
         final base64Length = file.base64.length;
-        print('    File[$i]: ${file.filename} (${file.mimeType}, base64Length: $base64Length)');
+        print(
+            '    File[$i]: ${file.filename} (${file.mimeType}, base64Length: $base64Length)');
       }
 
       // Format date as YYYY-MM-DD
       print('📋 Step 5: Formatting date...');
       final now = DateTime.now();
-      final reporterDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final reporterDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       print('✅ Reporter Date: $reporterDate');
-
-      // Description hanya dari kejadian, Feedback dari tindakan
-      print('📋 Step 6: Building description and feedback...');
       final description = _kejadianController.text; // Hanya kejadian
-      final feedback = _tindakanController.text.isNotEmpty 
-          ? _tindakanController.text 
+      final feedback = _tindakanController.text.isNotEmpty
+          ? _tindakanController.text
           : null; // Feedback dari tindakan, null jika kosong
       print('✅ Description: $description');
       print('✅ Description length: ${description.length} characters');
