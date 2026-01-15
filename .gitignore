@@ -73,6 +73,9 @@ app.*.map.json
 **/ios/Flutter/flutter_export_environment.sh
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/build/
+**/ios/*.xcarchive
+**/ios/*.ipa
 
 # Android related
 **/android/**/gradle-wrapper.jar

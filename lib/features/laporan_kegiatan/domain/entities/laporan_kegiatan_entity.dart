@@ -61,12 +61,14 @@ class LaporanKegiatanEntity extends Equatable {
   final List<String>? fotoPengamanan;
   final String? tugasLanjutan;
   final bool tugasTertunda;
+  final String? carryOver;
   final LaporanStatus status;
   final String kehadiran; // "Masuk", "Tidak Masuk", "Cuti"
   final bool lembur;
   final String? fotoLembur;
   final String? jamSelesaiBekerja;
   final String? umpanBalik;
+  final String? statusKerja; // "Early", "OnTime", "Late", "Checkout By Admin", etc.
 
   // Untuk Patrol Route/Timeline
   final String? routeName;
@@ -76,6 +78,10 @@ class LaporanKegiatanEntity extends Equatable {
   final String? reviewerId;
   final String? reviewerName;
   final DateTime? tanggalReview;
+
+  // Update info
+  final String? updateBy;
+  final DateTime? updateDate;
 
   // Attendance info
   final String? idAttendance;
@@ -100,17 +106,21 @@ class LaporanKegiatanEntity extends Equatable {
     this.fotoPengamanan,
     this.tugasLanjutan,
     required this.tugasTertunda,
+    this.carryOver,
     required this.status,
     required this.kehadiran,
     required this.lembur,
     this.fotoLembur,
     this.jamSelesaiBekerja,
     this.umpanBalik,
+    this.statusKerja,
     this.routeName,
     this.checkpoints,
     this.reviewerId,
     this.reviewerName,
     this.tanggalReview,
+    this.updateBy,
+    this.updateDate,
     this.idAttendance,
     this.checkIn,
     this.checkOut,
@@ -135,17 +145,21 @@ class LaporanKegiatanEntity extends Equatable {
         fotoPengamanan,
         tugasLanjutan,
         tugasTertunda,
+        carryOver,
         status,
         kehadiran,
         lembur,
         fotoLembur,
         jamSelesaiBekerja,
         umpanBalik,
+        statusKerja,
         routeName,
         checkpoints,
         reviewerId,
         reviewerName,
         tanggalReview,
+        updateBy,
+        updateDate,
         idAttendance,
         checkIn,
         checkOut,
@@ -169,17 +183,21 @@ class LaporanKegiatanEntity extends Equatable {
     List<String>? fotoPengamanan,
     String? tugasLanjutan,
     bool? tugasTertunda,
+    String? carryOver,
     LaporanStatus? status,
     String? kehadiran,
     bool? lembur,
     String? fotoLembur,
     String? jamSelesaiBekerja,
     String? umpanBalik,
+    String? statusKerja,
     String? routeName,
     List<PatrolCheckpoint>? checkpoints,
     String? reviewerId,
     String? reviewerName,
     DateTime? tanggalReview,
+    String? updateBy,
+    DateTime? updateDate,
     String? idAttendance,
     DateTime? checkIn,
     DateTime? checkOut,
@@ -202,17 +220,21 @@ class LaporanKegiatanEntity extends Equatable {
       fotoPengamanan: fotoPengamanan ?? this.fotoPengamanan,
       tugasLanjutan: tugasLanjutan ?? this.tugasLanjutan,
       tugasTertunda: tugasTertunda ?? this.tugasTertunda,
+      carryOver: carryOver ?? this.carryOver,
       status: status ?? this.status,
       kehadiran: kehadiran ?? this.kehadiran,
       lembur: lembur ?? this.lembur,
       fotoLembur: fotoLembur ?? this.fotoLembur,
       jamSelesaiBekerja: jamSelesaiBekerja ?? this.jamSelesaiBekerja,
       umpanBalik: umpanBalik ?? this.umpanBalik,
+      statusKerja: statusKerja ?? this.statusKerja,
       routeName: routeName ?? this.routeName,
       checkpoints: checkpoints ?? this.checkpoints,
       reviewerId: reviewerId ?? this.reviewerId,
       reviewerName: reviewerName ?? this.reviewerName,
       tanggalReview: tanggalReview ?? this.tanggalReview,
+      updateBy: updateBy ?? this.updateBy,
+      updateDate: updateDate ?? this.updateDate,
       idAttendance: idAttendance ?? this.idAttendance,
       checkIn: checkIn ?? this.checkIn,
       checkOut: checkOut ?? this.checkOut,

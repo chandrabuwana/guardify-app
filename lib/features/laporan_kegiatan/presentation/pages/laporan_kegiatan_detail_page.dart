@@ -361,7 +361,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           // Tugas Tertunda
           _buildInfoCard(
             'Tugas Tertunda',
-            laporan.tugasLanjutan ?? '-',
+            laporan.carryOver ?? '-',
           ),
           16.verticalSpace,
 
@@ -389,14 +389,28 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           // Status Selesai Bekerja
           _buildInfoCard(
             'Status Selesai Bekerja',
-            laporan.jamSelesaiBekerja ?? 'On Time, Early, Late, ...',
+            laporan.statusKerja ?? '-',
           ),
           16.verticalSpace,
 
           // Umpan Balik
+          
+          16.verticalSpace,
+          _buildInfoCard(
+            'Diverifikasi Oleh',
+            laporan.updateBy ?? '-',
+          ),
+          16.verticalSpace,
+          _buildInfoCard(
+            'Tanggal Verifikasi',
+            laporan.updateDate != null
+                ? DateFormat('dd-MM-yyyy HH:mm').format(laporan.updateDate!)
+                : '-',
+          ),
+          16.verticalSpace,
           _buildInfoCard(
             'Umpan Balik',
-            laporan.umpanBalik ?? 'Keterangan Tugas Tertunda',
+            laporan.umpanBalik ?? '-',
           ),
         ],
       ),

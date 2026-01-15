@@ -67,7 +67,7 @@ class _PersonnelListViewState extends State<_PersonnelListView> with SingleTicke
           _currentTab = 'Pending';
           break;
         case 2:
-          _currentTab = 'Non Active'; // API might use 'Non Active' or 'Inactive'
+          _currentTab = 'Inactive'; // API uses 'Inactive'
           break;
       }
     });
