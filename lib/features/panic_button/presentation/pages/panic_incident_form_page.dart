@@ -559,7 +559,6 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
           final base64 = await _convertImageToBase64(file);
           final fileName = path.basename(file.path);
           final mimeType = _getMimeType(fileName);
-
           fileModels.add(IncidentFileModel(
             filename: fileName,
             mimeType: mimeType,
@@ -571,7 +570,6 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
         }
       }
     }
-
     return fileModels;
   }
 
@@ -659,9 +657,6 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
       final reporterDate =
           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       print('✅ Reporter Date: $reporterDate');
-
-      // Description hanya dari kejadian, Feedback dari tindakan
-      print('📋 Step 6: Building description and feedback...');
       final description = _kejadianController.text; // Hanya kejadian
       final feedback = _tindakanController.text.isNotEmpty
           ? _tindakanController.text
