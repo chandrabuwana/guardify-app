@@ -16,6 +16,9 @@ class CutiModel extends CutiEntity {
     required super.tanggalPengajuan,
     super.tanggalReview,
     required super.jumlahHari,
+    super.tanggalDibuat,
+    super.approveBy,
+    super.idLeaveRequestType,
   });
 
   factory CutiModel.fromJson(Map<String, dynamic> json) {
@@ -40,6 +43,11 @@ class CutiModel extends CutiEntity {
           ? DateTime.parse(json['tanggalReview'])
           : null,
       jumlahHari: json['jumlahHari'],
+      tanggalDibuat: json['tanggalDibuat'] != null
+          ? DateTime.parse(json['tanggalDibuat'])
+          : null,
+      approveBy: json['approveBy'],
+      idLeaveRequestType: json['idLeaveRequestType'],
     );
   }
 
@@ -59,6 +67,9 @@ class CutiModel extends CutiEntity {
       'tanggalPengajuan': tanggalPengajuan.toIso8601String(),
       'tanggalReview': tanggalReview?.toIso8601String(),
       'jumlahHari': jumlahHari,
+      'tanggalDibuat': tanggalDibuat?.toIso8601String(),
+      'approveBy': approveBy,
+      'idLeaveRequestType': idLeaveRequestType,
     };
   }
 
@@ -78,6 +89,9 @@ class CutiModel extends CutiEntity {
       tanggalPengajuan: entity.tanggalPengajuan,
       tanggalReview: entity.tanggalReview,
       jumlahHari: entity.jumlahHari,
+      tanggalDibuat: entity.tanggalDibuat,
+      approveBy: entity.approveBy,
+      idLeaveRequestType: entity.idLeaveRequestType,
     );
   }
 
@@ -97,6 +111,9 @@ class CutiModel extends CutiEntity {
       tanggalPengajuan: tanggalPengajuan,
       tanggalReview: tanggalReview,
       jumlahHari: jumlahHari,
+      tanggalDibuat: tanggalDibuat,
+      approveBy: approveBy,
+      idLeaveRequestType: idLeaveRequestType,
     );
   }
 }

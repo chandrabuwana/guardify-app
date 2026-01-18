@@ -164,4 +164,49 @@ class CutiRepositoryImpl implements CutiRepository {
       throw Exception('Failed to get leave request types: $e');
     }
   }
+
+  @override
+  Future<CutiEntity> editCuti({
+    required String cutiId,
+    required DateTime startDate,
+    required DateTime endDate,
+    required int idLeaveRequestType,
+    required String notes,
+    required String userId,
+    required String createBy,
+    required DateTime createDate,
+    String approveBy = '-',
+    DateTime? approveDate,
+    String notesApproval = '',
+    String status = 'WAITING_APPROVAL',
+  }) async {
+    try {
+      final result = await remoteDataSource.editCuti(
+        cutiId: cutiId,
+        startDate: startDate,
+        endDate: endDate,
+        idLeaveRequestType: idLeaveRequestType,
+        notes: notes,
+        userId: userId,
+        createBy: createBy,
+        createDate: createDate,
+        approveBy: approveBy,
+        approveDate: approveDate,
+        notesApproval: notesApproval,
+        status: status,
+      );
+      return result.toEntity();
+    } catch (e) {
+      throw Exception('Failed to edit cuti: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteCuti(String cutiId) async {
+    try {
+      await remoteDataSource.deleteCuti(cutiId);
+    } catch (e) {
+      throw Exception('Failed to delete cuti: $e');
+    }
+  }
 }

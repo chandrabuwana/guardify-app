@@ -15,6 +15,7 @@ import '../bloc/cuti_event.dart';
 import '../bloc/cuti_state.dart';
 import '../dialogs/success_dialog.dart';
 import '../../domain/entities/cuti_entity.dart';
+import 'edit_cuti_page.dart';
 
 class DetailCutiPage extends StatefulWidget {
   final String cutiId;
@@ -72,15 +73,57 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
         child: BlocListener<CutiBloc, CutiState>(
           listener: (context, state) {
             if (state is StatusCutiUpdated) {
+              if (!mounted) return;
               SuccessDialog.show(
                 context: context,
                 title: 'Status Berhasil Diperbarui',
                 message: 'Status cuti telah berhasil diperbarui.',
                 buttonText: 'Kembali',
                 onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
+                  if (!mounted) return;
+                  // Close dialog
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  }
+                  
                   // Return true to indicate status was updated, so parent can reload
-                  Navigator.of(context).pop(true);
+                  Future.microtask(() {
+                    if (!mounted) return;
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop(true);
+                    }
+                  });
+                },
+              );
+            } else if (state is CutiEdited) {
+              // Note: Dialog is already shown in EditCutiPage
+              // EditCutiPage already calls reload, so we don't need to reload here
+              // The list will be reloaded when user returns from detail page
+            } else if (state is CutiDeleted) {
+              if (!mounted) return;
+              
+              // Reload list cuti setelah delete berhasil dengan data terbaru dari API
+              _reloadAfterDelete();
+              
+              SuccessDialog.show(
+                context: context,
+                title: 'Cuti Berhasil Dihapus',
+                message: 'Ajuan cuti telah berhasil dihapus.',
+                buttonText: 'Kembali',
+                onPressed: () {
+                  if (!mounted) return;
+                  // Close dialog
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  }
+                  
+                  // Return true to indicate cuti was deleted, so parent can reload
+                  Future.microtask(() {
+                    if (!mounted) return;
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop(true);
+                    }
+                  });
                 },
               );
             } else if (state is CutiError) {
@@ -121,6 +164,7 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
 
   Widget _buildDetailContent(CutiEntity cuti) {
     final formatter = DateFormat('dd/MM/yyyy');
+    final dateTimeFormatter = DateFormat('dd/MM/yyyy HH:mm');
 
     return SingleChildScrollView(
       padding: REdgeInsets.all(16),
@@ -145,11 +189,16 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
             _buildInfoItem('Jumlah Hari', '${cuti.jumlahHari} hari'),
             _buildInfoItem(
                 'Tanggal Pengajuan', formatter.format(cuti.tanggalPengajuan)),
-            if (cuti.reviewerName != null)
-              _buildInfoItem('Direview oleh', cuti.reviewerName!),
+            if (cuti.tanggalDibuat != null)
+              _buildInfoItem(
+                  'Tanggal Dibuat', dateTimeFormatter.format(cuti.tanggalDibuat!)),
             if (cuti.tanggalReview != null)
               _buildInfoItem(
-                  'Tanggal Review', formatter.format(cuti.tanggalReview!)),
+                  'Tanggal Disetujui', dateTimeFormatter.format(cuti.tanggalReview!)),
+            if (cuti.approveBy != null && cuti.approveBy!.isNotEmpty)
+              _buildInfoItem('Disetujui oleh', cuti.approveBy!),
+            if (cuti.reviewerName != null)
+              _buildInfoItem('Direview oleh', cuti.reviewerName!),
           ]),
 
           20.verticalSpace,
@@ -166,15 +215,21 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
             ]),
           ],
 
-          // Show action buttons for danton/pjo/deputy/pengawas when viewing from Ajuan Anggota/Ajuan Cuti tab
+          // Show action buttons for pjo/deputy/pengawas when viewing from Ajuan Anggota/Ajuan Cuti tab
+          // Note: Danton sama dengan anggota, tidak bisa approve/reject
           if (widget.showActions && 
               cuti.status == CutiStatus.pending &&
-              (widget.currentUserRole == UserRole.danton ||
-               widget.currentUserRole == UserRole.pjo ||
+              (widget.currentUserRole == UserRole.pjo ||
                widget.currentUserRole == UserRole.deputy ||
                widget.currentUserRole == UserRole.pengawas)) ...[
             32.verticalSpace,
             _buildActionButtons(cuti),
+          ],
+
+          // Show Edit and Delete buttons for pending cuti (only for the user who created it)
+          if (cuti.status == CutiStatus.pending) ...[
+            32.verticalSpace,
+            _buildEditDeleteButtons(cuti),
           ],
         ],
       ),
@@ -499,6 +554,127 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
           child: Text(confirmText),
         ),
       ],
+    );
+  }
+
+  Widget _buildEditDeleteButtons(CutiEntity cuti) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: UIButton(
+                text: 'Edit',
+                buttonType: UIButtonType.outline,
+                variant: UIButtonVariant.primary,
+                onPressed: () => _navigateToEdit(cuti),
+              ),
+            ),
+            12.horizontalSpace,
+            Expanded(
+              child: UIButton(
+                text: 'Hapus',
+                variant: UIButtonVariant.error,
+                onPressed: () => _showDeleteDialog(cuti),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _navigateToEdit(CutiEntity cuti) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: _cutiBloc,
+          child: EditCutiPage(cuti: cuti),
+        ),
+      ),
+    );
+    
+    if (result == true) {
+      // Edit was successful, pop detail page and return true to list
+      // so list can reload
+      Future.microtask(() {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        }
+      });
+    }
+  }
+
+  Future<void> _reloadAfterEdit(CutiEntity cuti) async {
+    // Reload list cuti setelah edit berhasil dengan data terbaru dari API
+    final role = widget.currentUserRole;
+    final userId = cuti.userId;
+    
+    // Always reload Ajuan Saya tab to ensure data is fresh from API
+    _cutiBloc.add(GetDaftarCutiSayaEvent(userId));
+    
+    // Also reload other tabs based on role
+    if (role == UserRole.pjo || role == UserRole.deputy) {
+      _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+    } else if (role == UserRole.pengawas || role == UserRole.admin) {
+      _cutiBloc.add(const GetDaftarCutiAnggotaEvent(status: 'pending'));
+      _cutiBloc.add(const GetRekapCutiEvent());
+    }
+  }
+
+  Future<void> _reloadAfterDelete() async {
+    // Reload list cuti setelah delete berhasil dengan data terbaru dari API
+    final role = widget.currentUserRole;
+    final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? 'user_1';
+    
+    // Always reload Ajuan Saya tab to ensure data is fresh from API
+    _cutiBloc.add(GetDaftarCutiSayaEvent(userId));
+    
+    // Also reload other tabs based on role
+    if (role == UserRole.pjo || role == UserRole.deputy) {
+      _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+    } else if (role == UserRole.pengawas || role == UserRole.admin) {
+      _cutiBloc.add(const GetDaftarCutiAnggotaEvent(status: 'pending'));
+      _cutiBloc.add(const GetRekapCutiEvent());
+    }
+  }
+
+  void _showDeleteDialog(CutiEntity cuti) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(
+          'Hapus Ajuan Cuti?',
+          style: TS.titleMedium.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus ajuan cuti ini? Tindakan ini tidak dapat dibatalkan.',
+          style: TS.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop(); // Close dialog
+              _cutiBloc.add(DeleteCutiEvent(cuti.id));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
     );
   }
 }

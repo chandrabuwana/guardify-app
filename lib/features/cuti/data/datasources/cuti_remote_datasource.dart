@@ -62,4 +62,23 @@ abstract class CutiRemoteDataSource {
 
   /// Get list of leave request types
   Future<List<LeaveRequestTypeModel>> getLeaveRequestTypeList();
+
+  /// Edit leave request
+  Future<CutiModel> editCuti({
+    required String cutiId,
+    required DateTime startDate,
+    required DateTime endDate,
+    required int idLeaveRequestType,
+    required String notes,
+    required String userId,
+    required String createBy,
+    required DateTime createDate,
+    String approveBy = '-',
+    DateTime? approveDate,
+    String notesApproval = '',
+    String status = 'WAITING_APPROVAL',
+  });
+
+  /// Delete leave request
+  Future<void> deleteCuti(String cutiId);
 }

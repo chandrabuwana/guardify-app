@@ -9,6 +9,8 @@ import '../../domain/usecases/filter_cuti.dart';
 import '../../domain/usecases/get_detail_cuti.dart';
 import '../../domain/usecases/get_rekap_cuti.dart';
 import '../../domain/usecases/get_leave_request_type_list.dart';
+import '../../domain/usecases/edit_cuti.dart';
+import '../../domain/usecases/delete_cuti.dart';
 import 'cuti_event.dart';
 import 'cuti_state.dart';
 
@@ -23,6 +25,8 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
   final GetDetailCuti getDetailCuti;
   final GetRekapCuti getRekapCuti;
   final GetLeaveRequestTypeList getLeaveRequestTypeList;
+  final EditCuti editCuti;
+  final DeleteCuti deleteCuti;
 
   CutiBloc({
     required this.getCutiKuota,
@@ -34,6 +38,8 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
     required this.getDetailCuti,
     required this.getRekapCuti,
     required this.getLeaveRequestTypeList,
+    required this.editCuti,
+    required this.deleteCuti,
   }) : super(CutiInitial()) {
     on<GetCutiKuotaEvent>(_onGetCutiKuota);
     on<GetDaftarCutiSayaEvent>(_onGetDaftarCutiSaya);
@@ -44,6 +50,8 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
     on<GetDetailCutiEvent>(_onGetDetailCuti);
     on<GetRekapCutiEvent>(_onGetRekapCuti);
     on<GetLeaveRequestTypeListEvent>(_onGetLeaveRequestTypeList);
+    on<EditCutiEvent>(_onEditCuti);
+    on<DeleteCutiEvent>(_onDeleteCuti);
     on<ResetCutiStateEvent>(_onResetCutiState);
     on<ClearCutiErrorEvent>(_onClearCutiError);
   }
@@ -214,6 +222,46 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
   ) {
     if (state is CutiError) {
       emit(CutiInitial());
+    }
+  }
+
+  Future<void> _onEditCuti(
+    EditCutiEvent event,
+    Emitter<CutiState> emit,
+  ) async {
+    try {
+      emit(CutiLoading());
+      final params = EditCutiParams(
+        cutiId: event.cutiId,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        idLeaveRequestType: event.idLeaveRequestType,
+        notes: event.notes,
+        userId: event.userId,
+        createBy: event.createBy,
+        createDate: event.createDate,
+        approveBy: event.approveBy,
+        approveDate: event.approveDate,
+        notesApproval: event.notesApproval,
+        status: event.status,
+      );
+      final cuti = await editCuti(params);
+      emit(CutiEdited(cuti));
+    } catch (e) {
+      emit(CutiError('Gagal mengedit cuti: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onDeleteCuti(
+    DeleteCutiEvent event,
+    Emitter<CutiState> emit,
+  ) async {
+    try {
+      emit(CutiLoading());
+      await deleteCuti(event.cutiId);
+      emit(CutiDeleted());
+    } catch (e) {
+      emit(CutiError('Gagal menghapus cuti: ${e.toString()}'));
     }
   }
 }

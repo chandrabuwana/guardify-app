@@ -120,6 +120,10 @@ import 'package:guardify_app/features/cuti/domain/repositories/cuti_repository.d
     as _i825;
 import 'package:guardify_app/features/cuti/domain/usecases/buat_ajuan_cuti.dart'
     as _i341;
+import 'package:guardify_app/features/cuti/domain/usecases/delete_cuti.dart'
+    as _i420;
+import 'package:guardify_app/features/cuti/domain/usecases/edit_cuti.dart'
+    as _i411;
 import 'package:guardify_app/features/cuti/domain/usecases/filter_cuti.dart'
     as _i639;
 import 'package:guardify_app/features/cuti/domain/usecases/get_cuti_kuota.dart'
@@ -178,6 +182,8 @@ import 'package:guardify_app/features/laporan_kejadian/domain/usecases/get_incid
     as _i296;
 import 'package:guardify_app/features/laporan_kejadian/domain/usecases/get_my_tasks.dart'
     as _i754;
+import 'package:guardify_app/features/laporan_kejadian/domain/usecases/get_user_list.dart'
+    as _i804;
 import 'package:guardify_app/features/laporan_kejadian/domain/usecases/update_incident_status.dart'
     as _i350;
 import 'package:guardify_app/features/laporan_kejadian/presentation/bloc/incident_bloc.dart'
@@ -436,6 +442,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i296.GetIncidentTypes(gh<_i97.IncidentRepository>()));
     gh.factory<_i754.GetMyTasks>(
         () => _i754.GetMyTasks(gh<_i97.IncidentRepository>()));
+    gh.factory<_i804.GetUserList>(
+        () => _i804.GetUserList(gh<_i97.IncidentRepository>()));
     gh.factory<_i350.UpdateIncidentStatus>(
         () => _i350.UpdateIncidentStatus(gh<_i97.IncidentRepository>()));
     gh.lazySingleton<_i144.AuthRepository>(
@@ -526,6 +534,10 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i515.GetRekapCuti(gh<_i825.CutiRepository>()));
     gh.factory<_i688.UpdateStatusCuti>(
         () => _i688.UpdateStatusCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i420.DeleteCuti>(
+        () => _i420.DeleteCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i411.EditCuti>(
+        () => _i411.EditCuti(gh<_i825.CutiRepository>()));
     gh.lazySingleton<_i83.TugasLanjutanRepository>(
         () => _i949.TugasLanjutanRepositoryImpl(
               gh<_i176.TugasLanjutanRemoteDataSource>(),
@@ -578,6 +590,19 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i814.BMIRepository>(() => _i989.BMIRepositoryImpl(
           gh<_i826.BMILocalDataSource>(),
           gh<_i163.BmiRemoteDataSource>(),
+        ));
+    gh.factory<_i215.CutiBloc>(() => _i215.CutiBloc(
+          getCutiKuota: gh<_i1067.GetCutiKuota>(),
+          getDaftarCutiSaya: gh<_i1023.GetDaftarCutiSaya>(),
+          getDaftarCutiAnggota: gh<_i722.GetDaftarCutiAnggota>(),
+          buatAjuanCuti: gh<_i341.BuatAjuanCuti>(),
+          updateStatusCuti: gh<_i688.UpdateStatusCuti>(),
+          filterCuti: gh<_i639.FilterCuti>(),
+          getDetailCuti: gh<_i505.GetDetailCuti>(),
+          getRekapCuti: gh<_i515.GetRekapCuti>(),
+          getLeaveRequestTypeList: gh<_i479.GetLeaveRequestTypeList>(),
+          editCuti: gh<_i411.EditCuti>(),
+          deleteCuti: gh<_i420.DeleteCuti>(),
         ));
     gh.factory<_i416.PatrolBloc>(() => _i416.PatrolBloc(
           getPatrolRoutes: gh<_i759.GetPatrolRoutes>(),
@@ -649,17 +674,6 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i778.GetTugasLanjutanList(gh<_i83.TugasLanjutanRepository>()));
     gh.factory<_i419.SelesaikanTugas>(
         () => _i419.SelesaikanTugas(gh<_i83.TugasLanjutanRepository>()));
-    gh.factory<_i215.CutiBloc>(() => _i215.CutiBloc(
-          getCutiKuota: gh<_i1067.GetCutiKuota>(),
-          getDaftarCutiSaya: gh<_i1023.GetDaftarCutiSaya>(),
-          getDaftarCutiAnggota: gh<_i722.GetDaftarCutiAnggota>(),
-          buatAjuanCuti: gh<_i341.BuatAjuanCuti>(),
-          updateStatusCuti: gh<_i688.UpdateStatusCuti>(),
-          filterCuti: gh<_i639.FilterCuti>(),
-          getDetailCuti: gh<_i505.GetDetailCuti>(),
-          getRekapCuti: gh<_i515.GetRekapCuti>(),
-          getLeaveRequestTypeList: gh<_i479.GetLeaveRequestTypeList>(),
-        ));
     gh.factory<_i833.GetAttendanceRekapDetailUseCase>(() =>
         _i833.GetAttendanceRekapDetailUseCase(
             gh<_i798.AttendanceRekapRepository>()));

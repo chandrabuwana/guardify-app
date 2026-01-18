@@ -213,6 +213,16 @@ class LeaveRequestItemModel {
       tanggalReview = null;
     }
 
+    // Parse tanggal dibuat dari CreateDate
+    DateTime? tanggalDibuat;
+    try {
+      if (createDate != null && createDate!.isNotEmpty) {
+        tanggalDibuat = DateTime.parse(createDate!);
+      }
+    } catch (e) {
+      tanggalDibuat = null;
+    }
+
     return CutiEntity(
       id: id,
       nama: nama,
@@ -228,6 +238,9 @@ class LeaveRequestItemModel {
       tanggalPengajuan: tanggalPengajuan,
       tanggalReview: tanggalReview,
       jumlahHari: jumlahHari,
+      tanggalDibuat: tanggalDibuat,
+      approveBy: approveBy,
+      idLeaveRequestType: idLeaveRequestType,
     );
   }
 }

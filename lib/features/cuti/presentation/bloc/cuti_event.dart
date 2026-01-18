@@ -165,3 +165,60 @@ class ClearCutiErrorEvent extends CutiEvent {
 class GetLeaveRequestTypeListEvent extends CutiEvent {
   const GetLeaveRequestTypeListEvent();
 }
+
+// Edit Cuti Event
+class EditCutiEvent extends CutiEvent {
+  final String cutiId;
+  final DateTime startDate;
+  final DateTime endDate;
+  final int idLeaveRequestType;
+  final String notes;
+  final String userId;
+  final String createBy;
+  final DateTime createDate;
+  final String approveBy;
+  final DateTime? approveDate;
+  final String notesApproval;
+  final String status;
+
+  const EditCutiEvent({
+    required this.cutiId,
+    required this.startDate,
+    required this.endDate,
+    required this.idLeaveRequestType,
+    required this.notes,
+    required this.userId,
+    required this.createBy,
+    required this.createDate,
+    this.approveBy = '-',
+    this.approveDate,
+    this.notesApproval = '',
+    this.status = 'WAITING_APPROVAL',
+  });
+
+  @override
+  List<Object?> get props => [
+        cutiId,
+        startDate,
+        endDate,
+        idLeaveRequestType,
+        notes,
+        userId,
+        createBy,
+        createDate,
+        approveBy,
+        approveDate,
+        notesApproval,
+        status,
+      ];
+}
+
+// Delete Cuti Event
+class DeleteCutiEvent extends CutiEvent {
+  final String cutiId;
+
+  const DeleteCutiEvent(this.cutiId);
+
+  @override
+  List<Object> get props => [cutiId];
+}

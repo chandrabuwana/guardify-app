@@ -148,3 +148,16 @@ class LeaveRequestTypeListLoaded extends CutiState {
   @override
   List<Object> get props => [leaveRequestTypes];
 }
+
+// Cuti Edited Success State
+class CutiEdited extends CutiState {
+  final CutiEntity cuti;
+
+  const CutiEdited(this.cuti);
+
+  @override
+  List<Object> get props => [cuti];
+}
+
+// Cuti Deleted Success State
+class CutiDeleted extends CutiState {}

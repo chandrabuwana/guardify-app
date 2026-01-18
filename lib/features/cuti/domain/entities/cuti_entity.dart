@@ -31,6 +31,9 @@ class CutiEntity extends Equatable {
   final DateTime tanggalPengajuan;
   final DateTime? tanggalReview;
   final int jumlahHari;
+  final DateTime? tanggalDibuat;
+  final String? approveBy;
+  final int? idLeaveRequestType;
 
   const CutiEntity({
     required this.id,
@@ -47,6 +50,9 @@ class CutiEntity extends Equatable {
     required this.tanggalPengajuan,
     this.tanggalReview,
     required this.jumlahHari,
+    this.tanggalDibuat,
+    this.approveBy,
+    this.idLeaveRequestType,
   });
 
   String get tipeCutiDisplayName {
@@ -94,6 +100,9 @@ class CutiEntity extends Equatable {
     DateTime? tanggalPengajuan,
     DateTime? tanggalReview,
     int? jumlahHari,
+    DateTime? tanggalDibuat,
+    String? approveBy,
+    int? idLeaveRequestType,
   }) {
     return CutiEntity(
       id: id ?? this.id,
@@ -110,6 +119,9 @@ class CutiEntity extends Equatable {
       tanggalPengajuan: tanggalPengajuan ?? this.tanggalPengajuan,
       tanggalReview: tanggalReview ?? this.tanggalReview,
       jumlahHari: jumlahHari ?? this.jumlahHari,
+      tanggalDibuat: tanggalDibuat ?? this.tanggalDibuat,
+      approveBy: approveBy ?? this.approveBy,
+      idLeaveRequestType: idLeaveRequestType ?? this.idLeaveRequestType,
     );
   }
 
@@ -129,5 +141,8 @@ class CutiEntity extends Equatable {
         tanggalPengajuan,
         tanggalReview,
         jumlahHari,
+        tanggalDibuat,
+        approveBy,
+        idLeaveRequestType,
       ];
 }

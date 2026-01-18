@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
+import '../../../../core/security/security_manager.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../../../../shared/widgets/custom_dropdown.dart';
@@ -16,21 +17,19 @@ import '../dialogs/success_dialog.dart';
 import '../../domain/entities/cuti_entity.dart';
 import '../../domain/entities/leave_request_type_entity.dart';
 
-class FormAjuanCutiPage extends StatefulWidget {
-  final String userId;
-  final String userName;
+class EditCutiPage extends StatefulWidget {
+  final CutiEntity cuti;
 
-  const FormAjuanCutiPage({
+  const EditCutiPage({
     Key? key,
-    required this.userId,
-    required this.userName,
+    required this.cuti,
   }) : super(key: key);
 
   @override
-  State<FormAjuanCutiPage> createState() => _FormAjuanCutiPageState();
+  State<EditCutiPage> createState() => _EditCutiPageState();
 }
 
-class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
+class _EditCutiPageState extends State<EditCutiPage> {
   final _formKey = GlobalKey<FormState>();
   final _alasanController = TextEditingController();
 
@@ -39,10 +38,20 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
   DateTime? _tanggalSelesai;
   int _jumlahHari = 0;
   List<LeaveRequestTypeEntity> _leaveRequestTypes = [];
+  DateTime? _createDate;
 
   @override
   void initState() {
     super.initState();
+    // Initialize form with existing data
+    _alasanController.text = widget.cuti.alasan;
+    _tanggalMulai = widget.cuti.tanggalMulai;
+    _tanggalSelesai = widget.cuti.tanggalSelesai;
+    _jumlahHari = widget.cuti.jumlahHari;
+    // Get createBy and createDate from detail - will be loaded from API response
+    // For now, use default values that will be updated when detail is loaded
+    _createDate = widget.cuti.tanggalDibuat ?? widget.cuti.tanggalPengajuan;
+    
     // Load leave request types on init
     context.read<CutiBloc>().add(const GetLeaveRequestTypeListEvent());
   }
@@ -70,7 +79,7 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        title: const Text('Buat Ajuan Cuti'),
+        title: const Text('Edit Ajuan Cuti'),
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -88,11 +97,24 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
                 if (state is LeaveRequestTypeListLoaded) {
                   setState(() {
                     _leaveRequestTypes = state.leaveRequestTypes;
+                    // Set selected leave request type based on cuti data
+                    // Find matching type by ID first, then by name
+                    if (widget.cuti.idLeaveRequestType != null) {
+                      _selectedLeaveRequestType = _leaveRequestTypes.firstWhere(
+                        (type) => type.id == widget.cuti.idLeaveRequestType,
+                        orElse: () => _findMatchingTypeByName(widget.cuti),
+                      );
+                    } else {
+                      _selectedLeaveRequestType = _findMatchingTypeByName(widget.cuti);
+                    }
                   });
-                } else if (state is AjuanCutiCreated) {
-                  // Reload list cuti setelah submit berhasil
-                  context.read<CutiBloc>().add(GetDaftarCutiSayaEvent(widget.userId));
-                  _showSuccessDialog();
+                } else if (state is CutiEdited) {
+                  if (mounted) {
+                    // Reload list cuti setelah edit berhasil dengan data terbaru dari API
+                    // Get userId from cuti
+                    context.read<CutiBloc>().add(GetDaftarCutiSayaEvent(widget.cuti.userId));
+                    _showSuccessDialog();
+                  }
                 } else if (state is CutiError) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -237,7 +259,7 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
                     BlocBuilder<CutiBloc, CutiState>(
                       builder: (context, state) {
                         return UIButton(
-                          text: 'Ajukan Cuti',
+                          text: 'Simpan Perubahan',
                           fullWidth: true,
                           size: UIButtonSize.large,
                           isLoading: state is CutiLoading,
@@ -279,7 +301,7 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
                             ),
                             16.verticalSpace,
                             Text(
-                              'Mengirim ajuan cuti...',
+                              'Menyimpan perubahan...',
                               style: TS.titleSmall.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -377,6 +399,29 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
     onDateSelected(date);
   }
 
+  LeaveRequestTypeEntity _findMatchingTypeByName(CutiEntity cuti) {
+    final cutiTypeName = cuti.tipeCutiDisplayName.toLowerCase();
+    
+    // Try to find matching type by name
+    for (var type in _leaveRequestTypes) {
+      final typeName = type.name.toLowerCase();
+      if (typeName.contains('tahunan') && cutiTypeName.contains('tahunan')) {
+        return type;
+      } else if (typeName.contains('sakit') && cutiTypeName.contains('sakit')) {
+        return type;
+      } else if (typeName.contains('melahirkan') && cutiTypeName.contains('melahirkan')) {
+        return type;
+      } else if (typeName.contains('menikah') && cutiTypeName.contains('menikah')) {
+        return type;
+      } else if (typeName.contains('meninggal') && cutiTypeName.contains('meninggal')) {
+        return type;
+      }
+    }
+    
+    // Return first type as fallback
+    return _leaveRequestTypes.isNotEmpty ? _leaveRequestTypes.first : throw StateError('No leave request types available');
+  }
+
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -402,57 +447,43 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
       return;
     }
 
+    // Get current user info for createBy
+    // Use username from secure storage, or fallback to userId
+    final username = await SecurityManager.readSecurely('user_username') ?? 
+                     await SecurityManager.readSecurely('user_fullname') ?? 
+                     widget.cuti.userId;
+    final createBy = username;
+    // Use createDate from cuti, or fallback to tanggalPengajuan
+    final createDate = _createDate ?? widget.cuti.tanggalPengajuan;
+
     // Show confirmation dialog
     final confirmed = await ConfirmDialog.show(
       context: context,
-      title: 'Konfirmasi Ajuan Cuti',
-      message: 'Apakah Anda yakin ingin mengajukan cuti ini?\n\n'
+      title: 'Konfirmasi Edit Cuti',
+      message: 'Apakah Anda yakin ingin menyimpan perubahan ini?\n\n'
           'Tipe: ${_selectedLeaveRequestType!.name}\n'
           'Durasi: $_jumlahHari hari\n'
           'Alasan: ${_alasanController.text.trim()}',
-      confirmText: 'Ya, Ajukan',
+      confirmText: 'Ya, Simpan',
       cancelText: 'Batal',
-      icon: Icons.send,
+      icon: Icons.save,
       iconColor: primaryColor,
     );
 
     if (confirmed == true && mounted) {
-      // Map LeaveRequestType to CutiType for backward compatibility
-      // We'll use the ID from API in the datasource
-      final cutiType = _mapLeaveRequestTypeToCutiType(_selectedLeaveRequestType!);
-      
       context.read<CutiBloc>().add(
-            BuatAjuanCutiEvent(
-              userId: widget.userId,
-              nama: widget.userName,
-              tipeCuti: cutiType,
-              leaveRequestTypeId: _selectedLeaveRequestType!.id,
-              tanggalMulai: _tanggalMulai!,
-              tanggalSelesai: _tanggalSelesai!,
-              alasan: _alasanController.text.trim(),
-              jumlahHari: _jumlahHari,
+            EditCutiEvent(
+              cutiId: widget.cuti.id,
+              startDate: _tanggalMulai!,
+              endDate: _tanggalSelesai!,
+              idLeaveRequestType: _selectedLeaveRequestType!.id,
+              notes: _alasanController.text.trim(),
+              userId: widget.cuti.userId,
+              createBy: createBy,
+              createDate: createDate,
+              status: 'WAITING_APPROVAL',
             ),
           );
-    }
-  }
-
-  /// Map LeaveRequestType to CutiType for backward compatibility
-  /// The actual ID will be used from the selected LeaveRequestType
-  CutiType _mapLeaveRequestTypeToCutiType(LeaveRequestTypeEntity type) {
-    // Try to match by name
-    final name = type.name.toLowerCase();
-    if (name.contains('tahunan')) {
-      return CutiType.tahunan;
-    } else if (name.contains('sakit')) {
-      return CutiType.sakit;
-    } else if (name.contains('melahirkan')) {
-      return CutiType.melahirkan;
-    } else if (name.contains('menikah')) {
-      return CutiType.menikah;
-    } else if (name.contains('meninggal')) {
-      return CutiType.keluargaMeninggal;
-    } else {
-      return CutiType.lainnya;
     }
   }
 
@@ -471,18 +502,18 @@ class _FormAjuanCutiPageState extends State<FormAjuanCutiPage> {
     
     SuccessDialog.show(
       context: context,
-      title: 'Ajuan Berhasil Dikirim',
-      message:
-          'Ajuan cuti Anda telah berhasil dikirim dan akan segera diproses oleh atasan.',
+      title: 'Perubahan Berhasil Disimpan',
+      message: 'Data ajuan cuti telah berhasil diperbarui.',
       buttonText: 'Kembali',
       onPressed: () {
         if (!mounted) return;
-        // Close dialog
+        // Close dialog first
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
         
-        // Close form page and return true to indicate success
+        // Close edit page and return true to DetailCutiPage
+        // DetailCutiPage will handle popping to list and reloading data
         Future.microtask(() {
           if (!mounted) return;
           if (Navigator.of(context).canPop()) {

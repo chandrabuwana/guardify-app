@@ -144,7 +144,8 @@ class _CutiPageState extends State<CutiPage>
         break;
       case UserRole.pengawas:
       case UserRole.admin:
-        _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+        // Untuk Pengawas, tab Ajuan Cuti default filter hanya status pending
+        _cutiBloc.add(const GetDaftarCutiAnggotaEvent(status: 'pending'));
         break;
     }
   }
@@ -266,8 +267,10 @@ class _CutiPageState extends State<CutiPage>
       case UserRole.pengawas:
       case UserRole.admin:
         if (index == 0) {
-          _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+          // Untuk tab Ajuan Cuti Pengawas, default filter hanya status pending
+          _cutiBloc.add(const GetDaftarCutiAnggotaEvent(status: 'pending'));
         } else if (index == 1) {
+          // Untuk Rekap Cuti, default filter hanya approved dan rejected
           _cutiBloc.add(const GetRekapCutiEvent());
         }
         break;
@@ -291,8 +294,8 @@ class _CutiPageState extends State<CutiPage>
     return FloatingActionButton(
       backgroundColor: primaryColor,
       foregroundColor: Colors.white,
-      onPressed: () {
-        Navigator.push(
+      onPressed: () async {
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => BlocProvider.value(
@@ -304,6 +307,11 @@ class _CutiPageState extends State<CutiPage>
             ),
           ),
         );
+        
+        // Reload data if ajuan was created
+        if (result == true) {
+          _reloadCurrentTab();
+        }
       },
       child: Icon(Icons.add, size: 24.sp),
     );
@@ -425,9 +433,15 @@ class _CutiPageState extends State<CutiPage>
                 ),
               );
               
-              // Reload data if status was updated
+              // Reload data if status was updated, edited, or deleted
               if (result == true) {
-                _reloadCurrentTab();
+                // Use WidgetsBinding to ensure reload happens after frame is built
+                // This ensures tab index is correctly updated
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    _reloadCurrentTab();
+                  }
+                });
               }
             },
           ),
@@ -441,6 +455,7 @@ class _CutiPageState extends State<CutiPage>
     final userId = _currentUserId ?? 'user_1';
     final tabIndex = _tabController?.index ?? 0;
 
+    // Use the same logic as _onTabChanged to ensure consistency
     switch (role) {
       case UserRole.anggota:
       case UserRole.danton:
@@ -453,7 +468,6 @@ class _CutiPageState extends State<CutiPage>
       case UserRole.pjo:
       case UserRole.deputy:
         if (tabIndex == 0) {
-          // Reload Ajuan Anggota tab
           _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
         } else if (tabIndex == 1) {
           _cutiBloc.add(GetCutiKuotaEvent(userId));
@@ -464,8 +478,10 @@ class _CutiPageState extends State<CutiPage>
       case UserRole.pengawas:
       case UserRole.admin:
         if (tabIndex == 0) {
-          _cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+          // Untuk tab Ajuan Cuti Pengawas, default filter hanya status pending
+          _cutiBloc.add(const GetDaftarCutiAnggotaEvent(status: 'pending'));
         } else if (tabIndex == 1) {
+          // Untuk Rekap Cuti, default filter hanya approved dan rejected
           _cutiBloc.add(const GetRekapCutiEvent());
         }
         break;
@@ -587,17 +603,16 @@ class _AjuanSayaTabContentState extends State<_AjuanSayaTabContent> {
       listener: (context, state) {
         // Handle state changes outside of build method
         if (state is DaftarCutiSayaLoaded) {
-          if (_allCuti != state.daftarCuti) {
-            // Use post frame callback to avoid setState during build
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _allCuti = state.daftarCuti;
-                });
-                _applyFilters();
-              }
-            });
-          }
+          // Always update when new data arrives from API (after edit/delete)
+          // Use post frame callback to avoid setState during build
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _allCuti = List.from(state.daftarCuti); // Create new list to force update
+              });
+              _applyFilters();
+            }
+          });
         }
       },
       child: BlocBuilder<CutiBloc, CutiState>(
@@ -707,8 +722,8 @@ class _AjuanSayaTabContentState extends State<_AjuanSayaTabContent> {
                               24.verticalSpace,
                               UIButton(
                                 text: 'Buat Ajuan Cuti',
-                                onPressed: () {
-                                  Navigator.push(
+                                onPressed: () async {
+                                  final result = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => BlocProvider.value(
@@ -720,6 +735,11 @@ class _AjuanSayaTabContentState extends State<_AjuanSayaTabContent> {
                                       ),
                                     ),
                                   );
+                                  
+                                  // Reload data if ajuan was created
+                                  if (result == true) {
+                                    widget.cutiBloc.add(GetDaftarCutiSayaEvent(widget.userId));
+                                  }
                                 },
                                 size: UIButtonSize.medium,
                               ),
@@ -740,8 +760,8 @@ class _AjuanSayaTabContentState extends State<_AjuanSayaTabContent> {
                                   child: CutiCard(
                                     cuti: cuti,
                                     showActions: false,
-                                    onTap: () {
-                                      Navigator.push(
+                                    onTap: () async {
+                                      final result = await Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => BlocProvider.value(
@@ -754,6 +774,11 @@ class _AjuanSayaTabContentState extends State<_AjuanSayaTabContent> {
                                           ),
                                         ),
                                       );
+                                      
+                                      // Reload data if cuti was edited or deleted
+                                      if (result == true) {
+                                        widget.cutiBloc.add(GetDaftarCutiSayaEvent(widget.userId));
+                                      }
                                     },
                                   ),
                                 );
@@ -777,8 +802,8 @@ class _AjuanSayaTabContentState extends State<_AjuanSayaTabContent> {
                               text: 'Buat Ajuan Cuti',
                               fullWidth: true,
                               size: UIButtonSize.large,
-                              onPressed: () {
-                                Navigator.push(
+                              onPressed: () async {
+                                final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => BlocProvider.value(
@@ -790,6 +815,11 @@ class _AjuanSayaTabContentState extends State<_AjuanSayaTabContent> {
                                     ),
                                   ),
                                 );
+                                
+                                // Reload data if ajuan was created
+                                if (result == true) {
+                                  widget.cutiBloc.add(GetDaftarCutiSayaEvent(widget.userId));
+                                }
                               },
                             ),
                           ),
@@ -935,18 +965,21 @@ class _AjuanAnggotaTabContentState extends State<_AjuanAnggotaTabContent> {
   Widget build(BuildContext context) {
     return BlocListener<CutiBloc, CutiState>(
       bloc: widget.cutiBloc,
+      listenWhen: (previous, current) {
+        // Always listen when DaftarCutiAnggotaLoaded state is emitted
+        return current is DaftarCutiAnggotaLoaded;
+      },
       listener: (context, state) {
         if (state is DaftarCutiAnggotaLoaded) {
-          if (_allCuti != state.daftarCuti) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _allCuti = state.daftarCuti;
-                });
-                _applyFilters();
-              }
-            });
-          }
+          // Always update when new data arrives
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _allCuti = List.from(state.daftarCuti); // Create new list to force update
+              });
+              _applyFilters();
+            }
+          });
         }
       },
       child: BlocBuilder<CutiBloc, CutiState>(
@@ -1016,9 +1049,16 @@ class _AjuanAnggotaTabContentState extends State<_AjuanAnggotaTabContent> {
                       if (sort != null) _selectedSort = sort;
                     });
                     // Apply API filters
+                    // Untuk Pengawas, jika status null, default ke 'pending'
+                    final parentState = context.findAncestorStateOfType<_CutiPageState>();
+                    final currentUserRole = parentState?._currentUserRole ?? UserRole.anggota;
+                    final statusFilter = (currentUserRole == UserRole.pengawas || currentUserRole == UserRole.admin) && _selectedStatus == null
+                        ? 'pending'
+                        : _selectedStatus;
+                    
                     widget.cutiBloc.add(
                       GetDaftarCutiAnggotaEvent(
-                        status: _selectedStatus,
+                        status: statusFilter,
                         tipeCuti: _selectedTipeCuti,
                         tanggalMulai: _tanggalMulai,
                         tanggalSelesai: _tanggalSelesai,
@@ -1087,6 +1127,21 @@ class _AjuanAnggotaTabContentState extends State<_AjuanAnggotaTabContent> {
     );
   }
 
+  /// Helper function untuk mendapatkan urutan status
+  /// Urutan: pending (0), approved (1), rejected (2), cancelled (3)
+  int _getStatusOrder(CutiStatus status) {
+    switch (status) {
+      case CutiStatus.pending:
+        return 0;
+      case CutiStatus.approved:
+        return 1;
+      case CutiStatus.rejected:
+        return 2;
+      case CutiStatus.cancelled:
+        return 3;
+    }
+  }
+
   void _applyFilters() {
     List<CutiEntity> filtered = List.from(_allCuti);
 
@@ -1101,11 +1156,28 @@ class _AjuanAnggotaTabContentState extends State<_AjuanAnggotaTabContent> {
       }).toList();
     }
 
-    // Sort
-    if (_selectedSort == 'terbaru') {
-      filtered.sort((a, b) => b.tanggalPengajuan.compareTo(a.tanggalPengajuan));
-    } else if (_selectedSort == 'terlama') {
-      filtered.sort((a, b) => a.tanggalPengajuan.compareTo(b.tanggalPengajuan));
+    // Sort untuk PJO/Deputy: Status ASC (pending, approved, rejected) kemudian Tanggal DESC
+    // Get current user role from parent
+    final parentState = context.findAncestorStateOfType<_CutiPageState>();
+    final currentUserRole = parentState?._currentUserRole ?? UserRole.anggota;
+    
+    if (currentUserRole == UserRole.pjo || currentUserRole == UserRole.deputy) {
+      // Sort by status ASC, then by tanggal DESC
+      filtered.sort((a, b) {
+        final statusCompare = _getStatusOrder(a.status).compareTo(_getStatusOrder(b.status));
+        if (statusCompare != 0) {
+          return statusCompare; // Status ASC
+        }
+        // Jika status sama, sort by tanggal DESC (terbaru dulu)
+        return b.tanggalPengajuan.compareTo(a.tanggalPengajuan);
+      });
+    } else {
+      // Sort biasa untuk role lain
+      if (_selectedSort == 'terbaru') {
+        filtered.sort((a, b) => b.tanggalPengajuan.compareTo(a.tanggalPengajuan));
+      } else if (_selectedSort == 'terlama') {
+        filtered.sort((a, b) => a.tanggalPengajuan.compareTo(b.tanggalPengajuan));
+      }
     }
 
     setState(() {
@@ -1152,7 +1224,15 @@ class _AjuanAnggotaTabContentState extends State<_AjuanAnggotaTabContent> {
               );
               
               if (result == true) {
-                widget.cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+                // Reload dengan filter yang sama
+                // Untuk Pengawas, tetap gunakan filter status pending
+                final parentState = context.findAncestorStateOfType<_CutiPageState>();
+                final currentUserRole = parentState?._currentUserRole ?? UserRole.anggota;
+                if (currentUserRole == UserRole.pengawas || currentUserRole == UserRole.admin) {
+                  widget.cutiBloc.add(const GetDaftarCutiAnggotaEvent(status: 'pending'));
+                } else {
+                  widget.cutiBloc.add(const GetDaftarCutiAnggotaEvent());
+                }
               }
             },
           ),
@@ -1183,23 +1263,33 @@ class _RekapAjuanCutiTabContentState extends State<_RekapAjuanCutiTabContent> {
   DateTime? _tanggalMulai;
   DateTime? _tanggalSelesai;
   String? _selectedSort = 'terbaru';
+  
+  @override
+  void initState() {
+    super.initState();
+    // Default filter untuk Rekap: hanya tampilkan approved dan rejected
+    // Tidak set _selectedStatus karena kita akan filter di _applyFilters
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<CutiBloc, CutiState>(
       bloc: widget.cutiBloc,
+      listenWhen: (previous, current) {
+        // Always listen when RekapCutiLoaded state is emitted
+        return current is RekapCutiLoaded;
+      },
       listener: (context, state) {
         if (state is RekapCutiLoaded) {
-          if (_allCuti != state.rekapCuti) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _allCuti = state.rekapCuti;
-                });
-                _applyFilters();
-              }
-            });
-          }
+          // Always update when new data arrives
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _allCuti = List.from(state.rekapCuti); // Create new list to force update
+              });
+              _applyFilters();
+            }
+          });
         }
       },
       child: BlocBuilder<CutiBloc, CutiState>(
@@ -1343,6 +1433,32 @@ class _RekapAjuanCutiTabContentState extends State<_RekapAjuanCutiTabContent> {
   void _applyFilters() {
     List<CutiEntity> filtered = List.from(_allCuti);
 
+    // Default filter untuk Rekap: hanya tampilkan approved dan rejected
+    // Kecuali jika user memilih status filter lain
+    if (_selectedStatus == null) {
+      // Default: hanya approved dan rejected
+      filtered = filtered.where((cuti) {
+        return cuti.status == CutiStatus.approved || 
+               cuti.status == CutiStatus.rejected;
+      }).toList();
+    } else {
+      // Jika user memilih status filter, gunakan filter tersebut
+      filtered = filtered.where((cuti) {
+        switch (_selectedStatus) {
+          case 'pending':
+            return cuti.status == CutiStatus.pending;
+          case 'approved':
+            return cuti.status == CutiStatus.approved;
+          case 'rejected':
+            return cuti.status == CutiStatus.rejected;
+          case 'cancelled':
+            return cuti.status == CutiStatus.cancelled;
+          default:
+            return true;
+        }
+      }).toList();
+    }
+
     // Search filter
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((cuti) {
@@ -1351,6 +1467,43 @@ class _RekapAjuanCutiTabContentState extends State<_RekapAjuanCutiTabContent> {
             cuti.nama.toLowerCase().contains(query) ||
             cuti.alasan.toLowerCase().contains(query) ||
             cuti.tipeCutiDisplayName.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // Tipe Cuti filter
+    if (_selectedTipeCuti != null) {
+      filtered = filtered.where((cuti) {
+        switch (_selectedTipeCuti) {
+          case 'tahunan':
+            return cuti.tipeCuti == CutiType.tahunan;
+          case 'sakit':
+            return cuti.tipeCuti == CutiType.sakit;
+          case 'melahirkan':
+            return cuti.tipeCuti == CutiType.melahirkan;
+          case 'menikah':
+            return cuti.tipeCuti == CutiType.menikah;
+          case 'keluargaMeninggal':
+            return cuti.tipeCuti == CutiType.keluargaMeninggal;
+          case 'lainnya':
+            return cuti.tipeCuti == CutiType.lainnya;
+          default:
+            return true;
+        }
+      }).toList();
+    }
+
+    // Date range filter
+    if (_tanggalMulai != null) {
+      filtered = filtered.where((cuti) {
+        return cuti.tanggalMulai.isAfter(_tanggalMulai!) ||
+            cuti.tanggalMulai.isAtSameMomentAs(_tanggalMulai!);
+      }).toList();
+    }
+
+    if (_tanggalSelesai != null) {
+      filtered = filtered.where((cuti) {
+        return cuti.tanggalSelesai.isBefore(_tanggalSelesai!) ||
+            cuti.tanggalSelesai.isAtSameMomentAs(_tanggalSelesai!);
       }).toList();
     }
 
@@ -1436,18 +1589,21 @@ class _AjuanCutiAnggotaTabContentState extends State<_AjuanCutiAnggotaTabContent
   Widget build(BuildContext context) {
     return BlocListener<CutiBloc, CutiState>(
       bloc: widget.cutiBloc,
+      listenWhen: (previous, current) {
+        // Always listen when DaftarCutiSayaLoaded state is emitted
+        return current is DaftarCutiSayaLoaded;
+      },
       listener: (context, state) {
         if (state is DaftarCutiSayaLoaded) {
-          if (_allCuti != state.daftarCuti) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _allCuti = state.daftarCuti;
-                });
-                _applyFilters();
-              }
-            });
-          }
+          // Always update when new data arrives
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _allCuti = List.from(state.daftarCuti); // Create new list to force update
+              });
+              _applyFilters();
+            }
+          });
         }
       },
       child: BlocBuilder<CutiBloc, CutiState>(
@@ -1692,6 +1848,7 @@ class _AjuanCutiAnggotaTabContentState extends State<_AjuanCutiAnggotaTabContent
                 ),
               );
               
+              // Reload data if cuti was edited or deleted
               if (result == true) {
                 widget.cutiBloc.add(GetDaftarCutiSayaEvent(widget.userId));
               }

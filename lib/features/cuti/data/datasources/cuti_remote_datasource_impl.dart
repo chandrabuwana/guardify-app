@@ -7,6 +7,7 @@ import '../models/cuti_kuota_model.dart';
 import '../models/leave_request_response_model.dart';
 import '../models/leave_request_filter_model.dart';
 import '../models/create_leave_request_model.dart';
+import '../models/edit_leave_request_model.dart';
 import '../models/leave_request_type_model.dart';
 import 'cuti_remote_datasource.dart';
 import '../../domain/entities/cuti_entity.dart';
@@ -484,6 +485,98 @@ class CutiRemoteDataSourceImpl implements CutiRemoteDataSource {
     } catch (e) {
       print('❌ Error fetching leave request types: $e');
       throw Exception('Failed to get leave request types: $e');
+    }
+  }
+
+  @override
+  Future<CutiModel> editCuti({
+    required String cutiId,
+    required DateTime startDate,
+    required DateTime endDate,
+    required int idLeaveRequestType,
+    required String notes,
+    required String userId,
+    required String createBy,
+    required DateTime createDate,
+    String approveBy = '-',
+    DateTime? approveDate,
+    String notesApproval = '',
+    String status = 'WAITING_APPROVAL',
+  }) async {
+    try {
+      print('📝 Editing leave request ID: $cutiId');
+
+      // Build request body sesuai dengan API spec
+      final requestBody = EditLeaveRequestModel.create(
+        startDate: startDate,
+        endDate: endDate,
+        idLeaveRequestType: idLeaveRequestType,
+        notes: notes,
+        userId: userId,
+        createBy: createBy,
+        createDate: createDate,
+        approveBy: approveBy,
+        approveDate: approveDate,
+        notesApproval: notesApproval,
+        status: status,
+      );
+
+      print('📤 Request body: ${requestBody.toJson()}');
+
+      // Call PUT endpoint untuk edit leave request
+      final response = await networkManager.put(
+        '/LeaveRequest/edit/$cutiId',
+        data: requestBody.toJson(),
+      );
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response data: ${response.data}');
+
+      // Parse response
+      final code = response.data['Code'] as int?;
+      final succeeded = response.data['Succeeded'] as bool?;
+      final message = response.data['Message'] as String?;
+
+      if (succeeded != true || code != 200) {
+        throw Exception(message ?? 'Failed to edit leave request');
+      }
+
+      print('✅ Leave request edited successfully');
+
+      // Reload detail cuti untuk mendapatkan data terbaru
+      return await getDetailCuti(cutiId);
+    } catch (e) {
+      print('❌ Error editing leave request: $e');
+      throw Exception('Failed to edit leave request: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteCuti(String cutiId) async {
+    try {
+      print('🗑️ Deleting leave request ID: $cutiId');
+
+      // Call DELETE endpoint untuk delete leave request
+      final response = await networkManager.delete(
+        '/LeaveRequest/delete/$cutiId',
+      );
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response data: ${response.data}');
+
+      // Parse response
+      final code = response.data['Code'] as int?;
+      final succeeded = response.data['Succeeded'] as bool?;
+      final message = response.data['Message'] as String?;
+
+      if (succeeded != true || code != 200) {
+        throw Exception(message ?? 'Failed to delete leave request');
+      }
+
+      print('✅ Leave request deleted successfully');
+    } catch (e) {
+      print('❌ Error deleting leave request: $e');
+      throw Exception('Failed to delete leave request: $e');
     }
   }
 }
