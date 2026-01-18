@@ -62,7 +62,7 @@ class PanicButtonState extends Equatable {
     this.historyFilterStatuses = const [],
     this.historyFilterCreateDate,
     this.historySortField = 'createDate',
-    this.historySortType = 0,
+    this.historySortType = 1,
     this.detailItem,
     this.isLoadingDetail = false,
     this.detailErrorMessage,

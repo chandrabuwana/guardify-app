@@ -302,7 +302,7 @@ class _PanicButtonHistoryPageState extends State<PanicButtonHistoryPage> {
                                 selectedStatuses.clear();
                                 selectedCreateDate = null;
                                 sortField = 'createDate';
-                                sortType = 0;
+                                sortType = 1;
                               });
                             },
                             style: OutlinedButton.styleFrom(

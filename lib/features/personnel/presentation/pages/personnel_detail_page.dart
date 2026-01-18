@@ -7,6 +7,7 @@ import '../bloc/personnel_bloc.dart';
 import '../bloc/personnel_event.dart';
 import '../bloc/personnel_state.dart';
 import '../../domain/entities/personnel.dart';
+import 'personnel_document_page.dart';
 
 class PersonnelDetailPage extends StatefulWidget {
   final String personnelId;
@@ -18,14 +19,6 @@ class PersonnelDetailPage extends StatefulWidget {
 }
 
 class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
-  final TextEditingController _feedbackController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-
-  @override
-  void dispose() {
-    _feedbackController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,9 +53,6 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
 
           // Listen for action success
           if (state is PersonnelActionSuccess) {
-            // Clear feedback controller
-            _feedbackController.clear();
-
             // Show success message
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -238,219 +228,52 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
             ),
           ),
 
-          // Documents Section (if available)
-          if (_hasDocuments(personnel)) ...[
-            16.verticalSpace,
-            Container(
+          16.verticalSpace,
+
+          // Button to navigate to document page
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            child: SizedBox(
               width: double.infinity,
-              color: Colors.white,
-              padding: EdgeInsets.all(24.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (personnel.ktpUrl != null)
-                    _buildDocumentRow('KTP', personnel.ktpUrl!),
-                  if (personnel.ktaUrl != null)
-                    _buildDocumentRow('KTA', personnel.ktaUrl!),
-                  if (personnel.fotoUrl != null)
-                    _buildDocumentRow('Foto', personnel.fotoUrl!),
-                  if (personnel.p3tdK3lhUrl != null)
-                    _buildDocumentRow('P3TD K3LH', personnel.p3tdK3lhUrl!),
-                  if (personnel.p3tdSecurityUrl != null)
-                    _buildDocumentRow(
-                        'P3TD Security', personnel.p3tdSecurityUrl!),
-                  if (personnel.pernyataanTidakMerokokUrl != null)
-                    _buildDocumentRow(
-                      'Pernyataan Tidak Merokok',
-                      personnel.pernyataanTidakMerokokUrl!,
+              height: 52.h,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PersonnelDocumentPage(
+                        personnel: personnel,
+                      ),
                     ),
-                ],
-              ),
-            ),
-          ],
-
-          24.verticalSpace,
-
-          // Feedback Form for Pending Status
-          if (personnel.status == 'Pending')
-            Container(
-              width: double.infinity,
-              color: Colors.white,
-              padding: EdgeInsets.all(24.w),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // Icon(Icons.folder_open, size: 20.w),
+                    // SizedBox(width: 8.w),
                     Text(
-                      'Umpan Balik',
+                      'Selanjutnya',
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w600,
-                        color: neutral90,
                       ),
-                    ),
-                    16.verticalSpace,
-                    TextFormField(
-                      controller: _feedbackController,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        hintText: 'Tulis umpan balik di sini...',
-                        hintStyle: TextStyle(
-                          fontSize: 14.sp,
-                          color: neutral50,
-                        ),
-                        filled: true,
-                        fillColor: neutral10,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: EdgeInsets.all(16.w),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Umpan balik wajib diisi';
-                        }
-                        return null;
-                      },
-                    ),
-                    24.verticalSpace,
-                    Row(
-                      children: [
-                        // Revisi Button
-                        Expanded(
-                          child: SizedBox(
-                            height: 52.h,
-                            child: OutlinedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  _showReviseConfirmation(
-                                      context, personnel.id);
-                                }
-                              },
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: neutral70,
-                                side: BorderSide(color: neutral50),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                              ),
-                              child: Text(
-                                'Revisi',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        16.horizontalSpace,
-                        // Setujui Button
-                        Expanded(
-                          child: SizedBox(
-                            height: 52.h,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  _showApproveConfirmation(
-                                      context, personnel.id);
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                              ),
-                              child: Text(
-                                'Setujui',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
             ),
+          ),
 
           24.verticalSpace,
-        ],
-      ),
-    );
-  }
-
-  void _showApproveConfirmation(BuildContext context, String personnelId) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Konfirmasi Persetujuan'),
-        content: const Text('Apakah Anda yakin ingin menyetujui personil ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              context.read<PersonnelBloc>().add(
-                    ApprovePersonnelEvent(
-                      personnelId,
-                      _feedbackController.text.trim(),
-                    ),
-                  );
-              _feedbackController.clear();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Setujui'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showReviseConfirmation(BuildContext context, String personnelId) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Konfirmasi Revisi'),
-        content: const Text(
-            'Apakah Anda yakin ingin meminta revisi untuk personil ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              context.read<PersonnelBloc>().add(
-                    RevisePersonnelEvent(
-                      personnelId,
-                      _feedbackController.text.trim(),
-                    ),
-                  );
-              _feedbackController.clear();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: neutral70,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Revisi'),
-          ),
         ],
       ),
     );
@@ -487,55 +310,6 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
         ],
       ),
     );
-  }
-
-  Widget _buildDocumentRow(String label, String documentName) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 16.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Label
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w400,
-              color: neutral70,
-            ),
-          ),
-          SizedBox(height: 4.h),
-          // URL - Full width with wrap support
-          InkWell(
-            onTap: () {
-              // TODO: Open document
-            },
-            child: Text(
-              documentName,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: primaryColor,
-                decoration: TextDecoration.underline,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  bool _hasDocuments(Personnel personnel) {
-    return personnel.ktpUrl != null ||
-        personnel.ktaUrl != null ||
-        personnel.fotoUrl != null ||
-        personnel.p3tdK3lhUrl != null ||
-        personnel.p3tdSecurityUrl != null ||
-        personnel.pernyataanTidakMerokokUrl != null;
   }
 
   Color _getStatusColor(String status) {
