@@ -16,10 +16,12 @@ import 'attendance_rekap_edit_screen.dart';
 
 class AttendanceRekapDetailScreen extends StatelessWidget {
   final String idAttendance;
+  final bool isAttendanceDetail; // true for Detail Kehadiran, false for Detail Laporan Kegiatan
 
   const AttendanceRekapDetailScreen({
     super.key,
     required this.idAttendance,
+    this.isAttendanceDetail = false,
   });
 
   @override
@@ -27,15 +29,22 @@ class AttendanceRekapDetailScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => getIt<AttendanceRekapDetailBloc>()
         ..add(LoadAttendanceRekapDetailEvent(idAttendance)),
-      child: _AttendanceRekapDetailScreenContent(idAttendance: idAttendance),
+      child: _AttendanceRekapDetailScreenContent(
+        idAttendance: idAttendance,
+        isAttendanceDetail: isAttendanceDetail,
+      ),
     );
   }
 }
 
 class _AttendanceRekapDetailScreenContent extends StatefulWidget {
   final String idAttendance;
+  final bool isAttendanceDetail;
 
-  const _AttendanceRekapDetailScreenContent({required this.idAttendance});
+  const _AttendanceRekapDetailScreenContent({
+    required this.idAttendance,
+    this.isAttendanceDetail = false,
+  });
 
   @override
   State<_AttendanceRekapDetailScreenContent> createState() =>
@@ -44,6 +53,8 @@ class _AttendanceRekapDetailScreenContent extends StatefulWidget {
 
 class _AttendanceRekapDetailScreenContentState
     extends State<_AttendanceRekapDetailScreenContent> {
+
+  int _attendanceStepIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +70,7 @@ class _AttendanceRekapDetailScreenContentState
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
-            'Detail Laporan Kegiatan',
+            widget.isAttendanceDetail ? 'Detail Kehadiran' : 'Detail Laporan Kegiatan',
             style: TS.titleLarge.copyWith(color: Colors.white),
           ),
           centerTitle: true,
@@ -103,6 +114,11 @@ class _AttendanceRekapDetailScreenContentState
 
   Widget _buildDetailContent(
       BuildContext context, AttendanceRekapDetailEntity detail) {
+    final isAttendanceMode = widget.isAttendanceDetail;
+    final canGoNext =
+        (detail.checkIn != null || detail.checkOut != null) &&
+        detail.statusLaporan.toUpperCase() != 'CHECKIN';
+
     return SingleChildScrollView(
       child: Container(
         decoration: BoxDecoration(
@@ -145,8 +161,127 @@ class _AttendanceRekapDetailScreenContentState
                   // Lokasi Jaga
                   _buildInfoFieldInCard('Lokasi Jaga', detail.location ?? '-'),
 
-                  // Mulai Bekerja Section
-                  if (detail.checkIn != null) ...[
+                  // Detail Kehadiran: step 0 shows Mulai Bekerja, step 1 shows Selesai Bekerja (view-only)
+                  if (isAttendanceMode && _attendanceStepIndex == 0) ...[
+                    if (detail.checkIn != null) ...[
+                      16.verticalSpace,
+                      Text(
+                        'Mulai Bekerja',
+                        style: TS.titleMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: neutral90,
+                        ),
+                      ),
+                      8.verticalSpace,
+                      _buildInfoFieldInCard(
+                        'Jam Absensi',
+                        _formatTime(detail.checkIn!),
+                      ),
+                      16.verticalSpace,
+                      _buildImageCard(
+                        'Pakaian Personil',
+                        detail.photoPakaian?.url,
+                      ),
+                      if (detail.notes != null && detail.notes!.isNotEmpty) ...[
+                        16.verticalSpace,
+                        _buildTextAreaFieldInCard('Laporan Pengamanan', detail.notes!),
+                      ],
+                      16.verticalSpace,
+                      _buildImageCard(
+                        'Foto Pengamanan',
+                        detail.photoPengamanan?.url,
+                      ),
+                    ] else ...[
+                      16.verticalSpace,
+                      _buildInfoFieldInCard('Mulai Bekerja', '-'),
+                    ],
+                  ],
+
+                  if (isAttendanceMode && _attendanceStepIndex == 1) ...[
+                    16.verticalSpace,
+                    Text(
+                      'Selesai Bekerja',
+                      style: TS.titleMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: neutral90,
+                      ),
+                    ),
+                    8.verticalSpace,
+                    _buildImageCard(
+                      'Pakaian Personil',
+                      detail.photoCheckoutPakaian?.url,
+                    ),
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Lokasi Pengamanan',
+                      detail.location ?? '-',
+                    ),
+                    if (detail.patrol == 'Yes' && detail.route != null) ...[
+                      16.verticalSpace,
+                      _buildPatrolSectionInCard(detail.route!, detail.listCarryOver),
+                    ],
+                    if (detail.photoCheckout?.hasPhoto == true) ...[
+                      16.verticalSpace,
+                      _buildImageCard(
+                        'Bukti Penyelesaian Tugas Lanjutan',
+                        detail.photoCheckout?.url,
+                      ),
+                    ],
+                    if (detail.notes != null && detail.notes!.isNotEmpty) ...[
+                      16.verticalSpace,
+                      _buildTextAreaFieldInCard('Laporan Pengamanan', detail.notes!),
+                    ],
+                    if (detail.photoCheckoutPengamanan?.hasPhoto == true) ...[
+                      16.verticalSpace,
+                      _buildImageCard(
+                        'Foto Pengamanan',
+                        detail.photoCheckoutPengamanan?.url,
+                      ),
+                    ],
+                    if (detail.carryOver != null && detail.carryOver!.isNotEmpty) ...[
+                      16.verticalSpace,
+                      _buildTextAreaFieldInCard('Tugas Tertunda', detail.carryOver!),
+                    ],
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Jam Selesai Bekerja',
+                      detail.checkOut != null ? _formatTime(detail.checkOut!) : '-',
+                    ),
+                    16.verticalSpace,
+                    _buildInfoFieldInCard('Lembur', detail.isOvertime ? 'Ya' : 'Tidak'),
+                    if (detail.photoOvertime?.hasPhoto == true) ...[
+                      16.verticalSpace,
+                      _buildImageCard(
+                        'Bukti Lembur',
+                        detail.photoOvertime?.url,
+                      ),
+                    ],
+                    if (detail.statusKerja != null) ...[
+                      16.verticalSpace,
+                      _buildInfoFieldInCard(
+                        'Status Selesai Bekerja',
+                        detail.statusKerja!,
+                      ),
+                    ],
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Tanggal Verifikasi',
+                      detail.updateDate != null ? _formatDateTime(detail.updateDate!) : '-',
+                    ),
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Diverifikasi Oleh',
+                      detail.updateBy ?? '-',
+                    ),
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Umpan Balik',
+                      detail.feedback ?? '-',
+                    ),
+                  ],
+
+                  // Detail Laporan Kegiatan: show both sections as before
+                  if (!isAttendanceMode && detail.checkIn != null) ...[
                     16.verticalSpace,
                     Text(
                       'Mulai Bekerja',
@@ -176,13 +311,7 @@ class _AttendanceRekapDetailScreenContentState
                     ),
                   ],
 
-                  16.verticalSpace,
-
-                  // Tugas Lanjutan (Carry Over)
-                  _buildCarryOverFieldInCard(detail.listCarryOver),
-
-                  // Selesai Bekerja Section
-                  if (detail.checkOut != null) ...[
+                  if (!isAttendanceMode && detail.checkOut != null) ...[
                     16.verticalSpace,
                     Text(
                       'Selesai Bekerja',
@@ -266,6 +395,33 @@ class _AttendanceRekapDetailScreenContentState
                         detail.statusKerja!,
                       ),
                     ],
+
+                    // Tanggal Verifikasi
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Tanggal Verifikasi',
+                      detail.updateDate != null
+                          ? _formatDateTime(detail.updateDate!)
+                          : '-',
+                    ),
+
+                    // Diverifikasi Oleh
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Diverifikasi Oleh',
+                      detail.updateBy ?? '-',
+                    ),
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Umpan Balik',
+                      detail.feedback ?? '-',
+                    ),
+                  ],
+
+                  // Tugas Lanjutan (Carry Over) - Only show for Detail Laporan Kegiatan
+                  if (!widget.isAttendanceDetail) ...[
+                    16.verticalSpace,
+                    _buildCarryOverFieldInCard(detail.listCarryOver),
                   ],
                 ],
               ),
@@ -273,18 +429,51 @@ class _AttendanceRekapDetailScreenContentState
 
             32.verticalSpace,
 
-            // Next Button
-            Padding(
-              padding: REdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: UIButton(
-                text: 'Selanjutnya',
-                onPressed: () => _navigateToEdit(context),
-                variant: UIButtonVariant.primary,
-                size: UIButtonSize.large,
-                fullWidth: true,
-                suffixIcon: const Icon(Icons.arrow_forward, color: Colors.white),
+            // Action Button
+            if (isAttendanceMode) ...[
+              Padding(
+                padding: REdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: UIButton(
+                  text: _attendanceStepIndex == 0 ? 'Selanjutnya' : 'Kembali',
+                  onPressed: _attendanceStepIndex == 0
+                      ? (canGoNext
+                          ? () {
+                              setState(() {
+                                _attendanceStepIndex = 1;
+                              });
+                            }
+                          : null)
+                      : () {
+                          setState(() {
+                            _attendanceStepIndex = 0;
+                          });
+                        },
+                  variant: _attendanceStepIndex == 0 && !canGoNext
+                      ? UIButtonVariant.secondary
+                      : UIButtonVariant.primary,
+                  size: UIButtonSize.large,
+                  fullWidth: true,
+                  suffixIcon: _attendanceStepIndex == 0
+                      ? Icon(
+                          Icons.arrow_forward,
+                          color: canGoNext ? Colors.white : Colors.grey,
+                        )
+                      : const Icon(Icons.arrow_back, color: Colors.white),
+                ),
               ),
-            ),
+            ] else ...[
+              Padding(
+                padding: REdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: UIButton(
+                  text: 'Selanjutnya',
+                  onPressed: () => _navigateToEdit(context),
+                  variant: UIButtonVariant.primary,
+                  size: UIButtonSize.large,
+                  fullWidth: true,
+                  suffixIcon: const Icon(Icons.arrow_forward, color: Colors.white),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -300,6 +489,7 @@ class _AttendanceRekapDetailScreenContentState
           builder: (context) => AttendanceRekapEditScreen(
             idAttendance: widget.idAttendance,
             detail: currentState.detail,
+            isAttendanceDetail: widget.isAttendanceDetail,
           ),
         ),
       );
@@ -942,5 +1132,15 @@ class _AttendanceRekapDetailScreenContentState
         ),
       ),
     );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    try {
+      final formatter = DateFormat('dd-MM-yyyy HH:mm', 'id_ID');
+      return formatter.format(dateTime);
+    } catch (e) {
+      final formatter = DateFormat('dd-MM-yyyy HH:mm');
+      return formatter.format(dateTime);
+    }
   }
 }

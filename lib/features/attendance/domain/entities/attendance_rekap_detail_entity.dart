@@ -27,6 +27,9 @@ class AttendanceRekapDetailEntity {
   final PhotoInfo? photoCheckoutPengamanan;
   final PhotoInfo? photoCheckoutPakaian;
   final PhotoInfo? photoOvertime;
+  final DateTime? updateDate;
+  final String? updateBy;
+  final String? feedback;
 
   const AttendanceRekapDetailEntity({
     required this.idAttendance,
@@ -56,6 +59,9 @@ class AttendanceRekapDetailEntity {
     this.photoCheckoutPengamanan,
     this.photoCheckoutPakaian,
     this.photoOvertime,
+    this.updateDate,
+    this.updateBy,
+    this.feedback,
   });
 
   /// Check if detail can be opened (must have CheckIn or CheckOut)

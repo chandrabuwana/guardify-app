@@ -854,53 +854,6 @@ class _SelesaikanTugasDialogState extends State<_SelesaikanTugasDialog> {
         }
       } else {
         // Pick from gallery
-        // For Android 13+, use photos permission, for older versions use storage
-        if (Platform.isAndroid) {
-          // Try photos permission first (Android 13+)
-          var photosStatus = await Permission.photos.status;
-          if (photosStatus.isDenied) {
-            photosStatus = await Permission.photos.request();
-          }
-          
-          // If photos permission is not available, try storage (older Android)
-          if (photosStatus.isPermanentlyDenied || photosStatus.isDenied) {
-            var storageStatus = await Permission.storage.status;
-            if (storageStatus.isDenied) {
-              storageStatus = await Permission.storage.request();
-            }
-            
-            if (storageStatus.isPermanentlyDenied || storageStatus.isDenied) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Akses galeri ditolak. Silakan aktifkan di pengaturan aplikasi.'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-              return;
-            }
-          }
-        } else {
-          // For iOS, use photos permission
-          var photosStatus = await Permission.photos.status;
-          if (photosStatus.isDenied) {
-            photosStatus = await Permission.photos.request();
-          }
-          
-          if (photosStatus.isPermanentlyDenied || photosStatus.isDenied) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Akses galeri ditolak. Silakan aktifkan di pengaturan aplikasi.'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            return;
-          }
-        }
-
         final XFile? image = await picker.pickImage(
           source: ImageSource.gallery,
           imageQuality: 85,
