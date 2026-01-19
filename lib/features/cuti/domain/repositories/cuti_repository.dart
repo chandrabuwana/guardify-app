@@ -1,10 +1,10 @@
 import '../entities/cuti_entity.dart';
-import '../entities/cuti_kuota_entity.dart';
+import '../entities/cuti_kuota_item_entity.dart';
 import '../entities/leave_request_type_entity.dart';
 
 abstract class CutiRepository {
   /// Get kuota cuti untuk user tertentu
-  Future<CutiKuotaEntity> getCutiKuota(String userId);
+  Future<List<CutiKuotaItemEntity>> getCutiKuota(String userId);
 
   /// Get daftar cuti saya (user yang sedang login)
   Future<List<CutiEntity>> getDaftarCutiSaya(String userId);

@@ -4,6 +4,7 @@ import '../../../../core/security/security_manager.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../models/cuti_model.dart';
 import '../models/cuti_kuota_model.dart';
+import '../models/cuti_kuota_item_model.dart';
 import '../models/leave_request_response_model.dart';
 import '../models/leave_request_filter_model.dart';
 import '../models/create_leave_request_model.dart';
@@ -62,7 +63,7 @@ class CutiRemoteDataSourceImpl implements CutiRemoteDataSource {
   }
 
   @override
-  Future<CutiKuotaModel> getCutiKuota(String userId) async {
+  Future<List<CutiKuotaItemModel>> getCutiKuota(String userId) async {
     try {
       print('🔍 Fetching leave quota for user: $userId');
 
@@ -90,26 +91,20 @@ class CutiRemoteDataSourceImpl implements CutiRemoteDataSource {
       final code = response.data['Code'] as int?;
       final succeeded = response.data['Succeeded'] as bool?;
       final message = response.data['Message'] as String?;
-      final data = response.data['Data'] as Map<String, dynamic>?;
+      final list = response.data['List'] as List<dynamic>?;
 
-      if (succeeded != true || code != 200 || data == null) {
+      if (succeeded != true || code != 200 || list == null) {
         throw Exception(message ?? 'Failed to get kuota cuti');
       }
 
-      // Extract quota data
-      final quota = data['Quota'] as int? ?? 0;
-      final remaining = data['Remaining'] as int? ?? 0;
-      final used = quota - remaining;
+      // Convert list to CutiKuotaItemModel
+      final quotaList = list
+          .map((item) => CutiKuotaItemModel.fromJson(item as Map<String, dynamic>))
+          .toList();
 
-      print('✅ Quota loaded: Total=$quota, Used=$used, Remaining=$remaining');
+      print('✅ Quota loaded: ${quotaList.length} items');
 
-      // Convert to CutiKuotaModel
-      return CutiKuotaModel.fromApiResponse(
-        userId: userId,
-        quota: quota,
-        remaining: remaining,
-        year: currentYear,
-      );
+      return quotaList;
     } catch (e) {
       print('❌ Error fetching leave quota: $e');
       throw Exception('Failed to get kuota cuti: $e');

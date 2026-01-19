@@ -119,8 +119,8 @@ class ApiLogModel {
   }
 
   /// Truncate string panjang seperti base64 agar lebih mudah dibaca
-  /// Maksimal panjang: 100 karakter
-  static const int _maxStringLength = 100;
+  /// Maksimal panjang: 50 karakter (dikurangi untuk base64 yang sangat panjang)
+  static const int _maxStringLength = 50;
 
   String _truncateLongString(String value) {
     if (value.length <= _maxStringLength) {

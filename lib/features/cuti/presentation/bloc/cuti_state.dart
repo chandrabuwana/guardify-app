@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/cuti_entity.dart';
 import '../../domain/entities/cuti_kuota_entity.dart';
+import '../../domain/entities/cuti_kuota_item_entity.dart';
 import '../../domain/entities/leave_request_type_entity.dart';
 
 abstract class CutiState extends Equatable {
@@ -28,12 +29,12 @@ class CutiError extends CutiState {
 
 // Kuota Cuti Loaded State
 class CutiKuotaLoaded extends CutiState {
-  final CutiKuotaEntity kuota;
+  final List<CutiKuotaItemEntity> kuotaList;
 
-  const CutiKuotaLoaded(this.kuota);
+  const CutiKuotaLoaded(this.kuotaList);
 
   @override
-  List<Object> get props => [kuota];
+  List<Object> get props => [kuotaList];
 }
 
 // Daftar Cuti Saya Loaded State

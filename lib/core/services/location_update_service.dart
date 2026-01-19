@@ -24,7 +24,8 @@ class LocationUpdateService {
 
   /// Update lokasi user ke server
   /// Returns true jika berhasil, false jika gagal
-  Future<bool> updateLocation() async {
+  /// [skipCheckInVerification] jika true, akan skip verifikasi check-in (untuk dipanggil setelah check-in)
+  Future<bool> updateLocation({bool skipCheckInVerification = false}) async {
     try {
       print('📍 [LocationUpdateService] Starting location update...');
 
@@ -52,15 +53,32 @@ class LocationUpdateService {
         return false;
       }
 
-      // 5. Check if user has checked in
-      final attendanceStatusResult = await getAttendanceStatusUseCase(userId);
-      final hasCheckedIn = attendanceStatusResult.fold(
-        (failure) {
-          print('📍 [LocationUpdateService] Failed to get attendance status: ${failure.message}');
-          return false;
-        },
-        (result) => result.status == UserAttendanceStatus.checkedIn,
-      );
+      // 5. Check if user has checked in (skip if skipCheckInVerification is true)
+      bool hasCheckedIn = skipCheckInVerification;
+      
+      if (!skipCheckInVerification) {
+        // First, try to get attendance status from usecase
+        final attendanceStatusResult = await getAttendanceStatusUseCase(userId);
+        hasCheckedIn = attendanceStatusResult.fold(
+          (failure) {
+            print('📍 [LocationUpdateService] Failed to get attendance status: ${failure.message}');
+            return false;
+          },
+          (result) => result.status == UserAttendanceStatus.checkedIn,
+        );
+
+        // If usecase returns false, check if attendanceId exists in storage as fallback
+        // This handles the case where check-in just happened but backend hasn't updated yet
+        if (!hasCheckedIn) {
+          final attendanceId = await SecurityManager.readSecurely(AppConstants.attendanceIdKey);
+          if (attendanceId != null && attendanceId.isNotEmpty) {
+            print('📍 [LocationUpdateService] Found attendanceId in storage, assuming checked in');
+            hasCheckedIn = true;
+          }
+        }
+      } else {
+        print('📍 [LocationUpdateService] Skipping check-in verification (called after check-in)');
+      }
 
       if (!hasCheckedIn) {
         print('📍 [LocationUpdateService] User has not checked in, skipping update');
@@ -106,10 +124,16 @@ class LocationUpdateService {
         return true;
       } else {
         print('📍 [LocationUpdateService] Failed to update location: ${response.statusCode}');
+        print('📍 [LocationUpdateService] Response: ${response.data}');
         return false;
       }
     } catch (e) {
       print('📍 [LocationUpdateService] Error updating location: $e');
+      if (e is DioException) {
+        print('📍 [LocationUpdateService] DioException - Status: ${e.response?.statusCode}');
+        print('📍 [LocationUpdateService] DioException - Message: ${e.message}');
+        print('📍 [LocationUpdateService] DioException - Response: ${e.response?.data}');
+      }
       return false;
     }
   }

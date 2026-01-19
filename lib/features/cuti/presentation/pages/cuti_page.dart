@@ -14,6 +14,7 @@ import '../bloc/cuti_event.dart';
 import '../bloc/cuti_state.dart';
 import '../widgets/cuti_card.dart';
 import '../widgets/kuota_cuti_card.dart';
+import '../widgets/kuota_cuti_grid.dart';
 import '../widgets/search_filter_cuti_widget.dart';
 import 'form_ajuan_cuti_page.dart';
 import 'detail_cuti_page.dart';
@@ -334,26 +335,7 @@ class _CutiPageState extends State<CutiPage>
         if (state is CutiKuotaLoaded) {
           return SingleChildScrollView(
             padding: REdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                KuotaCutiCard(kuota: state.kuota),
-                24.verticalSpace,
-                Text(
-                  'Informasi Kuota Cuti',
-                  style: TS.titleMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                16.verticalSpace,
-                _buildInfoCard(
-                  'Total kuota cuti per tahun adalah 12 hari kerja. '
-                  'Kuota akan direset setiap awal tahun. '
-                  'Pastikan untuk menggunakan cuti dengan bijak.',
-                ),
-              ],
-            ),
+            child: KuotaCutiGrid(kuotaList: state.kuotaList),
           );
         }
 
