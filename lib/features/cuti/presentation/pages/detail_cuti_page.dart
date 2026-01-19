@@ -187,8 +187,6 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
             _buildInfoItem(
                 'Tanggal Selesai', formatter.format(cuti.tanggalSelesai)),
             _buildInfoItem('Jumlah Hari', '${cuti.jumlahHari} hari'),
-            _buildInfoItem(
-                'Tanggal Pengajuan', formatter.format(cuti.tanggalPengajuan)),
             if (cuti.tanggalDibuat != null)
               _buildInfoItem(
                   'Tanggal Dibuat', dateTimeFormatter.format(cuti.tanggalDibuat!)),
@@ -226,11 +224,29 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
             _buildActionButtons(cuti),
           ],
 
-          // Show Edit and Delete buttons for pending cuti (only for the user who created it)
-          if (cuti.status == CutiStatus.pending) ...[
-            32.verticalSpace,
-            _buildEditDeleteButtons(cuti),
-          ],
+          // Show Edit and Delete buttons for pending cuti (only for anggota/danton who created it)
+          // Pengawas, admin, PJO, dan Deputy tidak bisa edit/hapus cuti
+          FutureBuilder<String?>(
+            future: SecurityManager.readSecurely(AppConstants.userIdKey),
+            builder: (context, snapshot) {
+              final currentUserId = snapshot.data ?? '';
+              final isOwner = cuti.userId == currentUserId;
+              final canEditDelete = cuti.status == CutiStatus.pending &&
+                  isOwner &&
+                  (widget.currentUserRole == UserRole.anggota ||
+                   widget.currentUserRole == UserRole.danton);
+              
+              if (canEditDelete) {
+                return Column(
+                  children: [
+                    32.verticalSpace,
+                    _buildEditDeleteButtons(cuti),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ],
       ),
     );
