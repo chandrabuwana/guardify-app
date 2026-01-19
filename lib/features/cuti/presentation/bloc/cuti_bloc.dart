@@ -62,8 +62,8 @@ class CutiBloc extends Bloc<CutiEvent, CutiState> {
   ) async {
     try {
       emit(CutiLoading());
-      final kuota = await getCutiKuota(event.userId);
-      emit(CutiKuotaLoaded(kuota));
+      final kuotaList = await getCutiKuota(event.userId);
+      emit(CutiKuotaLoaded(kuotaList));
     } catch (e) {
       emit(CutiError('Gagal memuat kuota cuti: ${e.toString()}'));
     }

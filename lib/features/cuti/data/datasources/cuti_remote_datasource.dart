@@ -1,12 +1,12 @@
 import '../models/cuti_model.dart';
-import '../models/cuti_kuota_model.dart';
+import '../models/cuti_kuota_item_model.dart';
 import '../models/leave_request_type_model.dart';
 import '../../domain/entities/cuti_entity.dart';
 
 /// Abstract interface for Cuti remote data source
 abstract class CutiRemoteDataSource {
   /// Get kuota cuti for a user
-  Future<CutiKuotaModel> getCutiKuota(String userId);
+  Future<List<CutiKuotaItemModel>> getCutiKuota(String userId);
 
   /// Get list of leave requests for current user
   Future<List<CutiModel>> getDaftarCutiSaya(String userId);

@@ -236,13 +236,13 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       print('📦 Full Payload:');
       final payloadForLog = Map<String, dynamic>.from(apiBody);
       
-      // Truncate base64 strings for logging (show first 100 chars)
+      // Truncate base64 strings for logging (show first 50 chars)
       if (payloadForLog['PhotoAbsen'] is Map) {
         final photoAbsenMap = Map<String, dynamic>.from(payloadForLog['PhotoAbsen'] as Map);
         if (photoAbsenMap['Base64'] is String) {
           final base64 = photoAbsenMap['Base64'] as String;
-          photoAbsenMap['Base64'] = base64.length > 100 
-              ? '${base64.substring(0, 100)}... (truncated, total length: ${base64.length})'
+          photoAbsenMap['Base64'] = base64.length > 50 
+              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
               : base64;
         }
         payloadForLog['PhotoAbsen'] = photoAbsenMap;
@@ -252,8 +252,8 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         final photoPakaianMap = Map<String, dynamic>.from(payloadForLog['PhotoPakaian'] as Map);
         if (photoPakaianMap['Base64'] is String) {
           final base64 = photoPakaianMap['Base64'] as String;
-          photoPakaianMap['Base64'] = base64.length > 100 
-              ? '${base64.substring(0, 100)}... (truncated, total length: ${base64.length})'
+          photoPakaianMap['Base64'] = base64.length > 50 
+              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
               : base64;
         }
         payloadForLog['PhotoPakaian'] = photoPakaianMap;
@@ -263,8 +263,8 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         final photoPengamananMap = Map<String, dynamic>.from(payloadForLog['PhotoPengamanan'] as Map);
         if (photoPengamananMap['Base64'] is String) {
           final base64 = photoPengamananMap['Base64'] as String;
-          photoPengamananMap['Base64'] = base64.length > 100 
-              ? '${base64.substring(0, 100)}... (truncated, total length: ${base64.length})'
+          photoPengamananMap['Base64'] = base64.length > 50 
+              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
               : base64;
         }
         payloadForLog['PhotoPengamanan'] = photoPengamananMap;
@@ -273,10 +273,6 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       // Print formatted JSON
       final jsonEncoder = JsonEncoder.withIndent('  ');
       print(jsonEncoder.convert(payloadForLog));
-      
-      // Also print full payload with actual base64 (for debugging)
-      print('📦 Full Payload (with actual base64 - for debugging):');
-      print(jsonEncoder.convert(apiBody));
       
       print('═══════════════════════════════════════════════════════════');
       // ========== LOGGING END ==========
@@ -488,13 +484,13 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       print('📦 Full Payload:');
       final payloadForLog = Map<String, dynamic>.from(apiBody);
       
-      // Truncate base64 strings for logging (show first 100 chars)
+      // Truncate base64 strings for logging (show first 50 chars)
       if (payloadForLog['PhotoAbsen'] is Map) {
         final photoAbsenMap = Map<String, dynamic>.from(payloadForLog['PhotoAbsen'] as Map);
         if (photoAbsenMap['Base64'] is String) {
           final base64 = photoAbsenMap['Base64'] as String;
-          photoAbsenMap['Base64'] = base64.length > 100 
-              ? '${base64.substring(0, 100)}... (truncated, total length: ${base64.length})'
+          photoAbsenMap['Base64'] = base64.length > 50 
+              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
               : base64;
         }
         payloadForLog['PhotoAbsen'] = photoAbsenMap;
@@ -504,8 +500,8 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         final photoPengamananMap = Map<String, dynamic>.from(payloadForLog['PhotoPengamanan'] as Map);
         if (photoPengamananMap['Base64'] is String) {
           final base64 = photoPengamananMap['Base64'] as String;
-          photoPengamananMap['Base64'] = base64.length > 100 
-              ? '${base64.substring(0, 100)}... (truncated, total length: ${base64.length})'
+          photoPengamananMap['Base64'] = base64.length > 50 
+              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
               : base64;
         }
         payloadForLog['PhotoPengamanan'] = photoPengamananMap;
@@ -515,8 +511,8 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
         final photoLemburMap = Map<String, dynamic>.from(payloadForLog['PhotoLembur'] as Map);
         if (photoLemburMap['Base64'] is String) {
           final base64 = photoLemburMap['Base64'] as String;
-          photoLemburMap['Base64'] = base64.length > 100 
-              ? '${base64.substring(0, 100)}... (truncated, total length: ${base64.length})'
+          photoLemburMap['Base64'] = base64.length > 50 
+              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
               : base64;
         }
         payloadForLog['PhotoLembur'] = photoLemburMap;
@@ -525,10 +521,6 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       // Print formatted JSON
       final jsonEncoder = JsonEncoder.withIndent('  ');
       print(jsonEncoder.convert(payloadForLog));
-      
-      // Also print full payload with actual base64 (for debugging)
-      print('📦 Full Payload (with actual base64 - for debugging):');
-      print(jsonEncoder.convert(apiBody));
       
       print('═══════════════════════════════════════════════════════════');
       // ========== LOGGING END ==========

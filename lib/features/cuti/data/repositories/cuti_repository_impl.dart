@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
 import '../../domain/entities/cuti_entity.dart';
-import '../../domain/entities/cuti_kuota_entity.dart';
+import '../../domain/entities/cuti_kuota_item_entity.dart';
 import '../../domain/entities/leave_request_type_entity.dart';
 import '../../domain/repositories/cuti_repository.dart';
 import '../datasources/cuti_remote_datasource.dart';
@@ -14,10 +14,10 @@ class CutiRepositoryImpl implements CutiRepository {
   });
 
   @override
-  Future<CutiKuotaEntity> getCutiKuota(String userId) async {
+  Future<List<CutiKuotaItemEntity>> getCutiKuota(String userId) async {
     try {
       final result = await remoteDataSource.getCutiKuota(userId);
-      return result.toEntity();
+      return result.map((model) => model.toEntity()).toList();
     } catch (e) {
       throw Exception('Failed to get kuota cuti: $e');
     }

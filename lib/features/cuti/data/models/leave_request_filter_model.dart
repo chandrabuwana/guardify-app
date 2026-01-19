@@ -33,7 +33,7 @@ class LeaveRequestFilterModel {
   factory LeaveRequestFilterModel.byUserId(String userId) {
     return LeaveRequestFilterModel(
       filter: [FilterFieldModel(field: 'userid', search: userId)],
-      sort: const SortModel(field: '', type: 0),
+      sort: const SortModel(field: 'Mobile', type: 1),
       start: 0,
       length: 0,
     );
@@ -43,7 +43,7 @@ class LeaveRequestFilterModel {
   factory LeaveRequestFilterModel.byBawahan(String atasanUserId) {
     return LeaveRequestFilterModel(
       filter: [FilterFieldModel(field: 'bawahan', search: atasanUserId)],
-      sort: const SortModel(field: '', type: 0),
+      sort: const SortModel(field: 'Mobile', type: 1),
       start: 0,
       length: 0,
     );
@@ -53,7 +53,7 @@ class LeaveRequestFilterModel {
   factory LeaveRequestFilterModel.withoutFilter() {
     return LeaveRequestFilterModel(
       filter: null, // Tidak ada filter, ambil semua data
-      sort: const SortModel(field: '', type: 0),
+      sort: const SortModel(field: 'Mobile', type: 1),
       start: 0,
       length: 0,
     );

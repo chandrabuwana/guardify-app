@@ -331,7 +331,7 @@ class _CheckInPageState extends State<CheckInPage> {
         body: BlocConsumer<AttendanceBloc, AttendanceState>(
           listener: (context, state) {
             if (state is AttendanceCheckedIn) {
-              // Simpan attendanceId ke storage setelah check-in berhasil
+              // Simpan attendanceId ke storage jika ada (meskipun biasanya kosong dari backend)
               if (state.attendance.id.isNotEmpty) {
                 SecurityManager.storeSecurely(
                   AppConstants.attendanceIdKey,
@@ -339,13 +339,23 @@ class _CheckInPageState extends State<CheckInPage> {
                 ).then((_) {
                   print('✅ CheckIn - attendanceId saved to storage: ${state.attendance.id}');
                 });
+              } else {
+                // Simpan flag bahwa user sudah check-in (menggunakan timestamp sebagai identifier)
+                final checkInTimestamp = DateTime.now().toIso8601String();
+                SecurityManager.storeSecurely(
+                  AppConstants.attendanceIdKey,
+                  'checkin_$checkInTimestamp',
+                ).then((_) {
+                  print('✅ CheckIn - Check-in flag saved to storage (no attendanceId from backend)');
+                });
               }
               
-              // Update lokasi ke CurrentLocation/update setelah checkin berhasil
+              // Update lokasi ke CurrentLocation/update setelah check-in berhasil
+              // Skip verifikasi karena kita tahu user baru saja check-in
               try {
                 final locationUpdateService = getIt<LocationUpdateService>();
-                print('📍 [CheckIn] Updating location to CurrentLocation/update...');
-                locationUpdateService.updateLocation().then((success) {
+                print('📍 [CheckIn] Updating location to CurrentLocation/update (skip verification)...');
+                locationUpdateService.updateLocation(skipCheckInVerification: true).then((success) {
                   if (success) {
                     print('✅ [CheckIn] Location updated successfully to CurrentLocation/update');
                   } else {
