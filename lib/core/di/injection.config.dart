@@ -428,24 +428,24 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1007.AttendanceLocalDataSource>(() =>
         _i1007.AttendanceLocalDataSourceImpl(
             sharedPreferences: gh<_i460.SharedPreferences>()));
-    gh.factory<_i864.CreateIncidentReport>(
-        () => _i864.CreateIncidentReport(gh<_i97.IncidentRepository>()));
-    gh.factory<_i320.EditIncident>(
-        () => _i320.EditIncident(gh<_i97.IncidentRepository>()));
-    gh.factory<_i1070.GetIncidentDetail>(
-        () => _i1070.GetIncidentDetail(gh<_i97.IncidentRepository>()));
-    gh.factory<_i813.GetIncidentList>(
-        () => _i813.GetIncidentList(gh<_i97.IncidentRepository>()));
     gh.factory<_i645.GetIncidentLocations>(
         () => _i645.GetIncidentLocations(gh<_i97.IncidentRepository>()));
-    gh.factory<_i296.GetIncidentTypes>(
-        () => _i296.GetIncidentTypes(gh<_i97.IncidentRepository>()));
-    gh.factory<_i754.GetMyTasks>(
-        () => _i754.GetMyTasks(gh<_i97.IncidentRepository>()));
-    gh.factory<_i804.GetUserList>(
-        () => _i804.GetUserList(gh<_i97.IncidentRepository>()));
     gh.factory<_i350.UpdateIncidentStatus>(
         () => _i350.UpdateIncidentStatus(gh<_i97.IncidentRepository>()));
+    gh.factory<_i813.GetIncidentList>(
+        () => _i813.GetIncidentList(gh<_i97.IncidentRepository>()));
+    gh.factory<_i754.GetMyTasks>(
+        () => _i754.GetMyTasks(gh<_i97.IncidentRepository>()));
+    gh.factory<_i864.CreateIncidentReport>(
+        () => _i864.CreateIncidentReport(gh<_i97.IncidentRepository>()));
+    gh.factory<_i296.GetIncidentTypes>(
+        () => _i296.GetIncidentTypes(gh<_i97.IncidentRepository>()));
+    gh.factory<_i1070.GetIncidentDetail>(
+        () => _i1070.GetIncidentDetail(gh<_i97.IncidentRepository>()));
+    gh.factory<_i320.EditIncident>(
+        () => _i320.EditIncident(gh<_i97.IncidentRepository>()));
+    gh.factory<_i804.GetUserList>(
+        () => _i804.GetUserList(gh<_i97.IncidentRepository>()));
     gh.lazySingleton<_i144.AuthRepository>(
         () => injectionModule.authRepository(gh<_i650.AuthRemoteDataSource>()));
     gh.lazySingleton<_i551.LoginRepository>(() =>
@@ -474,18 +474,18 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i422.TestResultRepository>(() =>
         _i717.TestResultRepositoryImpl(
             remoteDataSource: gh<_i652.TestResultRemoteDataSource>()));
-    gh.factory<_i170.GetCurrentShift>(
-        () => _i170.GetCurrentShift(gh<_i752.ScheduleRepository>()));
-    gh.factory<_i547.GetCurrentTask>(
-        () => _i547.GetCurrentTask(gh<_i752.ScheduleRepository>()));
-    gh.factory<_i369.GetDailyAgenda>(
-        () => _i369.GetDailyAgenda(gh<_i752.ScheduleRepository>()));
     gh.factory<_i1034.GetMonthlySchedule>(
         () => _i1034.GetMonthlySchedule(gh<_i752.ScheduleRepository>()));
     gh.factory<_i807.GetScheduleDetail>(
         () => _i807.GetScheduleDetail(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i547.GetCurrentTask>(
+        () => _i547.GetCurrentTask(gh<_i752.ScheduleRepository>()));
     gh.factory<_i376.GetSchedulePengawas>(
         () => _i376.GetSchedulePengawas(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i369.GetDailyAgenda>(
+        () => _i369.GetDailyAgenda(gh<_i752.ScheduleRepository>()));
+    gh.factory<_i170.GetCurrentShift>(
+        () => _i170.GetCurrentShift(gh<_i752.ScheduleRepository>()));
     gh.factory<_i947.GetShiftDetail>(
         () => _i947.GetShiftDetail(gh<_i752.ScheduleRepository>()));
     gh.factory<_i408.GetShiftNow>(
@@ -500,14 +500,14 @@ extension GetItInjectableX on _i174.GetIt {
               remoteDataSource: gh<_i125.DocumentRemoteDataSource>(),
               localDataSource: gh<_i313.DocumentLocalDataSource>(),
             ));
-    gh.factory<_i272.GetLaporanDetail>(
-        () => _i272.GetLaporanDetail(gh<_i352.LaporanKegiatanRepository>()));
+    gh.factory<_i353.VerifLaporan>(
+        () => _i353.VerifLaporan(gh<_i352.LaporanKegiatanRepository>()));
     gh.factory<_i970.GetLaporanList>(
         () => _i970.GetLaporanList(gh<_i352.LaporanKegiatanRepository>()));
     gh.factory<_i189.UpdateStatusLaporan>(
         () => _i189.UpdateStatusLaporan(gh<_i352.LaporanKegiatanRepository>()));
-    gh.factory<_i353.VerifLaporan>(
-        () => _i353.VerifLaporan(gh<_i352.LaporanKegiatanRepository>()));
+    gh.factory<_i272.GetLaporanDetail>(
+        () => _i272.GetLaporanDetail(gh<_i352.LaporanKegiatanRepository>()));
     gh.factory<_i798.AttendanceRekapRepository>(() =>
         _i14.AttendanceRekapRepositoryImpl(
             remoteDataSource: gh<_i247.AttendanceRekapRemoteDataSource>()));
@@ -516,28 +516,28 @@ extension GetItInjectableX on _i174.GetIt {
           getVerificationItemsUseCase: gh<_i4.GetVerificationItemsUseCase>(),
           panicButtonRepository: gh<_i228.PanicButtonRepository>(),
         ));
-    gh.factory<_i341.BuatAjuanCuti>(
-        () => _i341.BuatAjuanCuti(gh<_i825.CutiRepository>()));
-    gh.factory<_i639.FilterCuti>(
-        () => _i639.FilterCuti(gh<_i825.CutiRepository>()));
-    gh.factory<_i1067.GetCutiKuota>(
-        () => _i1067.GetCutiKuota(gh<_i825.CutiRepository>()));
-    gh.factory<_i722.GetDaftarCutiAnggota>(
-        () => _i722.GetDaftarCutiAnggota(gh<_i825.CutiRepository>()));
     gh.factory<_i1023.GetDaftarCutiSaya>(
         () => _i1023.GetDaftarCutiSaya(gh<_i825.CutiRepository>()));
     gh.factory<_i505.GetDetailCuti>(
         () => _i505.GetDetailCuti(gh<_i825.CutiRepository>()));
-    gh.factory<_i479.GetLeaveRequestTypeList>(
-        () => _i479.GetLeaveRequestTypeList(gh<_i825.CutiRepository>()));
+    gh.factory<_i411.EditCuti>(
+        () => _i411.EditCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i420.DeleteCuti>(
+        () => _i420.DeleteCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i639.FilterCuti>(
+        () => _i639.FilterCuti(gh<_i825.CutiRepository>()));
     gh.factory<_i515.GetRekapCuti>(
         () => _i515.GetRekapCuti(gh<_i825.CutiRepository>()));
     gh.factory<_i688.UpdateStatusCuti>(
         () => _i688.UpdateStatusCuti(gh<_i825.CutiRepository>()));
-    gh.factory<_i420.DeleteCuti>(
-        () => _i420.DeleteCuti(gh<_i825.CutiRepository>()));
-    gh.factory<_i411.EditCuti>(
-        () => _i411.EditCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i479.GetLeaveRequestTypeList>(
+        () => _i479.GetLeaveRequestTypeList(gh<_i825.CutiRepository>()));
+    gh.factory<_i722.GetDaftarCutiAnggota>(
+        () => _i722.GetDaftarCutiAnggota(gh<_i825.CutiRepository>()));
+    gh.factory<_i341.BuatAjuanCuti>(
+        () => _i341.BuatAjuanCuti(gh<_i825.CutiRepository>()));
+    gh.factory<_i1067.GetCutiKuota>(
+        () => _i1067.GetCutiKuota(gh<_i825.CutiRepository>()));
     gh.lazySingleton<_i83.TugasLanjutanRepository>(
         () => _i949.TugasLanjutanRepositoryImpl(
               gh<_i176.TugasLanjutanRemoteDataSource>(),
@@ -557,36 +557,36 @@ extension GetItInjectableX on _i174.GetIt {
           getScheduleDetail: gh<_i807.GetScheduleDetail>(),
           getSchedulePengawas: gh<_i376.GetSchedulePengawas>(),
         ));
-    gh.factory<_i635.ApprovePersonnelUseCase>(
-        () => _i635.ApprovePersonnelUseCase(gh<_i809.PersonnelRepository>()));
-    gh.factory<_i917.GetPersonnelByStatusUseCase>(() =>
-        _i917.GetPersonnelByStatusUseCase(gh<_i809.PersonnelRepository>()));
     gh.factory<_i184.GetPersonnelDetailUseCase>(
         () => _i184.GetPersonnelDetailUseCase(gh<_i809.PersonnelRepository>()));
     gh.factory<_i136.RevisePersonnelUseCase>(
         () => _i136.RevisePersonnelUseCase(gh<_i809.PersonnelRepository>()));
+    gh.factory<_i917.GetPersonnelByStatusUseCase>(() =>
+        _i917.GetPersonnelByStatusUseCase(gh<_i809.PersonnelRepository>()));
+    gh.factory<_i635.ApprovePersonnelUseCase>(
+        () => _i635.ApprovePersonnelUseCase(gh<_i809.PersonnelRepository>()));
+    gh.factory<_i238.GetPatrolRoutesPaginated>(
+        () => _i238.GetPatrolRoutesPaginated(gh<_i824.PatrolRepository>()));
     gh.factory<_i198.AddPatrolLocation>(
         () => _i198.AddPatrolLocation(gh<_i824.PatrolRepository>()));
     gh.factory<_i820.GetPatrolProgress>(
         () => _i820.GetPatrolProgress(gh<_i824.PatrolRepository>()));
-    gh.factory<_i759.GetPatrolRoutes>(
-        () => _i759.GetPatrolRoutes(gh<_i824.PatrolRepository>()));
-    gh.factory<_i238.GetPatrolRoutesPaginated>(
-        () => _i238.GetPatrolRoutesPaginated(gh<_i824.PatrolRepository>()));
-    gh.factory<_i861.SubmitAttendance>(
-        () => _i861.SubmitAttendance(gh<_i824.PatrolRepository>()));
     gh.factory<_i9.VerifyLocation>(
         () => _i9.VerifyLocation(gh<_i824.PatrolRepository>()));
+    gh.factory<_i861.SubmitAttendance>(
+        () => _i861.SubmitAttendance(gh<_i824.PatrolRepository>()));
+    gh.factory<_i759.GetPatrolRoutes>(
+        () => _i759.GetPatrolRoutes(gh<_i824.PatrolRepository>()));
     gh.factory<_i551.LoginUseCase>(
         () => _i551.LoginUseCase(gh<_i551.LoginRepository>()));
-    gh.factory<_i179.DownloadDocumentUseCase>(
-        () => _i179.DownloadDocumentUseCase(gh<_i695.DocumentRepository>()));
+    gh.factory<_i1020.SearchDocumentsUseCase>(
+        () => _i1020.SearchDocumentsUseCase(gh<_i695.DocumentRepository>()));
     gh.factory<_i1037.FilterDocumentsUseCase>(
         () => _i1037.FilterDocumentsUseCase(gh<_i695.DocumentRepository>()));
     gh.factory<_i718.GetDocumentsUseCase>(
         () => _i718.GetDocumentsUseCase(gh<_i695.DocumentRepository>()));
-    gh.factory<_i1020.SearchDocumentsUseCase>(
-        () => _i1020.SearchDocumentsUseCase(gh<_i695.DocumentRepository>()));
+    gh.factory<_i179.DownloadDocumentUseCase>(
+        () => _i179.DownloadDocumentUseCase(gh<_i695.DocumentRepository>()));
     gh.factory<_i814.BMIRepository>(() => _i989.BMIRepositoryImpl(
           gh<_i826.BMILocalDataSource>(),
           gh<_i163.BmiRemoteDataSource>(),
@@ -611,14 +611,14 @@ extension GetItInjectableX on _i174.GetIt {
           addPatrolLocation: gh<_i198.AddPatrolLocation>(),
           patrolRepository: gh<_i824.PatrolRepository>(),
         ));
-    gh.factory<_i332.GetMemberTestsByPicUseCase>(() =>
-        _i332.GetMemberTestsByPicUseCase(gh<_i422.TestResultRepository>()));
     gh.factory<_i930.GetMemberTestResultsUseCase>(() =>
         _i930.GetMemberTestResultsUseCase(gh<_i422.TestResultRepository>()));
-    gh.factory<_i743.GetMyTestResultsUseCase>(
-        () => _i743.GetMyTestResultsUseCase(gh<_i422.TestResultRepository>()));
+    gh.factory<_i332.GetMemberTestsByPicUseCase>(() =>
+        _i332.GetMemberTestsByPicUseCase(gh<_i422.TestResultRepository>()));
     gh.factory<_i227.GetTestSummaryUseCase>(
         () => _i227.GetTestSummaryUseCase(gh<_i422.TestResultRepository>()));
+    gh.factory<_i743.GetMyTestResultsUseCase>(
+        () => _i743.GetMyTestResultsUseCase(gh<_i422.TestResultRepository>()));
     gh.lazySingleton<_i252.ProfileRepository>(() => _i422.ProfileRepositoryImpl(
           remoteDataSource: gh<_i220.ProfileRemoteDataSource>(),
           localDataSource: gh<_i895.ProfileLocalDataSource>(),
@@ -640,47 +640,47 @@ extension GetItInjectableX on _i174.GetIt {
           gh<_i547.GetCurrentTask>(),
           gh<_i408.GetShiftNow>(),
         ));
-    gh.factory<_i283.CalculateBMI>(
-        () => _i283.CalculateBMI(gh<_i814.BMIRepository>()));
-    gh.factory<_i817.GetBMIHistory>(
-        () => _i817.GetBMIHistory(gh<_i814.BMIRepository>()));
-    gh.factory<_i283.GetUserProfile>(
-        () => _i283.GetUserProfile(gh<_i814.BMIRepository>()));
     gh.factory<_i1059.GetUserProfilesPaginated>(
         () => _i1059.GetUserProfilesPaginated(gh<_i814.BMIRepository>()));
-    gh.factory<_i572.ManagePinnedProfiles>(
-        () => _i572.ManagePinnedProfiles(gh<_i814.BMIRepository>()));
+    gh.factory<_i283.GetUserProfile>(
+        () => _i283.GetUserProfile(gh<_i814.BMIRepository>()));
+    gh.factory<_i283.CalculateBMI>(
+        () => _i283.CalculateBMI(gh<_i814.BMIRepository>()));
     gh.factory<_i708.SearchUserProfiles>(
         () => _i708.SearchUserProfiles(gh<_i814.BMIRepository>()));
-    gh.factory<_i202.CheckAttendanceStatusUseCase>(() =>
-        _i202.CheckAttendanceStatusUseCase(gh<_i311.AttendanceRepository>()));
-    gh.factory<_i865.CheckInUseCase>(
-        () => _i865.CheckInUseCase(gh<_i311.AttendanceRepository>()));
-    gh.factory<_i968.CheckOutUseCase>(
-        () => _i968.CheckOutUseCase(gh<_i311.AttendanceRepository>()));
-    gh.factory<_i624.GetAttendanceHistoryUseCase>(() =>
-        _i624.GetAttendanceHistoryUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i817.GetBMIHistory>(
+        () => _i817.GetBMIHistory(gh<_i814.BMIRepository>()));
+    gh.factory<_i572.ManagePinnedProfiles>(
+        () => _i572.ManagePinnedProfiles(gh<_i814.BMIRepository>()));
     gh.factory<_i385.GetAttendanceStatusUseCase>(() =>
         _i385.GetAttendanceStatusUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i974.SubmitAttendanceUseCase>(
         () => _i974.SubmitAttendanceUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i624.GetAttendanceHistoryUseCase>(() =>
+        _i624.GetAttendanceHistoryUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i865.CheckInUseCase>(
+        () => _i865.CheckInUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i968.CheckOutUseCase>(
+        () => _i968.CheckOutUseCase(gh<_i311.AttendanceRepository>()));
+    gh.factory<_i202.CheckAttendanceStatusUseCase>(() =>
+        _i202.CheckAttendanceStatusUseCase(gh<_i311.AttendanceRepository>()));
     gh.factory<_i601.ValidateAttendanceUseCase>(() =>
         _i601.ValidateAttendanceUseCase(gh<_i311.AttendanceRepository>()));
-    gh.factory<_i81.GetProgressSummary>(
-        () => _i81.GetProgressSummary(gh<_i83.TugasLanjutanRepository>()));
-    gh.factory<_i237.GetTugasLanjutanDetail>(
-        () => _i237.GetTugasLanjutanDetail(gh<_i83.TugasLanjutanRepository>()));
-    gh.factory<_i778.GetTugasLanjutanList>(
-        () => _i778.GetTugasLanjutanList(gh<_i83.TugasLanjutanRepository>()));
     gh.factory<_i419.SelesaikanTugas>(
         () => _i419.SelesaikanTugas(gh<_i83.TugasLanjutanRepository>()));
-    gh.factory<_i833.GetAttendanceRekapDetailUseCase>(() =>
-        _i833.GetAttendanceRekapDetailUseCase(
+    gh.factory<_i237.GetTugasLanjutanDetail>(
+        () => _i237.GetTugasLanjutanDetail(gh<_i83.TugasLanjutanRepository>()));
+    gh.factory<_i81.GetProgressSummary>(
+        () => _i81.GetProgressSummary(gh<_i83.TugasLanjutanRepository>()));
+    gh.factory<_i778.GetTugasLanjutanList>(
+        () => _i778.GetTugasLanjutanList(gh<_i83.TugasLanjutanRepository>()));
+    gh.factory<_i27.UpdateAttendanceRekapUseCase>(() =>
+        _i27.UpdateAttendanceRekapUseCase(
             gh<_i798.AttendanceRekapRepository>()));
     gh.factory<_i687.GetAttendanceRekapUseCase>(() =>
         _i687.GetAttendanceRekapUseCase(gh<_i798.AttendanceRekapRepository>()));
-    gh.factory<_i27.UpdateAttendanceRekapUseCase>(() =>
-        _i27.UpdateAttendanceRekapUseCase(
+    gh.factory<_i833.GetAttendanceRekapDetailUseCase>(() =>
+        _i833.GetAttendanceRekapDetailUseCase(
             gh<_i798.AttendanceRekapRepository>()));
     gh.factory<_i849.PatrolAttendanceBloc>(() => _i849.PatrolAttendanceBloc(
           submitAttendance: gh<_i861.SubmitAttendance>(),
@@ -693,10 +693,10 @@ extension GetItInjectableX on _i174.GetIt {
         ));
     gh.factory<_i264.GetProfileDetailsUseCase>(
         () => _i264.GetProfileDetailsUseCase(gh<_i252.ProfileRepository>()));
-    gh.factory<_i936.LogoutUseCase>(
-        () => _i936.LogoutUseCase(gh<_i252.ProfileRepository>()));
     gh.factory<_i1045.UpdateNameUseCase>(
         () => _i1045.UpdateNameUseCase(gh<_i252.ProfileRepository>()));
+    gh.factory<_i936.LogoutUseCase>(
+        () => _i936.LogoutUseCase(gh<_i252.ProfileRepository>()));
     gh.factory<_i409.UpdateProfileDetailsUseCase>(
         () => _i409.UpdateProfileDetailsUseCase(gh<_i252.ProfileRepository>()));
     gh.factory<_i508.UpdateProfilePhotoUseCase>(

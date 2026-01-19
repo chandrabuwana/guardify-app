@@ -240,6 +240,7 @@ class _AttendanceRekapScreenContentState
                 MaterialPageRoute(
                   builder: (context) => AttendanceRekapDetailScreen(
                     idAttendance: item.idAttendance!,
+                    isAttendanceDetail: true,
                   ),
                 ),
               );

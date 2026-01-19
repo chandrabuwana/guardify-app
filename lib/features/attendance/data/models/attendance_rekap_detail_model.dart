@@ -132,6 +132,14 @@ class AttendanceRekapDetailDataModel {
   @JsonKey(name: 'PhotoOvertime')
   final PhotoInfoModel? photoOvertime;
 
+  @JsonKey(name: 'UpdateBy')
+  final String? updateBy;
+
+  @JsonKey(name: 'UpdateDate')
+  final String? updateDate;
+  @JsonKey(name: 'Feedback')
+  final String? feedback;
+
   const AttendanceRekapDetailDataModel({
     required this.idAttendance,
     required this.idShift,
@@ -160,6 +168,9 @@ class AttendanceRekapDetailDataModel {
     this.photoCheckoutPengamanan,
     this.photoCheckoutPakaian,
     this.photoOvertime,
+    this.updateBy,
+    this.updateDate,
+    this.feedback,
   });
 
   factory AttendanceRekapDetailDataModel.fromJson(Map<String, dynamic> json) =>
@@ -170,6 +181,7 @@ class AttendanceRekapDetailDataModel {
   AttendanceRekapDetailEntity toEntity() {
     DateTime? parsedCheckIn;
     DateTime? parsedCheckOut;
+    DateTime? parsedUpdateDate;
 
     try {
       if (checkIn != null) {
@@ -185,6 +197,14 @@ class AttendanceRekapDetailDataModel {
       }
     } catch (e) {
       parsedCheckOut = null;
+    }
+
+    try {
+      if (updateDate != null) {
+        parsedUpdateDate = DateTime.parse(updateDate!);
+      }
+    } catch (e) {
+      parsedUpdateDate = null;
     }
 
     return AttendanceRekapDetailEntity(
@@ -215,6 +235,9 @@ class AttendanceRekapDetailDataModel {
       photoCheckoutPengamanan: photoCheckoutPengamanan?.toEntity(),
       photoCheckoutPakaian: photoCheckoutPakaian?.toEntity(),
       photoOvertime: photoOvertime?.toEntity(),
+      updateBy: updateBy,
+      updateDate: parsedUpdateDate,
+      feedback: feedback,
     );
   }
 }

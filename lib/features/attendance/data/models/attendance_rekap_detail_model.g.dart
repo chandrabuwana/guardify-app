@@ -117,6 +117,9 @@ AttendanceRekapDetailDataModel _$AttendanceRekapDetailDataModelFromJson(
               (v) => v == null
                   ? null
                   : PhotoInfoModel.fromJson(v as Map<String, dynamic>)),
+          updateBy: $checkedConvert('UpdateBy', (v) => v as String?),
+          updateDate: $checkedConvert('UpdateDate', (v) => v as String?),
+          feedback: $checkedConvert('Feedback', (v) => v as String?),
         );
         return val;
       },
@@ -147,7 +150,10 @@ AttendanceRekapDetailDataModel _$AttendanceRekapDetailDataModelFromJson(
         'photoCheckout': 'PhotoCheckout',
         'photoCheckoutPengamanan': 'PhotoCheckoutPengamanan',
         'photoCheckoutPakaian': 'PhotoCheckoutPakaian',
-        'photoOvertime': 'PhotoOvertime'
+        'photoOvertime': 'PhotoOvertime',
+        'updateBy': 'UpdateBy',
+        'updateDate': 'UpdateDate',
+        'feedback': 'Feedback'
       },
     );
 
@@ -181,6 +187,9 @@ Map<String, dynamic> _$AttendanceRekapDetailDataModelToJson(
       'PhotoCheckoutPengamanan': instance.photoCheckoutPengamanan?.toJson(),
       'PhotoCheckoutPakaian': instance.photoCheckoutPakaian?.toJson(),
       'PhotoOvertime': instance.photoOvertime?.toJson(),
+      'UpdateBy': instance.updateBy,
+      'UpdateDate': instance.updateDate,
+      'Feedback': instance.feedback,
     };
 
 PhotoInfoModel _$PhotoInfoModelFromJson(Map<String, dynamic> json) =>

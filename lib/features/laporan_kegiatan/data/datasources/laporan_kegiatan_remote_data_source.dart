@@ -630,7 +630,7 @@ class LaporanKegiatanRemoteDataSourceImpl
       lembur: data['IsOvertime'] as bool? ?? false,
       fotoLembur: fotoLembur,
       jamSelesaiBekerja: jamSelesaiBekerja,
-      umpanBalik: null, // Not in detail response, might be in review
+      umpanBalik: data['Feedback'] as String?,
       statusKerja: statusKerja.isNotEmpty ? statusKerja : null,
       // Prioritize route name from ListRoute, fallback to Route field
       routeName: routeNameFromListRoute ?? data['Route'] as String? ?? data['RouteName'] as String?,
