@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import 'package:intl/intl.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
@@ -21,11 +20,13 @@ import '../bloc/attendance_rekap_detail_state.dart';
 class AttendanceRekapEditScreen extends StatefulWidget {
   final String idAttendance;
   final AttendanceRekapDetailEntity detail;
+  final bool isAttendanceDetail; // true for Detail Kehadiran, false for Detail Laporan Kegiatan
 
   const AttendanceRekapEditScreen({
     super.key,
     required this.idAttendance,
     required this.detail,
+    this.isAttendanceDetail = false,
   });
 
   @override
@@ -74,7 +75,7 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
-            'Detail Laporan Kegiatan',
+            widget.isAttendanceDetail ? 'Detail Kehadiran' : 'Detail Laporan Kegiatan',
             style: TS.titleLarge.copyWith(color: Colors.white),
           ),
           centerTitle: true,
@@ -140,6 +141,7 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
 
   Widget _buildEditContent(
       BuildContext context, AttendanceRekapDetailEntity detail) {
+    
     return SingleChildScrollView(
       child: Container(
         decoration: BoxDecoration(
@@ -262,6 +264,38 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
                         detail.statusKerja!,
                       ),
                     ],
+
+                    // Tanggal Verifikasi
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Tanggal Verifikasi',
+                      () {
+                        if (detail.updateDate != null) {
+                          final formattedDate = _formatDate(detail.updateDate!);
+                          return formattedDate;
+                        } else {
+                          return '-';
+                        }
+                      }(),
+                    ),
+
+                    // Diverifikasi Oleh
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Diverifikasi Oleh',
+                      () {
+                        final result = detail.updateBy ?? '-';
+                        return result;
+                      }(),
+                    ),
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Feedback',
+                      () {
+                        final result = detail.feedback ?? '-';
+                        return result;
+                      }(),
+                    ),
                   ] else if (detail.checkIn != null) ...[
                     // Mulai Bekerja Section - Editable fields
                     Text(
@@ -283,7 +317,6 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
                       detail.photoPakaian?.filename,
                       _photoAbsenFile,
                       (file) {
-                        print('📸 PhotoAbsen callback: path=${file.path}');
                         setState(() {
                           _photoAbsenFile = file.path.isNotEmpty ? file : null;
                         });
@@ -298,7 +331,6 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
                       detail.photoPengamanan?.filename,
                       _photoPengamananFile,
                       (file) {
-                        print('📸 PhotoPengamanan callback: path=${file.path}');
                         setState(() {
                           _photoPengamananFile = file.path.isNotEmpty ? file : null;
                         });
@@ -332,37 +364,27 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
     // Helper function to get path or null if empty, with validation
     Future<String?> _getPathOrNull(File? file) async {
       if (file == null) {
-        print('⚠️ _getPathOrNull: file is null');
         return null;
       }
       
       final filePath = file.path;
       if (filePath.isEmpty) {
-        print('⚠️ _getPathOrNull: file path is empty');
         return null;
       }
       
-      // Verify file exists before returning path
       try {
         final exists = await file.exists();
-        print('📁 _getPathOrNull: Checking file at path=$filePath, exists=$exists');
-        
         if (!exists) {
-          print('❌ _getPathOrNull: File does not exist at path: $filePath');
           return null;
         }
         
         final size = await file.length();
-        print('✅ _getPathOrNull: File exists, size=$size bytes');
-        
         if (size == 0) {
-          print('❌ _getPathOrNull: File is empty (0 bytes)');
           return null;
         }
         
         return filePath;
       } catch (e) {
-        print('❌ _getPathOrNull: Error checking file: $e');
         return null;
       }
     }
@@ -370,21 +392,10 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
     // PhotoAbsen harus diambil dari pakaian personil
     // Untuk check-in: dari _photoAbsenFile (Pakaian Personil di section Mulai Bekerja)
     // Untuk check-out: dari _photoPakaianFile (Pakaian Personil di section Selesai Bekerja)
-    print('💾 Starting save attendance update...');
-    print('💾 Validating files before save...');
-    
-    final photoAbsenPath = await _getPathOrNull(_photoAbsenFile) ?? await _getPathOrNull(_photoPakaianFile);
+    final photoAbsenPath = await _getPathOrNull(_photoPakaianFile);
     final photoPengamananPath = await _getPathOrNull(_photoPengamananFile);
     final photoPakaianPath = await _getPathOrNull(_photoPakaianFile);
     final photoOvertimePath = await _getPathOrNull(_photoOvertimeFile);
-
-    print('💾 Saving attendance update:');
-    print('  photoAbsenPath (from pakaian personil): $photoAbsenPath');
-    print('  photoPengamananPath: $photoPengamananPath');
-    print('  photoPakaianPath: $photoPakaianPath');
-    print('  photoOvertimePath: $photoOvertimePath');
-    print('  laporan: ${_laporanController.text.trim().isNotEmpty ? _laporanController.text.trim() : "null"}');
-    print('  isOvertime: $_isOvertime');
 
     final request = AttendanceUpdateRequest(
       idAttendance: widget.idAttendance,
@@ -398,10 +409,9 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
       photoOvertimePath: photoOvertimePath,
     );
 
-    print('💾 Dispatching UpdateAttendanceRekapDetailEvent...');
-    context.read<AttendanceRekapDetailBloc>().add(
-          UpdateAttendanceRekapDetailEvent(request),
-        );
+    context
+        .read<AttendanceRekapDetailBloc>()
+        .add(UpdateAttendanceRekapDetailEvent(request));
   }
 
   void _showSuccessDialog(BuildContext context) {
@@ -469,59 +479,29 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
 
   Future<void> _pickImage(ImageSource source, Function(File) onPicked) async {
     try {
-      print('📸 Starting image picker: source=${source.name}');
-      final XFile? image = await _imagePicker.pickImage(source: source);
+      final image = await _imagePicker.pickImage(source: source);
+      
       if (image != null) {
-        print('📸 Image picked from ${source.name}: path=${image.path}');
-        
-        // Check if original file exists
         final originalFile = File(image.path);
         final originalExists = await originalFile.exists();
-        print('📸 Original file exists: $originalExists');
         
-        if (!originalExists) {
-          throw Exception('File tidak ditemukan di path: ${image.path}');
+        if (originalExists) {
+          final originalSize = await originalFile.length();
+          
+          final appDir = await getApplicationDocumentsDirectory();
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final savedFile = await originalFile.copy('${appDir.path}/$fileName');
+          
+          final savedExists = await savedFile.exists();
+          final savedSize = await savedFile.length();
+          
+          if (savedExists && savedSize > 0) {
+            onPicked(savedFile);
+          }
         }
-        
-        // Get file size
-        final originalSize = await originalFile.length();
-        print('📸 Original file size: $originalSize bytes');
-        
-        // Copy file to app's temporary directory to ensure it persists
-        final tempDir = await getTemporaryDirectory();
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final extension = path.extension(image.path);
-        final fileName = 'attendance_${timestamp}$extension';
-        final savedFile = File(path.join(tempDir.path, fileName));
-        
-        print('📸 Copying file to: ${savedFile.path}');
-        await originalFile.copy(savedFile.path);
-        
-        // Verify copied file
-        final savedExists = await savedFile.exists();
-        final savedSize = savedExists ? await savedFile.length() : 0;
-        print('📸 Saved file exists: $savedExists, size: $savedSize bytes');
-        
-        if (!savedExists || savedSize != originalSize) {
-          throw Exception('Gagal menyimpan file ke temporary directory');
-        }
-        
-        print('✅ Image successfully saved to: ${savedFile.path}');
-        onPicked(savedFile);
-      } else {
-        print('📸 No image selected');
       }
     } catch (e) {
-      print('❌ Error picking image: $e');
-      print('❌ Stack trace: ${StackTrace.current}');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengambil foto: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // Handle error silently or show a snackbar
     }
   }
 
@@ -1423,6 +1403,16 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
           ),
       ],
     );
+  }
+
+  String _formatDate(DateTime date) {
+    try {
+      final formatter = DateFormat('dd-MM-yyyy HH:mm', 'id_ID');
+      return formatter.format(date);
+    } catch (e) {
+      final formatter = DateFormat('dd-MM-yyyy HH:mm');
+      return formatter.format(date);
+    }
   }
 }
 

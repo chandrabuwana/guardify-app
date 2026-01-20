@@ -31,6 +31,7 @@ class LaporanKegiatanDetailPage extends StatefulWidget {
 class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
   int _currentPage = 0;
   final PageController _pageController = PageController();
+  bool _isSubmittingRevisi = false;
 
   @override
   void initState() {
@@ -50,14 +51,6 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        if (_currentPage > 0) {
-          _pageController.previousPage(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
-          return false;
-        }
-
         return true;
       },
       child: AppScaffold(
@@ -68,14 +61,6 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () async {
-              if (_currentPage > 0) {
-                await _pageController.previousPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-                return;
-              }
-
               if (context.mounted) {
                 Navigator.of(context).pop();
               }
@@ -86,6 +71,16 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
         ),
         child: BlocConsumer<LaporanKegiatanBloc, LaporanKegiatanState>(
         listener: (context, state) {
+          if (_isSubmittingRevisi && state is LaporanDetailLoaded) {
+            _isSubmittingRevisi = false;
+            Navigator.of(context).pop(true);
+            return;
+          }
+
+          if (_isSubmittingRevisi && state is LaporanError) {
+            _isSubmittingRevisi = false;
+          }
+
           if (state is LaporanUpdated) {
             // Show success dialog
             showDialog(
@@ -1145,6 +1140,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           VerifLaporanEvent(
             idAttendance: laporan.id,
             isVerif: true,
+            feedback: '',
           ),
         );
       }
@@ -1187,6 +1183,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
               text: 'Kirim',
               onPressed: () {
                 if (noteController.text.isNotEmpty) {
+                  _isSubmittingRevisi = true;
                   // Gunakan idAttendance untuk API verif, fallback ke id jika idAttendance null
                   final idAttendance = laporan.idAttendance ?? laporan.id;
                   laporanBloc.add(
