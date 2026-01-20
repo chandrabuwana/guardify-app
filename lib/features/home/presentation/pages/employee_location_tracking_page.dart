@@ -498,19 +498,19 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
         return;
       }
       
-      // Gunakan radius untuk menentukan zoom level (dikurangi agar marker employee lebih terlihat)
-      double zoom = 11.0;
+      // Gunakan radius untuk menentukan zoom level (ditingkatkan agar lebih dekat)
+      double zoom = 15.0;
       if (selectedArea.radius != null) {
         // Radius dalam meter, konversi ke zoom level
         final radiusKm = selectedArea.radius! / 1000;
         if (radiusKm > 10) {
-          zoom = 9.0;
+          zoom = 13.0;
         } else if (radiusKm > 5) {
-          zoom = 10.0;
+          zoom = 14.0;
         } else if (radiusKm > 1) {
-          zoom = 10.5;
+          zoom = 14.5;
         } else {
-          zoom = 11.0;
+          zoom = 15.0;
         }
       }
 
@@ -597,20 +597,20 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
     final centerLat = (minLat + maxLat) / 2;
     final centerLng = (minLng + maxLng) / 2;
     
-    // Hitung zoom level berdasarkan jarak
+    // Hitung zoom level berdasarkan jarak (ditingkatkan agar lebih dekat)
     final latDiff = maxLat - minLat;
     final lngDiff = maxLng - minLng;
     final maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
     
-    double zoom = 11.0;
+    double zoom = 15.0;
     if (maxDiff > 0.1) {
-      zoom = 9.0;
+      zoom = 13.0;
     } else if (maxDiff > 0.05) {
-      zoom = 10.0;
+      zoom = 14.0;
     } else if (maxDiff > 0.01) {
-      zoom = 10.5;
+      zoom = 14.5;
     } else {
-      zoom = 11.0;
+      zoom = 15.0;
     }
     
     print('📍 [LocationTracking] Zooming to show all markers');
@@ -628,6 +628,37 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
       print('❌ [LocationTracking] Error moving map to show all markers: $e');
       // Fallback ke area yang dipilih
       _zoomToSelectedArea();
+    }
+  }
+
+  /// Zoom map ke marker employee tertentu
+  void _zoomToMarker(EmployeeLocationModel employee) {
+    final lat = employee.latitude;
+    final lng = employee.longitude;
+    
+    // Validasi koordinat
+    if (lat == 0.0 && lng == 0.0) {
+      print('⚠️ [LocationTracking] Invalid coordinates for marker zoom');
+      return;
+    }
+    
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      print('⚠️ [LocationTracking] Invalid coordinates for marker zoom: $lat, $lng');
+      return;
+    }
+    
+    // Zoom level untuk fokus ke marker individual
+    const double zoom = 16.0;
+    
+    print('📍 [LocationTracking] Zooming to marker: ${employee.user?.fullname ?? "Unknown"} at ($lat, $lng)');
+    
+    try {
+      _mapController.move(
+        LatLng(lat, lng),
+        zoom,
+      );
+    } catch (e) {
+      print('❌ [LocationTracking] Error zooming to marker: $e');
     }
   }
 
@@ -844,7 +875,7 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
                       mapController: _mapController,
                       options: MapOptions(
                         initialCenter: _getInitialMapCenter(),
-                        initialZoom: 11.0,
+                        initialZoom: 15.0,
                         minZoom: 8.0,
                         maxZoom: 18.0,
                         onMapReady: () {
@@ -889,7 +920,10 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
                                 height: 60,
                                 alignment: Alignment.center,
                                 child: GestureDetector(
-                                  onTap: () => _showEmployeeDetail(employee),
+                                  onTap: () {
+                                    _zoomToMarker(employee);
+                                    _showEmployeeDetail(employee);
+                                  },
                                   child: Stack(
                                     alignment: Alignment.center,
                                     children: [
@@ -991,6 +1025,51 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
                         ),
                       ),
                     
+                    // Tombol zoom in/out
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: Column(
+                        children: [
+                          // Zoom In
+                          FloatingActionButton(
+                            onPressed: () {
+                              try {
+                                final currentZoom = _mapController.camera.zoom;
+                                final currentCenter = _mapController.camera.center;
+                                final newZoom = (currentZoom + 1).clamp(8.0, 18.0);
+                                _mapController.move(currentCenter, newZoom);
+                              } catch (e) {
+                                print('⚠️ [LocationTracking] Error zooming in: $e');
+                              }
+                            },
+                            backgroundColor: Colors.white,
+                            mini: true,
+                            heroTag: 'zoom_in',
+                            child: Icon(Icons.add, color: primaryColor),
+                          ),
+                          8.verticalSpace,
+                          // Zoom Out
+                          FloatingActionButton(
+                            onPressed: () {
+                              try {
+                                final currentZoom = _mapController.camera.zoom;
+                                final currentCenter = _mapController.camera.center;
+                                final newZoom = (currentZoom - 1).clamp(8.0, 18.0);
+                                _mapController.move(currentCenter, newZoom);
+                              } catch (e) {
+                                print('⚠️ [LocationTracking] Error zooming out: $e');
+                              }
+                            },
+                            backgroundColor: Colors.white,
+                            mini: true,
+                            heroTag: 'zoom_out',
+                            child: Icon(Icons.remove, color: primaryColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
                     // Floating action button untuk zoom ke area yang dipilih
                     if (_selectedAreaId != null)
                       Positioned(
@@ -1001,6 +1080,7 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
                           backgroundColor: primaryColor,
                           child: Icon(Icons.my_location, color: Colors.white),
                           mini: true,
+                          heroTag: 'my_location',
                         ),
                       ),
                   ],

@@ -7,6 +7,7 @@ import '../widgets/shift_card.dart';
 import '../widgets/task_card.dart';
 import '../widgets/menu_grid.dart';
 import 'employee_location_tracking_page.dart';
+import 'tim_jaga_detail_page.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../bloc/home_bloc.dart';
 import '../bloc/home_event.dart';
@@ -84,6 +85,8 @@ class _HomePageView extends StatefulWidget {
 class __HomePageViewState extends State<_HomePageView> {
   Timer? _timer;
   String _currentTime = '';
+  Future<Map<String, String>>? _cachedAreaMapFuture;
+  Map<String, String>? _cachedAreaMap;
 
   @override
   void initState() {
@@ -488,7 +491,7 @@ class __HomePageViewState extends State<_HomePageView> {
                           Column(
                             children: [
                               // Tim Jaga Hari Ini (khusus Pengawas)
-                              _buildTimJagaSection(),
+                              _buildTimJagaSection(state),
                               24.verticalSpace,
                               // Tugas Hari Ini untuk Pengawas
                               _buildTodayTasksSection(state.todayTasks),
@@ -920,30 +923,53 @@ class __HomePageViewState extends State<_HomePageView> {
     );
   }
 
-  Widget _buildTimJagaSection() {
-    // Mock data untuk tim jaga (nanti bisa diganti dengan data real dari API)
-    final List<Map<String, String>> timJaga = [
-      {
-        'nama': 'Aiman Hafiz',
-        'posisi': 'Pos Gajah',
-        'image': '',
+  Widget _buildTimJagaSection(HomeLoaded state) {
+    // Jika tidak ada data shiftNow, tampilkan empty state
+    if (state.shiftNow == null || state.shiftNow!.listPersonel.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Jika sudah ada cached data, langsung gunakan tanpa FutureBuilder
+    if (_cachedAreaMap != null) {
+      return _buildTimJagaContent(state, _cachedAreaMap!);
+    }
+
+    // Cache future untuk menghindari multiple API calls
+    if (_cachedAreaMapFuture == null) {
+      _cachedAreaMapFuture = _getUserIdToAreaMap(state).then((data) {
+        if (mounted) {
+          setState(() {
+            _cachedAreaMap = data;
+          });
+        }
+        return data;
+      });
+    }
+
+    // Gunakan FutureBuilder hanya jika belum ada cached data
+    return FutureBuilder<Map<String, String>>(
+      future: _cachedAreaMapFuture,
+      builder: (context, snapshot) {
+        // Gunakan cached data jika ada, atau data dari snapshot
+        final Map<String, String> userIdToAreaMap = _cachedAreaMap ?? snapshot.data ?? {};
+        
+        return _buildTimJagaContent(state, userIdToAreaMap);
       },
-      {
-        'nama': 'Aiman Hafiz',
-        'posisi': 'Pos Gajah',
-        'image': '',
-      },
-      {
-        'nama': 'Aiman Hafiz',
-        'posisi': 'Pos Ayam',
-        'image': '',
-      },
-      {
-        'nama': 'Aiman Hafiz',
-        'posisi': 'Pos Ayam',
-        'image': '',
-      },
-    ];
+    );
+  }
+
+  Widget _buildTimJagaContent(HomeLoaded state, Map<String, String> userIdToAreaMap) {
+    // Gunakan data dari state.shiftNow.listPersonel (sama dengan card Tim Jaga)
+    final List<Map<String, String>> timJaga = [];
+    
+    for (final personnel in state.shiftNow!.listPersonel) {
+      timJaga.add({
+        'userId': personnel.userId,
+        'nama': personnel.fullname,
+        'posisi': userIdToAreaMap[personnel.userId] ?? 'Pos', // Default jika tidak ada
+        'image': personnel.images ?? '',
+      });
+    }
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -963,10 +989,21 @@ class __HomePageViewState extends State<_HomePageView> {
               ),
               TextButton(
                 onPressed: () {
-                  context.read<HomeBloc>().add(
-                        const ShowSnackbarEvent(
-                            'Fitur Lihat Detail sedang dalam pengembangan'),
-                      );
+                  if (state.shiftNow != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TimJagaDetailPage(
+                          shiftNow: state.shiftNow!,
+                        ),
+                      ),
+                    );
+                  } else {
+                    context.read<HomeBloc>().add(
+                          const ShowSnackbarEvent(
+                              'Tidak ada data shift tersedia'),
+                        );
+                  }
                 },
                 child: Text(
                   'Lihat Detail',
@@ -1098,6 +1135,46 @@ class __HomePageViewState extends State<_HomePageView> {
         ],
       ),
     );
+  }
+
+  /// Memanggil get_schedule_pengawas untuk mendapatkan mapping userId -> areaName
+  Future<Map<String, String>> _getUserIdToAreaMap(HomeLoaded state) async {
+    final Map<String, String> userIdToAreaMap = {};
+    
+    try {
+      final scheduleRepository = getIt<ScheduleRepository>();
+      final today = DateTime.now();
+      
+      // Panggil get_schedule_pengawas untuk mendapatkan informasi area
+      final result = await scheduleRepository.getSchedulePengawas(date: today);
+      
+      if (result.isSuccess && result.shiftDetail != null) {
+        final shiftDetail = result.shiftDetail!;
+        
+        // Loop melalui team members untuk mendapatkan mapping userId -> position (area)
+        for (final member in shiftDetail.teamMembers) {
+          // Position field contains "AreaName|ShiftName" format for pengawas schedule
+          // Extract area name (before |)
+          final areaName = member.position.contains('|') 
+              ? member.position.split('|')[0] 
+              : member.position;
+          
+          // Jika sudah ada mapping untuk userId ini, gabungkan area names
+          if (userIdToAreaMap.containsKey(member.id)) {
+            final existingAreas = userIdToAreaMap[member.id]!.split(', ');
+            if (!existingAreas.contains(areaName)) {
+              userIdToAreaMap[member.id] = '${userIdToAreaMap[member.id]}, $areaName';
+            }
+          } else {
+            userIdToAreaMap[member.id] = areaName;
+          }
+        }
+      }
+    } catch (e) {
+      print('⚠️ Error getting schedule pengawas for area mapping: $e');
+    }
+    
+    return userIdToAreaMap;
   }
 
   Widget _buildTodayTasksSection(List<TaskItem> tasks) {

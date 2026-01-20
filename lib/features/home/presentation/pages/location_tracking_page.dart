@@ -180,6 +180,32 @@ class _LocationTrackingPageState extends State<LocationTrackingPage> {
     );
   }
 
+  /// Zoom map ke marker personil tertentu
+  void _zoomToMarker(PersonnelLocation personnel) {
+    final lat = personnel.latitude;
+    final lng = personnel.longitude;
+    
+    // Validasi koordinat
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      print('⚠️ [LocationTracking] Invalid coordinates for marker zoom: $lat, $lng');
+      return;
+    }
+    
+    // Zoom level untuk fokus ke marker individual
+    const double zoom = 16.0;
+    
+    print('📍 [LocationTracking] Zooming to marker: ${personnel.fullname} at ($lat, $lng)');
+    
+    try {
+      _mapController.move(
+        LatLng(lat, lng),
+        zoom,
+      );
+    } catch (e) {
+      print('❌ [LocationTracking] Error zooming to marker: $e');
+    }
+  }
+
   void _showPersonnelDetail(PersonnelLocation personnel) {
     showModalBottomSheet(
       context: context,
@@ -451,7 +477,10 @@ class _LocationTrackingPageState extends State<LocationTrackingPage> {
                                 height: 60,
                                 alignment: Alignment.center,
                                 child: GestureDetector(
-                                  onTap: () => _showPersonnelDetail(personnel),
+                                  onTap: () {
+                                    _zoomToMarker(personnel);
+                                    _showPersonnelDetail(personnel);
+                                  },
                                   child: Stack(
                                     alignment: Alignment.center,
                                     children: [
@@ -551,6 +580,51 @@ class _LocationTrackingPageState extends State<LocationTrackingPage> {
                         ),
                       ),
                     
+                    // Tombol zoom in/out
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: Column(
+                        children: [
+                          // Zoom In
+                          FloatingActionButton(
+                            onPressed: () {
+                              try {
+                                final currentZoom = _mapController.camera.zoom;
+                                final currentCenter = _mapController.camera.center;
+                                final newZoom = (currentZoom + 1).clamp(10.0, 18.0);
+                                _mapController.move(currentCenter, newZoom);
+                              } catch (e) {
+                                print('⚠️ [LocationTracking] Error zooming in: $e');
+                              }
+                            },
+                            backgroundColor: Colors.white,
+                            mini: true,
+                            heroTag: 'zoom_in',
+                            child: Icon(Icons.add, color: primaryColor),
+                          ),
+                          8.verticalSpace,
+                          // Zoom Out
+                          FloatingActionButton(
+                            onPressed: () {
+                              try {
+                                final currentZoom = _mapController.camera.zoom;
+                                final currentCenter = _mapController.camera.center;
+                                final newZoom = (currentZoom - 1).clamp(10.0, 18.0);
+                                _mapController.move(currentCenter, newZoom);
+                              } catch (e) {
+                                print('⚠️ [LocationTracking] Error zooming out: $e');
+                              }
+                            },
+                            backgroundColor: Colors.white,
+                            mini: true,
+                            heroTag: 'zoom_out',
+                            child: Icon(Icons.remove, color: primaryColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
                     // Floating action button untuk zoom ke semua personil
                     if (_filteredLocations.isNotEmpty)
                       Positioned(
@@ -561,6 +635,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage> {
                           backgroundColor: primaryColor,
                           child: Icon(Icons.my_location, color: Colors.white),
                           mini: true,
+                          heroTag: 'my_location',
                         ),
                       ),
                   ],
