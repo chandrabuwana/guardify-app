@@ -96,6 +96,9 @@ class AttendanceRekapDetailDataModel {
   @JsonKey(name: 'Notes')
   final String? notes;
 
+  @JsonKey(name: 'NotesCheckout')
+  final String? notesCheckout;
+
   @JsonKey(name: 'PhotoPengamanan')
   final PhotoInfoModel? photoPengamanan;
 
@@ -156,6 +159,7 @@ class AttendanceRekapDetailDataModel {
     this.checkIn,
     this.photoPakaian,
     this.notes,
+    this.notesCheckout,
     this.photoPengamanan,
     required this.listCarryOver,
     this.photoCheckin,
@@ -223,6 +227,7 @@ class AttendanceRekapDetailDataModel {
       checkIn: parsedCheckIn,
       photoPakaian: photoPakaian?.toEntity(),
       notes: notes,
+      notesCheckout: notesCheckout,
       photoPengamanan: photoPengamanan?.toEntity(),
       listCarryOver: listCarryOver.map((e) => e.toEntity()).toList(),
       photoCheckin: photoCheckin?.toEntity(),

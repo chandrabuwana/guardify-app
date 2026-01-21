@@ -15,6 +15,7 @@ class AttendanceRekapDetailEntity {
   final DateTime? checkIn;
   final PhotoInfo? photoPakaian;
   final String? notes;
+  final String? notesCheckout;
   final PhotoInfo? photoPengamanan;
   final List<CarryOverItem> listCarryOver;
   final PhotoInfo? photoCheckin;
@@ -47,6 +48,7 @@ class AttendanceRekapDetailEntity {
     this.checkIn,
     this.photoPakaian,
     this.notes,
+    this.notesCheckout,
     this.photoPengamanan,
     required this.listCarryOver,
     this.photoCheckin,

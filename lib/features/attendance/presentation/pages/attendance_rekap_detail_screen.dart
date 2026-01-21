@@ -182,10 +182,13 @@ class _AttendanceRekapDetailScreenContentState
                         'Pakaian Personil',
                         detail.photoPakaian?.url,
                       ),
-                      if (detail.notes != null && detail.notes!.isNotEmpty) ...[
-                        16.verticalSpace,
-                        _buildTextAreaFieldInCard('Laporan Pengamanan', detail.notes!),
-                      ],
+                      16.verticalSpace,
+                      _buildTextAreaFieldInCard(
+                        'Laporan Pengamanan',
+                        (detail.notes != null && detail.notes!.trim().isNotEmpty)
+                            ? detail.notes!.trim()
+                            : '-',
+                      ),
                       16.verticalSpace,
                       _buildImageCard(
                         'Foto Pengamanan',
@@ -227,10 +230,14 @@ class _AttendanceRekapDetailScreenContentState
                         detail.photoCheckout?.url,
                       ),
                     ],
-                    if (detail.notes != null && detail.notes!.isNotEmpty) ...[
-                      16.verticalSpace,
-                      _buildTextAreaFieldInCard('Laporan Pengamanan', detail.notes!),
-                    ],
+                    16.verticalSpace,
+                    _buildTextAreaFieldInCard(
+                      'Laporan Pengamanan',
+                      (detail.notesCheckout != null &&
+                              detail.notesCheckout!.trim().isNotEmpty)
+                          ? detail.notesCheckout!.trim()
+                          : '-',
+                    ),
                     if (detail.photoCheckoutPengamanan?.hasPhoto == true) ...[
                       16.verticalSpace,
                       _buildImageCard(
@@ -300,10 +307,13 @@ class _AttendanceRekapDetailScreenContentState
                       'Pakaian Personil',
                       detail.photoPakaian?.url,
                     ),
-                    if (detail.notes != null && detail.notes!.isNotEmpty) ...[
-                      16.verticalSpace,
-                      _buildTextAreaFieldInCard('Laporan Pengamanan', detail.notes!),
-                    ],
+                    16.verticalSpace,
+                    _buildTextAreaFieldInCard(
+                      'Laporan Pengamanan',
+                      (detail.notes != null && detail.notes!.trim().isNotEmpty)
+                          ? detail.notes!.trim()
+                          : '-',
+                    ),
                     16.verticalSpace,
                     _buildImageCard(
                       'Foto Pengamanan',
@@ -347,10 +357,14 @@ class _AttendanceRekapDetailScreenContentState
                     ],
 
                     // Laporan Pengamanan (Checkout)
-                    if (detail.notes != null && detail.notes!.isNotEmpty) ...[
-                      16.verticalSpace,
-                      _buildTextAreaFieldInCard('Laporan Pengamanan', detail.notes!),
-                    ],
+                    16.verticalSpace,
+                    _buildTextAreaFieldInCard(
+                      'Laporan Pengamanan',
+                      (detail.notesCheckout != null &&
+                              detail.notesCheckout!.trim().isNotEmpty)
+                          ? detail.notesCheckout!.trim()
+                          : '-',
+                    ),
 
                     // Foto Pengamanan (Checkout)
                     if (detail.photoCheckoutPengamanan?.hasPhoto == true) ...[

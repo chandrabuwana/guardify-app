@@ -238,11 +238,15 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
               height: 52.h,
               child: ElevatedButton(
                 onPressed: () {
+                  final personnelBloc = context.read<PersonnelBloc>();
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PersonnelDocumentPage(
-                        personnel: personnel,
+                      builder: (context) => BlocProvider.value(
+                        value: personnelBloc,
+                        child: PersonnelDocumentPage(
+                          personnel: personnel,
+                        ),
                       ),
                     ),
                   );
