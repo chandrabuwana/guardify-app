@@ -71,6 +71,7 @@ AttendanceRekapDetailDataModel _$AttendanceRekapDetailDataModelFromJson(
                   ? null
                   : PhotoInfoModel.fromJson(v as Map<String, dynamic>)),
           notes: $checkedConvert('Notes', (v) => v as String?),
+          notesCheckout: $checkedConvert('NotesCheckout', (v) => v as String?),
           photoPengamanan: $checkedConvert(
               'PhotoPengamanan',
               (v) => v == null
@@ -139,6 +140,7 @@ AttendanceRekapDetailDataModel _$AttendanceRekapDetailDataModelFromJson(
         'checkIn': 'CheckIn',
         'photoPakaian': 'PhotoPakaian',
         'notes': 'Notes',
+        'notesCheckout': 'NotesCheckout',
         'photoPengamanan': 'PhotoPengamanan',
         'listCarryOver': 'ListCarryOver',
         'photoCheckin': 'PhotoCheckin',
@@ -175,6 +177,7 @@ Map<String, dynamic> _$AttendanceRekapDetailDataModelToJson(
       'CheckIn': instance.checkIn,
       'PhotoPakaian': instance.photoPakaian?.toJson(),
       'Notes': instance.notes,
+      'NotesCheckout': instance.notesCheckout,
       'PhotoPengamanan': instance.photoPengamanan?.toJson(),
       'ListCarryOver': instance.listCarryOver.map((e) => e.toJson()).toList(),
       'PhotoCheckin': instance.photoCheckin?.toJson(),

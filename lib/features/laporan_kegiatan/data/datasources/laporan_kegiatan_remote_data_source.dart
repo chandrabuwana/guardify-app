@@ -621,6 +621,7 @@ class LaporanKegiatanRemoteDataSourceImpl
       pakaianPersonil: null, // Not in API response
       fotoPakaianPersonil: fotoPakaianPersonil ?? photoCheckoutPakaianUrl,
       laporanPengamanan: data['Notes'] as String? ?? '',
+      laporanPengamananCheckout: data['NotesCheckout'] as String?,
       fotoPengamanan: fotoPengamanan,
       tugasLanjutan: data['Patrol'] as String? ?? '',
       tugasTertunda: tugasTertunda,
