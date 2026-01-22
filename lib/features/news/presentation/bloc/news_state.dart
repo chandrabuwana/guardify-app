@@ -13,6 +13,8 @@ class NewsState extends Equatable {
   final bool hasReachedMax;
   final int currentPage;
   final String? errorMessage;
+  final bool createSuccess;
+  final bool newestFirst;
 
   const NewsState({
     required this.news,
@@ -26,6 +28,8 @@ class NewsState extends Equatable {
     required this.hasReachedMax,
     required this.currentPage,
     this.errorMessage,
+    required this.createSuccess,
+    required this.newestFirst,
   });
 
   factory NewsState.initial() {
@@ -38,6 +42,8 @@ class NewsState extends Equatable {
       isSearching: false,
       hasReachedMax: false,
       currentPage: 0,
+      createSuccess: false,
+      newestFirst: true,
     );
   }
 
@@ -53,6 +59,8 @@ class NewsState extends Equatable {
     bool? hasReachedMax,
     int? currentPage,
     String? errorMessage,
+    bool? createSuccess,
+    bool? newestFirst,
   }) {
     return NewsState(
       news: news ?? this.news,
@@ -66,6 +74,8 @@ class NewsState extends Equatable {
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       currentPage: currentPage ?? this.currentPage,
       errorMessage: errorMessage ?? this.errorMessage,
+      createSuccess: createSuccess ?? this.createSuccess,
+      newestFirst: newestFirst ?? this.newestFirst,
     );
   }
 
@@ -82,5 +92,7 @@ class NewsState extends Equatable {
         hasReachedMax,
         currentPage,
         errorMessage,
+        createSuccess,
+        newestFirst,
       ];
 }

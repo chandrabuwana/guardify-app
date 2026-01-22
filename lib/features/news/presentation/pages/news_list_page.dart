@@ -264,11 +264,14 @@ class _NewsListPageState extends State<NewsListPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Navigate to detail page (no bloc needed)
+            final newsBloc = context.read<NewsBloc>();
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => NewsDetailPage(news: news),
+                builder: (context) => BlocProvider.value(
+                  value: newsBloc,
+                  child: NewsDetailPage(news: news),
+                ),
               ),
             );
           },
@@ -370,46 +373,192 @@ class _NewsListPageState extends State<NewsListPage> {
   }
 
   void _showFilterDialog() {
-    showDialog(
+    final newsBloc = context.read<NewsBloc>();
+    final currentCategory = newsBloc.state.selectedCategory;
+    final currentNewestFirst = newsBloc.state.newestFirst;
+
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Filter Berita',
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: Text(
-                  'Semua Kategori',
-                  style: TextStyle(fontSize: 14.sp),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (sheetContext) {
+        NewsCategory? selectedCategory = currentCategory;
+        bool newestFirst = currentNewestFirst;
+
+        Widget buildChip({
+          required String label,
+          required bool selected,
+          required VoidCallback onTap,
+        }) {
+          return InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(20.r),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color: selected ? Colors.white : neutral10,
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: selected ? primaryColor : neutral30,
                 ),
-                onTap: () {
-                  context.read<NewsBloc>().add(const NewsClearFilter());
-                  Navigator.pop(context);
-                },
               ),
-              ...NewsCategory.values.map((category) {
-                return ListTile(
-                  title: Text(
-                    category.displayName,
-                    style: TextStyle(fontSize: 14.sp),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? primaryColor : neutral70,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16.w,
+                right: 16.w,
+                top: 16.h,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16.h,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Filter',
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
+                          color: neutral90,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: Icon(Icons.close, color: neutral90, size: 20.sp),
+                      ),
+                    ],
                   ),
-                  onTap: () {
-                    context
-                        .read<NewsBloc>()
-                        .add(NewsFilterByCategory(category));
-                    Navigator.pop(context);
-                  },
-                );
-              }),
-            ],
-          ),
+
+                  12.verticalSpace,
+
+                  Text(
+                    'Kategori',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                      color: neutral90,
+                    ),
+                  ),
+                  12.verticalSpace,
+                  Wrap(
+                    spacing: 10.w,
+                    runSpacing: 10.h,
+                    children: [
+                      buildChip(
+                        label: 'Semua',
+                        selected: selectedCategory == null,
+                        onTap: () {
+                          setState(() {
+                            selectedCategory = null;
+                          });
+                        },
+                      ),
+                      ...NewsCategory.values.map((category) {
+                        return buildChip(
+                          label: category.displayName,
+                          selected: selectedCategory == category,
+                          onTap: () {
+                            setState(() {
+                              selectedCategory = category;
+                            });
+                          },
+                        );
+                      }),
+                    ],
+                  ),
+
+                  20.verticalSpace,
+
+                  Text(
+                    'Urutkan',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                      color: neutral90,
+                    ),
+                  ),
+                  12.verticalSpace,
+                  Wrap(
+                    spacing: 10.w,
+                    runSpacing: 10.h,
+                    children: [
+                      buildChip(
+                        label: 'Terbaru',
+                        selected: newestFirst,
+                        onTap: () {
+                          setState(() {
+                            newestFirst = true;
+                          });
+                        },
+                      ),
+                      buildChip(
+                        label: 'Terlama',
+                        selected: !newestFirst,
+                        onTap: () {
+                          setState(() {
+                            newestFirst = false;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+
+                  24.verticalSpace,
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48.h,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        newsBloc.add(
+                          NewsApplyFilter(
+                            category: selectedCategory,
+                            newestFirst: newestFirst,
+                          ),
+                        );
+                        Navigator.pop(sheetContext);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                      ),
+                      child: Text(
+                        'Terapkan',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  10.verticalSpace,
+                ],
+              ),
+            );
+          },
         );
       },
     );

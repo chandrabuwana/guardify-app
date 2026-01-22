@@ -278,7 +278,12 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           16.verticalSpace,
 
           // Laporan Pengamanan
-          _buildInfoCard('Laporan Pengamanan', laporan.laporanPengamanan),
+          _buildInfoCard(
+            'Laporan Pengamanan',
+            laporan.laporanPengamanan.trim().isNotEmpty
+                ? laporan.laporanPengamanan
+                : '-',
+          ),
           16.verticalSpace,
 
           // Foto Pengamanan

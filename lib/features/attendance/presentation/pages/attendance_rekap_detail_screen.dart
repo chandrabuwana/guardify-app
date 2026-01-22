@@ -1323,10 +1323,13 @@ class _AttendanceRekapDetailScreenContentState
                       'Pakaian Personil',
                       detail.photoPakaian?.url,
                     ),
-                    if (detail.notes != null && detail.notes!.isNotEmpty) ...[
-                      16.verticalSpace,
-                      _buildTextAreaFieldInCard('Laporan Pengamanan', detail.notes!),
-                    ],
+                    16.verticalSpace,
+                    _buildTextAreaFieldInCard(
+                      'Laporan Pengamanan',
+                      (detail.notes != null && detail.notes!.trim().isNotEmpty)
+                          ? detail.notes!.trim()
+                          : '-',
+                    ),
                     16.verticalSpace,
                     _buildImageCard(
                       'Foto Pengamanan',

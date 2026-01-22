@@ -15,37 +15,39 @@ class NewsRepositoryImpl implements NewsRepository {
     int start = 0,
     int length = 10,
     String? searchQuery,
+    NewsCategory? category,
+    bool newestFirst = true,
   }) async {
     try {
       // Ensure start and length are valid (internally 0-based, will be converted to 1-based in request)
       final validStart = start < 0 ? 0 : start;
       final validLength = length <= 0 ? 10 : length;
 
-      NewsListRequest request;
+      final filters = <NewsFilterItem>[];
 
       if (searchQuery != null && searchQuery.isNotEmpty) {
-        // Create request with search filter
-        request = NewsListRequest(
-          filter: [
-            NewsFilterItem(field: 'Title', search: searchQuery),
-          ],
-          sort: const NewsSortItem(
-              field: 'CreateDate', type: 1), // Sort by date descending
-          start: validStart,
-          length: validLength,
-        );
-      } else {
-        // Create default request
-        request = NewsListRequest(
-          filter: const [
-            NewsFilterItem(field: '', search: ''),
-          ],
-          sort: const NewsSortItem(
-              field: 'CreateDate', type: 1), // Sort by date descending
-          start: validStart,
-          length: validLength,
+        filters.add(NewsFilterItem(field: 'Title', search: searchQuery));
+      }
+
+      if (category != null) {
+        filters.add(
+          NewsFilterItem(
+            field: 'IdCategory',
+            search: _mapCategoryToId(category.displayName).toString(),
+          ),
         );
       }
+
+      if (filters.isEmpty) {
+        filters.add(const NewsFilterItem(field: '', search: ''));
+      }
+
+      final request = NewsListRequest(
+        filter: filters,
+        sort: NewsSortItem(field: 'CreateDate', type: newestFirst ? 1 : 0),
+        start: validStart,
+        length: validLength,
+      );
 
       final response = await remoteDataSource.getNewsList(request);
       return response.list.map((model) => model.toEntity()).toList();
@@ -95,7 +97,10 @@ class NewsRepositoryImpl implements NewsRepository {
     try {
       final request = NewsListRequest(
         filter: [
-          NewsFilterItem(field: 'Category.Name', search: category.displayName),
+          NewsFilterItem(
+            field: 'IdCategory',
+            search: _mapCategoryToId(category.displayName).toString(),
+          ),
         ],
         sort: const NewsSortItem(field: 'CreateDate', type: 1),
         start: 0,
@@ -111,8 +116,36 @@ class NewsRepositoryImpl implements NewsRepository {
 
   @override
   Future<News> createNews(News news) async {
-    // TODO: Implement create news API when endpoint is available
-    throw UnimplementedError('Create news API not yet implemented');
+    try {
+      final now = DateTime.now();
+
+      final idCategory = _mapCategoryToId(news.category);
+      final code = now.millisecondsSinceEpoch.toString();
+
+      await remoteDataSource.createNews(
+        code: code,
+        content: news.content,
+        idCategory: idCategory,
+        source: news.source,
+        title: news.title,
+      );
+
+      return news.copyWith(
+        id: code,
+        createdAt: now,
+        updatedAt: now,
+        publishedAt: now,
+      );
+    } catch (e) {
+      throw Exception('Failed to create news: $e');
+    }
+  }
+
+  int _mapCategoryToId(String category) {
+    final normalized = category.trim().toLowerCase();
+    if (normalized == 'bencana') return 1;
+    if (normalized == 'cuaca') return 2;
+    return 3;
   }
 
   @override

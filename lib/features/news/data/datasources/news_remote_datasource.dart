@@ -7,4 +7,13 @@ abstract class NewsRemoteDataSource {
 
   /// Get news by ID
   Future<NewsListResponse> getNewsById(String id);
+
+  /// Create news
+  Future<void> createNews({
+    required String code,
+    required String content,
+    required int idCategory,
+    required String source,
+    required String title,
+  });
 }

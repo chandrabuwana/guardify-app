@@ -9,6 +9,8 @@ abstract class NewsRepository {
     int start = 0,
     int length = 10,
     String? searchQuery,
+    NewsCategory? category,
+    bool newestFirst = true,
   });
 
   Future<News?> getNewsById(String id);

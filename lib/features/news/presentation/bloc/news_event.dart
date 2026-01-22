@@ -47,6 +47,19 @@ class NewsFilterByCategory extends NewsEvent {
   List<Object?> get props => [category];
 }
 
+class NewsApplyFilter extends NewsEvent {
+  final NewsCategory? category;
+  final bool newestFirst;
+
+  const NewsApplyFilter({
+    required this.category,
+    required this.newestFirst,
+  });
+
+  @override
+  List<Object?> get props => [category, newestFirst];
+}
+
 class NewsCreateNews extends NewsEvent {
   final News news;
 
