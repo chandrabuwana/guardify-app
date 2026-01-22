@@ -157,14 +157,37 @@ class _CheckInPageState extends State<CheckInPage> {
     }
   }
 
-  void _getCurrentLocation() {
-    final locationService = getIt<LocationService>();
-    locationService.getCurrentLatLng().then((pos) {
-      if (pos == null) return;
-      _currentLat = pos.lat;
-      _currentLng = pos.lng;
-      _prefillFromShiftApi(pos.lat, pos.lng);
-    });
+  Future<void> _getCurrentLocation() async {
+    try {
+      final locationService = getIt<LocationService>();
+      final pos = await locationService.getCurrentLatLng();
+      if (pos == null) {
+        print('⚠️ [CheckIn] Failed to get GPS location - pos is null');
+        if (mounted) {
+          setState(() {
+            _currentLat = null;
+            _currentLng = null;
+          });
+        }
+        return;
+      }
+      print('📍 [CheckIn] GPS location obtained: lat=${pos.lat}, lng=${pos.lng}');
+      if (mounted) {
+        setState(() {
+          _currentLat = pos.lat;
+          _currentLng = pos.lng;
+        });
+        _prefillFromShiftApi(pos.lat, pos.lng);
+      }
+    } catch (e) {
+      print('❌ [CheckIn] Error getting GPS location: $e');
+      if (mounted) {
+        setState(() {
+          _currentLat = null;
+          _currentLng = null;
+        });
+      }
+    }
   }
 
   Future<void> _prefillFromShiftApi(double lat, double lng) async {
@@ -1398,14 +1421,60 @@ class _CheckInPageState extends State<CheckInPage> {
         return;
       }
       
+      // Validasi: Pastikan GPS location sudah tersedia sebelum submit
+      // Jika masih null, coba ambil lagi
+      double? finalLat = _currentLat;
+      double? finalLng = _currentLng;
+      
+      if (finalLat == null || finalLng == null || finalLat == 0.0 || finalLng == 0.0) {
+        print('⚠️ [CheckIn] GPS location is null or 0, attempting to get location again...');
+        print('  Current values: lat=$finalLat, lng=$finalLng');
+        
+        try {
+          final locationService = getIt<LocationService>();
+          final pos = await locationService.getCurrentLatLng();
+          if (pos != null && pos.lat != 0.0 && pos.lng != 0.0) {
+            finalLat = pos.lat;
+            finalLng = pos.lng;
+            print('✅ [CheckIn] GPS location obtained before submit: lat=$finalLat, lng=$finalLng');
+          } else {
+            print('❌ [CheckIn] Failed to get GPS location before submit - pos is null or 0');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Gagal mendapatkan lokasi GPS. Pastikan GPS aktif dan izin lokasi sudah diberikan.'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 4),
+                ),
+              );
+            }
+            return;
+          }
+        } catch (e) {
+          print('❌ [CheckIn] Error getting GPS location before submit: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error mendapatkan lokasi GPS: $e'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          return;
+        }
+      } else {
+        print('✅ [CheckIn] GPS location already available: lat=$finalLat, lng=$finalLng');
+      }
+      
       // Submit to bloc - success dialog will be shown by listener
       final request = CheckInRequest(
         userId: widget.userId,
         shift: 'Pagi',
         lokasiPenugasan: _lokasiPenugasanController.text,
         lokasiTerkini: _lokasiTerkiniController.text,
-        latitude: _currentLat,
-        longitude: _currentLng,
+        latitude: finalLat,
+        longitude: finalLng,
         ratePatrol: _rutePatroliController.text,
         pakaianPersonil: _pakaianPersonil,
         laporanPengamanan: _laporanPengamananController.text,
@@ -1414,6 +1483,8 @@ class _CheckInPageState extends State<CheckInPage> {
         fotoWajah: _fotoWajah,
         shiftDetailId: shiftDetailId, // Pastikan ini tidak null/kosong
       );
+      
+      print('✅ [CheckIn] CheckInRequest created with GPS: lat=${request.latitude}, lng=${request.longitude}');
       
       print('✅ CheckInRequest created with shiftDetailId: ${request.shiftDetailId}');
 
