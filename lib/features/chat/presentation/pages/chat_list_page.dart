@@ -6,6 +6,7 @@ import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
 import '../../domain/entities/chat.dart';
+import '../../domain/entities/contact.dart';
 import '../../../../core/design/colors.dart';
 import 'chat_conversation_page.dart';
 
@@ -18,6 +19,7 @@ class ChatListPage extends StatefulWidget {
 
 class _ChatListPageState extends State<ChatListPage> {
   final TextEditingController _searchController = TextEditingController();
+  bool _isSearchingUsers = false;
 
   @override
   void initState() {
@@ -97,22 +99,36 @@ class _ChatListPageState extends State<ChatListPage> {
                     ),
                   ),
                   onChanged: (value) {
-                    context.read<ChatBloc>().add(ChatSearchChats(value));
+                    if (value.isEmpty) {
+                      setState(() {
+                        _isSearchingUsers = false;
+                      });
+                      // Reload conversations when search is cleared
+                      context.read<ChatBloc>().add(const ChatLoadChats());
+                    } else {
+                      setState(() {
+                        _isSearchingUsers = true;
+                      });
+                      // Search users from API
+                      context.read<ChatBloc>().add(ChatLoadUsers(searchQuery: value));
+                    }
                   },
                 ),
               ),
 
-              // Chat List
+              // Chat List or User List
               Expanded(
-                child: state.filteredChats.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        itemCount: state.filteredChats.length,
-                        itemBuilder: (context, index) {
-                          final chat = state.filteredChats[index];
-                          return _buildChatItem(chat);
-                        },
-                      ),
+                child: _isSearchingUsers
+                    ? _buildUserList(state)
+                    : (state.filteredChats.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.builder(
+                            itemCount: state.filteredChats.length,
+                            itemBuilder: (context, index) {
+                              final chat = state.filteredChats[index];
+                              return _buildChatItem(chat);
+                            },
+                          )),
               ),
             ],
           );
@@ -296,5 +312,157 @@ class _ChatListPageState extends State<ChatListPage> {
     } else {
       return DateFormat('HH:mm').format(timestamp);
     }
+  }
+
+  Widget _buildUserList(ChatState state) {
+    if (state.isLoadingUsers) {
+      return const Center(
+        child: CircularProgressIndicator(color: primaryColor),
+      );
+    }
+
+    if (state.users.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_search,
+              size: 60.sp,
+              color: neutral50,
+            ),
+            16.verticalSpace,
+            Text(
+              'Tidak ada user ditemukan',
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: neutral70,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: state.users.length,
+      itemBuilder: (context, index) {
+        final user = state.users[index];
+        return _buildUserItem(user);
+      },
+    );
+  }
+
+  Widget _buildUserItem(Contact user) {
+    return Container(
+      color: Colors.white,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            // Create conversation when user is clicked
+            final chatBloc = context.read<ChatBloc>();
+            chatBloc.add(ChatCreateConversation(memberUserIds: [user.id]));
+            
+            // Wait for conversation to be created
+            await Future.delayed(const Duration(milliseconds: 500));
+            
+            // Navigate to conversation page
+            if (mounted) {
+              final currentState = chatBloc.state;
+              if (currentState.selectedChatId != null) {
+                // Find the chat that was just created
+                final newChat = currentState.chats.firstWhere(
+                  (chat) => chat.id == currentState.selectedChatId,
+                  orElse: () => Chat(
+                    id: currentState.selectedChatId!,
+                    name: user.name,
+                    type: ChatType.direct,
+                    participantIds: [user.id],
+                    unreadCount: 0,
+                    isActive: true,
+                    createdAt: DateTime.now(),
+                    updatedAt: DateTime.now(),
+                  ),
+                );
+                
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider.value(
+                      value: chatBloc,
+                      child: ChatConversationPage(chat: newChat),
+                    ),
+                  ),
+                );
+                
+                // Clear search
+                _searchController.clear();
+                setState(() {
+                  _isSearchingUsers = false;
+                });
+              }
+            }
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            child: Row(
+              children: [
+                // Profile Picture
+                CircleAvatar(
+                  radius: 24.r,
+                  backgroundColor: primary10,
+                  backgroundImage: user.profileImageUrl != null
+                      ? NetworkImage(user.profileImageUrl!)
+                      : null,
+                  child: user.profileImageUrl == null
+                      ? Icon(
+                          Icons.person,
+                          color: primaryColor,
+                          size: 24.sp,
+                        )
+                      : null,
+                ),
+                12.horizontalSpace,
+
+                // User Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.name,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: neutral90,
+                        ),
+                      ),
+                      if (user.position != null) ...[
+                        4.verticalSpace,
+                        Text(
+                          user.position!,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: neutral70,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                
+                // Arrow icon
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16.sp,
+                  color: neutral50,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

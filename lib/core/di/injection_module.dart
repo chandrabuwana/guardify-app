@@ -6,15 +6,14 @@ import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/login_use_case.dart';
 import '../../features/bmi/data/datasources/bmi_remote_data_source.dart';
+import '../../features/chat/data/datasources/chat_remote_data_source.dart';
 import '../../features/chat/data/repositories/chat_repository_impl.dart';
 import '../../features/chat/domain/repositories/chat_repository.dart';
-import '../../features/chat/presentation/bloc/chat_bloc.dart';
 import '../../features/news/domain/repositories/news_repository.dart';
 import '../../features/news/presentation/bloc/news_bloc.dart';
 import '../../features/test_result/data/datasources/test_result_api_data_source.dart';
 import '../constants/app_constants.dart';
 import '../security/security_manager.dart';
-import '../services/api_log_service.dart';
 
 /// Injection Module - Centralized Dependency Registration
 /// Semua dependencies diregister di sini untuk memudahkan maintenance
@@ -171,17 +170,22 @@ abstract class InjectionModule {
   // Chat Feature Dependencies
   // ========================================
 
+  /// Chat Remote Data Source
+  /// Note: ChatRemoteDataSource is auto-registered by injectable
+  /// because it uses @lazySingleton annotation
+
   /// Chat Repository Implementation
   @lazySingleton
-  ChatRepository chatRepository() {
-    return ChatRepositoryImpl();
+  ChatRepository chatRepository(ChatRemoteDataSource remoteDataSource) {
+    return ChatRepositoryImpl(remoteDataSource);
   }
 
+  /// SignalR Chat Service
+  /// Note: SignalRChatService is auto-registered by @lazySingleton annotation
+
   /// Chat Bloc
-  @injectable
-  ChatBloc chatBloc(ChatRepository chatRepository) {
-    return ChatBloc(chatRepository);
-  }
+  /// Note: ChatBloc is auto-registered by @injectable annotation in chat_bloc.dart
+  /// No manual registration needed here
 
   // ========================================
   // News Feature Dependencies
