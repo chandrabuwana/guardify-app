@@ -65,9 +65,7 @@ class _AddNewsPageState extends State<AddNewsPage> {
             );
           }
 
-          if (state.isLoading == false &&
-              state.errorMessage == null &&
-              _formKey.currentState?.validate() == true) {
+          if (state.createSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Berita berhasil ditambahkan'),

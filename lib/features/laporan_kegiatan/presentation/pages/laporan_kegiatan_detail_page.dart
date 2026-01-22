@@ -278,7 +278,12 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           16.verticalSpace,
 
           // Laporan Pengamanan
-          _buildInfoCard('Laporan Pengamanan', laporan.laporanPengamanan),
+          _buildInfoCard(
+            'Laporan Pengamanan',
+            laporan.laporanPengamanan.trim().isNotEmpty
+                ? laporan.laporanPengamanan
+                : '-',
+          ),
           16.verticalSpace,
 
           // Foto Pengamanan
@@ -343,7 +348,13 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           ],
 
           // Laporan Pengamanan
-          _buildInfoCard('Laporan Pengamanan', laporan.laporanPengamanan),
+          _buildInfoCard(
+            'Laporan Pengamanan',
+            (laporan.laporanPengamananCheckout != null &&
+                    laporan.laporanPengamananCheckout!.trim().isNotEmpty)
+                ? laporan.laporanPengamananCheckout!
+                : '-',
+          ),
           16.verticalSpace,
 
           // Foto Pengamanan

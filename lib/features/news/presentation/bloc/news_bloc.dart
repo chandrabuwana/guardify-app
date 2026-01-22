@@ -15,11 +15,50 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
     on<NewsLoadNewsById>(_onLoadNewsById);
     on<NewsSearchNews>(_onSearchNews);
     on<NewsFilterByCategory>(_onFilterByCategory);
+    on<NewsApplyFilter>(_onApplyFilter);
     on<NewsCreateNews>(_onCreateNews);
     on<NewsUpdateNews>(_onUpdateNews);
     on<NewsDeleteNews>(_onDeleteNews);
     on<NewsClearSearch>(_onClearSearch);
     on<NewsClearFilter>(_onClearFilter);
+  }
+
+  Future<void> _onApplyFilter(
+    NewsApplyFilter event,
+    Emitter<NewsState> emit,
+  ) async {
+    emit(state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      createSuccess: false,
+      selectedCategory: event.category,
+      newestFirst: event.newestFirst,
+      currentPage: 0,
+      hasReachedMax: false,
+    ));
+
+    try {
+      final news = await newsRepository.getNews(
+        start: 0,
+        length: pageSize,
+        searchQuery: state.searchQuery.isEmpty ? null : state.searchQuery,
+        category: event.category,
+        newestFirst: event.newestFirst,
+      );
+
+      emit(state.copyWith(
+        isLoading: false,
+        news: news,
+        filteredNews: news,
+        hasReachedMax: news.length < pageSize,
+        currentPage: 0,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: 'Gagal memuat berita: ${e.toString()}',
+      ));
+    }
   }
 
   Future<void> _onLoadNews(
@@ -29,6 +68,7 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
     emit(state.copyWith(
       isLoading: true,
       errorMessage: null,
+      createSuccess: false,
       hasReachedMax: false,
       currentPage: 0,
     ));
@@ -38,6 +78,8 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
         start: 0,
         length: pageSize,
         searchQuery: state.searchQuery.isEmpty ? null : state.searchQuery,
+        category: state.selectedCategory,
+        newestFirst: state.newestFirst,
       );
 
       emit(state.copyWith(
@@ -61,7 +103,7 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
   ) async {
     if (state.hasReachedMax || state.isLoadingMore) return;
 
-    emit(state.copyWith(isLoadingMore: true, errorMessage: null));
+    emit(state.copyWith(isLoadingMore: true, errorMessage: null, createSuccess: false));
 
     try {
       final nextPage = state.currentPage + 1;
@@ -69,6 +111,8 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
         start: nextPage * pageSize,
         length: pageSize,
         searchQuery: state.searchQuery.isEmpty ? null : state.searchQuery,
+        category: state.selectedCategory,
+        newestFirst: state.newestFirst,
       );
 
       if (newNews.isEmpty) {
@@ -102,6 +146,7 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
       hasReachedMax: false,
       currentPage: 0,
       errorMessage: null,
+      createSuccess: false,
     ));
 
     try {
@@ -109,6 +154,8 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
         start: 0,
         length: pageSize,
         searchQuery: state.searchQuery.isEmpty ? null : state.searchQuery,
+        category: state.selectedCategory,
+        newestFirst: state.newestFirst,
       );
 
       emit(state.copyWith(
@@ -128,7 +175,12 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
     NewsLoadNewsById event,
     Emitter<NewsState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true, errorMessage: null));
+    emit(state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      createSuccess: false,
+      selectedNews: null,
+    ));
 
     try {
       final news = await newsRepository.getNewsById(event.id);
@@ -162,6 +214,8 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
         final news = await newsRepository.getNews(
           start: 0,
           length: pageSize,
+          category: state.selectedCategory,
+          newestFirst: state.newestFirst,
         );
         emit(state.copyWith(
           isSearching: false,
@@ -177,6 +231,8 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
           start: 0,
           length: pageSize,
           searchQuery: event.query,
+          category: state.selectedCategory,
+          newestFirst: state.newestFirst,
         );
         emit(state.copyWith(
           isSearching: false,
@@ -203,10 +259,17 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
       isLoading: true,
       currentPage: 0,
       hasReachedMax: false,
+      createSuccess: false,
     ));
 
     try {
-      final results = await newsRepository.filterNewsByCategory(event.category);
+      final results = await newsRepository.getNews(
+        start: 0,
+        length: pageSize,
+        searchQuery: state.searchQuery.isEmpty ? null : state.searchQuery,
+        category: event.category,
+        newestFirst: state.newestFirst,
+      );
       emit(state.copyWith(
         isLoading: false,
         news: results,
@@ -227,7 +290,7 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
     NewsCreateNews event,
     Emitter<NewsState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true, errorMessage: null));
+    emit(state.copyWith(isLoading: true, errorMessage: null, createSuccess: false));
 
     try {
       final newNews = await newsRepository.createNews(event.news);
@@ -237,11 +300,13 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
         isLoading: false,
         news: updatedNews,
         filteredNews: updatedNews,
+        createSuccess: true,
       ));
     } catch (e) {
       emit(state.copyWith(
         isLoading: false,
         errorMessage: 'Gagal membuat berita: ${e.toString()}',
+        createSuccess: false,
       ));
     }
   }
@@ -250,7 +315,7 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
     NewsUpdateNews event,
     Emitter<NewsState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true, errorMessage: null));
+    emit(state.copyWith(isLoading: true, errorMessage: null, createSuccess: false));
 
     try {
       final updatedNews = await newsRepository.updateNews(event.news);
@@ -276,7 +341,7 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
     NewsDeleteNews event,
     Emitter<NewsState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true, errorMessage: null));
+    emit(state.copyWith(isLoading: true, errorMessage: null, createSuccess: false));
 
     try {
       await newsRepository.deleteNews(event.id);
@@ -305,9 +370,12 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
       final news = await newsRepository.getNews(
         start: 0,
         length: pageSize,
+        category: state.selectedCategory,
+        newestFirst: state.newestFirst,
       );
       emit(state.copyWith(
         searchQuery: '',
+        createSuccess: false,
         news: news,
         filteredNews: news,
         currentPage: 0,
@@ -329,9 +397,13 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
       final news = await newsRepository.getNews(
         start: 0,
         length: pageSize,
+        searchQuery: state.searchQuery.isEmpty ? null : state.searchQuery,
+        category: null,
+        newestFirst: state.newestFirst,
       );
       emit(state.copyWith(
         selectedCategory: null,
+        createSuccess: false,
         news: news,
         filteredNews: news,
         currentPage: 0,
