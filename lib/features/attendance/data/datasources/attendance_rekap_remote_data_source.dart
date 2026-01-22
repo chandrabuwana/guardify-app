@@ -114,6 +114,7 @@ class AttendanceRekapRemoteDataSourceImpl
       print('  Method: POST');
       print('  IdAttendance: ${request.idAttendance}');
       print('  Laporan: ${request.laporan ?? "null"}');
+      print('  LaporanCheckout: ${request.laporanCheckout ?? "null"}');
       print('  IsOvertime: ${request.isOvertime ?? "null"}');
       
       // Log photo paths
@@ -144,6 +145,9 @@ class AttendanceRekapRemoteDataSourceImpl
         if (photoPakaian != null) 'PhotoCheckoutPengamanan': photoPakaian,
         if (request.laporan != null && request.laporan!.isNotEmpty)
           'Laporan': request.laporan,
+        if (request.laporanCheckout != null &&
+            request.laporanCheckout!.isNotEmpty)
+          'LaporanCheckout': request.laporanCheckout,
         if (request.isOvertime != null) 'IsOvertime': request.isOvertime,
         if (photoOvertime != null) 'PhotoOvertime': photoOvertime,
         // Token removed - already in Authorization header

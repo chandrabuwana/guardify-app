@@ -5,6 +5,7 @@ class AttendanceUpdateRequest {
   final String? photoPengamananPath; // Path to photo file
   final String? photoPakaianPath; // Path to pakaian photo file (PhotoCheckoutPengamanan)
   final String? laporan;
+  final String? laporanCheckout;
   final bool? isOvertime;
   final String? photoOvertimePath; // Path to overtime photo file
 
@@ -14,6 +15,7 @@ class AttendanceUpdateRequest {
     this.photoPengamananPath,
     this.photoPakaianPath,
     this.laporan,
+    this.laporanCheckout,
     this.isOvertime,
     this.photoOvertimePath,
   });

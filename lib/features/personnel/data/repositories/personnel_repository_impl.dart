@@ -188,7 +188,7 @@ class PersonnelRepositoryImpl implements PersonnelRepository {
         'Email': personnel.email,
         'PhoneNumber': personnel.phoneNumber,
         'Active': false, // Keep as false for revision
-        'Status': 'Pending', // Keep as Pending for revision
+        'Status': 'Revisi', // Set status to Revisi for revision request
         'NoNrp': personnel.noNrp,
         'NoKtp': personnel.noKtp,
         'TempatLahir': personnel.tempatLahir,

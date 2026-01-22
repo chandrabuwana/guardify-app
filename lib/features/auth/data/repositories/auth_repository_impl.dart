@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/login_use_case.dart';
 import '../datasources/auth_remote_data_source.dart';
@@ -16,11 +17,24 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
     required String password,
   }) async {
     try {
+      String firebaseToken = '';
+      try {
+        final messaging = FirebaseMessaging.instance;
+        final settings = await messaging.requestPermission();
+        if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+            settings.authorizationStatus == AuthorizationStatus.provisional) {
+          firebaseToken = await messaging.getToken() ?? '';
+        }
+      } catch (_) {
+        firebaseToken = '';
+      }
+
       // Call API
       final response = await remoteDataSource.login({
         'Username': username,
         'Password': password,
         'FromMobile': true,
+        'FirebaseToken': firebaseToken,
       });
 
       // Check if request succeeded
