@@ -425,9 +425,15 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception('Current user ID not found');
       }
 
-      // Only support text messages for now
-      if (type != MessageType.text) {
-        throw Exception('Only text messages are supported');
+      // Support text and image messages (with attachments)
+      // If there's an attachment file, allow image type
+      if (type != MessageType.text && type != MessageType.image) {
+        throw Exception('Only text and image messages are supported');
+      }
+      
+      // If type is image but no attachment file, that's invalid
+      if (type == MessageType.image && attachmentFile == null) {
+        throw Exception('Image message requires an attachment file');
       }
 
       // Prepare attachments if file is provided

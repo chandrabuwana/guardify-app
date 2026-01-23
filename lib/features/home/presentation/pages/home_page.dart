@@ -116,18 +116,6 @@ class __HomePageViewState extends State<_HomePageView> {
     return BlocConsumer<HomeBloc, HomeState>(
       listener: (context, state) {
         if (state is HomeLoaded) {
-          // Handle snackbar messages
-          if (state.snackbarMessage != null &&
-              state.snackbarMessage!.isNotEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.snackbarMessage!),
-                backgroundColor: primaryColor,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-
           // Handle navigation
           if (state.navigationRoute != null &&
               state.navigationRoute!.isNotEmpty) {

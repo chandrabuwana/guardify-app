@@ -24,6 +24,7 @@ dependencies:
   retrofit: ^4.0.1
   json_annotation: ^4.9.0
   web_socket_channel: ^3.0.1
+  signalr_netcore: ^1.0.0
 
   # Local Storage & Security
   shared_preferences: ^2.2.2

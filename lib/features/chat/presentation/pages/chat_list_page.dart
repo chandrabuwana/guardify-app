@@ -62,12 +62,6 @@ class _ChatListPageState extends State<ChatListPage> {
           }
         },
         builder: (context, state) {
-          if (state.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: primaryColor),
-            );
-          }
-
           return Column(
             children: [
               // Search Bar
@@ -120,15 +114,21 @@ class _ChatListPageState extends State<ChatListPage> {
               Expanded(
                 child: _isSearchingUsers
                     ? _buildUserList(state)
-                    : (state.filteredChats.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.builder(
-                            itemCount: state.filteredChats.length,
-                            itemBuilder: (context, index) {
-                              final chat = state.filteredChats[index];
-                              return _buildChatItem(chat);
-                            },
-                          )),
+                    : (state.isLoading && state.chats.isEmpty
+                        ? const Center(
+                            child: CircularProgressIndicator(color: primaryColor),
+                          )
+                        : (state.errorMessage != null && state.chats.isEmpty
+                            ? _buildErrorState(state.errorMessage!)
+                            : (state.filteredChats.isEmpty
+                                ? _buildEmptyState()
+                                : ListView.builder(
+                                    itemCount: state.filteredChats.length,
+                                    itemBuilder: (context, index) {
+                                      final chat = state.filteredChats[index];
+                                      return _buildChatItem(chat);
+                                    },
+                                  )))),
               ),
             ],
           );
@@ -175,6 +175,73 @@ class _ChatListPageState extends State<ChatListPage> {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String errorMessage) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Error illustration
+            Container(
+              width: 120.w,
+              height: 120.h,
+              decoration: BoxDecoration(
+                color: errorColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(60.r),
+              ),
+              child: Icon(
+                Icons.error_outline,
+                size: 60.sp,
+                color: errorColor,
+              ),
+            ),
+            24.verticalSpace,
+            Text(
+              'Gagal memuat pesan',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+                color: neutral70,
+              ),
+            ),
+            8.verticalSpace,
+            Text(
+              errorMessage,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: neutral50,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            24.verticalSpace,
+            ElevatedButton.icon(
+              onPressed: () {
+                context.read<ChatBloc>().add(const ChatLoadChats());
+              },
+              icon: Icon(Icons.refresh, size: 20.sp),
+              label: Text(
+                'Coba Lagi',
+                style: TextStyle(fontSize: 14.sp),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 24.w,
+                  vertical: 12.h,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
