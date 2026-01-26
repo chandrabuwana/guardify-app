@@ -284,7 +284,7 @@ class ChatRepositoryImpl implements ChatRepository {
           lastMessageContent: item.lastMessageText,
           lastMessageSenderName: lastSenderName,
           lastMessageTimestamp: item.lastSentAt,
-          unreadCount: 0, // API doesn't provide unread count
+          unreadCount: item.totalUnread, // Use TotalUnread from API response
           isActive: true,
           createdAt: item.lastSentAt ?? DateTime.now(),
           updatedAt: item.lastSentAt ?? DateTime.now(),
@@ -311,8 +311,15 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<List<Message>> getMessages(String chatId) async {
     try {
+      // Get current user ID to include in request
+      final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      if (currentUserId == null) {
+        throw Exception('User ID not found');
+      }
+
       final request = ListMessageRequestModel(
         conversationId: chatId,
+        userId: currentUserId,
         start: 0,
         length: 0, // Get all messages
       );
@@ -323,10 +330,7 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception(response.message ?? 'Failed to get messages');
       }
 
-      // Get current user ID to determine if message is from current user
-      final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
-
-      // Get user list to map sender IDs to names
+      // Get user list to map sender IDs to names (fallback if Header is not available)
       // Try to get sender names from user list
       Map<String, String> senderNameMap = {};
       try {
@@ -349,9 +353,16 @@ class ChatRepositoryImpl implements ChatRepository {
       // Convert MessageItemModel to Message entity
       final messages = response.list.map((item) {
         final isFromCurrentUser = currentUserId != null && item.senderId == currentUserId;
+        // Use Header information if available, otherwise fallback to senderNameMap
         final senderName = isFromCurrentUser
             ? 'Saya'
-            : (senderNameMap[item.senderId] ?? 'User');
+            : (item.header?.fullname ?? senderNameMap[item.senderId] ?? 'User');
+        
+        // Use Header information for profile image
+        // If message is from current user, use SelfFoto, otherwise use OpponentFoto
+        final profileImageUrl = isFromCurrentUser
+            ? (item.header?.selfFoto)
+            : (item.header?.opponentFoto);
         
         // Handle attachments from response
         String? attachmentUrl;
@@ -386,13 +397,18 @@ class ChatRepositoryImpl implements ChatRepository {
           chatId: item.conversationId,
           senderId: item.senderId,
           senderName: senderName,
-          senderProfileImageUrl: null,
+          senderProfileImageUrl: profileImageUrl,
           content: item.text,
           type: messageType,
           timestamp: item.sentAt,
           status: MessageStatus.read, // Default to read
           attachmentUrl: attachmentUrl,
           attachmentType: attachmentType,
+          // Header information
+          isOnline: item.header?.isOnline,
+          lastSeen: item.header?.lastSeen,
+          opponentFoto: item.header?.opponentFoto,
+          selfFoto: item.header?.selfFoto,
         );
       }).toList();
 

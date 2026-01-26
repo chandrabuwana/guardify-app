@@ -337,20 +337,26 @@ class _ChatListPageState extends State<ChatListPage> {
                           if (chat.unreadCount > 0) ...[
                             8.horizontalSpace,
                             Container(
+                              constraints: BoxConstraints(
+                                minWidth: 20.w,
+                              ),
                               padding: EdgeInsets.symmetric(
-                                horizontal: 6.w,
+                                horizontal: chat.unreadCount > 99 ? 6.w : 6.w,
                                 vertical: 2.h,
                               ),
                               decoration: BoxDecoration(
                                 color: primaryColor,
                                 borderRadius: BorderRadius.circular(10.r),
                               ),
-                              child: Text(
-                                chat.unreadCount.toString(),
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                              child: Center(
+                                child: Text(
+                                  chat.unreadCount > 99 ? '99+' : chat.unreadCount.toString(),
+                                  style: TextStyle(
+                                    fontSize: 11.sp,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ),

@@ -101,7 +101,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: neutral10,
-      appBar: _buildAppBar(),
+      appBar: _buildAppBarWidget(),
       body: BlocConsumer<ChatBloc, ChatState>(
         listener: (context, state) {
           // Auto scroll to bottom when new message is added
@@ -162,69 +162,138 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: primaryColor,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Row(
-        children: [
-          CircleAvatar(
-            radius: 18.r,
-            backgroundColor: Colors.white.withValues(alpha: 0.2),
-            backgroundImage: widget.chat.profileImageUrl != null
-                ? NetworkImage(widget.chat.profileImageUrl!)
-                : null,
-            child: widget.chat.profileImageUrl == null
-                ? Icon(
-                    widget.chat.type == ChatType.group
-                        ? Icons.group
-                        : Icons.person,
-                    color: Colors.white,
-                    size: 20.sp,
-                  )
-                : null,
-          ),
-          12.horizontalSpace,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  PreferredSizeWidget _buildAppBarWidget() {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(kToolbarHeight),
+      child: BlocBuilder<ChatBloc, ChatState>(
+        builder: (context, state) {
+          // Get Header information from the most recent message
+          Message? lastMessage;
+          if (state.messages.isNotEmpty) {
+            // Find the most recent message (messages are sorted by timestamp)
+            lastMessage = state.messages.last;
+          }
+          
+          // Get opponent info from Header (for direct chat)
+          final opponentFoto = lastMessage?.opponentFoto ?? widget.chat.profileImageUrl;
+          final isOnline = lastMessage?.isOnline ?? false;
+          final lastSeen = lastMessage?.lastSeen;
+          
+          // Format last seen text
+          String statusText = widget.chat.type == ChatType.group
+              ? 'Grup'
+              : _getLastSeenText(isOnline, lastSeen);
+          
+          return AppBar(
+            backgroundColor: primaryColor,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Row(
               children: [
-                Text(
-                  widget.chat.name,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 18.r,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      backgroundImage: opponentFoto != null
+                          ? NetworkImage(opponentFoto)
+                          : null,
+                      child: opponentFoto == null
+                          ? Icon(
+                              widget.chat.type == ChatType.group
+                                  ? Icons.group
+                                  : Icons.person,
+                              color: Colors.white,
+                              size: 20.sp,
+                            )
+                          : null,
+                    ),
+                    // Online indicator for direct chat
+                    if (widget.chat.type == ChatType.direct && isOnline)
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 12.w,
+                          height: 12.h,
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: primaryColor,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                Text(
-                  widget.chat.type == ChatType.group
-                      ? 'Grup'
-                      : 'Aktif 18 menit yang lalu',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: 12.sp,
+                12.horizontalSpace,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.chat.name,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.more_vert, color: Colors.white),
+                onPressed: () {
+                  // Show more options
+                },
+              ),
+            ],
+          );
+        },
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.more_vert, color: Colors.white),
-          onPressed: () {
-            // Show more options
-          },
-        ),
-      ],
     );
+  }
+  
+  String _getLastSeenText(bool isOnline, DateTime? lastSeen) {
+    if (isOnline) {
+      return 'Online';
+    }
+    
+    if (lastSeen == null) {
+      return 'Tidak aktif';
+    }
+    
+    final now = DateTime.now();
+    final difference = now.difference(lastSeen);
+    
+    if (difference.inMinutes < 1) {
+      return 'Baru saja aktif';
+    } else if (difference.inMinutes < 60) {
+      return 'Aktif ${difference.inMinutes} menit yang lalu';
+    } else if (difference.inHours < 24) {
+      return 'Aktif ${difference.inHours} jam yang lalu';
+    } else if (difference.inDays < 7) {
+      return 'Aktif ${difference.inDays} hari yang lalu';
+    } else {
+      return DateFormat('dd/MM/yyyy').format(lastSeen);
+    }
   }
 
   Widget _buildEmptyMessages() {
@@ -274,6 +343,12 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
 
   Widget _buildMessageBubble(Message message, bool isLastMessage) {
     final isMe = _currentUserId != null && message.senderId == _currentUserId;
+    
+    // Use Header information for avatar
+    // For current user: use SelfFoto, for opponent: use OpponentFoto
+    final avatarUrl = isMe 
+        ? (message.selfFoto ?? message.senderProfileImageUrl)
+        : (message.opponentFoto ?? message.senderProfileImageUrl);
 
     return Container(
       margin: EdgeInsets.only(bottom: 8.h),
@@ -286,10 +361,10 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             CircleAvatar(
               radius: 16.r,
               backgroundColor: primary10,
-              backgroundImage: message.senderProfileImageUrl != null
-                  ? NetworkImage(message.senderProfileImageUrl!)
+              backgroundImage: avatarUrl != null
+                  ? NetworkImage(avatarUrl)
                   : null,
-              child: message.senderProfileImageUrl == null
+              child: avatarUrl == null
                   ? Icon(
                       Icons.person,
                       color: primaryColor,
@@ -423,11 +498,16 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             CircleAvatar(
               radius: 16.r,
               backgroundColor: primary10,
-              child: Icon(
-                Icons.person,
-                color: primaryColor,
-                size: 16.sp,
-              ),
+              backgroundImage: avatarUrl != null
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: avatarUrl == null
+                  ? Icon(
+                      Icons.person,
+                      color: primaryColor,
+                      size: 16.sp,
+                    )
+                  : null,
             ),
           ],
         ],

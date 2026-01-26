@@ -140,6 +140,9 @@ class ListMessageRequestModel {
   @JsonKey(name: 'ConversationId')
   final String conversationId;
 
+  @JsonKey(name: 'UserId')
+  final String userId;
+
   @JsonKey(name: 'Start')
   final int start;
 
@@ -148,6 +151,7 @@ class ListMessageRequestModel {
 
   ListMessageRequestModel({
     required this.conversationId,
+    required this.userId,
     required this.start,
     required this.length,
   });
@@ -219,6 +223,9 @@ class MessageItemModel {
   @JsonKey(name: 'Attachments')
   final List<MessageAttachmentModel> attachments;
 
+  @JsonKey(name: 'Header')
+  final MessageHeaderModel? header;
+
   MessageItemModel({
     required this.id,
     required this.conversationId,
@@ -226,6 +233,7 @@ class MessageItemModel {
     required this.text,
     required this.sentAt,
     required this.attachments,
+    this.header,
   });
 
   factory MessageItemModel.fromJson(Map<String, dynamic> json) =>
@@ -264,6 +272,42 @@ class MessageAttachmentModel {
       _$MessageAttachmentModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$MessageAttachmentModelToJson(this);
+}
+
+/// Model untuk Header dalam Message Response (List Message API)
+@JsonSerializable()
+class MessageHeaderModel {
+  @JsonKey(name: 'Id')
+  final String id;
+
+  @JsonKey(name: 'Fullname')
+  final String fullname;
+
+  @JsonKey(name: 'LastSeen')
+  final DateTime? lastSeen;
+
+  @JsonKey(name: 'IsOnline')
+  final bool isOnline;
+
+  @JsonKey(name: 'OpponentFoto')
+  final String? opponentFoto;
+
+  @JsonKey(name: 'SelfFoto')
+  final String? selfFoto;
+
+  MessageHeaderModel({
+    required this.id,
+    required this.fullname,
+    this.lastSeen,
+    required this.isOnline,
+    this.opponentFoto,
+    this.selfFoto,
+  });
+
+  factory MessageHeaderModel.fromJson(Map<String, dynamic> json) =>
+      _$MessageHeaderModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MessageHeaderModelToJson(this);
 }
 
 /// Request model untuk List Conversation API
@@ -361,6 +405,9 @@ class ConversationItemModel {
   @JsonKey(name: 'LastMessageAttachmentCount')
   final int lastMessageAttachmentCount;
 
+  @JsonKey(name: 'TotalUnread')
+  final int totalUnread;
+
   ConversationItemModel({
     required this.id,
     required this.name,
@@ -370,6 +417,7 @@ class ConversationItemModel {
     this.lastMessageText,
     this.lastSentAt,
     this.lastMessageAttachmentCount = 0,
+    this.totalUnread = 0,
   });
 
   factory ConversationItemModel.fromJson(Map<String, dynamic> json) =>

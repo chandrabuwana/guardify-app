@@ -165,6 +165,7 @@ ListMessageRequestModel _$ListMessageRequestModelFromJson(
       ($checkedConvert) {
         final val = ListMessageRequestModel(
           conversationId: $checkedConvert('ConversationId', (v) => v as String),
+          userId: $checkedConvert('UserId', (v) => v as String),
           start: $checkedConvert('Start', (v) => (v as num).toInt()),
           length: $checkedConvert('Length', (v) => (v as num).toInt()),
         );
@@ -172,6 +173,7 @@ ListMessageRequestModel _$ListMessageRequestModelFromJson(
       },
       fieldKeyMap: const {
         'conversationId': 'ConversationId',
+        'userId': 'UserId',
         'start': 'Start',
         'length': 'Length'
       },
@@ -181,6 +183,7 @@ Map<String, dynamic> _$ListMessageRequestModelToJson(
         ListMessageRequestModel instance) =>
     <String, dynamic>{
       'ConversationId': instance.conversationId,
+      'UserId': instance.userId,
       'Start': instance.start,
       'Length': instance.length,
     };
@@ -247,6 +250,11 @@ MessageItemModel _$MessageItemModelFromJson(Map<String, dynamic> json) =>
                   .map((e) => MessageAttachmentModel.fromJson(
                       e as Map<String, dynamic>))
                   .toList()),
+          header: $checkedConvert(
+              'Header',
+              (v) => v == null
+                  ? null
+                  : MessageHeaderModel.fromJson(v as Map<String, dynamic>)),
         );
         return val;
       },
@@ -256,7 +264,8 @@ MessageItemModel _$MessageItemModelFromJson(Map<String, dynamic> json) =>
         'senderId': 'SenderId',
         'text': 'Text',
         'sentAt': 'SentAt',
-        'attachments': 'Attachments'
+        'attachments': 'Attachments',
+        'header': 'Header'
       },
     );
 
@@ -268,6 +277,7 @@ Map<String, dynamic> _$MessageItemModelToJson(MessageItemModel instance) =>
       'Text': instance.text,
       'SentAt': instance.sentAt.toIso8601String(),
       'Attachments': instance.attachments.map((e) => e.toJson()).toList(),
+      'Header': instance.header?.toJson(),
     };
 
 MessageAttachmentModel _$MessageAttachmentModelFromJson(
@@ -302,6 +312,42 @@ Map<String, dynamic> _$MessageAttachmentModelToJson(
       'FileType': instance.fileType,
       'FileSize': instance.fileSize,
       'S3Url': instance.s3Url,
+    };
+
+MessageHeaderModel _$MessageHeaderModelFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      'MessageHeaderModel',
+      json,
+      ($checkedConvert) {
+        final val = MessageHeaderModel(
+          id: $checkedConvert('Id', (v) => v as String),
+          fullname: $checkedConvert('Fullname', (v) => v as String),
+          lastSeen: $checkedConvert('LastSeen',
+              (v) => v == null ? null : DateTime.parse(v as String)),
+          isOnline: $checkedConvert('IsOnline', (v) => v as bool),
+          opponentFoto: $checkedConvert('OpponentFoto', (v) => v as String?),
+          selfFoto: $checkedConvert('SelfFoto', (v) => v as String?),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'id': 'Id',
+        'fullname': 'Fullname',
+        'lastSeen': 'LastSeen',
+        'isOnline': 'IsOnline',
+        'opponentFoto': 'OpponentFoto',
+        'selfFoto': 'SelfFoto'
+      },
+    );
+
+Map<String, dynamic> _$MessageHeaderModelToJson(MessageHeaderModel instance) =>
+    <String, dynamic>{
+      'Id': instance.id,
+      'Fullname': instance.fullname,
+      'LastSeen': instance.lastSeen?.toIso8601String(),
+      'IsOnline': instance.isOnline,
+      'OpponentFoto': instance.opponentFoto,
+      'SelfFoto': instance.selfFoto,
     };
 
 ListConversationRequestModel _$ListConversationRequestModelFromJson(
@@ -398,6 +444,8 @@ ConversationItemModel _$ConversationItemModelFromJson(
               (v) => v == null ? null : DateTime.parse(v as String)),
           lastMessageAttachmentCount: $checkedConvert(
               'LastMessageAttachmentCount', (v) => (v as num?)?.toInt() ?? 0),
+          totalUnread:
+              $checkedConvert('TotalUnread', (v) => (v as num?)?.toInt() ?? 0),
         );
         return val;
       },
@@ -409,7 +457,8 @@ ConversationItemModel _$ConversationItemModelFromJson(
         'lastSenderId': 'LastSenderId',
         'lastMessageText': 'LastMessageText',
         'lastSentAt': 'LastSentAt',
-        'lastMessageAttachmentCount': 'LastMessageAttachmentCount'
+        'lastMessageAttachmentCount': 'LastMessageAttachmentCount',
+        'totalUnread': 'TotalUnread'
       },
     );
 
@@ -424,4 +473,5 @@ Map<String, dynamic> _$ConversationItemModelToJson(
       'LastMessageText': instance.lastMessageText,
       'LastSentAt': instance.lastSentAt?.toIso8601String(),
       'LastMessageAttachmentCount': instance.lastMessageAttachmentCount,
+      'TotalUnread': instance.totalUnread,
     };
