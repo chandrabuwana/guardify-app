@@ -41,7 +41,7 @@ class QuickActionsSection extends StatelessWidget {
           ),
           QuickActionButton(
             icon: Icons.fitness_center,
-            label: 'BMI',
+            label: 'Body Mass Index',
             onTap: onBMITap,
           ),
           QuickActionButton(

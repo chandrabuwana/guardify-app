@@ -37,6 +37,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   final Map<String, Uint8List?> _imageCache = {}; // Cache untuk image bytes
   ChatBloc? _chatBloc; // Store ChatBloc reference to use in dispose
   final Map<String, File> _pendingLocalFiles = {}; // Map untuk menyimpan local file yang baru dikirim (key: timestamp_content)
+  String? _lastShownErrorMessage; // Track last shown error to prevent duplicates
 
   @override
   void didChangeDependencies() {
@@ -104,6 +105,29 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       appBar: _buildAppBarWidget(),
       body: BlocConsumer<ChatBloc, ChatState>(
         listener: (context, state) {
+          // Handle error message - show snackbar and clear error
+          // Only show if error message is different from last shown error
+          if (state.errorMessage != null && 
+              state.errorMessage!.isNotEmpty &&
+              state.errorMessage != _lastShownErrorMessage) {
+            _lastShownErrorMessage = state.errorMessage;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage!),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            // Clear error message after showing
+            _chatBloc?.add(ChatClearError());
+          }
+          
+          // Reset last shown error if error is cleared
+          if (state.errorMessage == null || state.errorMessage!.isEmpty) {
+            _lastShownErrorMessage = null;
+          }
+          
           // Auto scroll to bottom when new message is added
           if (state.messages.isNotEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {

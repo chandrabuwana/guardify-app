@@ -415,6 +415,7 @@ class __HomePageViewState extends State<_HomePageView> {
         return Scaffold(
           backgroundColor: neutral10,
           body: SafeArea(
+            bottom: false, // Let bottomNavigationBar handle bottom padding
             child: Column(
               children: [
                 // App Header

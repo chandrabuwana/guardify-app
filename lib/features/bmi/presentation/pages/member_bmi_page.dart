@@ -264,7 +264,7 @@ class _MemberBMIPageState extends State<MemberBMIPage> {
 
             // BMI Value
             Text(
-              'BMI ${userProfile!.currentBMI!.toStringAsFixed(1)} Kg/M2',
+              'Body Mass Index ${userProfile!.currentBMI!.toStringAsFixed(1)} Kg/M2',
               style: TS.headlineMedium.copyWith(
                 fontWeight: FontWeight.bold,
                 color: primaryColor,
@@ -318,7 +318,7 @@ class _MemberBMIPageState extends State<MemberBMIPage> {
             ),
             16.verticalSpace,
             Text(
-              'Belum ada data BMI',
+              'Belum ada data body mass index',
               style: TS.titleMedium.copyWith(
                 color: neutral70,
                 fontWeight: FontWeight.w600,
@@ -326,7 +326,7 @@ class _MemberBMIPageState extends State<MemberBMIPage> {
             ),
             8.verticalSpace,
             Text(
-              'Hitung BMI pertama Anda untuk melihat status kesehatan',
+              'Hitung body mass index pertama Anda untuk melihat status kesehatan',
               style: TS.bodyMedium.copyWith(
                 color: neutral50,
               ),
@@ -378,7 +378,7 @@ class _MemberBMIPageState extends State<MemberBMIPage> {
         ),
         12.verticalSpace,
         UIButton(
-          text: 'Hitung BMI',
+          text: 'Hitung Body Mass Index',
           icon: Icon(Icons.calculate_outlined, size: 20.w),
           fullWidth: true,
           onPressed: _showBMICalculationDialog,
@@ -392,7 +392,7 @@ class _MemberBMIPageState extends State<MemberBMIPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Riwayat BMI',
+          'Riwayat Body Mass Index',
           style: TS.titleMedium.copyWith(
             fontWeight: FontWeight.bold,
             color: neutral90,
@@ -417,7 +417,7 @@ class _MemberBMIPageState extends State<MemberBMIPage> {
                 ),
                 16.verticalSpace,
                 Text(
-                  'Belum ada riwayat BMI',
+                  'Belum ada riwayat body mass index',
                   style: TS.bodyLarge.copyWith(
                     color: neutral70,
                     fontWeight: FontWeight.w600,
@@ -425,7 +425,7 @@ class _MemberBMIPageState extends State<MemberBMIPage> {
                 ),
                 8.verticalSpace,
                 Text(
-                  'Mulai hitung BMI untuk melihat riwayat perkembangan',
+                  'Mulai hitung body mass index untuk melihat riwayat perkembangan',
                   style: TS.bodyMedium.copyWith(
                     color: neutral50,
                   ),
@@ -501,7 +501,7 @@ class _MemberBMIPageState extends State<MemberBMIPage> {
                 Row(
                   children: [
                     Text(
-                      'BMI ${record.bmi.toStringAsFixed(1)}',
+                      'Body Mass Index ${record.bmi.toStringAsFixed(1)}',
                       style: TS.titleMedium.copyWith(
                         fontWeight: FontWeight.bold,
                         color: primaryColor,

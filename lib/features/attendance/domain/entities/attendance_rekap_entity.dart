@@ -63,13 +63,14 @@ class AttendanceRekapEntity {
 
   /// Get border color based on status
   String get borderColor {
-    if (statusAttendance == 'Tidak Masuk') {
+    final normalizedStatus = statusAttendance.toLowerCase();
+    if (normalizedStatus == 'tidak masuk' || normalizedStatus == 'absent') {
       return 'red';
     }
-    if (statusAttendance == 'Terlambat') {
+    if (normalizedStatus == 'terlambat' || normalizedStatus == 'late') {
       return 'orange';
     }
-    if (statusAttendance == 'Masuk' && status == null && idAttendance != null) {
+    if ((normalizedStatus == 'masuk' || normalizedStatus == 'present') && status == null && idAttendance != null) {
       return 'blue';
     }
     return 'gray'; // Default gray border
@@ -101,6 +102,26 @@ class AttendanceRekapEntity {
   /// Format overtime status
   String get overtimeStatus {
     return isOvertime ? 'Ya' : 'Tidak';
+  }
+
+  /// Get formatted status attendance - maps Indonesian to English if needed
+  String get formattedStatusAttendance {
+    // Map Indonesian status to English
+    switch (statusAttendance) {
+      case 'Masuk':
+        return 'Present';
+      case 'Terlambat':
+        return 'Late';
+      case 'Tidak Masuk':
+        return 'Absent';
+      case 'Izin':
+        return 'Leave';
+      case 'Sakit':
+        return 'Sick';
+      default:
+        // If already in English or unknown, return as is
+        return statusAttendance;
+    }
   }
 }
 

@@ -36,6 +36,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ChatCreateChat>(_onCreateChat);
     on<ChatSelectChat>(_onSelectChat);
     on<ChatClearSearch>(_onClearSearch);
+    on<ChatClearError>(_onClearError);
     on<ChatLoadUsers>(_onLoadUsers);
     on<ChatCreateConversation>(_onCreateConversation);
     on<ChatJoinConversation>(_onJoinConversation);
@@ -372,6 +373,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       searchResults: [],
       filteredChats: state.chats,
     ));
+  }
+
+  void _onClearError(
+    ChatClearError event,
+    Emitter<ChatState> emit,
+  ) {
+    emit(state.copyWith(errorMessage: null));
   }
 
   Future<void> _onLoadUsers(

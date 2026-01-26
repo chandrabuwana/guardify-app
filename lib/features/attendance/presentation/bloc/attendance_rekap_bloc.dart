@@ -237,6 +237,7 @@ class AttendanceRekapBloc
     return items.where((item) {
       return item.shiftName.toLowerCase().contains(lowerQuery) ||
           item.statusAttendance.toLowerCase().contains(lowerQuery) ||
+          item.formattedStatusAttendance.toLowerCase().contains(lowerQuery) ||
           item.patrol.toLowerCase().contains(lowerQuery) ||
           item.statusCarryOver.toLowerCase().contains(lowerQuery);
     }).toList();
@@ -244,9 +245,12 @@ class AttendanceRekapBloc
 
   List<AttendanceRekapEntity> _performFilter(
       List<AttendanceRekapEntity> items, String status) {
+    final lowerStatus = status.toLowerCase();
     return items.where((item) {
-      return item.statusAttendance.toLowerCase() == status.toLowerCase() ||
-          item.statusBadgeText.toLowerCase() == status.toLowerCase();
+      // Check both Indonesian and English status
+      return item.statusAttendance.toLowerCase() == lowerStatus ||
+          item.formattedStatusAttendance.toLowerCase() == lowerStatus ||
+          item.statusBadgeText.toLowerCase() == lowerStatus;
     }).toList();
   }
 }

@@ -265,7 +265,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                   fontWeight: FontWeight.w500,
                 ),
                 children: [
-                  const TextSpan(text: 'Your BMI is '),
+                  const TextSpan(text: 'Your body mass index is '),
                   TextSpan(
                     text: userProfile.currentBMI!.toStringAsFixed(1).replaceAll('.', ','),
                     style: TextStyle(
@@ -525,7 +525,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
             32.verticalSpace,
 
             Text(
-              'Belum ada data BMI',
+              'Belum ada data body mass index',
               style: TS.headlineSmall.copyWith(
                 color: neutral90,
                 fontWeight: FontWeight.bold,
@@ -587,7 +587,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                   ),
                   16.verticalSpace,
                   Text(
-                    'Data Body Mass Index untuk user ini belum tersedia. Silakan hitung BMI terlebih dahulu untuk melihat status kesehatan dan mendapatkan rekomendasi yang tepat.',
+                    'Data Body Mass Index untuk user ini belum tersedia. Silakan hitung body mass index terlebih dahulu untuk melihat status kesehatan dan mendapatkan rekomendasi yang tepat.',
                     style: TS.bodyLarge.copyWith(
                       color: const Color(0xFFB71C1C),
                       height: 1.7,
@@ -656,7 +656,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                       ),
                       12.horizontalSpace,
                       Text(
-                        'Informasi BMI',
+                        'Informasi Body Mass Index',
                         style: TS.titleMedium.copyWith(
                           color: const Color(0xFF2C5F7C),
                           fontWeight: FontWeight.bold,
@@ -667,7 +667,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                   ),
                   20.verticalSpace,
                   Text(
-                    'BMI (Body Mass Index) adalah indikator untuk menilai status gizi seseorang berdasarkan berat dan tinggi badan. Nilai BMI membantu menentukan apakah seseorang memiliki berat badan normal, kurang, berlebih, atau obesitas.',
+                    'Body Mass Index adalah indikator untuk menilai status gizi seseorang berdasarkan berat dan tinggi badan. Nilai Body Mass Index membantu menentukan apakah seseorang memiliki berat badan normal, kurang, berlebih, atau obesitas.',
                     style: TS.bodyMedium.copyWith(
                       color: const Color(0xFFB71C1C),
                       height: 1.7,

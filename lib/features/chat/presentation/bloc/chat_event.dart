@@ -99,6 +99,10 @@ class ChatClearSearch extends ChatEvent {
   const ChatClearSearch();
 }
 
+class ChatClearError extends ChatEvent {
+  const ChatClearError();
+}
+
 class ChatLoadUsers extends ChatEvent {
   final String? searchQuery;
 
