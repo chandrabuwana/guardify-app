@@ -338,15 +338,7 @@ class __HomePageViewState extends State<_HomePageView> {
                 context.read<HomeBloc>().add(const ClearNavigationEvent());
                 break;
               default:
-                // For other routes, show snackbar instead of navigating
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        'Fitur "${state.navigationRoute}" sedang dalam pengembangan'),
-                    backgroundColor: primaryColor,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                // For other routes, do nothing
                 break;
             }
           }

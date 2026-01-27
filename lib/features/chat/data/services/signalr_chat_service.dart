@@ -439,6 +439,9 @@ class SignalRChatService {
       
       print('📎 Final message type: $messageType, attachmentUrl: $attachmentUrl');
 
+      final sentAtDateTime = _parseDateTime(sentAt);
+      print('🕐 Parsed sentAt: $sentAt -> $sentAtDateTime (local: ${DateTime.now()})');
+      
       final parsedMessage = Message(
         id: id.toString(),
         chatId: conversationId.toString(),
@@ -447,13 +450,15 @@ class SignalRChatService {
         senderProfileImageUrl: senderProfileImageUrl?.toString(),
         content: text.toString(),
         type: messageType,
-        timestamp: _parseDateTime(sentAt),
+        timestamp: sentAtDateTime, // Use server timestamp
         status: MessageStatus.delivered,
         attachmentUrl: attachmentUrl,
         attachmentType: attachmentType,
+        // Set sentAt to indicate message was sent successfully
+        sentAt: sentAtDateTime,
       );
       
-      print('✅ Successfully parsed message: ${parsedMessage.id}');
+      print('✅ Successfully parsed message: ${parsedMessage.id}, timestamp: ${parsedMessage.timestamp}');
       return parsedMessage;
     } catch (e, stackTrace) {
       print('❌ Error parsing message: $e');
@@ -464,13 +469,49 @@ class SignalRChatService {
   }
 
   /// Parse DateTime from string
+  /// Handles UTC and local timezone correctly
   DateTime _parseDateTime(dynamic dateTime) {
     if (dateTime == null) return DateTime.now();
     if (dateTime is DateTime) return dateTime;
     if (dateTime is String) {
       try {
-        return DateTime.parse(dateTime);
+        // Parse the string - DateTime.parse handles ISO 8601 format
+        final parsed = DateTime.parse(dateTime);
+        
+        // DateTime.parse automatically handles timezone:
+        // - If string ends with 'Z', it's UTC
+        // - If string has timezone offset (+/-HH:MM), it uses that
+        // - If no timezone info, it's treated as local time
+        
+        // For server timestamps without timezone, assume they're UTC
+        // Check if the string has timezone info
+        final hasTimezone = dateTime.contains('Z') || 
+                           dateTime.contains('+') || 
+                           (dateTime.contains('-') && dateTime.indexOf('-') > 10); // Timezone offset, not date separator
+        
+        if (!hasTimezone) {
+          // No timezone info - assume it's UTC from server and convert to local
+          // DateTime.parse without timezone treats it as local, so we need to parse as UTC first
+          try {
+            // Try parsing as UTC by appending 'Z'
+            final utcString = dateTime.endsWith('Z') ? dateTime : '${dateTime}Z';
+            final utcParsed = DateTime.parse(utcString);
+            return utcParsed.toLocal();
+          } catch (e) {
+            // If that fails, use the parsed value as-is (already local)
+            return parsed;
+          }
+        }
+        
+        // Already has timezone info, DateTime.parse handles it correctly
+        // Convert to local time if it's UTC
+        if (parsed.isUtc) {
+          return parsed.toLocal();
+        }
+        
+        return parsed;
       } catch (e) {
+        print('⚠️ Error parsing DateTime: $dateTime, error: $e');
         return DateTime.now();
       }
     }
@@ -581,6 +622,31 @@ class SignalRChatService {
       print('✅ Successfully left conversation: $conversationId');
     } catch (e) {
       print('❌ Error leaving conversation: $e');
+    }
+  }
+
+  /// Mark messages as read via SignalR
+  /// Server signature: ReadMessage(Guid conversationId, Guid userId)
+  Future<void> readMessage(String conversationId, String userId) async {
+    print('📖 Attempting to mark messages as read: $conversationId');
+    
+    if (!isConnected || _hubConnection == null) {
+      print('⚠️ SignalR not connected, skipping read message');
+      return;
+    }
+
+    try {
+      await _hubConnection!.invoke(
+        'ReadMessage',
+        args: <Object>[
+          conversationId,
+          userId,
+        ],
+      );
+      print('✅ Successfully marked messages as read: $conversationId');
+    } catch (e) {
+      print('❌ Error marking messages as read: $e');
+      rethrow;
     }
   }
 

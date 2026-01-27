@@ -378,6 +378,16 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           ),
           16.verticalSpace,
 
+          // Total Jam Kerja
+          if (laporan.checkIn != null && laporan.checkOut != null)
+            _buildInfoCard(
+              'Total Jam Kerja',
+              _calculateTotalHours(laporan.checkIn!, laporan.checkOut!),
+            )
+          else
+            _buildInfoCard('Total Jam Kerja', '-'),
+          16.verticalSpace,
+
           // Lembur
           _buildInfoCard('Lembur', laporan.lembur ? 'Ya' : 'Tidak'),
           16.verticalSpace,
@@ -1130,6 +1140,13 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
       default:
         return Colors.grey;
     }
+  }
+
+  String _calculateTotalHours(DateTime checkIn, DateTime checkOut) {
+    final difference = checkOut.difference(checkIn);
+    final hours = difference.inHours;
+    final minutes = difference.inMinutes.remainder(60);
+    return '${hours.toString().padLeft(2, '0')} Hours ${minutes.toString().padLeft(2, '0')} Minutes';
   }
 
   void _showAcceptConfirmation(LaporanKegiatanEntity laporan) {

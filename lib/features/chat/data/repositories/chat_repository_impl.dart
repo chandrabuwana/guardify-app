@@ -277,7 +277,7 @@ class ChatRepositoryImpl implements ChatRepository {
           id: item.id,
           name: item.name,
           description: item.description,
-          profileImageUrl: null, // API doesn't provide profile image
+          profileImageUrl: item.opponentFoto, // Use OpponentFoto as profile image
           type: ChatType.direct, // Default to direct, can be enhanced later
           participantIds: [], // API doesn't provide participant list
           lastMessageId: item.lastMessageId,
@@ -286,6 +286,9 @@ class ChatRepositoryImpl implements ChatRepository {
           lastMessageTimestamp: item.lastSentAt,
           unreadCount: item.totalUnread, // Use TotalUnread from API response
           isActive: true,
+          isOnline: item.isOnline, // Use IsOnline from API response
+          opponentFoto: item.opponentFoto, // Store OpponentFoto
+          selfFoto: item.selfFoto, // Store SelfFoto
           createdAt: item.lastSentAt ?? DateTime.now(),
           updatedAt: item.lastSentAt ?? DateTime.now(),
         );
@@ -398,7 +401,7 @@ class ChatRepositoryImpl implements ChatRepository {
           senderId: item.senderId,
           senderName: senderName,
           senderProfileImageUrl: profileImageUrl,
-          content: item.text,
+          content: item.text ?? '', // Handle null text (for image-only messages)
           type: messageType,
           timestamp: item.sentAt,
           status: MessageStatus.read, // Default to read
@@ -409,6 +412,8 @@ class ChatRepositoryImpl implements ChatRepository {
           lastSeen: item.header?.lastSeen,
           opponentFoto: item.header?.opponentFoto,
           selfFoto: item.header?.selfFoto,
+          // SentAt from API - indicates message was sent successfully
+          sentAt: item.sentAt,
         );
       }).toList();
 
