@@ -1,7 +1,7 @@
 name: guardify_app
 description: A secure Flutter application with clean architecture and BLoC pattern.
 publish_to: 'none'
-version: 1.0.8+1
+version: 1.0.9+1
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
