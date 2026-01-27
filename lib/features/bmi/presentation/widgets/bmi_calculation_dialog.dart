@@ -154,7 +154,7 @@ class _BMICalculationDialogState extends State<BMICalculationDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Hitung BMI',
+                            'Hitung Body Mass Index',
                             style: TS.titleLarge.copyWith(
                               fontWeight: FontWeight.bold,
                               color: primaryColor,
@@ -254,7 +254,7 @@ class _BMICalculationDialogState extends State<BMICalculationDialog> {
                       child: BlocBuilder<BMIBloc, BMIState>(
                         builder: (context, state) {
                           return UIButton(
-                            text: 'Hitung BMI',
+                            text: 'Hitung Body Mass Index',
                             isLoading: state.isCalculating,
                             onPressed:
                                 state.isCalculating ? null : _calculateBMI,
@@ -342,7 +342,7 @@ class BMIResultDialog extends StatelessWidget {
 
             // BMI Value
             Text(
-              'BMI ${bmiRecord.bmi.toStringAsFixed(1)} Kg/M2',
+              'Body Mass Index ${bmiRecord.bmi.toStringAsFixed(1)} Kg/M2',
               style: TS.headlineMedium.copyWith(
                 color: primaryColor,
                 fontWeight: FontWeight.bold,

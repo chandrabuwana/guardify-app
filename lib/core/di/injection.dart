@@ -3,7 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import '../network/api_log_interceptor.dart';
 import '../services/api_log_service.dart';
-import 'injection.config.dart';
+import 'injection.config.dart'; // Generated file - run build_runner to generate
 
 /// Global Dependency Injection Container
 /// Menggunakan get_it sebagai service locator
@@ -13,7 +13,13 @@ bool _isInitialized = false;
 
 /// Initialize all dependencies
 /// Panggil fungsi ini di main.dart sebelum runApp()
-@InjectableInit()
+/// File injection.config.dart akan di-generate oleh build_runner
+/// Pastikan sudah run: flutter pub run build_runner build --delete-conflicting-outputs
+@InjectableInit(
+  initializerName: 'init',
+  preferRelativeImports: true,
+  asExtension: false,
+)
 Future<void> configureDependencies() async {
   if (_isInitialized) {
     print('⚠️ GetIt already initialized, skipping...');
@@ -23,7 +29,8 @@ Future<void> configureDependencies() async {
   print('🔧 Initializing Dependency Injection Container...');
   
   // Initialize semua module dengan injectable
-  await getIt.init();
+  // Function init() akan di-generate di injection.config.dart
+  await init(getIt);
   
   // Setup API log interceptor setelah dependencies diinisialisasi
   _setupApiLogInterceptor();

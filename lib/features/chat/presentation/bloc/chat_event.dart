@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/entities/chat.dart';
@@ -26,15 +27,17 @@ class ChatSendMessage extends ChatEvent {
   final String chatId;
   final String content;
   final MessageType type;
+  final File? attachmentFile;
 
   const ChatSendMessage({
     required this.chatId,
     required this.content,
     required this.type,
+    this.attachmentFile,
   });
 
   @override
-  List<Object?> get props => [chatId, content, type];
+  List<Object?> get props => [chatId, content, type, attachmentFile];
 }
 
 class ChatLoadContacts extends ChatEvent {
@@ -94,4 +97,61 @@ class ChatSelectChat extends ChatEvent {
 
 class ChatClearSearch extends ChatEvent {
   const ChatClearSearch();
+}
+
+class ChatClearError extends ChatEvent {
+  const ChatClearError();
+}
+
+class ChatLoadUsers extends ChatEvent {
+  final String? searchQuery;
+
+  const ChatLoadUsers({this.searchQuery});
+
+  @override
+  List<Object?> get props => [searchQuery];
+}
+
+class ChatCreateConversation extends ChatEvent {
+  final List<String> memberUserIds;
+
+  const ChatCreateConversation({required this.memberUserIds});
+
+  @override
+  List<Object?> get props => [memberUserIds];
+}
+
+class ChatJoinConversation extends ChatEvent {
+  final String conversationId;
+  final String userId;
+
+  const ChatJoinConversation({
+    required this.conversationId,
+    required this.userId,
+  });
+
+  @override
+  List<Object?> get props => [conversationId, userId];
+}
+
+class ChatLeaveConversation extends ChatEvent {
+  final String conversationId;
+  final String userId;
+
+  const ChatLeaveConversation({
+    required this.conversationId,
+    required this.userId,
+  });
+
+  @override
+  List<Object?> get props => [conversationId, userId];
+}
+
+class ChatMessageReceived extends ChatEvent {
+  final Message message;
+
+  const ChatMessageReceived(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }

@@ -7,6 +7,9 @@ class AppConstants {
   static const String baseUrl = 'https://api-guardify.abb-apps.com/api/v1';
   static const int connectTimeout = 60000; // Increased to 60 seconds
   static const int receiveTimeout = 60000; // Increased to 60 seconds
+  
+  // SignalR Configuration
+  static const String signalRHubUrl = 'http://api-guardify.abb-apps.com/hubs/chat';
 
   // Storage Keys
   static const String tokenKey = 'token_guardify';

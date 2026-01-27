@@ -499,7 +499,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           await SecurityManager.readSecurely('user_role_id') ?? 'AGT';
 
       emit(currentState.copyWith(
-        snackbarMessage: 'Navigating to BMI Calculator...',
+        snackbarMessage: 'Navigating to Body Mass Index Calculator...',
         navigationRoute: '/bmi',
         navigationArguments: {
           'userId': userId,

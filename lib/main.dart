@@ -29,6 +29,7 @@ import 'features/laporan_kejadian/presentation/pages/incident_list_page.dart';
 import 'features/laporan_kejadian/presentation/bloc/incident_bloc.dart';
 import 'features/chat/presentation/pages/chat_list_page.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
+import 'features/home/presentation/bloc/home_bloc.dart';
 import 'features/news/presentation/pages/news_list_page.dart';
 import 'features/news/presentation/bloc/news_bloc.dart';
 import 'features/schedule/presentation/pages/schedule_page.dart';
@@ -337,7 +338,10 @@ class _AuthGate extends StatelessWidget {
         final hasToken = token != null && token.trim().isNotEmpty;
 
         if (hasToken) {
-          return const HomePage();
+          return BlocProvider(
+            create: (context) => getIt<HomeBloc>(),
+            child: const HomePage(),
+          );
         }
 
         return BlocProvider(

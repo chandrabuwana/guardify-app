@@ -6,6 +6,7 @@ import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
 import '../../domain/entities/chat.dart';
+import '../../domain/entities/contact.dart';
 import '../../../../core/design/colors.dart';
 import 'chat_conversation_page.dart';
 
@@ -18,6 +19,7 @@ class ChatListPage extends StatefulWidget {
 
 class _ChatListPageState extends State<ChatListPage> {
   final TextEditingController _searchController = TextEditingController();
+  bool _isSearchingUsers = false;
 
   @override
   void initState() {
@@ -60,12 +62,6 @@ class _ChatListPageState extends State<ChatListPage> {
           }
         },
         builder: (context, state) {
-          if (state.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: primaryColor),
-            );
-          }
-
           return Column(
             children: [
               // Search Bar
@@ -97,22 +93,42 @@ class _ChatListPageState extends State<ChatListPage> {
                     ),
                   ),
                   onChanged: (value) {
-                    context.read<ChatBloc>().add(ChatSearchChats(value));
+                    if (value.isEmpty) {
+                      setState(() {
+                        _isSearchingUsers = false;
+                      });
+                      // Reload conversations when search is cleared
+                      context.read<ChatBloc>().add(const ChatLoadChats());
+                    } else {
+                      setState(() {
+                        _isSearchingUsers = true;
+                      });
+                      // Search users from API
+                      context.read<ChatBloc>().add(ChatLoadUsers(searchQuery: value));
+                    }
                   },
                 ),
               ),
 
-              // Chat List
+              // Chat List or User List
               Expanded(
-                child: state.filteredChats.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        itemCount: state.filteredChats.length,
-                        itemBuilder: (context, index) {
-                          final chat = state.filteredChats[index];
-                          return _buildChatItem(chat);
-                        },
-                      ),
+                child: _isSearchingUsers
+                    ? _buildUserList(state)
+                    : (state.isLoading && state.chats.isEmpty
+                        ? const Center(
+                            child: CircularProgressIndicator(color: primaryColor),
+                          )
+                        : (state.errorMessage != null && state.chats.isEmpty
+                            ? _buildErrorState(state.errorMessage!)
+                            : (state.filteredChats.isEmpty
+                                ? _buildEmptyState()
+                                : ListView.builder(
+                                    itemCount: state.filteredChats.length,
+                                    itemBuilder: (context, index) {
+                                      final chat = state.filteredChats[index];
+                                      return _buildChatItem(chat);
+                                    },
+                                  )))),
               ),
             ],
           );
@@ -159,6 +175,73 @@ class _ChatListPageState extends State<ChatListPage> {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String errorMessage) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Error illustration
+            Container(
+              width: 120.w,
+              height: 120.h,
+              decoration: BoxDecoration(
+                color: errorColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(60.r),
+              ),
+              child: Icon(
+                Icons.error_outline,
+                size: 60.sp,
+                color: errorColor,
+              ),
+            ),
+            24.verticalSpace,
+            Text(
+              'Gagal memuat pesan',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+                color: neutral70,
+              ),
+            ),
+            8.verticalSpace,
+            Text(
+              errorMessage,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: neutral50,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            24.verticalSpace,
+            ElevatedButton.icon(
+              onPressed: () {
+                context.read<ChatBloc>().add(const ChatLoadChats());
+              },
+              icon: Icon(Icons.refresh, size: 20.sp),
+              label: Text(
+                'Coba Lagi',
+                style: TextStyle(fontSize: 14.sp),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 24.w,
+                  vertical: 12.h,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -254,20 +337,26 @@ class _ChatListPageState extends State<ChatListPage> {
                           if (chat.unreadCount > 0) ...[
                             8.horizontalSpace,
                             Container(
+                              constraints: BoxConstraints(
+                                minWidth: 20.w,
+                              ),
                               padding: EdgeInsets.symmetric(
-                                horizontal: 6.w,
+                                horizontal: chat.unreadCount > 99 ? 6.w : 6.w,
                                 vertical: 2.h,
                               ),
                               decoration: BoxDecoration(
                                 color: primaryColor,
                                 borderRadius: BorderRadius.circular(10.r),
                               ),
-                              child: Text(
-                                chat.unreadCount.toString(),
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                              child: Center(
+                                child: Text(
+                                  chat.unreadCount > 99 ? '99+' : chat.unreadCount.toString(),
+                                  style: TextStyle(
+                                    fontSize: 11.sp,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ),
@@ -296,5 +385,157 @@ class _ChatListPageState extends State<ChatListPage> {
     } else {
       return DateFormat('HH:mm').format(timestamp);
     }
+  }
+
+  Widget _buildUserList(ChatState state) {
+    if (state.isLoadingUsers) {
+      return const Center(
+        child: CircularProgressIndicator(color: primaryColor),
+      );
+    }
+
+    if (state.users.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_search,
+              size: 60.sp,
+              color: neutral50,
+            ),
+            16.verticalSpace,
+            Text(
+              'Tidak ada user ditemukan',
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: neutral70,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: state.users.length,
+      itemBuilder: (context, index) {
+        final user = state.users[index];
+        return _buildUserItem(user);
+      },
+    );
+  }
+
+  Widget _buildUserItem(Contact user) {
+    return Container(
+      color: Colors.white,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            // Create conversation when user is clicked
+            final chatBloc = context.read<ChatBloc>();
+            chatBloc.add(ChatCreateConversation(memberUserIds: [user.id]));
+            
+            // Wait for conversation to be created
+            await Future.delayed(const Duration(milliseconds: 500));
+            
+            // Navigate to conversation page
+            if (mounted) {
+              final currentState = chatBloc.state;
+              if (currentState.selectedChatId != null) {
+                // Find the chat that was just created
+                final newChat = currentState.chats.firstWhere(
+                  (chat) => chat.id == currentState.selectedChatId,
+                  orElse: () => Chat(
+                    id: currentState.selectedChatId!,
+                    name: user.name,
+                    type: ChatType.direct,
+                    participantIds: [user.id],
+                    unreadCount: 0,
+                    isActive: true,
+                    createdAt: DateTime.now(),
+                    updatedAt: DateTime.now(),
+                  ),
+                );
+                
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider.value(
+                      value: chatBloc,
+                      child: ChatConversationPage(chat: newChat),
+                    ),
+                  ),
+                );
+                
+                // Clear search
+                _searchController.clear();
+                setState(() {
+                  _isSearchingUsers = false;
+                });
+              }
+            }
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            child: Row(
+              children: [
+                // Profile Picture
+                CircleAvatar(
+                  radius: 24.r,
+                  backgroundColor: primary10,
+                  backgroundImage: user.profileImageUrl != null
+                      ? NetworkImage(user.profileImageUrl!)
+                      : null,
+                  child: user.profileImageUrl == null
+                      ? Icon(
+                          Icons.person,
+                          color: primaryColor,
+                          size: 24.sp,
+                        )
+                      : null,
+                ),
+                12.horizontalSpace,
+
+                // User Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.name,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: neutral90,
+                        ),
+                      ),
+                      if (user.position != null) ...[
+                        4.verticalSpace,
+                        Text(
+                          user.position!,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: neutral70,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                
+                // Arrow icon
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16.sp,
+                  color: neutral50,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

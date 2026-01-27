@@ -50,8 +50,10 @@ class AppScaffold extends StatelessWidget {
     }
 
     // Wrap with SafeArea if enabled
+    // If bottomNavigationBar is provided, don't add bottom padding to SafeArea
     if (safeArea) {
       bodyContent = SafeArea(
+        bottom: bottomNavigationBar == null, // Only add bottom padding if no bottomNavigationBar
         child: bodyContent,
       );
     }

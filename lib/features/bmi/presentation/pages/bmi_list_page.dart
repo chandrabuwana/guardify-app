@@ -880,7 +880,7 @@ class _BMIListPageState extends State<BMIListPage> {
               
               // Title dengan gradient text effect
               Text(
-                'Belum Ada Data BMI',
+                'Belum Ada Data Body Mass Index',
                 style: TS.titleLarge.copyWith(
                   fontWeight: FontWeight.bold,
                   color: neutral90,
@@ -941,7 +941,7 @@ class _BMIListPageState extends State<BMIListPage> {
                     ),
                     16.verticalSpace,
                     Text(
-                      'Data Body Mass Index belum tersedia saat ini. Data akan muncul setelah pengguna melakukan perhitungan BMI.',
+                      'Data Body Mass Index belum tersedia saat ini. Data akan muncul setelah pengguna melakukan perhitungan body mass index.',
                       style: TS.bodyMedium.copyWith(
                         color: const Color(0xFFB71C1C),
                         height: 1.7,
@@ -985,7 +985,7 @@ class _BMIListPageState extends State<BMIListPage> {
                     12.horizontalSpace,
                     Flexible(
                       child: Text(
-                        'BMI membantu menilai status gizi dan kesehatan',
+                        'Body Mass Index membantu menilai status gizi dan kesehatan',
                         style: TS.bodySmall.copyWith(
                           color: neutral70,
                           fontSize: 12.sp,
@@ -1040,7 +1040,7 @@ class _BMIListPageState extends State<BMIListPage> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.check_circle_outline),
-              title: const Text('Ada Data BMI'),
+              title: const Text('Ada Data Body Mass Index'),
               onTap: () {
                 Navigator.pop(context);
                 // Filter users with BMI data
@@ -1048,7 +1048,7 @@ class _BMIListPageState extends State<BMIListPage> {
             ),
             ListTile(
               leading: const Icon(Icons.cancel_outlined),
-              title: const Text('Belum Ada Data BMI'),
+              title: const Text('Belum Ada Data Body Mass Index'),
               onTap: () {
                 Navigator.pop(context);
                 // Filter users without BMI data

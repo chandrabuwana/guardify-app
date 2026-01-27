@@ -1,11 +1,21 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:injectable/injectable.dart';
 import '../../domain/entities/chat.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/entities/contact.dart';
 import '../../domain/repositories/chat_repository.dart';
+import '../datasources/chat_remote_data_source.dart';
+import '../models/chat_api_response_model.dart';
+import '../../../../features/bmi/data/models/bmi_api_response_model.dart';
+import '../../../../core/security/security_manager.dart';
+import '../../../../core/constants/app_constants.dart';
 
 @injectable
 class ChatRepositoryImpl implements ChatRepository {
+  final ChatRemoteDataSource remoteDataSource;
+
+  ChatRepositoryImpl(this.remoteDataSource);
   // Dummy data for demonstration
   static final List<Chat> _dummyChats = [
     Chat(
@@ -211,16 +221,207 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<List<Chat>> getChats() async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    return List.from(_dummyChats);
+    try {
+      // Get current user ID
+      final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      if (currentUserId == null || currentUserId.isEmpty) {
+        throw Exception('Current user ID not found');
+      }
+
+      final request = ListConversationRequestModel(
+        userId: currentUserId,
+        search: '', // Empty search to get all conversations
+        start: 0,
+        length: 0, // Get all conversations
+      );
+
+      final response = await remoteDataSource.getConversations(request);
+
+      if (response.succeeded == false) {
+        throw Exception(response.message ?? 'Failed to get conversations');
+      }
+
+      // Get user list to map sender IDs to names
+      Map<String, String> senderNameMap = {};
+      try {
+        final userRequest = UserListRequestModel(
+          filter: [FilterModel(field: '', search: '')],
+          sort: SortModel(field: 'Fullname', type: 0),
+          start: 1,
+          length: 0, // Get all users
+        );
+        final userResponse = await remoteDataSource.getUserList(userRequest);
+        if (userResponse.succeeded == true) {
+          senderNameMap = {
+            for (var user in userResponse.list) user.id: user.fullname
+          };
+        }
+      } catch (e) {
+        print('⚠️ Failed to get user list for sender names: $e');
+      }
+
+      // Convert ConversationItemModel to Chat entity
+      final chats = response.list.map((item) {
+        // Determine if last message is from current user
+        final isLastMessageFromCurrentUser = 
+            item.lastSenderId != null && item.lastSenderId == currentUserId;
+        
+        // Get sender name for last message
+        final lastSenderName = isLastMessageFromCurrentUser
+            ? 'Saya'
+            : (item.lastSenderId != null 
+                ? (senderNameMap[item.lastSenderId] ?? 'User')
+                : null);
+
+        return Chat(
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          profileImageUrl: null, // API doesn't provide profile image
+          type: ChatType.direct, // Default to direct, can be enhanced later
+          participantIds: [], // API doesn't provide participant list
+          lastMessageId: item.lastMessageId,
+          lastMessageContent: item.lastMessageText,
+          lastMessageSenderName: lastSenderName,
+          lastMessageTimestamp: item.lastSentAt,
+          unreadCount: item.totalUnread, // Use TotalUnread from API response
+          isActive: true,
+          createdAt: item.lastSentAt ?? DateTime.now(),
+          updatedAt: item.lastSentAt ?? DateTime.now(),
+        );
+      }).toList();
+
+      // Sort by last message timestamp (newest first)
+      chats.sort((a, b) {
+        if (a.lastMessageTimestamp == null && b.lastMessageTimestamp == null) return 0;
+        if (a.lastMessageTimestamp == null) return 1;
+        if (b.lastMessageTimestamp == null) return -1;
+        return b.lastMessageTimestamp!.compareTo(a.lastMessageTimestamp!);
+      });
+
+      return chats;
+    } catch (e) {
+      print('❌ Error getting conversations: $e');
+      // Fallback to dummy data if API fails
+      await Future.delayed(const Duration(milliseconds: 500));
+      return List.from(_dummyChats);
+    }
   }
 
   @override
   Future<List<Message>> getMessages(String chatId) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 300));
-    return _dummyMessages.where((message) => message.chatId == chatId).toList();
+    try {
+      // Get current user ID to include in request
+      final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      if (currentUserId == null) {
+        throw Exception('User ID not found');
+      }
+
+      final request = ListMessageRequestModel(
+        conversationId: chatId,
+        userId: currentUserId,
+        start: 0,
+        length: 0, // Get all messages
+      );
+
+      final response = await remoteDataSource.getMessages(request);
+
+      if (response.succeeded == false) {
+        throw Exception(response.message ?? 'Failed to get messages');
+      }
+
+      // Get user list to map sender IDs to names (fallback if Header is not available)
+      // Try to get sender names from user list
+      Map<String, String> senderNameMap = {};
+      try {
+        final userRequest = UserListRequestModel(
+          filter: [FilterModel(field: '', search: '')],
+          sort: SortModel(field: 'Fullname', type: 0),
+          start: 1,
+          length: 0, // Get all users
+        );
+        final userResponse = await remoteDataSource.getUserList(userRequest);
+        if (userResponse.succeeded == true) {
+          senderNameMap = {
+            for (var user in userResponse.list) user.id: user.fullname
+          };
+        }
+      } catch (e) {
+        print('⚠️ Failed to get user list for sender names: $e');
+      }
+
+      // Convert MessageItemModel to Message entity
+      final messages = response.list.map((item) {
+        final isFromCurrentUser = currentUserId != null && item.senderId == currentUserId;
+        // Use Header information if available, otherwise fallback to senderNameMap
+        final senderName = isFromCurrentUser
+            ? 'Saya'
+            : (item.header?.fullname ?? senderNameMap[item.senderId] ?? 'User');
+        
+        // Use Header information for profile image
+        // If message is from current user, use SelfFoto, otherwise use OpponentFoto
+        final profileImageUrl = isFromCurrentUser
+            ? (item.header?.selfFoto)
+            : (item.header?.opponentFoto);
+        
+        // Handle attachments from response
+        String? attachmentUrl;
+        String? attachmentType;
+        if (item.attachments.isNotEmpty) {
+          final attachment = item.attachments.first;
+          // Use S3Url if available, otherwise build URL from filename
+          if (attachment.s3Url != null && attachment.s3Url!.isNotEmpty) {
+            attachmentUrl = attachment.s3Url;
+          } else {
+            // Fallback: build URL from filename
+            attachmentUrl = _buildAttachmentUrl(attachment.fileName);
+          }
+          attachmentType = attachment.fileType;
+        }
+        
+        // Determine message type based on attachments
+        MessageType messageType = MessageType.text;
+        if (item.attachments.isNotEmpty) {
+          final fileType = item.attachments.first.fileType.toLowerCase();
+          if (fileType.contains('image')) {
+            messageType = MessageType.image;
+          } else if (fileType.contains('video')) {
+            messageType = MessageType.file; // Can add video type later
+          } else {
+            messageType = MessageType.file;
+          }
+        }
+        
+        return Message(
+          id: item.id,
+          chatId: item.conversationId,
+          senderId: item.senderId,
+          senderName: senderName,
+          senderProfileImageUrl: profileImageUrl,
+          content: item.text,
+          type: messageType,
+          timestamp: item.sentAt,
+          status: MessageStatus.read, // Default to read
+          attachmentUrl: attachmentUrl,
+          attachmentType: attachmentType,
+          // Header information
+          isOnline: item.header?.isOnline,
+          lastSeen: item.header?.lastSeen,
+          opponentFoto: item.header?.opponentFoto,
+          selfFoto: item.header?.selfFoto,
+        );
+      }).toList();
+
+      // Sort by timestamp (oldest first)
+      messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+      return messages;
+    } catch (e) {
+      print('❌ Error getting messages: $e');
+      // Fallback to dummy data if API fails
+      await Future.delayed(const Duration(milliseconds: 300));
+      return _dummyMessages.where((message) => message.chatId == chatId).toList();
+    }
   }
 
   @override
@@ -232,37 +433,118 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<Message> sendMessage(
-      String chatId, String content, MessageType type) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 800));
+      String chatId, String content, MessageType type, {File? attachmentFile}) async {
+    try {
+      // Get current user ID
+      final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      if (currentUserId == null || currentUserId.isEmpty) {
+        throw Exception('Current user ID not found');
+      }
 
-    final newMessage = Message(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      chatId: chatId,
-      senderId: 'current_user',
-      senderName: 'Saya',
-      content: content,
-      type: type,
-      timestamp: DateTime.now(),
-      status: MessageStatus.sent,
-    );
+      // Support text and image messages (with attachments)
+      // If there's an attachment file, allow image type
+      if (type != MessageType.text && type != MessageType.image) {
+        throw Exception('Only text and image messages are supported');
+      }
+      
+      // If type is image but no attachment file, that's invalid
+      if (type == MessageType.image && attachmentFile == null) {
+        throw Exception('Image message requires an attachment file');
+      }
 
-    // Add to dummy messages
-    _dummyMessages.add(newMessage);
+      // Prepare attachments if file is provided
+      List<AttachmentModel>? attachments;
+      if (attachmentFile != null && await attachmentFile.exists()) {
+        try {
+          // Read file as bytes
+          final fileBytes = await attachmentFile.readAsBytes();
+          
+          // Convert to base64
+          final base64String = base64Encode(fileBytes);
+          
+          // Get file name and extension
+          final fileName = attachmentFile.path.split(RegExp(r'[\/\\]')).last;
+          final fileExtension = fileName.contains('.') 
+              ? fileName.split('.').last.toLowerCase() 
+              : 'jpg';
+          
+          // Determine MIME type from extension
+          String mimeType = 'image/jpeg'; // default
+          if (fileExtension == 'png') {
+            mimeType = 'image/png';
+          } else if (fileExtension == 'jpg' || fileExtension == 'jpeg') {
+            mimeType = 'image/jpeg';
+          } else if (fileExtension == 'gif') {
+            mimeType = 'image/gif';
+          } else if (fileExtension == 'pdf') {
+            mimeType = 'application/pdf';
+          } else if (fileExtension == 'doc' || fileExtension == 'docx') {
+            mimeType = 'application/msword';
+          } else if (fileExtension == 'xls' || fileExtension == 'xlsx') {
+            mimeType = 'application/vnd.ms-excel';
+          }
+          
+          attachments = [
+            AttachmentModel(
+              filename: fileName,
+              mimeType: mimeType,
+              base64: base64String,
+              fileSize: fileBytes.length,
+            ),
+          ];
+        } catch (e) {
+          print('❌ Error processing attachment: $e');
+          throw Exception('Failed to process attachment: $e');
+        }
+      }
 
-    // Update chat's last message
-    final chatIndex = _dummyChats.indexWhere((chat) => chat.id == chatId);
-    if (chatIndex != -1) {
-      _dummyChats[chatIndex] = _dummyChats[chatIndex].copyWith(
-        lastMessageId: newMessage.id,
-        lastMessageContent: content,
-        lastMessageSenderName: 'Saya',
-        lastMessageTimestamp: DateTime.now(),
-        updatedAt: DateTime.now(),
+      final request = SendMessageRequestModel(
+        conversationId: chatId,
+        senderId: currentUserId,
+        text: content,
+        attachments: attachments,
       );
-    }
 
-    return newMessage;
+      final response = await remoteDataSource.sendMessage(request);
+
+      if (response.succeeded == false) {
+        throw Exception(response.message ?? 'Failed to send message');
+      }
+
+      // Create message entity from response
+      // Note: API doesn't return message ID, so we'll create a temporary one
+      // In production, you might want to fetch the message list after sending
+      final newMessage = Message(
+        id: DateTime.now().millisecondsSinceEpoch.toString(), // Temporary ID
+        chatId: chatId,
+        senderId: currentUserId,
+        senderName: 'Saya',
+        senderProfileImageUrl: null,
+        content: content,
+        type: type,
+        timestamp: DateTime.now(),
+        status: MessageStatus.sent,
+        attachmentUrl: null,
+        attachmentType: null,
+      );
+
+      // Update chat's last message
+      final chatIndex = _dummyChats.indexWhere((chat) => chat.id == chatId);
+      if (chatIndex != -1) {
+        _dummyChats[chatIndex] = _dummyChats[chatIndex].copyWith(
+          lastMessageId: newMessage.id,
+          lastMessageContent: content,
+          lastMessageSenderName: 'Saya',
+          lastMessageTimestamp: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      }
+
+      return newMessage;
+    } catch (e) {
+      print('❌ Error sending message: $e');
+      rethrow;
+    }
   }
 
   @override
@@ -319,5 +601,112 @@ class ChatRepositoryImpl implements ChatRepository {
     return _dummyChats
         .where((chat) => chat.name.toLowerCase().contains(query.toLowerCase()))
         .toList();
+  }
+
+  @override
+  Future<List<Contact>> getUsers({String? searchQuery}) async {
+    try {
+      // Get current user ID to exclude from list
+      final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      
+      // Prepare request for User/list API
+      final request = UserListRequestModel(
+        filter: searchQuery != null && searchQuery.isNotEmpty
+            ? [
+                FilterModel(field: 'Fullname', search: searchQuery),
+              ]
+            : [
+                FilterModel(field: '', search: ''),
+              ],
+        sort: SortModel(field: 'Fullname', type: 0), // 0 = ascending
+        start: 1,
+        length: 0, // Get all users
+      );
+
+      final response = await remoteDataSource.getUserList(request);
+
+      if (response.succeeded == false) {
+        throw Exception(response.message ?? 'Failed to get user list');
+      }
+
+      // Convert UserListItemModel to Contact
+      final contacts = response.list
+          .where((user) => currentUserId == null || user.id != currentUserId) // Exclude current user
+          .map((user) => Contact(
+                id: user.id,
+                name: user.fullname,
+                phoneNumber: user.phoneNumber,
+                email: user.email,
+                profileImageUrl: null, // API doesn't provide profile image
+                position: user.jabatan,
+                department: user.site,
+                isOnline: false, // API doesn't provide online status
+                lastSeen: null,
+                status: null,
+              ))
+          .toList();
+
+      return contacts;
+    } catch (e) {
+      print('❌ Error getting users: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<String> createConversation(List<String> memberUserIds) async {
+    try {
+      // Get current user ID and add to member list
+      final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      if (currentUserId == null || currentUserId.isEmpty) {
+        throw Exception('Current user ID not found');
+      }
+
+      // Ensure current user is in the member list
+      final allMemberIds = <String>[...memberUserIds];
+      if (!allMemberIds.contains(currentUserId)) {
+        allMemberIds.add(currentUserId);
+      }
+
+      final request = CreateConversationRequestModel(
+        memberUserIds: allMemberIds,
+      );
+
+      final response = await remoteDataSource.createConversation(request);
+
+      if (response.succeeded == false) {
+        throw Exception(response.message ?? 'Failed to create conversation');
+      }
+
+      if (response.data == null || response.data!.isEmpty) {
+        throw Exception('Conversation ID is empty');
+      }
+
+      return response.data!;
+    } catch (e) {
+      print('❌ Error creating conversation: $e');
+      rethrow;
+    }
+  }
+
+  /// Helper method to build full attachment URL from filename
+  String _buildAttachmentUrl(String fileName) {
+    if (fileName.isEmpty) {
+      return '';
+    }
+    
+    // If already a full URL, return as is
+    if (fileName.startsWith('http://') || fileName.startsWith('https://')) {
+      return fileName;
+    }
+    
+    // Get base URL
+    final baseUrl = AppConstants.baseUrl;
+    
+    // URL encode the filename to handle special characters
+    final encodedFileName = Uri.encodeComponent(fileName);
+    
+    // Use /api/v1/file/{filename} endpoint
+    return '$baseUrl/file/$encodedFileName';
   }
 }

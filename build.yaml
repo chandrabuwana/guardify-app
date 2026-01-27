@@ -17,6 +17,8 @@ targets:
           
       injectable_generator:injectable_builder:
         enabled: true
+        options:
+          auto_register: true
         
       retrofit_generator:
         enabled: true

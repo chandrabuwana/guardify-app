@@ -16,11 +16,15 @@ class CustomBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get system navigation bar padding for Android
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
-          height: 80.h,
+          height: 80.h + bottomPadding,
+          padding: EdgeInsets.only(bottom: bottomPadding),
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [

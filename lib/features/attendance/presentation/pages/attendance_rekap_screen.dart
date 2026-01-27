@@ -998,7 +998,7 @@ class _AttendanceRekapScreenContentState
                         Align(
                           alignment: Alignment.centerRight,
                           child: Text(
-                            'Kehadiran : ${item.statusAttendance}',
+                            'Kehadiran : ${item.formattedStatusAttendance}',
                             style: TS.bodyMedium.copyWith(
                               color: attendanceColor,
                               fontWeight: FontWeight.w600,
@@ -1159,16 +1159,24 @@ class _AttendanceRekapScreenContentState
   }
 
   Color _getAttendanceColor(String status) {
-    switch (status) {
-      case 'Masuk':
-        return Colors.blue;
-      case 'Terlambat':
-        return Colors.orange;
-      case 'Tidak Masuk':
-        return Colors.red;
-      default:
-        return Colors.grey;
+    // Handle both Indonesian and English status
+    final normalizedStatus = status.toLowerCase();
+    if (normalizedStatus == 'masuk' || normalizedStatus == 'present') {
+      return Colors.blue;
     }
+    if (normalizedStatus == 'terlambat' || normalizedStatus == 'late') {
+      return Colors.orange;
+    }
+    if (normalizedStatus == 'tidak masuk' || normalizedStatus == 'absent') {
+      return Colors.red;
+    }
+    if (normalizedStatus == 'izin' || normalizedStatus == 'leave') {
+      return Colors.purple;
+    }
+    if (normalizedStatus == 'sakit' || normalizedStatus == 'sick') {
+      return Colors.orange.shade700;
+    }
+    return Colors.grey;
   }
 
   String _formatDate(DateTime date) {

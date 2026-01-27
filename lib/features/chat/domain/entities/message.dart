@@ -10,6 +10,11 @@ class Message {
   final MessageStatus status;
   final String? attachmentUrl;
   final String? attachmentType;
+  // Header information from API response
+  final bool? isOnline;
+  final DateTime? lastSeen;
+  final String? opponentFoto;
+  final String? selfFoto;
 
   const Message({
     required this.id,
@@ -23,6 +28,10 @@ class Message {
     required this.status,
     this.attachmentUrl,
     this.attachmentType,
+    this.isOnline,
+    this.lastSeen,
+    this.opponentFoto,
+    this.selfFoto,
   });
 
   Message copyWith({
@@ -37,6 +46,10 @@ class Message {
     MessageStatus? status,
     String? attachmentUrl,
     String? attachmentType,
+    bool? isOnline,
+    DateTime? lastSeen,
+    String? opponentFoto,
+    String? selfFoto,
   }) {
     return Message(
       id: id ?? this.id,
@@ -51,6 +64,10 @@ class Message {
       status: status ?? this.status,
       attachmentUrl: attachmentUrl ?? this.attachmentUrl,
       attachmentType: attachmentType ?? this.attachmentType,
+      isOnline: isOnline ?? this.isOnline,
+      lastSeen: lastSeen ?? this.lastSeen,
+      opponentFoto: opponentFoto ?? this.opponentFoto,
+      selfFoto: selfFoto ?? this.selfFoto,
     );
   }
 
@@ -68,7 +85,11 @@ class Message {
         other.timestamp == timestamp &&
         other.status == status &&
         other.attachmentUrl == attachmentUrl &&
-        other.attachmentType == attachmentType;
+        other.attachmentType == attachmentType &&
+        other.isOnline == isOnline &&
+        other.lastSeen == lastSeen &&
+        other.opponentFoto == opponentFoto &&
+        other.selfFoto == selfFoto;
   }
 
   @override
@@ -85,12 +106,16 @@ class Message {
       status,
       attachmentUrl,
       attachmentType,
+      isOnline,
+      lastSeen,
+      opponentFoto,
+      selfFoto,
     );
   }
 
   @override
   String toString() {
-    return 'Message(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImageUrl: $senderProfileImageUrl, content: $content, type: $type, timestamp: $timestamp, status: $status, attachmentUrl: $attachmentUrl, attachmentType: $attachmentType)';
+    return 'Message(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImageUrl: $senderProfileImageUrl, content: $content, type: $type, timestamp: $timestamp, status: $status, attachmentUrl: $attachmentUrl, attachmentType: $attachmentType, isOnline: $isOnline, lastSeen: $lastSeen, opponentFoto: $opponentFoto, selfFoto: $selfFoto)';
   }
 }
 
