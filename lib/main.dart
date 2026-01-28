@@ -41,6 +41,7 @@ import 'core/constants/enums.dart';
 import 'core/constants/app_constants.dart';
 import 'core/security/security_manager.dart';
 import 'core/di/injection.dart';
+import 'core/navigation/app_navigator_key.dart';
 import 'core/design/colors.dart';
 import 'core/services/background_location_task.dart';
 import 'core/services/push_notification_service.dart';
@@ -92,8 +93,6 @@ class GuardifyApp extends StatefulWidget {
 }
 
 class _GuardifyAppState extends State<GuardifyApp> {
-  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
@@ -102,7 +101,7 @@ class _GuardifyAppState extends State<GuardifyApp> {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
-          navigatorKey: navigatorKey,
+          navigatorKey: appNavigatorKey,
           title: 'Guardify App',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
@@ -120,7 +119,7 @@ class _GuardifyAppState extends State<GuardifyApp> {
             return Stack(
               children: [
                 child ?? const SizedBox.shrink(),
-                ApiLogOverlayButton(navigatorKey: navigatorKey),
+                ApiLogOverlayButton(navigatorKey: appNavigatorKey),
               ],
             );
           },

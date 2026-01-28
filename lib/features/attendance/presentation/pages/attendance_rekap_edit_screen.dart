@@ -1520,6 +1520,8 @@ class AttendanceRekapEditScreen extends StatefulWidget {
   final AttendanceRekapDetailEntity detail;
   final bool isAttendanceDetail; // true for Detail Kehadiran, false for Detail Laporan Kegiatan
   final AttendanceRekapEditMode? editMode;
+  final bool returnDraftOnly;
+  final bool showSaveButton;
 
   const AttendanceRekapEditScreen({
     super.key,
@@ -1527,6 +1529,8 @@ class AttendanceRekapEditScreen extends StatefulWidget {
     required this.detail,
     this.isAttendanceDetail = false,
     this.editMode,
+    this.returnDraftOnly = false,
+    this.showSaveButton = true,
   });
 
   @override
@@ -1858,17 +1862,17 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
 
             32.verticalSpace,
 
-            // Save Button
-            Padding(
-              padding: REdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: UIButton(
-                text: 'Simpan',
-                onPressed: () => _handleSave(context),
-                variant: UIButtonVariant.primary,
-                size: UIButtonSize.large,
-                fullWidth: true,
+            if (widget.showSaveButton)
+              Padding(
+                padding: REdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: UIButton(
+                  text: 'Simpan',
+                  onPressed: () => _handleSave(context),
+                  variant: UIButtonVariant.primary,
+                  size: UIButtonSize.large,
+                  fullWidth: true,
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -1885,6 +1889,7 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
       );
       return;
     }
+
     // Helper function to get path or null if empty, with validation
     Future<String?> _getPathOrNull(File? file) async {
       if (file == null) {
@@ -1930,11 +1935,17 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
       photoAbsenPath: photoAbsenPath,
       photoPengamananPath: photoPengamananPath,
       photoPakaianPath: photoPakaianPath,
+      photoPengamananCheckOutPath: isCheckOut ? photoPengamananPath : null,
       laporan: !isCheckOut && laporanText.isNotEmpty ? laporanText : null,
       laporanCheckout: isCheckOut && laporanText.isNotEmpty ? laporanText : null,
       isOvertime: _isOvertime,
       photoOvertimePath: photoOvertimePath,
     );
+
+    if (widget.returnDraftOnly) {
+      Navigator.of(context).pop(request);
+      return;
+    }
 
     context
         .read<AttendanceRekapDetailBloc>()
