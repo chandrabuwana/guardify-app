@@ -1,5 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:io';
+import 'dart:math';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/login_use_case.dart';
 import '../datasources/auth_remote_data_source.dart';
@@ -9,7 +12,44 @@ import '../../../../core/constants/app_constants.dart';
 class AuthRepositoryImpl implements AuthRepository, LoginRepository {
   final AuthRemoteDataSource remoteDataSource;
 
+  static const String _deviceIdStorageKey = 'device_id';
+
   AuthRepositoryImpl({required this.remoteDataSource});
+
+  Future<String> _getOrCreateDeviceId() async {
+    final cached = await SecurityManager.readSecurely(_deviceIdStorageKey);
+    if (cached != null && cached.isNotEmpty) return cached;
+
+    String? id;
+    try {
+      final plugin = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final info = await plugin.androidInfo;
+        id = info.id;
+      } else if (Platform.isIOS) {
+        final info = await plugin.iosInfo;
+        id = info.identifierForVendor;
+      }
+    } catch (_) {
+      id = null;
+    }
+
+    final deviceId = (id != null && id.isNotEmpty) ? id : _generateRandomId();
+    await SecurityManager.storeSecurely(_deviceIdStorageKey, deviceId);
+    return deviceId;
+  }
+
+  String _getPlatformName() {
+    if (Platform.isAndroid) return 'Android';
+    if (Platform.isIOS) return 'iOS';
+    return 'Unknown';
+  }
+
+  String _generateRandomId() {
+    final rnd = Random.secure();
+    final bytes = List<int>.generate(16, (_) => rnd.nextInt(256));
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  }
 
   @override
   Future<LoginResult> login({
@@ -29,12 +69,17 @@ class AuthRepositoryImpl implements AuthRepository, LoginRepository {
         firebaseToken = '';
       }
 
+      final deviceId = await _getOrCreateDeviceId();
+      final platform = _getPlatformName();
+
       // Call API
       final response = await remoteDataSource.login({
         'Username': username,
         'Password': password,
         'FromMobile': true,
         'FirebaseToken': firebaseToken,
+        'DeviceId': deviceId,
+        'Platform': platform,
       });
 
       // Check if request succeeded
