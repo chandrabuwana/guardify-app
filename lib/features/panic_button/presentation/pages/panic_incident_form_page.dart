@@ -10,7 +10,6 @@ import 'package:path/path.dart' as path;
 import '../../../../shared/widgets/app_scaffold.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/design/colors.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
 import '../../../patrol/domain/repositories/patrol_repository.dart';
@@ -39,6 +38,7 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
   final TextEditingController _kejadianController = TextEditingController();
   final TextEditingController _tindakanController = TextEditingController();
   String? _selectedLocation;
+  int? _selectedIncidentTypeId;
 
   // File attachments
   List<File> _kejadianFiles = [];
@@ -55,12 +55,26 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
 
   // Submit state
   bool _isSubmitting = false;
+  bool _hasInitializedArgs = false;
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
     _loadAreas();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Get incident type ID from route arguments after context is available
+    if (!_hasInitializedArgs) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is int) {
+        _selectedIncidentTypeId = args;
+        _hasInitializedArgs = true;
+      }
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -509,9 +523,10 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
   }
 
   bool _isFormValid() {
-    // Kejadian must have text and at least one image
+    // Incident type, location, kejadian must have text and at least one image
     // Tindakan must have text (no images required)
-    return _selectedLocation != null && 
+    return _selectedIncidentTypeId != null &&
+           _selectedLocation != null && 
            _kejadianController.text.isNotEmpty && 
            _kejadianFiles.isNotEmpty &&
            _tindakanController.text.isNotEmpty;
@@ -668,14 +683,22 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
         print('✅ Feedback length: ${feedback.length} characters');
       }
 
+      // Get selected incident type ID
+      print('📋 Step 7: Getting selected incident type...');
+      if (_selectedIncidentTypeId == null) {
+        print('❌ Incident type not selected');
+        throw Exception('Jenis keadaan darurat harus dipilih');
+      }
+      print('✅ Selected Incident Type ID: $_selectedIncidentTypeId');
+
       // Create request model
-      print('📋 Step 7: Creating request model...');
+      print('📋 Step 8: Creating request model...');
       final request = IncidentRequestModel(
         action: null,
         areasId: selectedArea.id,
         description: description,
         feedback: feedback, // Feedback dari tindakan
-        idIncidentType: 1, // Default incident type
+        idIncidentType: _selectedIncidentTypeId!,
         reporterDate: reporterDate,
         reporterId: reporterId,
         resolveAction: null,
@@ -699,7 +722,7 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
       print('  - Files Count: ${request.files.length}');
 
       // Submit via repository
-      print('📋 Step 8: Submitting to repository...');
+      print('📋 Step 9: Submitting to repository...');
       final repository = getIt<PanicButtonRepository>();
       final startTime = DateTime.now();
       await repository.submitIncident(request);

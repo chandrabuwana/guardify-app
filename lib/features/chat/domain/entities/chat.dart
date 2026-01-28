@@ -11,6 +11,9 @@ class Chat {
   final DateTime? lastMessageTimestamp;
   final int unreadCount;
   final bool isActive;
+  final bool? isOnline;
+  final String? opponentFoto;
+  final String? selfFoto;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -27,6 +30,9 @@ class Chat {
     this.lastMessageTimestamp,
     required this.unreadCount,
     required this.isActive,
+    this.isOnline,
+    this.opponentFoto,
+    this.selfFoto,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -44,6 +50,9 @@ class Chat {
     DateTime? lastMessageTimestamp,
     int? unreadCount,
     bool? isActive,
+    bool? isOnline,
+    String? opponentFoto,
+    String? selfFoto,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -61,6 +70,9 @@ class Chat {
       lastMessageTimestamp: lastMessageTimestamp ?? this.lastMessageTimestamp,
       unreadCount: unreadCount ?? this.unreadCount,
       isActive: isActive ?? this.isActive,
+      isOnline: isOnline ?? this.isOnline,
+      opponentFoto: opponentFoto ?? this.opponentFoto,
+      selfFoto: selfFoto ?? this.selfFoto,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -82,6 +94,9 @@ class Chat {
         other.lastMessageTimestamp == lastMessageTimestamp &&
         other.unreadCount == unreadCount &&
         other.isActive == isActive &&
+        other.isOnline == isOnline &&
+        other.opponentFoto == opponentFoto &&
+        other.selfFoto == selfFoto &&
         other.createdAt == createdAt &&
         other.updatedAt == updatedAt;
   }
@@ -101,6 +116,9 @@ class Chat {
       lastMessageTimestamp,
       unreadCount,
       isActive,
+      isOnline,
+      opponentFoto,
+      selfFoto,
       createdAt,
       updatedAt,
     );
@@ -108,7 +126,7 @@ class Chat {
 
   @override
   String toString() {
-    return 'Chat(id: $id, name: $name, description: $description, profileImageUrl: $profileImageUrl, type: $type, participantIds: $participantIds, lastMessageId: $lastMessageId, lastMessageContent: $lastMessageContent, lastMessageSenderName: $lastMessageSenderName, lastMessageTimestamp: $lastMessageTimestamp, unreadCount: $unreadCount, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Chat(id: $id, name: $name, description: $description, profileImageUrl: $profileImageUrl, type: $type, participantIds: $participantIds, lastMessageId: $lastMessageId, lastMessageContent: $lastMessageContent, lastMessageSenderName: $lastMessageSenderName, lastMessageTimestamp: $lastMessageTimestamp, unreadCount: $unreadCount, isActive: $isActive, isOnline: $isOnline, opponentFoto: $opponentFoto, selfFoto: $selfFoto, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 

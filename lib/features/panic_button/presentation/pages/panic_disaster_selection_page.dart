@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
+import '../../../../core/di/injection.dart';
+import '../../data/models/panic_button_incident_type_model.dart';
+import '../../domain/repositories/panic_button_repository.dart';
 
 class PanicDisasterSelectionPage extends StatefulWidget {
   const PanicDisasterSelectionPage({super.key});
@@ -12,34 +15,67 @@ class PanicDisasterSelectionPage extends StatefulWidget {
 
 class _PanicDisasterSelectionPageState
     extends State<PanicDisasterSelectionPage> {
-  String? selectedDisaster;
+  int? selectedIncidentTypeId;
+  List<PanicButtonIncidentTypeModel> _incidentTypes = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  final List<Map<String, dynamic>> disasters = [
-    {
-      'id': 'keamanan_kecelakaan_kerja',
-      'title': 'Keamanan dan Kecelakaan Kerja',
-      'icon': Icons.security,
-      'color': Color(0xFFE74C3C),
-    },
-    {
-      'id': 'bencana_alam',
-      'title': 'Bencana Alam',
-      'icon': Icons.nature_outlined,
-      'color': Color(0xFFE67E22),
-    },
-    {
-      'id': 'kebakaran',
-      'title': 'Kebakaran',
-      'icon': Icons.local_fire_department,
-      'color': Color(0xFFFF5722),
-    },
-    {
-      'id': 'medis',
-      'title': 'Medis',
-      'icon': Icons.medical_services,
-      'color': Color(0xFF2ECC71),
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadIncidentTypes();
+  }
+
+  Future<void> _loadIncidentTypes() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final repository = getIt<PanicButtonRepository>();
+      final types = await repository.getIncidentTypes();
+
+      setState(() {
+        _isLoading = false;
+        _incidentTypes = types;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Gagal memuat jenis keadaan darurat: ${e.toString()}';
+        _incidentTypes = [];
+      });
+    }
+  }
+
+  IconData _getIconForType(String name) {
+    final lowerName = name.toLowerCase();
+    if (lowerName.contains('keamanan') || lowerName.contains('kecelakaan')) {
+      return Icons.security;
+    } else if (lowerName.contains('bencana') || lowerName.contains('alam')) {
+      return Icons.nature_outlined;
+    } else if (lowerName.contains('kebakaran') || lowerName.contains('fire')) {
+      return Icons.local_fire_department;
+    } else if (lowerName.contains('medis') || lowerName.contains('kesehatan')) {
+      return Icons.medical_services;
+    }
+    return Icons.warning;
+  }
+
+  Color _getColorForType(String name) {
+    final lowerName = name.toLowerCase();
+    if (lowerName.contains('keamanan') || lowerName.contains('kecelakaan')) {
+      return const Color(0xFFE74C3C);
+    } else if (lowerName.contains('bencana') || lowerName.contains('alam')) {
+      return const Color(0xFFE67E22);
+    } else if (lowerName.contains('kebakaran') || lowerName.contains('fire')) {
+      return const Color(0xFFFF5722);
+    } else if (lowerName.contains('medis') || lowerName.contains('kesehatan')) {
+      return const Color(0xFF2ECC71);
+    }
+    return const Color(0xFFE74C3C);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,8 +112,57 @@ class _PanicDisasterSelectionPageState
             ),
             24.verticalSpace,
 
-            // Disaster options
-            ...disasters.map((disaster) => _buildDisasterOption(disaster)),
+            // Loading state
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            // Error state
+            else if (_errorMessage != null)
+              Container(
+                padding: REdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.red[300]!),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Colors.red[700],
+                      ),
+                    ),
+                    12.verticalSpace,
+                    TextButton(
+                      onPressed: _loadIncidentTypes,
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
+              )
+            // Empty state
+            else if (_incidentTypes.isEmpty)
+              Center(
+                child: Padding(
+                  padding: REdgeInsets.all(32),
+                  child: Text(
+                    'Tidak ada jenis keadaan darurat yang tersedia',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ),
+              )
+            // List of incident types
+            else
+              ..._incidentTypes.map((type) => _buildIncidentTypeOption(type)),
 
             50.verticalSpace,
 
@@ -86,20 +171,20 @@ class _PanicDisasterSelectionPageState
               width: double.infinity,
               height: 50.h,
               child: ElevatedButton(
-                onPressed: selectedDisaster != null
+                onPressed: selectedIncidentTypeId != null && !_isLoading
                     ? () {
                         Navigator.pushNamed(
                           context,
                           '/panic-incident-form',
-                          arguments: selectedDisaster,
+                          arguments: selectedIncidentTypeId,
                         );
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: selectedDisaster != null
+                  backgroundColor: selectedIncidentTypeId != null && !_isLoading
                       ? const Color(0xFFE74C3C)
                       : Colors.grey[300],
-                  foregroundColor: selectedDisaster != null
+                  foregroundColor: selectedIncidentTypeId != null && !_isLoading
                       ? Colors.white
                       : Colors.grey[600],
                   shape: RoundedRectangleBorder(
@@ -122,14 +207,17 @@ class _PanicDisasterSelectionPageState
     );
   }
 
-  Widget _buildDisasterOption(Map<String, dynamic> disaster) {
-    final isSelected = selectedDisaster == disaster['id'];
+  Widget _buildIncidentTypeOption(PanicButtonIncidentTypeModel type) {
+    final isSelected = selectedIncidentTypeId == type.id;
+    final icon = _getIconForType(type.name);
+    final color = _getColorForType(type.name);
+
     return Container(
       margin: REdgeInsets.only(bottom: 16),
       child: InkWell(
         onTap: () {
           setState(() {
-            selectedDisaster = disaster['id'];
+            selectedIncidentTypeId = type.id;
           });
         },
         borderRadius: BorderRadius.circular(12.r),
@@ -137,10 +225,10 @@ class _PanicDisasterSelectionPageState
           padding: REdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isSelected
-                ? disaster['color'].withOpacity(0.1)
+                ? color.withOpacity(0.1)
                 : Colors.grey[50],
             border: Border.all(
-              color: isSelected ? disaster['color'] : Colors.grey[300]!,
+              color: isSelected ? color : Colors.grey[300]!,
               width: isSelected ? 2 : 1,
             ),
             borderRadius: BorderRadius.circular(12.r),
@@ -151,11 +239,11 @@ class _PanicDisasterSelectionPageState
                 width: 48.w,
                 height: 48.h,
                 decoration: BoxDecoration(
-                  color: isSelected ? disaster['color'] : Colors.grey[400],
+                  color: isSelected ? color : Colors.grey[400],
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Icon(
-                  disaster['icon'],
+                  icon,
                   color: Colors.white,
                   size: 24.r,
                 ),
@@ -163,18 +251,18 @@ class _PanicDisasterSelectionPageState
               16.horizontalSpace,
               Expanded(
                 child: Text(
-                  disaster['title'],
+                  type.name,
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? disaster['color'] : Colors.black87,
+                    color: isSelected ? color : Colors.black87,
                   ),
                 ),
               ),
               if (isSelected)
                 Icon(
                   Icons.check_circle,
-                  color: disaster['color'],
+                  color: color,
                   size: 24.r,
                 ),
             ],

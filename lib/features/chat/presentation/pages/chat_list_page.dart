@@ -1,13 +1,17 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:dio/dio.dart';
 import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
 import '../../domain/entities/chat.dart';
 import '../../domain/entities/contact.dart';
 import '../../../../core/design/colors.dart';
+import '../../../../core/security/security_manager.dart';
+import '../../../../core/constants/app_constants.dart';
 import 'chat_conversation_page.dart';
 
 class ChatListPage extends StatefulWidget {
@@ -36,7 +40,7 @@ class _ChatListPageState extends State<ChatListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: neutral10,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'Pesan',
@@ -48,6 +52,9 @@ class _ChatListPageState extends State<ChatListPage> {
         backgroundColor: primaryColor,
         elevation: 0,
         centerTitle: true,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
       ),
       body: BlocConsumer<ChatBloc, ChatState>(
         listener: (context, state) {
@@ -248,7 +255,14 @@ class _ChatListPageState extends State<ChatListPage> {
 
   Widget _buildChatItem(Chat chat) {
     return Container(
-      color: Colors.white,
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.grey.shade300,
+            width: 0.5,
+          ),
+        ),
+      ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -269,22 +283,29 @@ class _ChatListPageState extends State<ChatListPage> {
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             child: Row(
               children: [
-                // Profile Picture
-                CircleAvatar(
-                  radius: 24.r,
-                  backgroundColor: primary10,
-                  backgroundImage: chat.profileImageUrl != null
-                      ? NetworkImage(chat.profileImageUrl!)
-                      : null,
-                  child: chat.profileImageUrl == null
-                      ? Icon(
-                          chat.type == ChatType.group
-                              ? Icons.group
-                              : Icons.person,
-                          color: primaryColor,
-                          size: 24.sp,
-                        )
-                      : null,
+                // Profile Picture with Online Indicator
+                Stack(
+                  children: [
+                    _buildProfileAvatar(chat),
+                    // Online indicator for direct chat
+                    if (chat.type == ChatType.direct && chat.isOnline == true)
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 14.w,
+                          height: 14.h,
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 12.horizontalSpace,
 
@@ -372,6 +393,137 @@ class _ChatListPageState extends State<ChatListPage> {
         ),
       ),
     );
+  }
+
+  /// Build profile avatar with image or fallback icon
+  Widget _buildProfileAvatar(Chat chat) {
+    final imageUrl = _getProfileImageUrl(chat);
+    
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      // Check if it's an S3 URL (public, no auth needed)
+      final isS3Url = imageUrl.contains('s3.ap-southeast-1.amazonaws.com') ||
+                      imageUrl.contains('s3.amazonaws.com') ||
+                      imageUrl.contains('amazonaws.com');
+      
+      if (isS3Url) {
+        // S3 URL is public, use NetworkImage directly
+        return CircleAvatar(
+          radius: 24.r,
+          backgroundColor: primary10,
+          backgroundImage: NetworkImage(imageUrl),
+          onBackgroundImageError: (exception, stackTrace) {
+            // If image fails to load, show icon instead
+            debugPrint('⚠️ Failed to load S3 profile image: $imageUrl');
+          },
+          child: null,
+        );
+      } else {
+        // Non-S3 URL, might need auth header
+        return FutureBuilder<Uint8List?>(
+          future: _loadImageWithAuth(imageUrl),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return CircleAvatar(
+                radius: 24.r,
+                backgroundColor: primary10,
+                child: SizedBox(
+                  width: 16.w,
+                  height: 16.h,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: primaryColor,
+                  ),
+                ),
+              );
+            }
+
+            if (snapshot.hasError || snapshot.data == null) {
+              // If image fails to load, show icon instead
+              return CircleAvatar(
+                radius: 24.r,
+                backgroundColor: primary10,
+                child: Icon(
+                  chat.type == ChatType.group
+                      ? Icons.group
+                      : Icons.person,
+                  color: primaryColor,
+                  size: 24.sp,
+                ),
+              );
+            }
+
+            return CircleAvatar(
+              radius: 24.r,
+              backgroundColor: primary10,
+              backgroundImage: MemoryImage(snapshot.data!),
+              child: null,
+            );
+          },
+        );
+      }
+    }
+    
+    return CircleAvatar(
+      radius: 24.r,
+      backgroundColor: primary10,
+      child: Icon(
+        chat.type == ChatType.group
+            ? Icons.group
+            : Icons.person,
+        color: primaryColor,
+        size: 24.sp,
+      ),
+    );
+  }
+
+  /// Load image with authorization header using Dio (for non-S3 URLs)
+  Future<Uint8List?> _loadImageWithAuth(String imageUrl) async {
+    try {
+      // Validate URL before attempting to load
+      if (imageUrl.isEmpty || !imageUrl.startsWith('http')) {
+        debugPrint('⚠️ Invalid image URL for auth load: $imageUrl');
+        return null;
+      }
+
+      final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
+      
+      final dio = Dio();
+      final response = await dio.get<Uint8List>(
+        imageUrl,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {
+            if (token != null && token.isNotEmpty)
+              'Authorization': 'Bearer $token',
+          },
+          validateStatus: (status) {
+            // Don't throw exception for 404/403, return null instead
+            return status != null && status < 500;
+          },
+        ),
+      );
+
+      // Check if response is successful
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data;
+      } else {
+        debugPrint('⚠️ Profile image load failed with status ${response.statusCode}: $imageUrl');
+        return null;
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ Error loading profile image: $e');
+      return null;
+    } catch (e) {
+      debugPrint('❌ Unexpected error loading profile image: $e');
+      return null;
+    }
+  }
+
+  /// Get profile image URL from chat (use OpponentFoto from response)
+  String? _getProfileImageUrl(Chat chat) {
+    // Use OpponentFoto directly from conversation list response
+    // This is the photo of the opponent in the conversation
+    return chat.opponentFoto;
   }
 
   String _formatTime(DateTime timestamp) {

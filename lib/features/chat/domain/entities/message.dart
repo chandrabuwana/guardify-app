@@ -15,6 +15,8 @@ class Message {
   final DateTime? lastSeen;
   final String? opponentFoto;
   final String? selfFoto;
+  // SentAt from API - indicates message was sent successfully
+  final DateTime? sentAt;
 
   const Message({
     required this.id,
@@ -32,6 +34,7 @@ class Message {
     this.lastSeen,
     this.opponentFoto,
     this.selfFoto,
+    this.sentAt,
   });
 
   Message copyWith({
@@ -50,6 +53,7 @@ class Message {
     DateTime? lastSeen,
     String? opponentFoto,
     String? selfFoto,
+    DateTime? sentAt,
   }) {
     return Message(
       id: id ?? this.id,
@@ -68,6 +72,7 @@ class Message {
       lastSeen: lastSeen ?? this.lastSeen,
       opponentFoto: opponentFoto ?? this.opponentFoto,
       selfFoto: selfFoto ?? this.selfFoto,
+      sentAt: sentAt ?? this.sentAt,
     );
   }
 
@@ -89,7 +94,8 @@ class Message {
         other.isOnline == isOnline &&
         other.lastSeen == lastSeen &&
         other.opponentFoto == opponentFoto &&
-        other.selfFoto == selfFoto;
+        other.selfFoto == selfFoto &&
+        other.sentAt == sentAt;
   }
 
   @override
@@ -110,12 +116,13 @@ class Message {
       lastSeen,
       opponentFoto,
       selfFoto,
+      sentAt,
     );
   }
 
   @override
   String toString() {
-    return 'Message(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImageUrl: $senderProfileImageUrl, content: $content, type: $type, timestamp: $timestamp, status: $status, attachmentUrl: $attachmentUrl, attachmentType: $attachmentType, isOnline: $isOnline, lastSeen: $lastSeen, opponentFoto: $opponentFoto, selfFoto: $selfFoto)';
+    return 'Message(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImageUrl: $senderProfileImageUrl, content: $content, type: $type, timestamp: $timestamp, status: $status, attachmentUrl: $attachmentUrl, attachmentType: $attachmentType, isOnline: $isOnline, lastSeen: $lastSeen, opponentFoto: $opponentFoto, selfFoto: $selfFoto, sentAt: $sentAt)';
   }
 }
 

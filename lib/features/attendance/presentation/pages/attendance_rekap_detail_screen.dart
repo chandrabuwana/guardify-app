@@ -1409,6 +1409,15 @@ class _AttendanceRekapDetailScreenContentState
                       _formatTime(detail.checkOut!),
                     ),
 
+                    // Total Jam Kerja
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Total Jam Kerja',
+                      (detail.checkIn != null && detail.checkOut != null)
+                          ? _calculateTotalHours(detail.checkIn!, detail.checkOut!)
+                          : '-',
+                    ),
+
                     // Lembur
                     16.verticalSpace,
                     _buildInfoFieldInCard('Lembur', detail.isOvertime ? 'Ya' : 'Tidak'),
@@ -1689,6 +1698,13 @@ class _AttendanceRekapDetailScreenContentState
       default:
         return status;
     }
+  }
+
+  String _calculateTotalHours(DateTime checkIn, DateTime checkOut) {
+    final difference = checkOut.difference(checkIn);
+    final hours = difference.inHours;
+    final minutes = difference.inMinutes.remainder(60);
+    return '${hours.toString().padLeft(2, '0')} Hours ${minutes.toString().padLeft(2, '0')} Minutes';
   }
 
   Widget _buildCarryOverFieldInCard(List<CarryOverItem> listCarryOver) {

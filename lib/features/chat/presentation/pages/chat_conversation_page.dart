@@ -7,6 +7,10 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
@@ -198,9 +202,11 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             lastMessage = state.messages.last;
           }
           
-          // Get opponent info from Header (for direct chat)
-          final opponentFoto = lastMessage?.opponentFoto ?? widget.chat.profileImageUrl;
-          final isOnline = lastMessage?.isOnline ?? false;
+          // Get opponent info from Header (for direct chat) or from Chat entity
+          final opponentFoto = lastMessage?.opponentFoto ?? 
+                              widget.chat.opponentFoto ?? 
+                              widget.chat.profileImageUrl;
+          final isOnline = lastMessage?.isOnline ?? widget.chat.isOnline ?? false;
           final lastSeen = lastMessage?.lastSeen;
           
           // Format last seen text
@@ -281,14 +287,6 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                 ),
               ],
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.more_vert, color: Colors.white),
-                onPressed: () {
-                  // Show more options
-                },
-              ),
-            ],
           );
         },
       ),
@@ -438,24 +436,27 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                   // Check if message has image (either from URL or local file)
                   if (((message.attachmentUrl != null && message.attachmentUrl!.isNotEmpty) || _hasLocalFile(message)) && 
                       (message.type == MessageType.image || _hasLocalFile(message)))
-                    Container(
-                      margin: EdgeInsets.only(bottom: 8.h),
-                      constraints: BoxConstraints(
-                        maxWidth: 200.w,
-                        maxHeight: 200.h,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(
-                          color: isMe 
-                              ? Colors.white.withValues(alpha: 0.3)
-                              : Colors.grey.shade300,
-                          width: 1,
+                    GestureDetector(
+                      onTap: () => _showImagePreview(message),
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 8.h),
+                        constraints: BoxConstraints(
+                          maxWidth: 200.w,
+                          maxHeight: 200.h,
                         ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.r),
-                        child: _buildImageWidgetForMessage(message),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(
+                            color: isMe 
+                                ? Colors.white.withValues(alpha: 0.3)
+                                : Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8.r),
+                          child: _buildImageWidgetForMessage(message),
+                        ),
                       ),
                     ),
                   
@@ -504,14 +505,28 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                     ),
                   
                   4.verticalSpace,
-                  Text(
-                    DateFormat('HH:mm').format(message.timestamp),
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      color: isMe
-                          ? Colors.white.withValues(alpha: 0.7)
-                          : neutral50,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        DateFormat('HH:mm').format(message.timestamp),
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: isMe
+                              ? Colors.white.withValues(alpha: 0.7)
+                              : neutral50,
+                        ),
+                      ),
+                      // Show double check mark if sentAt is not null (message was sent)
+                      if (isMe && message.sentAt != null) ...[
+                        4.horizontalSpace,
+                        Icon(
+                          Icons.done_all,
+                          size: 14.sp,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -1438,6 +1453,260 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
     }
   }
 
+  /// Show image preview dialog with download and share options
+  Future<void> _showImagePreview(Message message) async {
+    String? imageUrl;
+    File? localFile;
+    Uint8List? imageBytes;
+    
+    // Get image URL or local file
+    localFile = _getLocalFile(message);
+    if (localFile != null && await localFile.exists()) {
+      imageUrl = localFile.path;
+    } else if (message.attachmentUrl != null && message.attachmentUrl!.isNotEmpty) {
+      imageUrl = message.attachmentUrl;
+      // Pre-load image with auth for preview
+      try {
+        imageBytes = await _loadImageWithAuth(imageUrl!);
+      } catch (e) {
+        print('⚠️ Failed to pre-load image for preview: $e');
+      }
+    }
+    
+    if (imageUrl == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gambar tidak tersedia'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => _ImagePreviewDialog(
+        imageUrl: imageUrl!,
+        isLocalFile: localFile != null,
+        imageBytes: imageBytes,
+        message: message,
+        onDownload: () => _downloadImage(message),
+        onShare: () => _shareImage(message, localFile),
+      ),
+    );
+  }
+
+  /// Download image to device storage
+  Future<void> _downloadImage(Message message) async {
+    try {
+      String? imageUrl = message.attachmentUrl;
+      File? localFile = _getLocalFile(message);
+      
+      Uint8List? imageBytes;
+      
+      // Prefer local file if available
+      if (localFile != null && await localFile.exists()) {
+        imageBytes = await localFile.readAsBytes();
+      } else if (imageUrl != null && imageUrl.isNotEmpty) {
+        // Check if it's an S3 URL (public, no auth needed)
+        final isS3Url = imageUrl.contains('s3.ap-southeast-1.amazonaws.com') ||
+                        imageUrl.contains('s3.amazonaws.com') ||
+                        imageUrl.contains('amazonaws.com');
+        
+        final dio = Dio();
+        final Options options;
+        
+        if (isS3Url) {
+          // S3 URL is public, no auth header needed
+          options = Options(
+            responseType: ResponseType.bytes,
+            validateStatus: (status) {
+              return status != null && status < 500;
+            },
+          );
+        } else {
+          // Non-S3 URL, might need auth header
+          final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
+          options = Options(
+            responseType: ResponseType.bytes,
+            headers: {
+              if (token != null && token.isNotEmpty)
+                'Authorization': 'Bearer $token',
+            },
+            validateStatus: (status) {
+              return status != null && status < 500;
+            },
+          );
+        }
+        
+        final response = await dio.get<Uint8List>(
+          imageUrl,
+          options: options,
+        );
+
+        if (response.statusCode == 200 && response.data != null) {
+          imageBytes = response.data;
+        } else {
+          debugPrint('⚠️ Failed to download image: status ${response.statusCode}');
+        }
+      }
+
+      if (imageBytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal memuat gambar untuk didownload'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Get download directory (use Pictures directory for images)
+      final directory = await getApplicationDocumentsDirectory();
+      final downloadDir = Directory('${directory.path}/Pictures/Guardify');
+      if (!await downloadDir.exists()) {
+        await downloadDir.create(recursive: true);
+      }
+
+      // Get file name from URL or generate one
+      String fileName = 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        final urlFileName = path.basename(imageUrl);
+        if (urlFileName.isNotEmpty && urlFileName.contains('.')) {
+          fileName = urlFileName;
+        }
+      }
+
+      final filePath = '${downloadDir.path}/$fileName';
+      final file = File(filePath);
+      await file.writeAsBytes(imageBytes);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gambar berhasil didownload'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+            action: SnackBarAction(
+              label: 'Buka',
+              textColor: Colors.white,
+              onPressed: () {
+                // Could open file manager here if needed
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error downloading image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal download gambar: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Share image
+  Future<void> _shareImage(Message message, File? localFile) async {
+    try {
+      XFile? fileToShare;
+      
+      // Prefer local file if available
+      if (localFile != null && await localFile.exists()) {
+        fileToShare = XFile(localFile.path);
+      } else if (message.attachmentUrl != null && message.attachmentUrl!.isNotEmpty) {
+        // Download image temporarily for sharing
+        final imageUrl = message.attachmentUrl!;
+        
+        // Check if it's an S3 URL (public, no auth needed)
+        final isS3Url = imageUrl.contains('s3.ap-southeast-1.amazonaws.com') ||
+                        imageUrl.contains('s3.amazonaws.com') ||
+                        imageUrl.contains('amazonaws.com');
+        
+        final dio = Dio();
+        final Options options;
+        
+        if (isS3Url) {
+          // S3 URL is public, no auth header needed
+          options = Options(
+            responseType: ResponseType.bytes,
+            validateStatus: (status) {
+              return status != null && status < 500;
+            },
+          );
+        } else {
+          // Non-S3 URL, might need auth header
+          final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
+          options = Options(
+            responseType: ResponseType.bytes,
+            headers: {
+              if (token != null && token.isNotEmpty)
+                'Authorization': 'Bearer $token',
+            },
+            validateStatus: (status) {
+              return status != null && status < 500;
+            },
+          );
+        }
+        
+        final response = await dio.get<Uint8List>(
+          imageUrl,
+          options: options,
+        );
+
+        if (response.statusCode == 200 && response.data != null) {
+          // Save to temp directory
+          final tempDir = await getTemporaryDirectory();
+          final fileName = path.basename(imageUrl) != imageUrl && path.basename(imageUrl).isNotEmpty
+              ? path.basename(imageUrl)
+              : 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final tempFile = File('${tempDir.path}/$fileName');
+          await tempFile.writeAsBytes(response.data!);
+          fileToShare = XFile(tempFile.path);
+        } else {
+          debugPrint('⚠️ Failed to download image for sharing: status ${response.statusCode}');
+        }
+      }
+
+      if (fileToShare != null) {
+        await Share.shareXFiles(
+          [fileToShare],
+          text: message.content.isNotEmpty ? message.content : 'Gambar dari chat',
+        );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal memuat gambar untuk dibagikan'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Error sharing image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membagikan gambar: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   /// Load image from API URL as fallback when S3 URL fails
   Future<Uint8List?> _loadImageFromApiUrl(String s3Url) async {
     try {
@@ -1499,5 +1768,133 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       debugPrint('❌ Error loading image from API URL: $e');
       return null;
     }
+  }
+}
+
+/// Dialog for image preview with zoom, download, and share
+class _ImagePreviewDialog extends StatefulWidget {
+  final String imageUrl;
+  final bool isLocalFile;
+  final Uint8List? imageBytes;
+  final Message message;
+  final VoidCallback onDownload;
+  final VoidCallback onShare;
+
+  const _ImagePreviewDialog({
+    required this.imageUrl,
+    required this.isLocalFile,
+    this.imageBytes,
+    required this.message,
+    required this.onDownload,
+    required this.onShare,
+  });
+
+  @override
+  State<_ImagePreviewDialog> createState() => _ImagePreviewDialogState();
+}
+
+class _ImagePreviewDialogState extends State<_ImagePreviewDialog> {
+  @override
+  Widget build(BuildContext context) {
+    ImageProvider imageProvider;
+    
+    if (widget.isLocalFile) {
+      imageProvider = FileImage(File(widget.imageUrl));
+    } else if (widget.imageBytes != null) {
+      imageProvider = MemoryImage(widget.imageBytes!);
+    } else {
+      // Fallback to NetworkImage (may need auth)
+      imageProvider = NetworkImage(widget.imageUrl);
+    }
+    
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.zero,
+      child: Stack(
+        children: [
+          // Full screen image viewer with zoom
+          PhotoView(
+            imageProvider: imageProvider,
+            minScale: PhotoViewComputedScale.contained,
+            maxScale: PhotoViewComputedScale.covered * 2,
+            backgroundDecoration: const BoxDecoration(
+              color: Colors.transparent,
+            ),
+            errorBuilder: (context, error, stackTrace) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.broken_image, size: 64.sp, color: Colors.white),
+                    16.verticalSpace,
+                    Text(
+                      'Gagal memuat gambar',
+                      style: TextStyle(color: Colors.white, fontSize: 16.sp),
+                    ),
+                  ],
+                ),
+              );
+            },
+            loadingBuilder: (context, event) {
+              return Center(
+                child: CircularProgressIndicator(
+                  color: primaryColor,
+                  value: event == null
+                      ? null
+                      : event.cumulativeBytesLoaded / event.expectedTotalBytes!,
+                ),
+              );
+            },
+          ),
+          
+          // Close button
+          Positioned(
+            top: 40.h,
+            right: 16.w,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.black54,
+              ),
+            ),
+          ),
+          
+          // Action buttons (Download & Share)
+          Positioned(
+            bottom: 40.h,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Download button
+                ElevatedButton.icon(
+                  onPressed: widget.onDownload,
+                  icon: const Icon(Icons.download, color: Colors.white),
+                  label: const Text('Download', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                  ),
+                ),
+                16.horizontalSpace,
+                
+                // Share button
+                ElevatedButton.icon(
+                  onPressed: widget.onShare,
+                  icon: const Icon(Icons.share, color: Colors.white),
+                  label: const Text('Share', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

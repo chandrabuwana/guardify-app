@@ -242,7 +242,7 @@ MessageItemModel _$MessageItemModelFromJson(Map<String, dynamic> json) =>
           id: $checkedConvert('Id', (v) => v as String),
           conversationId: $checkedConvert('ConversationId', (v) => v as String),
           senderId: $checkedConvert('SenderId', (v) => v as String),
-          text: $checkedConvert('Text', (v) => v as String),
+          text: $checkedConvert('Text', (v) => v as String?),
           sentAt: $checkedConvert('SentAt', (v) => DateTime.parse(v as String)),
           attachments: $checkedConvert(
               'Attachments',
@@ -446,6 +446,9 @@ ConversationItemModel _$ConversationItemModelFromJson(
               'LastMessageAttachmentCount', (v) => (v as num?)?.toInt() ?? 0),
           totalUnread:
               $checkedConvert('TotalUnread', (v) => (v as num?)?.toInt() ?? 0),
+          isOnline: $checkedConvert('IsOnline', (v) => v as bool?),
+          opponentFoto: $checkedConvert('OpponentFoto', (v) => v as String?),
+          selfFoto: $checkedConvert('SelfFoto', (v) => v as String?),
         );
         return val;
       },
@@ -458,7 +461,10 @@ ConversationItemModel _$ConversationItemModelFromJson(
         'lastMessageText': 'LastMessageText',
         'lastSentAt': 'LastSentAt',
         'lastMessageAttachmentCount': 'LastMessageAttachmentCount',
-        'totalUnread': 'TotalUnread'
+        'totalUnread': 'TotalUnread',
+        'isOnline': 'IsOnline',
+        'opponentFoto': 'OpponentFoto',
+        'selfFoto': 'SelfFoto'
       },
     );
 
@@ -474,4 +480,7 @@ Map<String, dynamic> _$ConversationItemModelToJson(
       'LastSentAt': instance.lastSentAt?.toIso8601String(),
       'LastMessageAttachmentCount': instance.lastMessageAttachmentCount,
       'TotalUnread': instance.totalUnread,
+      'IsOnline': instance.isOnline,
+      'OpponentFoto': instance.opponentFoto,
+      'SelfFoto': instance.selfFoto,
     };

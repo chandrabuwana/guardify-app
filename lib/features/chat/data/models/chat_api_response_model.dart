@@ -215,7 +215,7 @@ class MessageItemModel {
   final String senderId;
 
   @JsonKey(name: 'Text')
-  final String text;
+  final String? text;
 
   @JsonKey(name: 'SentAt')
   final DateTime sentAt;
@@ -230,7 +230,7 @@ class MessageItemModel {
     required this.id,
     required this.conversationId,
     required this.senderId,
-    required this.text,
+    this.text,
     required this.sentAt,
     required this.attachments,
     this.header,
@@ -408,6 +408,15 @@ class ConversationItemModel {
   @JsonKey(name: 'TotalUnread')
   final int totalUnread;
 
+  @JsonKey(name: 'IsOnline')
+  final bool? isOnline;
+
+  @JsonKey(name: 'OpponentFoto')
+  final String? opponentFoto;
+
+  @JsonKey(name: 'SelfFoto')
+  final String? selfFoto;
+
   ConversationItemModel({
     required this.id,
     required this.name,
@@ -418,6 +427,9 @@ class ConversationItemModel {
     this.lastSentAt,
     this.lastMessageAttachmentCount = 0,
     this.totalUnread = 0,
+    this.isOnline,
+    this.opponentFoto,
+    this.selfFoto,
   });
 
   factory ConversationItemModel.fromJson(Map<String, dynamic> json) =>

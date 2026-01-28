@@ -262,7 +262,22 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     Emitter<ChatState> emit,
   ) async {
     try {
+      // Get current user ID for SignalR
+      final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      
+      // Mark as read via API (for persistence)
       await chatRepository.markMessagesAsRead(event.chatId);
+      
+      // Also mark as read via SignalR (for realtime notification)
+      if (currentUserId != null && signalRService.isConnected) {
+        try {
+          await signalRService.readMessage(event.chatId, currentUserId);
+          print('✅ [MarkAsRead] Marked as read via SignalR');
+        } catch (e) {
+          print('⚠️ [MarkAsRead] SignalR readMessage failed (non-critical): $e');
+          // Don't throw - API call already succeeded
+        }
+      }
 
       // Update chat unread count
       final updatedChats = state.chats.map((chat) {
@@ -625,6 +640,8 @@ ChatCreateConversation event,
         // Match temp message - replace with real message
         if (m.id.startsWith('temp_') && existingTempMessage != null && m.id == existingTempMessage!.id) {
           print('🔄 [Hybrid] Replacing temp message ${m.id} with real message ${messageWithName.id}');
+          print('   Old timestamp: ${m.timestamp}');
+          print('   New timestamp: ${messageWithName.timestamp}');
           return messageWithName.copyWith(status: MessageStatus.delivered);
         }
         
