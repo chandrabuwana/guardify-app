@@ -7,7 +7,7 @@ import '../../domain/entities/message.dart';
 
 /// Service untuk mengelola SignalR connection untuk realtime chat
 /// Menggunakan WebSockets transport dengan HubConnectionBuilder
-@lazySingleton
+@lazySingleton  
 class SignalRChatService {
   HubConnection? _hubConnection;
   String? _token;
@@ -76,12 +76,18 @@ class SignalRChatService {
       await _hubConnection!.start();
       
       // Wait a bit to ensure connection is fully established
-      await Future.delayed(const Duration(milliseconds: 300));
+      // Increase delay to ensure connection is truly ready
+      await Future.delayed(const Duration(milliseconds: 500));
       
-      _isConnected = true;
-      _reconnectAttempt = 0;
-      _connectionStateController.add(ConnectionState.connected);
-      print('✅ SignalR service initialized and connected (WebSockets)');
+      // Double check connection is still active after delay
+      if (_hubConnection != null) {
+        _isConnected = true;
+        _reconnectAttempt = 0;
+        _connectionStateController.add(ConnectionState.connected);
+        print('✅ SignalR service initialized and connected (WebSockets)');
+      } else {
+        throw Exception('HubConnection became null after start');
+      }
     } catch (e) {
       print('❌ Error initializing SignalR: $e');
       _isConnected = false;
@@ -99,6 +105,8 @@ class SignalRChatService {
     _hubConnection!.onclose(({Exception? error}) {
       print('🔴 SignalR connection closed: $error');
       _isConnected = false;
+      _currentConversationId = null;
+      _currentUserId = null;
       _connectionStateController.add(ConnectionState.disconnected);
       if (error != null) {
         _scheduleReconnect();
@@ -555,11 +563,43 @@ class SignalRChatService {
   Future<void> joinConversation(String conversationId, String userId) async {
     print('🔵 Attempting to join conversation: $conversationId, userId: $userId');
     
-    if (!isConnected || _hubConnection == null) {
+    // Ensure connection is established
+    if (_hubConnection == null) {
+      print('⚠️ HubConnection is null, initializing...');
+      await connect();
+    }
+    
+    // Wait for connection to be fully established
+    if (!isConnected) {
       print('⚠️ SignalR not connected, connecting first...');
       await connect();
-      // Wait a bit after connection
-      await Future.delayed(const Duration(milliseconds: 500));
+    }
+    
+    // Wait until connection is truly connected (with timeout and retry)
+    int retryCount = 0;
+    const maxRetries = 15; // Increase retries for more reliability
+    while ((!_isConnected || _hubConnection == null) && retryCount < maxRetries) {
+      print('⏳ Waiting for connection to be ready... (attempt ${retryCount + 1}/$maxRetries)');
+      await Future.delayed(const Duration(milliseconds: 300));
+      retryCount++;
+      
+      // If still not connected after several attempts, try reconnecting
+      if (retryCount == 5 && !_isConnected) {
+        print('🔄 Reconnecting SignalR...');
+        try {
+          await connect();
+        } catch (e) {
+          print('⚠️ Reconnection attempt failed: $e');
+        }
+      }
+    }
+    
+    if (_hubConnection == null) {
+      throw Exception('SignalR HubConnection is null. Cannot join conversation.');
+    }
+    
+    if (!_isConnected) {
+      throw Exception('SignalR connection is not established. Cannot join conversation.');
     }
 
     try {
@@ -580,6 +620,32 @@ class SignalRChatService {
       print('❌ Error joining conversation: $e');
       print('❌ Error type: ${e.runtimeType}');
       print('❌ Stack trace: $stackTrace');
+      
+      // If error is about connection state, try reconnecting first
+      if (e.toString().contains('Connected') || e.toString().contains('connection')) {
+        print('🔄 Connection state error detected, attempting to reconnect...');
+        try {
+          await disconnect();
+          await Future.delayed(const Duration(milliseconds: 500));
+          await connect();
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          // Retry join after reconnection
+          if (_isConnected && _hubConnection != null) {
+            print('🔄 Retrying JoinConversation after reconnect...');
+            final result = await _hubConnection!.invoke(
+              'JoinConversation', 
+              args: <Object>[conversationId, userId],
+            );
+            _currentConversationId = conversationId;
+            _currentUserId = userId;
+            print('✅ Successfully joined conversation after reconnect: $conversationId');
+            return;
+          }
+        } catch (reconnectError) {
+          print('❌ Reconnection failed: $reconnectError');
+        }
+      }
       
       // Coba dengan method name yang berbeda (case sensitivity)
       try {
