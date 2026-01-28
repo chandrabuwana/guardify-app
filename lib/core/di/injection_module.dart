@@ -13,6 +13,7 @@ import '../../features/news/domain/repositories/news_repository.dart';
 import '../../features/news/presentation/bloc/news_bloc.dart';
 import '../../features/test_result/data/datasources/test_result_api_data_source.dart';
 import '../constants/app_constants.dart';
+import '../navigation/app_navigator_key.dart';
 import '../security/security_manager.dart';
 
 /// Injection Module - Centralized Dependency Registration
@@ -88,6 +89,26 @@ abstract class InjectionModule {
           handler.next(options);
         },
         onResponse: (response, handler) async {
+          // Global unauthorized handler.
+          // NOTE: validateStatus allows 4xx, so 401 arrives here (not in onError).
+          final statusCode = response.statusCode;
+          final path = response.requestOptions.path;
+
+          final isAuthEndpoint = path.contains('/auth/') ||
+              path.contains('/Auth/') ||
+              path.contains('/login') ||
+              path.contains('/Login');
+
+          if (statusCode == 401 && !isAuthEndpoint) {
+            await SecurityManager.deleteSecurely(AppConstants.tokenKey);
+            await SecurityManager.deleteSecurely(AppConstants.refreshTokenKey);
+
+            final navigator = appNavigatorKey.currentState;
+            if (navigator != null) {
+              navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+            }
+          }
+
           // Log response untuk AssessmentDetail
           if (response.requestOptions.path.contains('AssesmentDetail')) {
             print('✅ === ASSESSMENT DETAIL RESPONSE ===');

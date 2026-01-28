@@ -242,7 +242,7 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => BlocProvider.value(
+                      builder: (_) => BlocProvider.value(
                         value: personnelBloc,
                         child: PersonnelDocumentPage(
                           personnel: personnel,
@@ -329,3 +329,4 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
     }
   }
 }
+//3desember 

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/auth/presentation/pages/login_page.dart';
@@ -38,12 +41,30 @@ import 'core/constants/enums.dart';
 import 'core/constants/app_constants.dart';
 import 'core/security/security_manager.dart';
 import 'core/di/injection.dart';
+import 'core/navigation/app_navigator_key.dart';
 import 'core/design/colors.dart';
 import 'core/services/background_location_task.dart';
+import 'core/services/push_notification_service.dart';
 import 'shared/widgets/api_log_overlay_button.dart';
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final isMobile = Platform.isAndroid || Platform.isIOS;
+  if (isMobile) {
+    try {
+      await Firebase.initializeApp();
+      FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler);
+      await PushNotificationService.instance.initialize();
+    } catch (e) {
+      print('⚠️ [Main] Firebase init failed: $e');
+    }
+  }
 
   // Initialize date formatting for Indonesian locale
   await initializeDateFormatting('id_ID', null);
@@ -72,8 +93,6 @@ class GuardifyApp extends StatefulWidget {
 }
 
 class _GuardifyAppState extends State<GuardifyApp> {
-  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
@@ -82,7 +101,7 @@ class _GuardifyAppState extends State<GuardifyApp> {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
-          navigatorKey: navigatorKey,
+          navigatorKey: appNavigatorKey,
           title: 'Guardify App',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
@@ -100,7 +119,7 @@ class _GuardifyAppState extends State<GuardifyApp> {
             return Stack(
               children: [
                 child ?? const SizedBox.shrink(),
-                ApiLogOverlayButton(navigatorKey: navigatorKey),
+                ApiLogOverlayButton(navigatorKey: appNavigatorKey),
               ],
             );
           },

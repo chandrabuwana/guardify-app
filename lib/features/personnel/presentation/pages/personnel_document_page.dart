@@ -278,6 +278,7 @@ class _PersonnelDocumentPageState extends State<PersonnelDocumentPage> {
   }
 
   void _showApproveConfirmation(BuildContext context, String personnelId) {
+    final personnelBloc = context.read<PersonnelBloc>();
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -291,7 +292,7 @@ class _PersonnelDocumentPageState extends State<PersonnelDocumentPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              context.read<PersonnelBloc>().add(
+              personnelBloc.add(
                     ApprovePersonnelEvent(
                       personnelId,
                       _feedbackController.text.trim(),
@@ -312,6 +313,7 @@ class _PersonnelDocumentPageState extends State<PersonnelDocumentPage> {
   }
 
   void _showReviseConfirmation(BuildContext context, String personnelId) {
+    final personnelBloc = context.read<PersonnelBloc>();
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -326,7 +328,7 @@ class _PersonnelDocumentPageState extends State<PersonnelDocumentPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              context.read<PersonnelBloc>().add(
+              personnelBloc.add(
                     RevisePersonnelEvent(
                       personnelId,
                       _feedbackController.text.trim(),

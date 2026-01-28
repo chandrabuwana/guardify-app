@@ -114,6 +114,7 @@ class AttendanceRekapRemoteDataSourceImpl
       print('  Method: POST');
       print('  IdAttendance: ${request.idAttendance}');
       print('  Laporan: ${request.laporan ?? "null"}');
+      print('  LaporanCheckout: ${request.laporanCheckout ?? "null"}');
       print('  IsOvertime: ${request.isOvertime ?? "null"}');
       
       // Log photo paths
@@ -121,31 +122,63 @@ class AttendanceRekapRemoteDataSourceImpl
       print('  photoAbsenPath: ${request.photoAbsenPath ?? "null"}');
       print('  photoPengamananPath: ${request.photoPengamananPath ?? "null"}');
       print('  photoPakaianPath: ${request.photoPakaianPath ?? "null"}');
+      print(
+          '  photoPengamananCheckOutPath: ${request.photoPengamananCheckOutPath ?? "null"}');
       print('  photoOvertimePath: ${request.photoOvertimePath ?? "null"}');
 
-      final photoAbsen = await _encodePhoto(request.photoAbsenPath);
-      final photoPengamanan = await _encodePhoto(request.photoPengamananPath);
-      final photoPakaian = await _encodePhoto(request.photoPakaianPath);
-      final photoOvertime = await _encodePhoto(request.photoOvertimePath);
+      final photoPakaianCheckIn = await _encodePhoto(
+        request.photoAbsenPath,
+        filenameOverride: request.photoAbsenFilename,
+      );
+      final photoPengamananCheckIn =
+          await _encodePhoto(
+        request.photoPengamananPath,
+        filenameOverride: request.photoPengamananFilename,
+      );
+      final photoAbsenCheckOut = await _encodePhoto(
+        request.photoPakaianPath,
+        filenameOverride: request.photoPakaianFilename,
+      );
+      final photoPengamananCheckOut =
+          await _encodePhoto(
+        request.photoPengamananCheckOutPath,
+        filenameOverride: request.photoPengamananCheckOutFilename,
+      );
+      final photoLemburCheckOut = await _encodePhoto(
+        request.photoOvertimePath,
+        filenameOverride: request.photoOvertimeFilename,
+      );
 
       // Log encoded photos summary
       print('📸 Encoded Photos Summary:');
-      print('  photoAbsen: ${photoAbsen != null ? "✅ encoded (${photoAbsen['Filename']}, ${photoAbsen['MimeType']}, base64Length: ${(photoAbsen['Base64'] as String).length})" : "❌ null"}');
-      print('  photoPengamanan: ${photoPengamanan != null ? "✅ encoded (${photoPengamanan['Filename']}, ${photoPengamanan['MimeType']}, base64Length: ${(photoPengamanan['Base64'] as String).length})" : "❌ null"}');
-      print('  photoPakaian: ${photoPakaian != null ? "✅ encoded (${photoPakaian['Filename']}, ${photoPakaian['MimeType']}, base64Length: ${(photoPakaian['Base64'] as String).length})" : "❌ null"}');
-      print('  photoOvertime: ${photoOvertime != null ? "✅ encoded (${photoOvertime['Filename']}, ${photoOvertime['MimeType']}, base64Length: ${(photoOvertime['Base64'] as String).length})" : "❌ null"}');
+      print(
+          '  photoPakaianCheckIn: ${photoPakaianCheckIn != null ? "✅ encoded (${photoPakaianCheckIn['Filename']}, ${photoPakaianCheckIn['MimeType']}, base64Length: ${(photoPakaianCheckIn['Base64'] as String).length})" : "❌ null"}');
+      print(
+          '  photoPengamananCheckIn: ${photoPengamananCheckIn != null ? "✅ encoded (${photoPengamananCheckIn['Filename']}, ${photoPengamananCheckIn['MimeType']}, base64Length: ${(photoPengamananCheckIn['Base64'] as String).length})" : "❌ null"}');
+      print(
+          '  photoAbsenCheckOut: ${photoAbsenCheckOut != null ? "✅ encoded (${photoAbsenCheckOut['Filename']}, ${photoAbsenCheckOut['MimeType']}, base64Length: ${(photoAbsenCheckOut['Base64'] as String).length})" : "❌ null"}');
+      print(
+          '  photoPengamananCheckOut: ${photoPengamananCheckOut != null ? "✅ encoded (${photoPengamananCheckOut['Filename']}, ${photoPengamananCheckOut['MimeType']}, base64Length: ${(photoPengamananCheckOut['Base64'] as String).length})" : "❌ null"}');
+      print(
+          '  photoLemburCheckOut: ${photoLemburCheckOut != null ? "✅ encoded (${photoLemburCheckOut['Filename']}, ${photoLemburCheckOut['MimeType']}, base64Length: ${(photoLemburCheckOut['Base64'] as String).length})" : "❌ null"}');
 
       final Map<String, dynamic> apiBody = {
         'IdAttendance': request.idAttendance,
-        // Always include PhotoAbsen, set to null if not updated
-        'PhotoAbsen': photoAbsen,
-        // Always include PhotoPengamanan, set to null if not updated
-        'PhotoPengamanan': photoPengamanan,
-        if (photoPakaian != null) 'PhotoCheckoutPengamanan': photoPakaian,
+        if (photoPakaianCheckIn != null)
+          'PhotoPakaianCheckIn': photoPakaianCheckIn,
+        if (photoPengamananCheckIn != null)
+          'PhotoPengamananCheckIn': photoPengamananCheckIn,
+        if (photoAbsenCheckOut != null) 'PhotoAbsenCheckOut': photoAbsenCheckOut,
+        if (photoPengamananCheckOut != null)
+          'PhotoPengamananCheckOut': photoPengamananCheckOut,
+        if (photoLemburCheckOut != null)
+          'PhotoLemburCheckOut': photoLemburCheckOut,
         if (request.laporan != null && request.laporan!.isNotEmpty)
           'Laporan': request.laporan,
+        if (request.laporanCheckout != null &&
+            request.laporanCheckout!.isNotEmpty)
+          'LaporanCheckout': request.laporanCheckout,
         if (request.isOvertime != null) 'IsOvertime': request.isOvertime,
-        if (photoOvertime != null) 'PhotoOvertime': photoOvertime,
         // Token removed - already in Authorization header
       };
 
@@ -154,49 +187,28 @@ class AttendanceRekapRemoteDataSourceImpl
       final payloadForLog = Map<String, dynamic>.from(apiBody);
       
       // Truncate base64 strings for logging (show first 50 chars)
-      if (payloadForLog['PhotoAbsen'] is Map) {
-        final photoAbsenMap = Map<String, dynamic>.from(payloadForLog['PhotoAbsen'] as Map);
-        if (photoAbsenMap['Base64'] is String) {
-          final base64 = photoAbsenMap['Base64'] as String;
-          photoAbsenMap['Base64'] = base64.length > 50 
-              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
-              : base64;
+      void _truncatePhotoField(String key) {
+        if (payloadForLog[key] is Map) {
+          final map = Map<String, dynamic>.from(payloadForLog[key] as Map);
+          if (map['Base64'] is String) {
+            final base64 = map['Base64'] as String;
+            if (base64.length > 80) {
+              final head = base64.substring(0, 40);
+              final tail = base64.substring(base64.length - 40);
+              map['Base64'] = '$head...$tail (truncated, total length: ${base64.length})';
+            } else {
+              map['Base64'] = base64;
+            }
+          }
+          payloadForLog[key] = map;
         }
-        payloadForLog['PhotoAbsen'] = photoAbsenMap;
       }
-      
-      if (payloadForLog['PhotoPengamanan'] is Map) {
-        final photoPengamananMap = Map<String, dynamic>.from(payloadForLog['PhotoPengamanan'] as Map);
-        if (photoPengamananMap['Base64'] is String) {
-          final base64 = photoPengamananMap['Base64'] as String;
-          photoPengamananMap['Base64'] = base64.length > 50 
-              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
-              : base64;
-        }
-        payloadForLog['PhotoPengamanan'] = photoPengamananMap;
-      }
-      
-      if (payloadForLog['PhotoCheckoutPengamanan'] is Map) {
-        final photoPakaianMap = Map<String, dynamic>.from(payloadForLog['PhotoCheckoutPengamanan'] as Map);
-        if (photoPakaianMap['Base64'] is String) {
-          final base64 = photoPakaianMap['Base64'] as String;
-          photoPakaianMap['Base64'] = base64.length > 50 
-              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
-              : base64;
-        }
-        payloadForLog['PhotoCheckoutPengamanan'] = photoPakaianMap;
-      }
-      
-      if (payloadForLog['PhotoOvertime'] is Map) {
-        final photoOvertimeMap = Map<String, dynamic>.from(payloadForLog['PhotoOvertime'] as Map);
-        if (photoOvertimeMap['Base64'] is String) {
-          final base64 = photoOvertimeMap['Base64'] as String;
-          photoOvertimeMap['Base64'] = base64.length > 50 
-              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
-              : base64;
-        }
-        payloadForLog['PhotoOvertime'] = photoOvertimeMap;
-      }
+
+      _truncatePhotoField('PhotoPakaianCheckIn');
+      _truncatePhotoField('PhotoPengamananCheckIn');
+      _truncatePhotoField('PhotoAbsenCheckOut');
+      _truncatePhotoField('PhotoPengamananCheckOut');
+      _truncatePhotoField('PhotoLemburCheckOut');
       
       // Print formatted JSON
       final jsonEncoder = JsonEncoder.withIndent('  ');
@@ -299,7 +311,10 @@ class AttendanceRekapRemoteDataSourceImpl
     }
   }
 
-  Future<Map<String, dynamic>?> _encodePhoto(String? path) async {
+  Future<Map<String, dynamic>?> _encodePhoto(
+    String? path, {
+    String? filenameOverride,
+  }) async {
     if (path == null || path.isEmpty) {
       print('⚠️ _encodePhoto: path is null or empty');
       return null;
@@ -351,10 +366,11 @@ class AttendanceRekapRemoteDataSourceImpl
       print('✅ _encodePhoto: Base64 encoded, length=${base64Str.length}');
       
       // Extract filename and extension
-      final filename = path.split(RegExp(r'[\/\\]')).last;
-      final ext = filename.contains('.')
-          ? filename.split('.').last.toLowerCase()
-          : '';
+      final inferredFilename = path.split(RegExp(r'[\/\\]')).last;
+      final filename = (filenameOverride != null && filenameOverride.isNotEmpty)
+          ? filenameOverride
+          : inferredFilename;
+      final ext = filename.contains('.') ? filename.split('.').last.toLowerCase() : '';
       final mime = _guessMimeType(ext);
       
       print('📁 _encodePhoto: Filename=$filename, Extension=$ext, MimeType=$mime');

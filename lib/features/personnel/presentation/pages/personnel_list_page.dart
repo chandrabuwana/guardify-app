@@ -84,7 +84,9 @@ class _PersonnelListViewState extends State<_PersonnelListView> with SingleTicke
     _scrollController.dispose();
     super.dispose();
   }
-
+// TODO
+// LOGIN SEBAGAI PENGAWAS DAFTAR PERSONIL YANG STATUSNYA PENDING TRUS LIHAT DETAIL 
+// Revisi g bisa ,menyetujui tidak bisa 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
