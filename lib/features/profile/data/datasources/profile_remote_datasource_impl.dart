@@ -129,7 +129,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<void> logout() async {
     try {
-      final response = await _dio.post('/api/v1/auth/logout');
+      final response = await _dio.post('/User/logoff');
       
       if (response.statusCode != 200) {
         throw Exception('Failed to logout: ${response.statusMessage}');
