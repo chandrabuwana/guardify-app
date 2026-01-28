@@ -6,6 +6,8 @@ import '../models/panic_button_list_response.dart';
 import '../models/panic_button_detail_response.dart';
 import '../models/panic_button_submit_request.dart';
 import '../models/panic_button_submit_response.dart';
+import '../models/incident_type_list_request.dart';
+import '../models/incident_type_list_response.dart';
 
 part 'panic_button_remote_data_source.g.dart';
 
@@ -32,6 +34,11 @@ abstract class PanicButtonApiClient {
   @POST('/PanicButton/submit')
   Future<PanicButtonSubmitResponse> submitPanicButton(
     @Body() PanicButtonSubmitRequest request,
+  );
+
+  @POST('/IncidentType/list')
+  Future<IncidentTypeListResponse> getIncidentTypes(
+    @Body() IncidentTypeListRequest request,
   );
 }
 

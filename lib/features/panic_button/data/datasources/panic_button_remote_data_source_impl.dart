@@ -6,6 +6,10 @@ import '../models/panic_button_list_response.dart';
 import '../models/panic_button_detail_response.dart';
 import '../models/panic_button_submit_request.dart';
 import '../models/panic_button_submit_response.dart';
+import '../models/incident_type_list_request.dart';
+import '../models/incident_type_list_response.dart';
+import '../models/panic_button_incident_type_model.dart';
+import '../../../patrol/data/models/route_detail_api_response.dart';
 import 'panic_button_datasource.dart';
 import 'panic_button_remote_data_source.dart';
 
@@ -307,6 +311,61 @@ class PanicButtonRemoteDataSourceImpl implements PanicButtonDataSource {
       print('❌ ========================================');
       print('');
       throw Exception('Failed to submit panic button: $e');
+    }
+  }
+
+  @override
+  Future<List<PanicButtonIncidentTypeModel>> getIncidentTypes() async {
+    try {
+      print('');
+      print('🌐 ========================================');
+      print('🌐 [PanicButtonRemoteDataSource] GET INCIDENT TYPES');
+      print('🌐 ========================================');
+      print('🌐 Request Details:');
+      print('  - Endpoint: /IncidentType/list');
+      print('  - Method: POST');
+
+      // Create request with empty filter to get all types
+      final request = IncidentTypeListRequest(
+        filter: [FilterModel(field: '', search: '')],
+        sort: SortModel(field: '', type: 0),
+        start: 0,
+        length: 0, // Length 0 to get all records
+      );
+
+      final response = await apiClient.getIncidentTypes(request);
+
+      print('🌐 Response received:');
+      print('  - Count: ${response.count}');
+      print('  - Filtered: ${response.filtered}');
+      print('  - List Count: ${response.list.length}');
+      print('  - Code: ${response.code}');
+      print('  - Succeeded: ${response.succeeded}');
+      print('🌐 ========================================');
+      print('✅ [PanicButtonRemoteDataSource] SUCCESS');
+      print('🌐 ========================================');
+      print('');
+
+      if (!response.succeeded) {
+        throw Exception('API Error: ${response.message}');
+      }
+
+      // Filter only active types
+      final activeTypes = response.list
+          .where((type) => type.active)
+          .toList();
+
+      print('🌐 Active types count: ${activeTypes.length}');
+      return activeTypes;
+    } catch (e) {
+      print('');
+      print('❌ ========================================');
+      print('❌ [PanicButtonRemoteDataSource] ERROR');
+      print('❌ ========================================');
+      print('❌ Error: $e');
+      print('❌ ========================================');
+      print('');
+      throw Exception('Failed to get incident types: $e');
     }
   }
 }

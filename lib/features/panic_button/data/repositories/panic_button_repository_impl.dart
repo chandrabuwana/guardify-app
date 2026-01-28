@@ -6,6 +6,7 @@ import '../datasources/panic_button_datasource.dart';
 import '../models/incident_request_model.dart';
 import '../models/panic_button_list_request.dart';
 import '../models/panic_button_submit_request.dart';
+import '../models/panic_button_incident_type_model.dart';
 import '../mappers/panic_button_history_mapper.dart';
 
 @LazySingleton(as: PanicButtonRepository)
@@ -219,6 +220,39 @@ class PanicButtonRepositoryImpl implements PanicButtonRepository {
       print('❌ ========================================');
       print('');
       throw Exception('Failed to submit panic button verification: $e');
+    }
+  }
+
+  @override
+  Future<List<PanicButtonIncidentTypeModel>> getIncidentTypes() async {
+    try {
+      print('');
+      print('📦 ========================================');
+      print('📦 [PanicButtonRepository] GET INCIDENT TYPES');
+      print('📦 ========================================');
+
+      final startTime = DateTime.now();
+      final types = await dataSource.getIncidentTypes();
+      final endTime = DateTime.now();
+      final duration = endTime.difference(startTime);
+
+      print('📦 Response received in ${duration.inMilliseconds}ms');
+      print('📦 Types Count: ${types.length}');
+      print('📦 ========================================');
+      print('');
+
+      return types;
+    } catch (e, stackTrace) {
+      print('');
+      print('❌ ========================================');
+      print('❌ [PanicButtonRepository] ERROR');
+      print('❌ ========================================');
+      print('❌ Error: $e');
+      print('❌ Stack Trace:');
+      print(stackTrace);
+      print('❌ ========================================');
+      print('');
+      throw Exception('Failed to get incident types: $e');
     }
   }
 }
