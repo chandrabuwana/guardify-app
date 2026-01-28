@@ -106,6 +106,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: neutral10,
+      resizeToAvoidBottomInset: true,
       appBar: _buildAppBarWidget(),
       body: BlocConsumer<ChatBloc, ChatState>(
         listener: (context, state) {
@@ -555,8 +556,18 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   }
 
   Widget _buildMessageInput() {
+    // Get keyboard height and system bottom padding (for Android navigation bar)
+    final mediaQuery = MediaQuery.of(context);
+    final keyboardHeight = mediaQuery.viewInsets.bottom;
+    final systemBottomPadding = mediaQuery.padding.bottom;
+    
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.only(
+        left: 16.w,
+        right: 16.w,
+        top: 16.h,
+        bottom: 16.h + keyboardHeight + systemBottomPadding,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
