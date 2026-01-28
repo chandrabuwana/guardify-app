@@ -103,7 +103,7 @@ abstract class InjectionModule {
             await SecurityManager.deleteSecurely(AppConstants.tokenKey);
             await SecurityManager.deleteSecurely(AppConstants.refreshTokenKey);
 
-            final navigator = appNavigatorKey.currentState;
+            final navigator = AppNavigatorKey.navigatorKey.currentState;
             if (navigator != null) {
               navigator.pushNamedAndRemoveUntil('/login', (route) => false);
             }

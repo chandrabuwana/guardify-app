@@ -370,12 +370,12 @@ class _ChatListPageState extends State<ChatListPage> {
                                 borderRadius: BorderRadius.circular(10.r),
                               ),
                               child: Center(
-                                child: Text(
+                              child: Text(
                                   chat.unreadCount > 99 ? '99+' : chat.unreadCount.toString(),
-                                  style: TextStyle(
+                                style: TextStyle(
                                     fontSize: 11.sp,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),

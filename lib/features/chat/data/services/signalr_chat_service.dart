@@ -136,16 +136,22 @@ class SignalRChatService {
         }
         
         if (dataMap != null) {
-          print('📨 Parsing message data: $dataMap');
+          print('📨 [SignalR] Parsing message data: $dataMap');
+          print('📨 [SignalR] Message chatId: ${dataMap['conversationId'] ?? dataMap['ConversationId'] ?? 'N/A'}');
           final parsedMessage = _parseMessageFromSignalR(dataMap);
           if (parsedMessage != null) {
+            print('✅ [SignalR] Message parsed successfully:');
+            print('   ID: ${parsedMessage.id}');
+            print('   ChatId: ${parsedMessage.chatId}');
+            print('   Content: ${parsedMessage.content}');
+            print('   SenderId: ${parsedMessage.senderId}');
             _messageController.add(parsedMessage);
-            print('✅ Message parsed and added to stream: ${parsedMessage.id}');
+            print('✅ [SignalR] Message added to stream: ${parsedMessage.id}');
           } else {
-            print('⚠️ Failed to parse message from data: $dataMap');
+            print('⚠️ [SignalR] Failed to parse message from data: $dataMap');
           }
         } else {
-          print('⚠️ Message data is not a Map: ${messageData?.runtimeType}');
+          print('⚠️ [SignalR] Message data is not a Map: ${messageData?.runtimeType}');
         }
       } catch (e, stackTrace) {
         print('❌ Error handling ReceiveMessage: $e');

@@ -101,7 +101,7 @@ class _GuardifyAppState extends State<GuardifyApp> {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
-          navigatorKey: appNavigatorKey,
+          navigatorKey: AppNavigatorKey.navigatorKey,
           title: 'Guardify App',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
@@ -119,7 +119,7 @@ class _GuardifyAppState extends State<GuardifyApp> {
             return Stack(
               children: [
                 child ?? const SizedBox.shrink(),
-                ApiLogOverlayButton(navigatorKey: appNavigatorKey),
+                ApiLogOverlayButton(navigatorKey: AppNavigatorKey.navigatorKey),
               ],
             );
           },

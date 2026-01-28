@@ -11,6 +11,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:gal/gal.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
@@ -133,7 +135,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             _lastShownErrorMessage = null;
           }
           
-          // Auto scroll to bottom when new message is added
+          // Auto scroll to bottom when messages are loaded or new message is added
           if (state.messages.isNotEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_scrollController.hasClients) {
@@ -142,7 +144,31 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOut,
                 );
+              } else {
+                // If scroll controller doesn't have clients yet, try again after a short delay
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  if (_scrollController.hasClients && mounted) {
+                    _scrollController.animateTo(
+                      _scrollController.position.maxScrollExtent,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOut,
+                    );
+                  }
+                });
               }
+            });
+          }
+          
+          // Scroll to bottom when messages finish loading (first time load)
+          if (!state.isLoadingMessages && state.messages.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Future.delayed(const Duration(milliseconds: 200), () {
+                if (_scrollController.hasClients && mounted) {
+                  _scrollController.jumpTo(
+                    _scrollController.position.maxScrollExtent,
+                  );
+                }
+              });
             });
           }
         },
@@ -161,6 +187,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                             controller: _scrollController,
                             padding: EdgeInsets.all(16.w),
                             itemCount: state.messages.length,
+                            reverse: false, // Keep normal order (oldest at top, newest at bottom)
                             itemBuilder: (context, index) {
                               final message = state.messages[index];
                               final isLastMessage =
@@ -556,17 +583,16 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   }
 
   Widget _buildMessageInput() {
-    // Get keyboard height and system bottom padding (for Android navigation bar)
+    // Get keyboard height - MediaQuery will automatically adjust when keyboard appears
     final mediaQuery = MediaQuery.of(context);
     final keyboardHeight = mediaQuery.viewInsets.bottom;
-    final systemBottomPadding = mediaQuery.padding.bottom;
     
     return Container(
       padding: EdgeInsets.only(
         left: 16.w,
         right: 16.w,
         top: 16.h,
-        bottom: 16.h + keyboardHeight + systemBottomPadding,
+        bottom: keyboardHeight > 0 ? keyboardHeight : 16.h,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -668,8 +694,11 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                         vertical: 12.h,
                       ),
                     ),
-                    maxLines: null,
+                    minLines: 1,
+                    maxLines: 5,
                     textCapitalization: TextCapitalization.sentences,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
                   ),
                 ),
               ),
@@ -1305,12 +1334,28 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
         return null;
       }
 
-      final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
+      // Check if it's an S3 URL (public, no auth needed)
+      final isS3Url = imageUrl.contains('s3.ap-southeast-1.amazonaws.com') ||
+                      imageUrl.contains('s3.amazonaws.com') ||
+                      imageUrl.contains('amazonaws.com');
       
       final dio = Dio();
-      final response = await dio.get<Uint8List>(
-        imageUrl,
-        options: Options(
+      final Options options;
+      
+      if (isS3Url) {
+        // S3 URL is public, no auth header needed
+        debugPrint('🖼️ Loading S3 URL without auth header: $imageUrl');
+        options = Options(
+          responseType: ResponseType.bytes,
+          validateStatus: (status) {
+            // Don't throw exception for 404/403, return null instead
+            return status != null && status < 500;
+          },
+        );
+      } else {
+        // Non-S3 URL, use auth header
+        final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
+        options = Options(
           responseType: ResponseType.bytes,
           headers: {
             if (token != null && token.isNotEmpty)
@@ -1320,7 +1365,12 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             // Don't throw exception for 404/403, return null instead
             return status != null && status < 500;
           },
-        ),
+        );
+      }
+      
+      final response = await dio.get<Uint8List>(
+        imageUrl,
+        options: options,
       );
 
       // Check if response is successful
@@ -1501,20 +1551,79 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
     showDialog(
       context: context,
       barrierColor: Colors.black87,
-      builder: (context) => _ImagePreviewDialog(
+      barrierDismissible: true,
+      builder: (dialogBuilderContext) => _ImagePreviewDialog(
         imageUrl: imageUrl!,
         isLocalFile: localFile != null,
         imageBytes: imageBytes,
         message: message,
-        onDownload: () => _downloadImage(message),
-        onShare: () => _shareImage(message, localFile),
+        dialogContext: dialogBuilderContext,
+        onDownload: () async {
+          // Use parent context for snackbar (dialog will be closed by button)
+          await _downloadImage(message, dialogContext: context);
+        },
+        onShare: () async {
+          // Use parent context for snackbar (dialog will be closed by button)
+          await _shareImage(message, localFile, dialogContext: context);
+        },
       ),
     );
   }
 
   /// Download image to device storage
-  Future<void> _downloadImage(Message message) async {
+  Future<void> _downloadImage(Message message, {BuildContext? dialogContext}) async {
     try {
+      print('📥 Starting image download for message: ${message.id}');
+      
+      // Request storage permission for Android < 10 only
+      // Android 10+ (API 29+) uses scoped storage and doesn't need permission for app-specific directories
+      if (Platform.isAndroid) {
+        try {
+          final deviceInfo = DeviceInfoPlugin();
+          final androidInfo = await deviceInfo.androidInfo;
+          final sdkInt = androidInfo.version.sdkInt;
+          
+          print('📥 Android SDK version: $sdkInt');
+          
+          // Only request permission for Android < 10 (API < 29)
+          if (sdkInt < 29) {
+            print('📥 Android < 10 detected, requesting storage permission...');
+            try {
+              final storageStatus = await Permission.storage.status;
+              if (storageStatus.isDenied) {
+                final result = await Permission.storage.request();
+                if (result.isDenied || result.isPermanentlyDenied) {
+                  print('⚠️ Storage permission denied');
+                  if (mounted) {
+                    final snackbarContext = dialogContext ?? context;
+                    ScaffoldMessenger.of(snackbarContext).showSnackBar(
+                      const SnackBar(
+                        content: Text('Izin akses penyimpanan diperlukan untuk download gambar'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                  return;
+                }
+              }
+              print('✅ Storage permission granted');
+            } catch (permissionError) {
+              print('⚠️ Error requesting storage permission: $permissionError');
+              // Continue anyway - might work without permission
+            }
+          } else if (sdkInt >= 33) {
+            // Android 13+ (API 33+) - gal package handles permission internally
+            // We don't need to request permission manually, gal will handle it
+            print('✅ Android 13+ detected, gal package will handle permission automatically');
+          } else {
+            print('✅ Android 10-12 detected, using scoped storage (no permission needed)');
+          }
+        } catch (e) {
+          print('⚠️ Error checking Android version: $e');
+          // Continue anyway - scoped storage should work for Android 10+
+        }
+      }
+      
       String? imageUrl = message.attachmentUrl;
       File? localFile = _getLocalFile(message);
       
@@ -1522,8 +1631,11 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       
       // Prefer local file if available
       if (localFile != null && await localFile.exists()) {
+        print('📥 Using local file for download: ${localFile.path}');
         imageBytes = await localFile.readAsBytes();
       } else if (imageUrl != null && imageUrl.isNotEmpty) {
+        print('📥 Downloading image from URL: $imageUrl');
+        
         // Check if it's an S3 URL (public, no auth needed)
         final isS3Url = imageUrl.contains('s3.ap-southeast-1.amazonaws.com') ||
                         imageUrl.contains('s3.amazonaws.com') ||
@@ -1533,6 +1645,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
         final Options options;
         
         if (isS3Url) {
+          print('📥 S3 URL detected, no auth header needed');
           // S3 URL is public, no auth header needed
           options = Options(
             responseType: ResponseType.bytes,
@@ -1541,6 +1654,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
             },
           );
         } else {
+          print('📥 Non-S3 URL, using auth header');
           // Non-S3 URL, might need auth header
           final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
           options = Options(
@@ -1555,21 +1669,33 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
           );
         }
         
-        final response = await dio.get<Uint8List>(
-          imageUrl,
-          options: options,
-        );
+        try {
+          final response = await dio.get<Uint8List>(
+            imageUrl,
+            options: options,
+          );
 
-        if (response.statusCode == 200 && response.data != null) {
-          imageBytes = response.data;
-        } else {
-          debugPrint('⚠️ Failed to download image: status ${response.statusCode}');
+          if (response.statusCode == 200 && response.data != null) {
+            imageBytes = response.data;
+            print('✅ Image downloaded successfully, size: ${imageBytes?.length ?? 0} bytes');
+          } else {
+            print('⚠️ Failed to download image: status ${response.statusCode}');
+            throw Exception('Failed to download image: HTTP ${response.statusCode}');
+          }
+        } catch (e) {
+          print('❌ Error downloading image from URL: $e');
+          rethrow;
         }
+      } else {
+        print('⚠️ No image URL or local file available');
+        throw Exception('No image URL or local file available');
       }
 
-      if (imageBytes == null) {
+      if (imageBytes == null || imageBytes.isEmpty) {
+        print('❌ Image bytes is null or empty');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          final snackbarContext = dialogContext ?? context;
+          ScaffoldMessenger.of(snackbarContext).showSnackBar(
             const SnackBar(
               content: Text('Gagal memuat gambar untuk didownload'),
               backgroundColor: Colors.red,
@@ -1579,49 +1705,112 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
         return;
       }
 
-      // Get download directory (use Pictures directory for images)
-      final directory = await getApplicationDocumentsDirectory();
-      final downloadDir = Directory('${directory.path}/Pictures/Guardify');
-      if (!await downloadDir.exists()) {
-        await downloadDir.create(recursive: true);
-      }
-
+      // Save to gallery using gal package (works for Android 10+ with MediaStore)
+      print('📥 Saving image to gallery using gal package...');
+      
       // Get file name from URL or generate one
       String fileName = 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
       if (imageUrl != null && imageUrl.isNotEmpty) {
-        final urlFileName = path.basename(imageUrl);
+        final urlFileName = path.basename(imageUrl.split('?').first); // Remove query params
         if (urlFileName.isNotEmpty && urlFileName.contains('.')) {
           fileName = urlFileName;
+        } else {
+          // Try to get extension from URL
+          final uri = Uri.tryParse(imageUrl);
+          if (uri != null) {
+            final pathSegments = uri.pathSegments;
+            if (pathSegments.isNotEmpty) {
+              final lastSegment = pathSegments.last;
+              if (lastSegment.contains('.')) {
+                fileName = lastSegment;
+              }
+            }
+          }
         }
       }
-
-      final filePath = '${downloadDir.path}/$fileName';
-      final file = File(filePath);
-      await file.writeAsBytes(imageBytes);
       
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gambar berhasil didownload'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-            action: SnackBarAction(
-              label: 'Buka',
-              textColor: Colors.white,
-              onPressed: () {
-                // Could open file manager here if needed
-              },
+      print('📥 File name: $fileName');
+      print('📥 Image bytes size: ${imageBytes.length}');
+      
+      // Save to gallery using gal package
+      try {
+        // Note: gal package handles permission internally, we don't need to request manually
+        // Save temporary file first
+        print('📥 Preparing to save temporary file...');
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = File('${tempDir.path}/$fileName');
+        
+        print('📥 Writing ${imageBytes.length} bytes to temp file: ${tempFile.path}');
+        await tempFile.writeAsBytes(imageBytes);
+        
+        print('✅ Temporary file saved: ${tempFile.path}');
+        print('📥 File exists: ${await tempFile.exists()}');
+        print('📥 File size: ${await tempFile.length()} bytes');
+        
+        // Save to gallery using gal
+        print('📥 Calling Gal.putImage...');
+        try {
+          await Gal.putImage(tempFile.path, album: 'Guardify');
+          print('✅ Gal.putImage completed successfully');
+        } catch (galError) {
+          print('❌ Error from Gal.putImage: $galError');
+          print('❌ Error type: ${galError.runtimeType}');
+          rethrow;
+        }
+        
+        print('✅ Image saved successfully to gallery');
+        
+        // Clean up temporary file
+        try {
+          await tempFile.delete();
+          print('✅ Temporary file deleted');
+        } catch (e) {
+          print('⚠️ Error deleting temp file: $e');
+        }
+        
+        if (mounted) {
+          final snackbarContext = dialogContext ?? context;
+          ScaffoldMessenger.of(snackbarContext).showSnackBar(
+            SnackBar(
+              content: const Text('Gambar berhasil disimpan ke Gallery'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'OK',
+                textColor: Colors.white,
+                onPressed: () {
+                  // Dismiss snackbar
+                },
+              ),
             ),
-          ),
-        );
+          );
+        }
+      } catch (saveError, stackTrace) {
+        print('❌ Error saving to gallery: $saveError');
+        print('❌ Error type: ${saveError.runtimeType}');
+        print('❌ Stack trace: $stackTrace');
+        if (mounted) {
+          final snackbarContext = dialogContext ?? context;
+          ScaffoldMessenger.of(snackbarContext).showSnackBar(
+            SnackBar(
+              content: Text('Gagal menyimpan ke Gallery: ${saveError.toString()}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        rethrow;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ Error downloading image: $e');
+      print('❌ Stack trace: $stackTrace');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        final snackbarContext = dialogContext ?? context;
+        ScaffoldMessenger.of(snackbarContext).showSnackBar(
           SnackBar(
             content: Text('Gagal download gambar: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -1629,7 +1818,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   }
 
   /// Share image
-  Future<void> _shareImage(Message message, File? localFile) async {
+  Future<void> _shareImage(Message message, File? localFile, {BuildContext? dialogContext}) async {
     try {
       XFile? fileToShare;
       
@@ -1697,7 +1886,8 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
         );
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          final snackbarContext = dialogContext ?? context;
+          ScaffoldMessenger.of(snackbarContext).showSnackBar(
             const SnackBar(
               content: Text('Gagal memuat gambar untuk dibagikan'),
               backgroundColor: Colors.red,
@@ -1708,10 +1898,12 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
     } catch (e) {
       print('❌ Error sharing image: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        final snackbarContext = dialogContext ?? context;
+        ScaffoldMessenger.of(snackbarContext).showSnackBar(
           SnackBar(
             content: Text('Gagal membagikan gambar: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -1788,14 +1980,16 @@ class _ImagePreviewDialog extends StatefulWidget {
   final bool isLocalFile;
   final Uint8List? imageBytes;
   final Message message;
-  final VoidCallback onDownload;
-  final VoidCallback onShare;
+  final BuildContext dialogContext;
+  final Future<void> Function() onDownload;
+  final Future<void> Function() onShare;
 
   const _ImagePreviewDialog({
     required this.imageUrl,
     required this.isLocalFile,
     this.imageBytes,
     required this.message,
+    required this.dialogContext,
     required this.onDownload,
     required this.onShare,
   });
@@ -1881,9 +2075,23 @@ class _ImagePreviewDialogState extends State<_ImagePreviewDialog> {
               children: [
                 // Download button
                 ElevatedButton.icon(
-                  onPressed: widget.onDownload,
+                  onPressed: () async {
+                    // Close dialog first
+                    Navigator.of(context).pop();
+                    
+                    // Then start download
+                    try {
+                      await widget.onDownload();
+                    } catch (e) {
+                      // Error handling is done in _downloadImage
+                      print('Error in download callback: $e');
+                    }
+                  },
                   icon: const Icon(Icons.download, color: Colors.white),
-                  label: const Text('Download', style: TextStyle(color: Colors.white)),
+                  label: const Text(
+                    'Download',
+                    style: TextStyle(color: Colors.white),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
                     padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
@@ -1893,9 +2101,23 @@ class _ImagePreviewDialogState extends State<_ImagePreviewDialog> {
                 
                 // Share button
                 ElevatedButton.icon(
-                  onPressed: widget.onShare,
+                  onPressed: () async {
+                    // Close dialog first
+                    Navigator.of(context).pop();
+                    
+                    // Then start share
+                    try {
+                      await widget.onShare();
+                    } catch (e) {
+                      // Error handling is done in _shareImage
+                      print('Error in share callback: $e');
+                    }
+                  },
                   icon: const Icon(Icons.share, color: Colors.white),
-                  label: const Text('Share', style: TextStyle(color: Colors.white)),
+                  label: const Text(
+                    'Share',
+                    style: TextStyle(color: Colors.white),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
                     padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),

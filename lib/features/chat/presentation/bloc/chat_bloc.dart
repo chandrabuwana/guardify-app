@@ -148,11 +148,16 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       await _preloadUserNames();
       
       final messages = await chatRepository.getMessages(event.chatId);
+      print('📥 [LoadMessages] Loaded ${messages.length} messages for chatId: ${event.chatId}');
+      print('📥 [LoadMessages] Setting selectedChatId to: ${event.chatId}');
+      
       emit(state.copyWith(
         isLoadingMessages: false,
         messages: messages,
-        selectedChatId: event.chatId,
+        selectedChatId: event.chatId, // Ensure selectedChatId is set
       ));
+      
+      print('✅ [LoadMessages] State updated. SelectedChatId: ${event.chatId}, Messages count: ${messages.length}');
     } catch (e) {
       emit(state.copyWith(
         isLoadingMessages: false,
@@ -679,15 +684,29 @@ ChatCreateConversation event,
       return;
     }
 
+    // Normalize chatId for comparison (remove dashes, convert to lowercase)
+    final normalizedSelectedChatId = state.selectedChatId?.toLowerCase().replaceAll('-', '');
+    final normalizedMessageChatId = messageWithName.chatId.toLowerCase().replaceAll('-', '');
+    
+    print('🔍 [Hybrid] Comparing chatIds:');
+    print('   SelectedChatId (normalized): $normalizedSelectedChatId');
+    print('   MessageChatId (normalized): $normalizedMessageChatId');
+    print('   Match: ${normalizedSelectedChatId == normalizedMessageChatId}');
+    
     // Add message to current messages if it's for the selected chat
-    if (state.selectedChatId == messageWithName.chatId) {
+    // Use normalized comparison to handle format differences
+    final isSelectedChat = normalizedSelectedChatId != null && 
+                          normalizedSelectedChatId == normalizedMessageChatId;
+    
+    if (isSelectedChat) {
       print('✅ [Hybrid] Adding new message to selected chat');
       final updatedMessages = List<Message>.from(state.messages)
         ..add(messageWithName.copyWith(status: MessageStatus.delivered));
 
       // Update chat list with new last message
       final updatedChats = state.chats.map((chat) {
-        if (chat.id == messageWithName.chatId) {
+        final normalizedChatId = chat.id.toLowerCase().replaceAll('-', '');
+        if (normalizedChatId == normalizedMessageChatId) {
           return chat.copyWith(
             lastMessageId: messageWithName.id,
             lastMessageContent: messageWithName.content,
@@ -704,11 +723,16 @@ ChatCreateConversation event,
         chats: updatedChats,
         filteredChats: updatedChats,
       ));
+      print('✅ [Hybrid] State updated with new message. Total messages: ${updatedMessages.length}');
     } else {
       // Update chat list even if not selected (for unread count, last message, etc)
       print('📋 [Hybrid] Updating chat list for non-selected chat');
+      print('   SelectedChatId: ${state.selectedChatId}');
+      print('   MessageChatId: ${messageWithName.chatId}');
+      
       final updatedChats = state.chats.map((chat) {
-        if (chat.id == messageWithName.chatId) {
+        final normalizedChatId = chat.id.toLowerCase().replaceAll('-', '');
+        if (normalizedChatId == normalizedMessageChatId) {
           return chat.copyWith(
             lastMessageId: messageWithName.id,
             lastMessageContent: messageWithName.content,
@@ -725,6 +749,7 @@ ChatCreateConversation event,
         chats: updatedChats,
         filteredChats: updatedChats,
       ));
+      print('📋 [Hybrid] Chat list updated. Unread count incremented.');
     }
   }
 
