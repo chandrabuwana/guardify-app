@@ -55,6 +55,37 @@ class PushNotificationService {
     );
 
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+    
+    // Handle notification when app is opened from background/terminated state
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
+    
+    // Check if app was opened from a terminated state via notification
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      print('🚨 [PushNotification] App opened from terminated state via notification');
+      // Delay to ensure app is fully initialized
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        _handleMessageOpenedApp(initialMessage);
+      });
+    }
+  }
+  
+  Future<void> _handleMessageOpenedApp(RemoteMessage message) async {
+    print('🚨 [PushNotification] Message opened app - data: ${message.data}');
+    
+    // Check if this is a panic button notification
+    final type = message.data['type']?.toString();
+    
+    if (type == 'panic_button') {
+      print('🚨 [PushNotification] Panic button notification opened app');
+      // Wait a bit for app to be fully ready
+      await Future.delayed(const Duration(milliseconds: 500));
+      _showPanicButtonPopup(message.data);
+      return;
+    }
+    
+    // Handle other notification types if needed
+    print('ℹ️ [PushNotification] Regular notification opened app');
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
@@ -73,15 +104,36 @@ class PushNotificationService {
 
   void _showPanicButtonPopup(Map<String, dynamic> data) {
     print('🚨 [PushNotification] Showing panic button popup...');
+    
+    // Wait for context to be available (especially when app is opened from terminated state)
+    _waitForContextAndShow(data);
+  }
+  
+  void _waitForContextAndShow(Map<String, dynamic> data, {int retryCount = 0}) {
     final navigatorKey = AppNavigatorKey.navigatorKey;
     final context = navigatorKey.currentContext;
     
     if (context == null) {
-      print('⚠️ [PushNotification] Cannot show panic popup: No context available');
-      return;
+      if (retryCount < 10) {
+        // Retry up to 10 times (5 seconds total)
+        print('⚠️ [PushNotification] Context not available, retrying... (${retryCount + 1}/10)');
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _waitForContextAndShow(data, retryCount: retryCount + 1);
+        });
+        return;
+      } else {
+        print('❌ [PushNotification] Cannot show panic popup: No context available after retries');
+        return;
+      }
     }
     
     print('✅ [PushNotification] Context available, proceeding to show popup');
+    
+    // Extract and parse data
+    _processAndShowPopup(data, context);
+  }
+  
+  void _processAndShowPopup(Map<String, dynamic> data, BuildContext context) {
 
     // Extract data field (the actual panic button data)
     Map<String, dynamic> panicButtonData;
@@ -151,9 +203,12 @@ class PushNotificationService {
 
     // Show popup that cannot be closed
     print('🚨 [PushNotification] Displaying panic button popup dialog...');
+    
+    // Use rootNavigator to ensure dialog shows even when app is opened from terminated state
     showDialog(
       context: context,
       barrierDismissible: false, // Cannot dismiss by tapping outside
+      useRootNavigator: true, // Important: use root navigator
       builder: (dialogContext) {
         print('✅ [PushNotification] Panic button popup dialog created');
         return PanicButtonPopup(

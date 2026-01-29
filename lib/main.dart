@@ -49,6 +49,17 @@ import 'shared/widgets/api_log_overlay_button.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  
+  print('🚨 [BackgroundHandler] Received message: ${message.data}');
+  
+  // Check if this is a panic button notification
+  final type = message.data['type']?.toString();
+  
+  if (type == 'panic_button') {
+    print('🚨 [BackgroundHandler] Panic button notification received in background');
+    // Note: We can't show popup in background handler, but we can prepare data
+    // The popup will be shown when user opens the app via onMessageOpenedApp
+  }
 }
 
 void main() async {

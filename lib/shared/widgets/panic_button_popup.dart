@@ -504,22 +504,16 @@ class _PanicButtonPopupState extends State<PanicButtonPopup> {
 
   String _formatDateTime(String dateTimeString) {
     try {
-      // Try parsing ISO format or common date formats
-      DateTime? dateTime;
+      // Parse the date string
+      final dateTime = DateTime.parse(dateTimeString);
       
-      // Try ISO format first
-      try {
-        dateTime = DateTime.parse(dateTimeString);
-      } catch (e) {
-        // Try other formats if needed
-        // For now, just return the original string if parsing fails
-        return dateTimeString;
-      }
-      
-      // Format to Indonesian locale
+      // Format to Indonesian locale WITHOUT converting timezone
+      // This preserves the original time from the response
       final formatter = DateFormat('dd MMMM yyyy, HH:mm', 'id_ID');
       return formatter.format(dateTime);
     } catch (e) {
+      print('⚠️ [PanicButtonPopup] Error formatting date: $dateTimeString, error: $e');
+      // If parsing fails, return original string
       return dateTimeString;
     }
   }
