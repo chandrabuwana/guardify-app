@@ -408,14 +408,16 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           16.verticalSpace,
           _buildInfoCard(
             'Diverifikasi Oleh',
-            laporan.updateBy ?? '-',
+            laporan.status == LaporanStatus.waiting ? '-' : (laporan.updateBy ?? '-'),
           ),
           16.verticalSpace,
           _buildInfoCard(
             'Tanggal Verifikasi',
-            laporan.updateDate != null
-                ? DateFormat('dd-MM-yyyy HH:mm').format(laporan.updateDate!)
-                : '-',
+            laporan.status == LaporanStatus.waiting
+                ? '-'
+                : (laporan.updateDate != null
+                    ? DateFormat('dd-MM-yyyy HH:mm').format(laporan.updateDate!)
+                    : '-'),
           ),
           16.verticalSpace,
           _buildInfoCard(

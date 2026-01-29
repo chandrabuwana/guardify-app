@@ -573,6 +573,16 @@ class LaporanKegiatanRemoteDataSourceImpl
         } else if (routeItem['Time'] != null) {
           timestamp = DateTime.tryParse(routeItem['Time'] as String);
         }
+
+        if (timestamp == null && routeItem['CheckDate'] != null) {
+          timestamp = DateTime.tryParse(routeItem['CheckDate'] as String);
+        }
+
+        String? photoRouteUrl;
+        final photoRoute = routeItem['PhotoRoute'];
+        if (photoRoute is Map) {
+          photoRouteUrl = photoRoute['Url'] as String?;
+        }
         
         return PatrolCheckpointModel(
           id: routeItem['Id'] as String? ?? 
@@ -586,6 +596,7 @@ class LaporanKegiatanRemoteDataSourceImpl
           timestamp: timestamp,
           buktiUrl: routeItem['PhotoUrl'] as String? ?? 
                    routeItem['Url'] as String? ??
+                   photoRouteUrl ??
                    routeItem['Photo'] as String?,
           isDiperiksa: isDiperiksa,
         );

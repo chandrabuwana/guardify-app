@@ -22,6 +22,8 @@ class PushNotificationService {
     'Guardify Notifications',
     description: 'Default notifications channel',
     importance: Importance.high,
+    playSound: true,
+    enableVibration: true,
   );
 
   Future<void> initialize() async {
@@ -238,6 +240,8 @@ class PushNotificationService {
         channelDescription: _androidChannel.description,
         importance: Importance.high,
         priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
       ),
       iOS: const DarwinNotificationDetails(),
     );

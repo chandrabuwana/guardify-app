@@ -209,7 +209,7 @@ class PatrolTimelineWidget extends StatelessWidget {
                 )
               else
                 Text(
-                  '-',
+                  'Tidak ada jam patroli',
                   style: TS.bodySmall.copyWith(
                     color: Colors.grey[400],
                   ),
@@ -283,7 +283,7 @@ class PatrolTimelineWidget extends StatelessWidget {
               ] else if (checkpoint.status != 'Tambahan') ...[
                 4.verticalSpace,
                 Text(
-                  '-',
+                  'Tidak ada gambar',
                   style: TS.bodySmall.copyWith(
                     color: Colors.grey[400],
                   ),

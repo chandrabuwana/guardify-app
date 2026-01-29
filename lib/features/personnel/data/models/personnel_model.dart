@@ -13,6 +13,8 @@ class PersonnelModel extends Personnel {
     super.photoUrl,
     required super.role,
     required super.status,
+    super.updateBy,
+    super.updateDate,
     super.noKtp,
     super.tempatLahir,
     super.tanggalLahir,
