@@ -129,18 +129,6 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<void> logout() async {
     try {
-      // Logout menggunakan AuthRepository (akan clear token dengan key "token_guardify")
-      final logoutResult = await authRepository.logout();
-      
-      if (!logoutResult.isSuccess) {
-        // Tetap lanjutkan clear data lokal
-        print('Auth logout failed but continuing with local cleanup');
-      }
-      
-      // Clear data lokal profile
-      await localDataSource.clearAuthToken();
-      await localDataSource.clearCachedProfileData();
-      
       // Logout dari remote profile service jika ada
       try {
         await remoteDataSource.logout();
@@ -148,6 +136,18 @@ class ProfileRepositoryImpl implements ProfileRepository {
         // Ignore remote logout error
         print('Remote profile logout failed: $e');
       }
+
+      // Logout menggunakan AuthRepository (akan clear token dengan key "token_guardify")
+      final logoutResult = await authRepository.logout();
+
+      if (!logoutResult.isSuccess) {
+        // Tetap lanjutkan clear data lokal
+        print('Auth logout failed but continuing with local cleanup');
+      }
+
+      // Clear data lokal profile
+      await localDataSource.clearAuthToken();
+      await localDataSource.clearCachedProfileData();
     } catch (e) {
       // Tetap clear semua data lokal meskipun terjadi error
       await localDataSource.clearAuthToken();
