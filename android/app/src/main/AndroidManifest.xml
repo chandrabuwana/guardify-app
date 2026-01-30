@@ -4,6 +4,9 @@
     <!-- Internet permission for network requests -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Android 13+ runtime notification permission -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
     <!-- Biometric authentication permissions -->
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
@@ -41,6 +44,11 @@
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:enableOnBackInvokedCallback="true">
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="guardify_default" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

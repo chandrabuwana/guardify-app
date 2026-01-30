@@ -32,7 +32,7 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Profil Saya',
+          'Profil Detail',
           style: TextStyle(
             color: neutral90,
             fontSize: 18,
@@ -224,6 +224,14 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
                   _buildInfoRow('Kelurahan', personnel.kelurahan!),
                 if (personnel.alamatDomisili != null)
                   _buildInfoRow('Alamat Domisili', personnel.alamatDomisili!),
+                if (personnel.updateBy != null)
+                  _buildInfoRow('Diverifikasi Oleh', personnel.updateBy!),
+                if (personnel.updateDate != null)
+                  _buildInfoRow(
+                    'Tanggal Verifikasi',
+                    DateFormat('dd MMMM yyyy - HH.mm', 'id_ID')
+                        .format(personnel.updateDate!),
+                  ),
               ],
             ),
           ),

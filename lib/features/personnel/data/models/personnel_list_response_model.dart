@@ -178,6 +178,9 @@ class PersonnelApiModel {
   @JsonKey(name: 'CreateDate')
   final String? createDate;
 
+  @JsonKey(name: 'UpdateBy')
+  final String? updateBy;
+
   @JsonKey(name: 'UpdateDate')
   final String? updateDate;
 
@@ -216,6 +219,7 @@ class PersonnelApiModel {
     this.feedback,
     this.status,
     this.createDate,
+    this.updateBy,
     this.updateDate,
   });
 
@@ -234,6 +238,8 @@ class PersonnelApiModel {
       photoUrl: urlFoto,
       role: jabatan ?? 'Anggota',
       status: status ?? 'Unknown',
+      updateBy: updateBy,
+      updateDate: updateDate != null ? DateTime.tryParse(updateDate!) : null,
       noKtp: noKtp,
       tempatLahir: tempatLahir,
       tanggalLahir: tanggalLahir != null ? DateTime.tryParse(tanggalLahir!) : null,

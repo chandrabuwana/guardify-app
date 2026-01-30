@@ -231,20 +231,13 @@ class _AttendanceRekapKehadiranDetailScreenContentState
                           : const Icon(Icons.arrow_back, color: Colors.white),
                     ),
                   ),
-                  if (!canEdit) ...[
+                  if (canEdit) ...[
                     12.horizontalSpace,
                     Expanded(
                       child: UIButton(
                         text: 'Edit',
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Laporan hanya dapat diedit ketika status REVISI.',
-                              ),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
+                          setState(() {});
                         },
                         variant: UIButtonVariant.secondary,
                         size: UIButtonSize.large,
@@ -252,26 +245,13 @@ class _AttendanceRekapKehadiranDetailScreenContentState
                       ),
                     ),
                   ],
-                  if (_stepIndex == 1) ...[
+                  if (_stepIndex == 1 && canEdit) ...[
                     12.horizontalSpace,
                     Expanded(
                       child: UIButton(
                         text: 'Simpan',
-                        onPressed: canEdit
-                            ? () => _handleFinalSave(context)
-                            : () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Laporan hanya dapat disimpan ketika status REVISI.',
-                                    ),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                              },
-                        variant: canEdit
-                            ? UIButtonVariant.primary
-                            : UIButtonVariant.secondary,
+                        onPressed: () => _handleFinalSave(context),
+                        variant: UIButtonVariant.primary,
                         size: UIButtonSize.large,
                         fullWidth: true,
                       ),
@@ -839,6 +819,7 @@ class _AttendanceRekapKehadiranDetailScreenContentState
             ],
           ],
         ),
+        // add patrol timeline widget
         if (listCarryOver.isEmpty) ...[
           16.verticalSpace,
           Text(

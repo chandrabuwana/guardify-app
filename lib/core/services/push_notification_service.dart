@@ -23,6 +23,8 @@ class PushNotificationService {
     'Guardify Notifications',
     description: 'Default notifications channel',
     importance: Importance.high,
+    playSound: true,
+    enableVibration: true,
   );
 
   // Special channel for panic button with maximum priority
@@ -254,6 +256,8 @@ class PushNotificationService {
         channelDescription: _androidChannel.description,
         importance: Importance.high,
         priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
       ),
       iOS: const DarwinNotificationDetails(),
     );

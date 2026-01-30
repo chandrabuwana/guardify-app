@@ -7,6 +7,8 @@ class Personnel {
   final String? photoUrl;
   final String role; // PJO, Deputy, Danton, Anggota
   final String status; // Aktif, Pending, Non Aktif
+  final String? updateBy;
+  final DateTime? updateDate;
   final String? noKtp;
   final String? tempatLahir;
   final DateTime? tanggalLahir;
@@ -43,6 +45,8 @@ class Personnel {
     this.photoUrl,
     required this.role,
     required this.status,
+    this.updateBy,
+    this.updateDate,
     this.noKtp,
     this.tempatLahir,
     this.tanggalLahir,

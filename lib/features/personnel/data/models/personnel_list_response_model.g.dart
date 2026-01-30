@@ -136,6 +136,7 @@ PersonnelApiModel _$PersonnelApiModelFromJson(Map<String, dynamic> json) =>
           feedback: $checkedConvert('Feedback', (v) => v as String?),
           status: $checkedConvert('Status', (v) => v as String?),
           createDate: $checkedConvert('CreateDate', (v) => v as String?),
+          updateBy: $checkedConvert('UpdateBy', (v) => v as String?),
           updateDate: $checkedConvert('UpdateDate', (v) => v as String?),
         );
         return val;
@@ -175,6 +176,7 @@ PersonnelApiModel _$PersonnelApiModelFromJson(Map<String, dynamic> json) =>
         'feedback': 'Feedback',
         'status': 'Status',
         'createDate': 'CreateDate',
+        'updateBy': 'UpdateBy',
         'updateDate': 'UpdateDate'
       },
     );
@@ -215,5 +217,6 @@ Map<String, dynamic> _$PersonnelApiModelToJson(PersonnelApiModel instance) =>
       'Feedback': instance.feedback,
       'Status': instance.status,
       'CreateDate': instance.createDate,
+      'UpdateBy': instance.updateBy,
       'UpdateDate': instance.updateDate,
     };
