@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -24,6 +25,18 @@ class PushNotificationService {
     importance: Importance.high,
   );
 
+  // Special channel for panic button with maximum priority
+  static const AndroidNotificationChannel _panicButtonChannel =
+      AndroidNotificationChannel(
+    'guardify_panic_button',
+    'Panic Button Alerts',
+    description: 'Critical emergency notifications',
+    importance: Importance.max, // Maximum importance for heads-up notification
+    playSound: true,
+    enableVibration: true,
+    enableLights: true,
+  );
+
   Future<void> initialize() async {
     final initializationSettings = InitializationSettings(
       android: const AndroidInitializationSettings('@mipmap/launcher_icon'),
@@ -38,6 +51,9 @@ class PushNotificationService {
               AndroidFlutterLocalNotificationsPlugin>();
 
       await androidPlugin?.createNotificationChannel(_androidChannel);
+      
+      // Create panic button channel with maximum priority
+      await androidPlugin?.createNotificationChannel(_panicButtonChannel);
 
       await androidPlugin?.requestNotificationsPermission();
     }
@@ -248,5 +264,89 @@ class PushNotificationService {
       body,
       details,
     );
+  }
+
+  /// Show high-priority panic button notification (for background/terminated state)
+  /// This creates a heads-up notification that appears on screen immediately
+  Future<void> showPanicButtonNotification(RemoteMessage message) async {
+    print('🚨 [PushNotification] Showing panic button heads-up notification...');
+    
+    final notification = message.notification;
+    final title = notification?.title ?? 'PANIC BUTTON AKTIF';
+    final body = notification?.body ?? 'Ada situasi darurat yang memerlukan perhatian segera!';
+    
+    // Extract panic button data for notification body
+    String notificationBody = body;
+    try {
+      final data = message.data;
+      Map<String, dynamic> panicButtonData;
+      
+      if (data.containsKey('data') && data['data'] is Map) {
+        panicButtonData = Map<String, dynamic>.from(data['data'] as Map);
+      } else {
+        panicButtonData = Map<String, dynamic>.from(data);
+        panicButtonData.remove('type');
+      }
+      
+      // Build detailed notification body
+      final reporter = panicButtonData['Reporter']?.toString() ?? '';
+      final area = panicButtonData['AreasName']?.toString() ?? '';
+      final incident = panicButtonData['IncidentName']?.toString() ?? '';
+      
+      if (reporter.isNotEmpty || area.isNotEmpty || incident.isNotEmpty) {
+        final details = <String>[];
+        if (reporter.isNotEmpty) details.add('Pelapor: $reporter');
+        if (area.isNotEmpty) details.add('Area: $area');
+        if (incident.isNotEmpty) details.add('Jenis: $incident');
+        notificationBody = '${body}\n\n${details.join('\n')}';
+      }
+    } catch (e) {
+      print('⚠️ [PushNotification] Error building notification body: $e');
+    }
+    
+    // Create notification with maximum priority for heads-up display
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _panicButtonChannel.id,
+        _panicButtonChannel.name,
+        channelDescription: _panicButtonChannel.description,
+        importance: Importance.max, // Maximum importance
+        priority: Priority.max, // Maximum priority
+        playSound: true,
+        enableVibration: true,
+        vibrationPattern: Int64List.fromList([
+          0, 500, 200, 500, 200, 500, 200, 500, 200, 500, // Strong vibration pattern
+        ]),
+        enableLights: true,
+        color: const Color(0xFFE74C3C), // Red color for urgency
+        icon: '@mipmap/launcher_icon',
+        styleInformation: BigTextStyleInformation(
+          notificationBody,
+          contentTitle: title,
+          summaryText: 'Tekan untuk membuka aplikasi',
+        ),
+        // Full screen intent for maximum visibility (requires user permission)
+        fullScreenIntent: false, // Set to true if you want full screen (requires special permission)
+        category: AndroidNotificationCategory.alarm, // Alarm category for high priority
+        ongoing: true, // Make it ongoing so it's harder to dismiss
+        autoCancel: false, // Don't auto-cancel, user must interact
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        sound: 'default',
+        interruptionLevel: InterruptionLevel.critical, // Critical for iOS
+      ),
+    );
+
+    await _localNotifications.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      notificationBody,
+      details,
+    );
+    
+    print('✅ [PushNotification] Panic button heads-up notification shown');
   }
 }

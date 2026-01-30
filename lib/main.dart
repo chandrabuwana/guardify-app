@@ -57,8 +57,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   
   if (type == 'panic_button') {
     print('🚨 [BackgroundHandler] Panic button notification received in background');
-    // Note: We can't show popup in background handler, but we can prepare data
-    // The popup will be shown when user opens the app via onMessageOpenedApp
+    
+    // Show high-priority heads-up notification immediately
+    // This will appear on screen even when app is closed
+    try {
+      await PushNotificationService.instance.showPanicButtonNotification(message);
+      print('✅ [BackgroundHandler] Panic button notification displayed');
+    } catch (e) {
+      print('⚠️ [BackgroundHandler] Error showing panic notification: $e');
+    }
   }
 }
 
