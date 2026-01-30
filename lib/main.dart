@@ -4,7 +4,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:system_alert_window/system_alert_window.dart';
+import 'dart:typed_data';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/register_page.dart';
@@ -47,7 +50,187 @@ import 'core/services/background_location_task.dart';
 import 'core/services/push_notification_service.dart';
 import 'shared/widgets/api_log_overlay_button.dart';
 
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+@pragma('vm:entry-point')
+void overlayMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(
+    const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Material(
+        child: _PanicOverlayScreen(),
+      ),
+    ),
+  );
+}
+
+class _PanicOverlayScreen extends StatefulWidget {
+  const _PanicOverlayScreen();
+
+  @override
+  State<_PanicOverlayScreen> createState() => _PanicOverlayScreenState();
+}
+
+class _PanicOverlayScreenState extends State<_PanicOverlayScreen> {
+  Map<String, dynamic>? _data;
+
+  @override
+  void initState() {
+    super.initState();
+    SystemAlertWindow.overlayListener.listen((event) {
+      if (event is Map) {
+        setState(() {
+          _data = Map<String, dynamic>.from(event);
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = _data;
+    final incident = data?['IncidentName']?.toString() ??
+        data?['incidentName']?.toString() ??
+        'Panic';
+    final area = data?['AreasName']?.toString() ?? data?['areasName']?.toString();
+    final reporter = data?['Reporter']?.toString() ?? data?['reporter']?.toString();
+    final status = data?['Status']?.toString() ?? data?['status']?.toString();
+    final description =
+        data?['Description']?.toString() ?? data?['description']?.toString();
+
+    return SafeArea(
+      child: Container(
+        color: Colors.white,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'PANIC - $incident',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.red,
+              ),
+            ),
+            if (area != null && area.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(area),
+            ],
+            if (reporter != null && reporter.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text('Pelapor: $reporter'),
+            ],
+            if (status != null && status.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text('Status: $status'),
+            ],
+            if (description != null && description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(description),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await SystemAlertWindow.closeSystemWindow();
+                    },
+                    child: const Text('Tutup'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showBackgroundPanicNotification(Map<String, dynamic> rawData) async {
+  final localNotifications = FlutterLocalNotificationsPlugin();
+
+  const initializationSettings = InitializationSettings(
+    android: AndroidInitializationSettings('@mipmap/launcher_icon'),
+  );
+
+  await localNotifications.initialize(initializationSettings);
+
+  // Android notification channels are sticky: once created, sound/vibration cannot be
+  // changed programmatically for the same channel id. Use a new id when adjusting
+  // vibration behavior.
+  final panicChannel = AndroidNotificationChannel(
+    'guardify_panic_v2',
+    'Guardify Panic Alerts',
+    description: 'Panic button emergency alerts',
+    importance: Importance.max,
+    playSound: true,
+    enableVibration: true,
+    vibrationPattern: Int64List.fromList(
+      <int>[0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
+    ),
+  );
+
+  final androidPlugin = localNotifications
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  await androidPlugin?.createNotificationChannel(panicChannel);
+
+  Map<String, dynamic> panicData;
+  if (rawData.containsKey('data')) {
+    final dataField = rawData['data'];
+    if (dataField is Map) {
+      panicData = Map<String, dynamic>.from(dataField);
+    } else {
+      panicData = Map<String, dynamic>.from(rawData);
+    }
+  } else {
+    panicData = Map<String, dynamic>.from(rawData);
+  }
+
+  final incident = panicData['IncidentName']?.toString() ??
+      panicData['incidentName']?.toString() ??
+      'Panic';
+  final area = panicData['AreasName']?.toString() ?? panicData['areasName']?.toString();
+  final reporter =
+      panicData['Reporter']?.toString() ?? panicData['reporter']?.toString();
+  final status = panicData['Status']?.toString() ?? panicData['status']?.toString();
+
+  final title = 'PANIC - $incident';
+  final bodyParts = <String>[];
+  if (area != null && area.isNotEmpty) bodyParts.add(area);
+  if (reporter != null && reporter.isNotEmpty) bodyParts.add('Pelapor: $reporter');
+  if (status != null && status.isNotEmpty) bodyParts.add('Status: $status');
+  final body = bodyParts.isNotEmpty ? bodyParts.join(' • ') : 'Ada situasi darurat';
+
+  final details = NotificationDetails(
+    android: AndroidNotificationDetails(
+      panicChannel.id,
+      panicChannel.name,
+      channelDescription: panicChannel.description,
+      importance: Importance.max,
+      priority: Priority.max,
+      category: AndroidNotificationCategory.call,
+      fullScreenIntent: true,
+      playSound: true,
+      enableVibration: true,
+      visibility: NotificationVisibility.public,
+      // Pattern is set at channel-level (Android 8+). Kept here for completeness.
+      vibrationPattern: panicChannel.vibrationPattern,
+    ),
+  );
+
+  await localNotifications.show(
+    DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    title,
+    body,
+    details,
+  );
+}
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   
   print('🚨 [BackgroundHandler] Received message: ${message.data}');
@@ -57,8 +240,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   
   if (type == 'panic_button') {
     print('🚨 [BackgroundHandler] Panic button notification received in background');
-    // Note: We can't show popup in background handler, but we can prepare data
-    // The popup will be shown when user opens the app via onMessageOpenedApp
+    try {
+      await _showBackgroundPanicNotification(message.data);
+    } catch (e) {
+      print('⚠️ [BackgroundHandler] Failed to show panic notification: $e');
+    }
   }
 }
 
@@ -70,7 +256,7 @@ void main() async {
     try {
       await Firebase.initializeApp();
       FirebaseMessaging.onBackgroundMessage(
-          _firebaseMessagingBackgroundHandler);
+          firebaseMessagingBackgroundHandler);
       await PushNotificationService.instance.initialize();
     } catch (e) {
       print('⚠️ [Main] Firebase init failed: $e');
