@@ -3,6 +3,7 @@ part of 'auth_bloc.dart';
 enum AuthStatus {
   initial,
   loading,
+  passwordResetLinkSent,
   authenticated,
   unauthenticated,
   error,

@@ -1456,14 +1456,6 @@ class __HomePageViewState extends State<_HomePageView> {
           },
         ),
         MenuItem(
-          id: 'attendance_recap',
-          title: 'Rekapitulasi Kehadiran',
-          icon: Icons.assignment,
-          onTap: () => context
-              .read<HomeBloc>()
-              .add(const NavigateToAttendanceRecapEvent()),
-        ),
-        MenuItem(
           id: 'activity_report',
           title: 'Laporan Kegiatan',
           icon: Icons.description,

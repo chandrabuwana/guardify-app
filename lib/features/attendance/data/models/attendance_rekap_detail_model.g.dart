@@ -240,10 +240,27 @@ RouteItemModel _$RouteItemModelFromJson(Map<String, dynamic> json) =>
       'RouteItemModel',
       json,
       ($checkedConvert) {
-        final val = RouteItemModel();
+        final val = RouteItemModel(
+          areasName: $checkedConvert('AreasName', (v) => v as String),
+          checkDate: $checkedConvert('CheckDate', (v) => v as String?),
+          photoRoute: $checkedConvert(
+              'PhotoRoute',
+              (v) => v == null
+                  ? null
+                  : PhotoInfoModel.fromJson(v as Map<String, dynamic>)),
+        );
         return val;
+      },
+      fieldKeyMap: const {
+        'areasName': 'AreasName',
+        'checkDate': 'CheckDate',
+        'photoRoute': 'PhotoRoute'
       },
     );
 
 Map<String, dynamic> _$RouteItemModelToJson(RouteItemModel instance) =>
-    <String, dynamic>{};
+    <String, dynamic>{
+      'AreasName': instance.areasName,
+      'CheckDate': instance.checkDate,
+      'PhotoRoute': instance.photoRoute?.toJson(),
+    };

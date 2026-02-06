@@ -100,7 +100,14 @@ class CarryOverItem {
 
 /// Entity untuk route item
 class RouteItem {
-  // Add fields based on API response if needed
-  const RouteItem();
+  final String areasName;
+  final DateTime? checkDate;
+  final PhotoInfo? photoRoute;
+
+  const RouteItem({
+    required this.areasName,
+    this.checkDate,
+    this.photoRoute,
+  });
 }
 

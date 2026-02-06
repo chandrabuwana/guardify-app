@@ -210,22 +210,40 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
+      if (event.username.trim().isEmpty) {
+        emit(AuthState.error('NRP tidak boleh kosong'));
+        return;
+      }
+
       final emailValidation = validator.Validators.validateEmail(event.email);
       if (emailValidation != null) {
         emit(AuthState.error(emailValidation));
         return;
       }
 
-      // Mock reset password request
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await authRemoteDataSource.resetPassword({
+        'Username': event.username.trim(),
+        'Email': event.email.trim(),
+      });
+
+      final succeeded = response['Succeeded'] == true;
+      final message = (response['Message'] as String?)?.trim();
+      final description = (response['Description'] as String?)?.trim();
+      final errorMessage =
+          (message != null && message.isNotEmpty) ? message : (description ?? 'Reset password gagal');
+
+      if (!succeeded) {
+        emit(AuthState.error(errorMessage));
+        return;
+      }
 
       emit(state.copyWith(
-        status: AuthStatus.initial,
+        status: AuthStatus.passwordResetLinkSent,
         isLoading: false,
         errorMessage: null,
       ));
     } catch (e) {
-      emit(AuthState.error('Failed to send reset email: ${e.toString()}'));
+      emit(AuthState.error('Reset password gagal: ${e.toString()}'));
     }
   }
 

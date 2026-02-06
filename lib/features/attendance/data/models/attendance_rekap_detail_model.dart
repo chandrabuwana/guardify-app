@@ -304,7 +304,20 @@ class CarryOverItemModel {
 /// Model untuk route item
 @JsonSerializable()
 class RouteItemModel {
-  const RouteItemModel();
+  @JsonKey(name: 'AreasName')
+  final String areasName;
+
+  @JsonKey(name: 'CheckDate')
+  final String? checkDate;
+
+  @JsonKey(name: 'PhotoRoute')
+  final PhotoInfoModel? photoRoute;
+
+  const RouteItemModel({
+    required this.areasName,
+    this.checkDate,
+    this.photoRoute,
+  });
 
   factory RouteItemModel.fromJson(Map<String, dynamic> json) =>
       _$RouteItemModelFromJson(json);
@@ -312,7 +325,11 @@ class RouteItemModel {
   Map<String, dynamic> toJson() => _$RouteItemModelToJson(this);
 
   RouteItem toEntity() {
-    return const RouteItem();
+    return RouteItem(
+      areasName: areasName,
+      checkDate: checkDate != null ? DateTime.tryParse(checkDate!) : null,
+      photoRoute: photoRoute?.toEntity(),
+    );
   }
 }
 

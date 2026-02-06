@@ -316,7 +316,7 @@ class _LoginPageState extends State<LoginPage> {
                                 BlocBuilder<AuthBloc, AuthState>(
                                   builder: (context, state) {
                                     return UIButton(
-                                      text: 'Log In',
+                                      text: 'Masuk',
                                       fullWidth: true,
                                       size: UIButtonSize.medium,
                                       variant: UIButtonVariant.primary,

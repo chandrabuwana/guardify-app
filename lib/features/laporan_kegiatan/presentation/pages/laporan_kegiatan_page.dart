@@ -73,6 +73,15 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
     super.dispose();
   }
 
+  bool _isNoDataErrorMessage(String message) {
+    final m = message.toLowerCase();
+    return m.contains('tidak ditemukan') ||
+        m.contains('data tidak tersedia') ||
+        m.contains('data tidak ditemukan') ||
+        m.contains('not found') ||
+        m.contains('no data');
+  }
+
   void _loadData({String? search, bool resetPagination = true}) {
     // Tab 0: Menunggu Verifikasi -> hanya status waiting (filter dari API)
     // Tab 1: Terverifikasi -> status verified
@@ -423,6 +432,11 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
         }
 
         if (state is LaporanError) {
+          if (_isNoDataErrorMessage(state.message)) {
+            return EmptyStateWidget(
+              message: 'Data Tidak Tersedia',
+            );
+          }
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -472,7 +486,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
 
           if (filteredList.isEmpty && !state.isLoadingMore) {
             return EmptyStateWidget(
-              message: 'Tidak ditemukan',
+              message: 'Data Tidak Tersedia',
             );
           }
 

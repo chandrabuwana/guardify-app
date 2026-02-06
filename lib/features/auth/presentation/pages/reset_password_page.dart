@@ -40,9 +40,11 @@ class _ResetPasswordViewState extends State<_ResetPasswordView> {
   void _onSendResetLinkPressed() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthBloc>().add(
-            AuthForgotPasswordRequested(email: _emailController.text),
+            AuthForgotPasswordRequested(
+              username: _nipController.text,
+              email: _emailController.text,
+            ),
           );
-      _showMessage('Link reset password telah dikirim ke email Anda');
     }
   }
 
@@ -65,8 +67,8 @@ class _ResetPasswordViewState extends State<_ResetPasswordView> {
     return AppScaffold(
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state.status == AuthStatus.authenticated) {
-            Navigator.pushReplacementNamed(context, '/home');
+          if (state.status == AuthStatus.passwordResetLinkSent) {
+            _showMessage('Link reset password telah dikirim ke email Anda');
           } else if (state.status == AuthStatus.error) {
             _showMessage(state.errorMessage ?? 'Reset password gagal');
           }
@@ -149,7 +151,7 @@ class _ResetPasswordViewState extends State<_ResetPasswordView> {
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  'Enter your username and email to receive\npassword reset instruction',
+                                  'Masukkan NRP dan Email untuk menerima \ninstruksi perubahan password',
                                   textAlign: TextAlign.start,
                                   style: TS.bodyMedium.copyWith(
                                     color: Colors.white,
@@ -227,7 +229,7 @@ class _ResetPasswordViewState extends State<_ResetPasswordView> {
                                 BlocBuilder<AuthBloc, AuthState>(
                                   builder: (context, state) {
                                     return UIButton(
-                                      text: 'Send Reset Link',
+                                      text: 'Kirim',
                                       fullWidth: true,
                                       size: UIButtonSize.medium,
                                       variant: UIButtonVariant.primary,
@@ -253,7 +255,7 @@ class _ResetPasswordViewState extends State<_ResetPasswordView> {
                           child: GestureDetector(
                             onTap: _onBackToLoginPressed,
                             child: Text(
-                              'Back To Login',
+                              'Kembali Ke Login',
                               style: TextStyle(
                                 fontSize: 16.sp,
                                 color: const Color(0xFF3498DB),

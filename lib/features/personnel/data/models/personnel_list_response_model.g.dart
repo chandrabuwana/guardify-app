@@ -113,6 +113,7 @@ PersonnelApiModel _$PersonnelApiModelFromJson(Map<String, dynamic> json) =>
           site: $checkedConvert('Site', (v) => v as String?),
           jabatan: $checkedConvert('Jabatan', (v) => v as String?),
           idAtasan: $checkedConvert('IdAtasan', (v) => v as String?),
+          namaAtasan: $checkedConvert('NamaAtasan', (v) => v as String?),
           tanggalPenerimaan:
               $checkedConvert('TanggalPenerimaan', (v) => v as String?),
           masaBerlakuPermit:
@@ -158,6 +159,7 @@ PersonnelApiModel _$PersonnelApiModelFromJson(Map<String, dynamic> json) =>
         'site': 'Site',
         'jabatan': 'Jabatan',
         'idAtasan': 'IdAtasan',
+        'namaAtasan': 'NamaAtasan',
         'tanggalPenerimaan': 'TanggalPenerimaan',
         'masaBerlakuPermit': 'MasaBerlakuPermit',
         'kompetensiPekerjaan': 'KompetensiPekerjaan',
@@ -199,6 +201,7 @@ Map<String, dynamic> _$PersonnelApiModelToJson(PersonnelApiModel instance) =>
       'Site': instance.site,
       'Jabatan': instance.jabatan,
       'IdAtasan': instance.idAtasan,
+      'NamaAtasan': instance.namaAtasan,
       'TanggalPenerimaan': instance.tanggalPenerimaan,
       'MasaBerlakuPermit': instance.masaBerlakuPermit,
       'KompetensiPekerjaan': instance.kompetensiPekerjaan,

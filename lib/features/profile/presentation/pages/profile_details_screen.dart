@@ -389,7 +389,7 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
 
           ProfileDetailItem(
             label: 'Atasan',
-            value: profile.atasan,
+            value: profile.namaAtasan ?? '-',
           ),
 
           if (profile.tglPenerimaanKaryawan != null)

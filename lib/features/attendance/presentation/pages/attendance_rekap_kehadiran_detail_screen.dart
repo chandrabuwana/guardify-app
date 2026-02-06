@@ -218,6 +218,9 @@ class _AttendanceRekapKehadiranDetailScreenContentState
                   Expanded(
                     child: UIButton(
                       text: _stepIndex == 0 ? 'Selanjutnya' : 'Kembali',
+                      enable: _stepIndex == 0
+                          ? detail.statusLaporan.toUpperCase() != 'CHECKIN'
+                          : true,
                       onPressed: () {
                         setState(() {
                           _stepIndex = _stepIndex == 0 ? 1 : 0;
@@ -231,20 +234,7 @@ class _AttendanceRekapKehadiranDetailScreenContentState
                           : const Icon(Icons.arrow_back, color: Colors.white),
                     ),
                   ),
-                  if (canEdit) ...[
-                    12.horizontalSpace,
-                    Expanded(
-                      child: UIButton(
-                        text: 'Edit',
-                        onPressed: () {
-                          setState(() {});
-                        },
-                        variant: UIButtonVariant.secondary,
-                        size: UIButtonSize.large,
-                        fullWidth: true,
-                      ),
-                    ),
-                  ],
+
                   if (_stepIndex == 1 && canEdit) ...[
                     12.horizontalSpace,
                     Expanded(
@@ -407,9 +397,13 @@ class _AttendanceRekapKehadiranDetailScreenContentState
             : _buildImageCard('Pakaian Personil', detail.photoCheckoutPakaian?.url),
         16.verticalSpace,
         _buildInfoFieldInCard('Lokasi Pengamanan', detail.location ?? '-'),
+        
+// i want to add patrol timeline widget in this section dont delete 
+
+
         if (detail.patrol == 'Yes' && detail.route != null) ...[
           16.verticalSpace,
-          _buildPatrolSectionInCard(detail.route!, detail.listCarryOver),
+          _buildPatrolSectionInCard(detail.route!, detail.listRoute, detail.listCarryOver),
         ],
         16.verticalSpace,
         _buildImageCard('Bukti Penyelesaian Tugas Lanjutan', detail.photoCheckout?.url),
@@ -519,7 +513,13 @@ class _AttendanceRekapKehadiranDetailScreenContentState
     required File? pickedFile,
     required ValueChanged<File> onPick,
   }) {
-    final previewUrl = pickedFile != null ? null : existingUrl;
+    final hasImage = pickedFile != null || (existingUrl != null && existingUrl.isNotEmpty);
+    ImageProvider? imageProvider;
+    if (pickedFile != null) {
+      imageProvider = FileImage(pickedFile);
+    } else if (existingUrl != null && existingUrl.isNotEmpty) {
+      imageProvider = NetworkImage(existingUrl.startsWith('http') ? existingUrl : 'https:$existingUrl');
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,73 +532,101 @@ class _AttendanceRekapKehadiranDetailScreenContentState
           ),
         ),
         8.verticalSpace,
-        GestureDetector(
-          onTap: () async {
-            XFile? xFile;
-            try {
-              xFile = await _imagePicker.pickImage(
-                source: ImageSource.camera,
-                imageQuality: 80,
-              );
-            } on PlatformException {
-              // iOS Simulator frequently has no camera. Fallback to gallery.
-              try {
-                xFile = await _imagePicker.pickImage(
-                  source: ImageSource.gallery,
-                  imageQuality: 80,
-                );
-              } catch (_) {
-                xFile = null;
-              }
-              if (mounted && xFile == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Camera tidak tersedia. Silakan pilih dari galeri.'),
-                  ),
-                );
-              }
-            } catch (_) {
-              xFile = null;
-            }
-            if (xFile == null) return;
-            onPick(File(xFile.path));
-          },
-          child: Container(
-            width: double.infinity,
-            height: 180.h,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8.r),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8.r),
-              child: () {
-                if (pickedFile != null) {
-                  return Image.file(pickedFile, fit: BoxFit.cover);
+        Stack(
+          children: [
+            GestureDetector(
+              onTap: () {
+                if (hasImage && imageProvider != null) {
+                  _showFullScreenImage(context, imageProvider);
+                } else {
+                  _pickImage(onPick);
                 }
-                if (previewUrl != null && previewUrl.isNotEmpty) {
-                  return Image.network(previewUrl, fit: BoxFit.cover);
-                }
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.camera_alt, color: Colors.grey.shade600),
-                      8.verticalSpace,
-                      Text(
-                        'Tap untuk ambil foto',
-                        style: TS.bodySmall.copyWith(color: Colors.grey.shade600),
+              },
+              child: Container(
+                width: double.infinity,
+                height: 180.h,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8.r),
+                  child: () {
+                     if (hasImage && imageProvider != null) {
+                      return Image(image: imageProvider, fit: BoxFit.cover);
+                    }
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.camera_alt, color: Colors.grey.shade600),
+                          8.verticalSpace,
+                          Text(
+                            'Tap untuk ambil foto',
+                            style: TS.bodySmall.copyWith(color: Colors.grey.shade600),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              }(),
+                    );
+                  }(),
+                ),
+              ),
             ),
-          ),
+            if (hasImage)
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: InkWell(
+                  onTap: () => _pickImage(onPick),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
     );
+  }
+
+  Future<void> _pickImage(ValueChanged<File> onPick) async {
+    XFile? xFile;
+    try {
+      xFile = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+    } on PlatformException {
+      try {
+        xFile = await _imagePicker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 80,
+        );
+      } catch (_) {
+        xFile = null;
+      }
+      if (mounted && xFile == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Camera tidak tersedia. Silakan pilih dari galeri.'),
+          ),
+        );
+      }
+    } catch (_) {
+      xFile = null;
+    }
+    if (xFile == null) return;
+    onPick(File(xFile.path));
   }
 
   Widget _buildEditableOvertimeToggleInCard() {
@@ -752,21 +780,26 @@ class _AttendanceRekapKehadiranDetailScreenContentState
         ),
         8.verticalSpace,
         if (imageUrl != null && imageUrl.isNotEmpty)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8.r),
-            child: Image.network(
-              imageUrl,
-              height: 200.h,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 200.h,
-                  width: double.infinity,
-                  color: Colors.grey.shade100,
-                  child: const Center(child: Icon(Icons.broken_image)),
-                );
-              },
+          GestureDetector(
+            onTap: () {
+              _showFullScreenImage(context, NetworkImage(imageUrl));
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8.r),
+              child: Image.network(
+                imageUrl,
+                height: 200.h,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 200.h,
+                    width: double.infinity,
+                    color: Colors.grey.shade100,
+                    child: const Center(child: Icon(Icons.broken_image)),
+                  );
+                },
+              ),
             ),
           )
         else
@@ -795,7 +828,11 @@ class _AttendanceRekapKehadiranDetailScreenContentState
     );
   }
 
-  Widget _buildPatrolSectionInCard(String routeName, List<CarryOverItem> listCarryOver) {
+  Widget _buildPatrolSectionInCard(
+    String routeName,
+    List<RouteItem> listRoute,
+    List<CarryOverItem> listCarryOver,
+  ) {
     final allChecked = listCarryOver.isNotEmpty && listCarryOver.every((item) => item.isCompleted);
 
     return Column(
@@ -819,7 +856,10 @@ class _AttendanceRekapKehadiranDetailScreenContentState
             ],
           ],
         ),
-        // add patrol timeline widget
+        if (listRoute.isNotEmpty) ...[
+          16.verticalSpace,
+          _buildPatrolTimeline(listRoute),
+        ],
         if (listCarryOver.isEmpty) ...[
           16.verticalSpace,
           Text(
@@ -827,6 +867,19 @@ class _AttendanceRekapKehadiranDetailScreenContentState
             style: TS.bodyMedium.copyWith(color: Colors.grey.shade600),
           ),
         ] else ...[
+          16.verticalSpace,
+          Text(
+            'Tugas Tertunda',
+            style: TS.bodyMedium.copyWith(color: neutral90,fontWeight: FontWeight.bold,),
+          ),
+          // Text(
+          // label,
+          // style: TS.bodyMedium.copyWith(
+            
+          //   color: neutral90,
+          // ),
+        // ),
+        // 8.verticalSpace,
           16.verticalSpace,
           ...listCarryOver.map(_buildPatrolItem),
         ],
@@ -946,5 +999,178 @@ class _AttendanceRekapKehadiranDetailScreenContentState
       default:
         return status;
     }
+  }
+
+  Widget _buildPatrolTimeline(List<RouteItem> listRoute) {
+    if (listRoute.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        16.verticalSpace,
+        Text(
+          'Timeline Patroli',
+          style: TS.bodyMedium.copyWith(
+            fontWeight: FontWeight.bold,
+            color: neutral90,
+          ),
+        ),
+        16.verticalSpace,
+        ...listRoute.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          final isLast = index == listRoute.length - 1;
+          return _buildPatrolTimelineItem(item, isLast);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildPatrolTimelineItem(RouteItem item, bool isLast) {
+    final isChecked = item.checkDate != null;
+    final checkDateLabel = item.checkDate != null ? _formatTime(item.checkDate!) : '-';
+    final photoUrl = item.photoRoute?.url;
+    final photoFilename = item.photoRoute?.filename;
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+    final photoLabel = hasPhoto
+        ? (photoFilename != null && photoFilename.isNotEmpty ? photoFilename : 'Lihat Foto')
+        : 'Tidak Ada Foto';
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Timeline indicator
+          Column(
+            children: [
+              Container(
+                width: 16.w,
+                height: 16.w,
+                decoration: BoxDecoration(
+                  color: isChecked ? Colors.green : Colors.grey.shade300,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: isChecked
+                    ? Icon(Icons.check, size: 10.w, color: Colors.white)
+                    : null,
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2.w,
+                    color: Colors.grey.shade300,
+                  ),
+                ),
+            ],
+          ),
+          12.horizontalSpace,
+          // Content
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 24.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        item.areasName,
+                        style: TS.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: neutral90,
+                        ),
+                      ),
+                    ],
+                  ),
+                  4.verticalSpace,
+                  Text(
+                    checkDateLabel,
+                    style: TS.bodySmall.copyWith(
+                      color: neutral50,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  6.verticalSpace,
+                  hasPhoto
+                      ? InkWell(
+                          onTap: () {
+                            _showFullScreenImage(context, NetworkImage(photoUrl));
+                          },
+                          child: Text(
+                            photoLabel,
+                            style: TS.bodySmall.copyWith(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          photoLabel,
+                          style: TS.bodySmall.copyWith(
+                            color: neutral50,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, ImageProvider imageProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              minScale: 0.1,
+              maxScale: 4.0,
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Colors.black,
+                ),
+                child: Image(
+                  image: imageProvider,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: REdgeInsets.all(16),
+                child: CircleAvatar(
+                  backgroundColor: Colors.black.withOpacity(0.5),
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
