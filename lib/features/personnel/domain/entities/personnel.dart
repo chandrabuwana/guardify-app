@@ -19,6 +19,7 @@ class Personnel {
   final String? site;
   final String? jabatan;
   final String? atasan;
+  final String? namaAtasan;
   final DateTime? tanggalPenerimaanKaryawan;
   final DateTime? masaBerlakuPermit;
   final String? kompetensiPekerjaan;
@@ -57,6 +58,7 @@ class Personnel {
     this.site,
     this.jabatan,
     this.atasan,
+    this.namaAtasan,
     this.tanggalPenerimaanKaryawan,
     this.masaBerlakuPermit,
     this.kompetensiPekerjaan,

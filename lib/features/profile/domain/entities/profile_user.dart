@@ -15,6 +15,7 @@ class ProfileUser extends Equatable {
   final String site;
   final String jabatan;
   final String atasan;
+  final String? namaAtasan;
   final DateTime? tglPenerimaanKaryawan;
   final DateTime? masaBerlakuPermit;
   final String kompetensiPekerjaan;
@@ -41,6 +42,7 @@ class ProfileUser extends Equatable {
     required this.site,
     required this.jabatan,
     required this.atasan,
+    this.namaAtasan,
     this.tglPenerimaanKaryawan,
     this.masaBerlakuPermit,
     required this.kompetensiPekerjaan,
@@ -69,6 +71,7 @@ class ProfileUser extends Equatable {
         site,
         jabatan,
         atasan,
+        namaAtasan,
         tglPenerimaanKaryawan,
         masaBerlakuPermit,
         kompetensiPekerjaan,
@@ -97,6 +100,7 @@ class ProfileUser extends Equatable {
     String? site,
     String? jabatan,
     String? atasan,
+    String? namaAtasan,
     DateTime? tglPenerimaanKaryawan,
     DateTime? masaBerlakuPermit,
     String? kompetensiPekerjaan,
@@ -123,6 +127,7 @@ class ProfileUser extends Equatable {
       site: site ?? this.site,
       jabatan: jabatan ?? this.jabatan,
       atasan: atasan ?? this.atasan,
+      namaAtasan: namaAtasan ?? this.namaAtasan,
       tglPenerimaanKaryawan: tglPenerimaanKaryawan ?? this.tglPenerimaanKaryawan,
       masaBerlakuPermit: masaBerlakuPermit ?? this.masaBerlakuPermit,
       kompetensiPekerjaan: kompetensiPekerjaan ?? this.kompetensiPekerjaan,

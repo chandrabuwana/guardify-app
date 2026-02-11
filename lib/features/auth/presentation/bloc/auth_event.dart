@@ -43,9 +43,13 @@ class AuthPinLoginRequested extends AuthEvent {
 }
 
 class AuthForgotPasswordRequested extends AuthEvent {
+  final String username;
   final String email;
 
-  const AuthForgotPasswordRequested({required this.email});
+  const AuthForgotPasswordRequested({
+    required this.username,
+    required this.email,
+  });
 }
 
 class AuthResetPasswordRequested extends AuthEvent {

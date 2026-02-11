@@ -35,6 +35,7 @@ PersonnelModel _$PersonnelModelFromJson(Map<String, dynamic> json) =>
           site: $checkedConvert('site', (v) => v as String?),
           jabatan: $checkedConvert('jabatan', (v) => v as String?),
           atasan: $checkedConvert('atasan', (v) => v as String?),
+          namaAtasan: $checkedConvert('nama_atasan', (v) => v as String?),
           tanggalPenerimaanKaryawan: $checkedConvert(
               'tanggal_penerimaan_karyawan',
               (v) => v == null ? null : DateTime.parse(v as String)),
@@ -70,6 +71,7 @@ PersonnelModel _$PersonnelModelFromJson(Map<String, dynamic> json) =>
         'jenisKelamin': 'jenis_kelamin',
         'teleponPribadi': 'telepon_pribadi',
         'teleponDarurat': 'telepon_darurat',
+        'namaAtasan': 'nama_atasan',
         'tanggalPenerimaanKaryawan': 'tanggal_penerimaan_karyawan',
         'masaBerlakuPermit': 'masa_berlaku_permit',
         'kompetensiPekerjaan': 'kompetensi_pekerjaan',
@@ -106,6 +108,7 @@ Map<String, dynamic> _$PersonnelModelToJson(PersonnelModel instance) =>
       'site': instance.site,
       'jabatan': instance.jabatan,
       'atasan': instance.atasan,
+      'nama_atasan': instance.namaAtasan,
       'tanggal_penerimaan_karyawan':
           instance.tanggalPenerimaanKaryawan?.toIso8601String(),
       'masa_berlaku_permit': instance.masaBerlakuPermit?.toIso8601String(),

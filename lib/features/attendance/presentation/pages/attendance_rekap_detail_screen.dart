@@ -216,7 +216,7 @@ class _AttendanceRekapDetailScreenContentState
                     if (detail.photoCheckout?.hasPhoto == true) ...[
                       16.verticalSpace,
                       _buildImageCard(
-                        'Bukti Penyelesaian11111 Tugas Lanjutan',
+                        'Bukti Penyelesaian Tugas Lanjutan',
                         detail.photoCheckout?.url,
                       ),
                     ],
@@ -294,6 +294,7 @@ class _AttendanceRekapDetailScreenContentState
               padding: REdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: UIButton(
                 text: 'Selanjutnya',
+                enable: detail.statusLaporan.toUpperCase() != 'CHECKIN',
                 onPressed: () {
                   if (!canEdit) {
                     ScaffoldMessenger.of(context).showSnackBar(

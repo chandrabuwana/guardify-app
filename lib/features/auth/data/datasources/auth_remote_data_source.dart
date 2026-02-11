@@ -18,6 +18,11 @@ abstract class AuthRemoteDataSource {
     @Body() Map<String, dynamic> body,
   );
 
+  @POST('/User/reset_password')
+  Future<Map<String, dynamic>> resetPassword(
+    @Body() Map<String, dynamic> body,
+  );
+
   @POST('/CurrentLocation/employee')
   Future<CurrentLocationResponseModel> getEmployeeLocations(
     @Body() CurrentLocationRequestModel request,

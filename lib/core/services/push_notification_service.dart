@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:system_alert_window/system_alert_window.dart';
 import '../../core/navigation/app_navigator_key.dart';
 import '../../shared/widgets/panic_button_popup.dart';
 import '../../features/panic_button/data/models/panic_button_mobile_response_model.dart';
@@ -27,16 +29,14 @@ class PushNotificationService {
     enableVibration: true,
   );
 
-  // Special channel for panic button with maximum priority
-  static const AndroidNotificationChannel _panicButtonChannel =
+  static const AndroidNotificationChannel _panicAndroidChannel =
       AndroidNotificationChannel(
-    'guardify_panic_button',
-    'Panic Button Alerts',
-    description: 'Critical emergency notifications',
-    importance: Importance.max, // Maximum importance for heads-up notification
+    'guardify_panic',
+    'Guardify Panic Alerts',
+    description: 'Panic button emergency alerts',
+    importance: Importance.max,
     playSound: true,
     enableVibration: true,
-    enableLights: true,
   );
 
   Future<void> initialize() async {
@@ -45,7 +45,25 @@ class PushNotificationService {
       iOS: const DarwinInitializationSettings(),
     );
 
-    await _localNotifications.initialize(initializationSettings);
+    await _localNotifications.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (response) {
+        final payload = response.payload;
+        if (payload == null || payload.isEmpty) return;
+        try {
+          final decoded = jsonDecode(payload);
+          if (decoded is Map) {
+            final data = Map<String, dynamic>.from(decoded);
+            final type = data['type']?.toString();
+            if (type == 'panic_button') {
+              _showPanicButtonPopup(data);
+            }
+          }
+        } catch (_) {
+          // ignore
+        }
+      },
+    );
 
     if (Platform.isAndroid) {
       final androidPlugin = _localNotifications
@@ -53,9 +71,7 @@ class PushNotificationService {
               AndroidFlutterLocalNotificationsPlugin>();
 
       await androidPlugin?.createNotificationChannel(_androidChannel);
-      
-      // Create panic button channel with maximum priority
-      await androidPlugin?.createNotificationChannel(_panicButtonChannel);
+      await androidPlugin?.createNotificationChannel(_panicAndroidChannel);
 
       await androidPlugin?.requestNotificationsPermission();
     }
@@ -85,6 +101,64 @@ class PushNotificationService {
       Future.delayed(const Duration(milliseconds: 1000), () {
         _handleMessageOpenedApp(initialMessage);
       });
+    }
+  }
+
+  Future<void> showPanicOverlayOrNotification(
+    Map<String, dynamic> rawData, {
+    bool canRequestOverlayPermission = false,
+  }) async {
+    if (Platform.isAndroid) {
+      final shown = await _tryShowPanicOverlay(
+        rawData,
+        canRequestOverlayPermission: canRequestOverlayPermission,
+      );
+      if (shown) return;
+    }
+
+    await showPanicFullScreenNotification(rawData);
+  }
+
+  Future<bool> _tryShowPanicOverlay(
+    Map<String, dynamic> rawData, {
+    required bool canRequestOverlayPermission,
+  }) async {
+    if (!Platform.isAndroid) return false;
+
+    try {
+      final hasPermission = await SystemAlertWindow.checkPermissions(
+        prefMode: SystemWindowPrefMode.OVERLAY,
+      );
+
+      if (hasPermission != true) {
+        if (!canRequestOverlayPermission) return false;
+
+        final granted = await SystemAlertWindow.requestPermissions(
+          prefMode: SystemWindowPrefMode.OVERLAY,
+        );
+        if (granted != true) return false;
+      }
+
+      final title = 'PANIC BUTTON';
+      final body = rawData['IncidentName']?.toString() ??
+          rawData['incidentName']?.toString() ??
+          rawData['Description']?.toString() ??
+          rawData['description']?.toString() ??
+          'Ada situasi darurat';
+
+      final ok = await SystemAlertWindow.showSystemWindow(
+        prefMode: SystemWindowPrefMode.OVERLAY,
+        notificationTitle: title,
+        notificationBody: body,
+        gravity: SystemWindowGravity.TOP,
+      );
+
+      if (ok != true) return false;
+
+      await SystemAlertWindow.sendMessageToOverlay(rawData);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
   
@@ -270,87 +344,119 @@ class PushNotificationService {
     );
   }
 
-  /// Show high-priority panic button notification (for background/terminated state)
-  /// This creates a heads-up notification that appears on screen immediately
-  Future<void> showPanicButtonNotification(RemoteMessage message) async {
-    print('🚨 [PushNotification] Showing panic button heads-up notification...');
-    
-    final notification = message.notification;
-    final title = notification?.title ?? 'PANIC BUTTON AKTIF';
-    final body = notification?.body ?? 'Ada situasi darurat yang memerlukan perhatian segera!';
-    
-    // Extract panic button data for notification body
-    String notificationBody = body;
-    try {
-      final data = message.data;
-      Map<String, dynamic> panicButtonData;
-      
-      if (data.containsKey('data') && data['data'] is Map) {
-        panicButtonData = Map<String, dynamic>.from(data['data'] as Map);
+  Future<void> showPanicFullScreenNotification(Map<String, dynamic> rawData) async {
+    if (!Platform.isAndroid) return;
+
+    Map<String, dynamic> panicData;
+    if (rawData.containsKey('data')) {
+      final dataField = rawData['data'];
+      if (dataField is Map) {
+        panicData = Map<String, dynamic>.from(dataField);
+      } else if (dataField is String) {
+        try {
+          panicData = jsonDecode(dataField) as Map<String, dynamic>;
+        } catch (_) {
+          panicData = Map<String, dynamic>.from(rawData);
+        }
       } else {
-        panicButtonData = Map<String, dynamic>.from(data);
-        panicButtonData.remove('type');
+        panicData = Map<String, dynamic>.from(rawData);
       }
-      
-      // Build detailed notification body
-      final reporter = panicButtonData['Reporter']?.toString() ?? '';
-      final area = panicButtonData['AreasName']?.toString() ?? '';
-      final incident = panicButtonData['IncidentName']?.toString() ?? '';
-      
-      if (reporter.isNotEmpty || area.isNotEmpty || incident.isNotEmpty) {
-        final details = <String>[];
-        if (reporter.isNotEmpty) details.add('Pelapor: $reporter');
-        if (area.isNotEmpty) details.add('Area: $area');
-        if (incident.isNotEmpty) details.add('Jenis: $incident');
-        notificationBody = '${body}\n\n${details.join('\n')}';
-      }
-    } catch (e) {
-      print('⚠️ [PushNotification] Error building notification body: $e');
+    } else {
+      panicData = Map<String, dynamic>.from(rawData);
     }
-    
-    // Create notification with maximum priority for heads-up display
+
+    PanicButtonMobileResponseModel? model;
+    try {
+      model = PanicButtonMobileResponseModel.fromJson(panicData);
+    } catch (_) {
+      model = null;
+    }
+
+    final titleParts = <String>['PANIC'];
+    final incidentName = model?.incidentName ??
+        panicData['IncidentName']?.toString() ??
+        panicData['incidentName']?.toString();
+    if (incidentName != null && incidentName.isNotEmpty) {
+      titleParts.add(incidentName);
+    }
+    final title = titleParts.join(' - ');
+
+    final bodyParts = <String>[];
+    final areasName = model?.areasName ??
+        panicData['AreasName']?.toString() ??
+        panicData['areasName']?.toString();
+    if (areasName != null && areasName.isNotEmpty) {
+      bodyParts.add(areasName);
+    }
+
+    final reporter = model?.reporter ??
+        panicData['Reporter']?.toString() ??
+        panicData['reporter']?.toString();
+    if (reporter != null && reporter.isNotEmpty) {
+      bodyParts.add('Pelapor: $reporter');
+    }
+
+    final status = model?.status ??
+        panicData['Status']?.toString() ??
+        panicData['status']?.toString();
+    if (status != null && status.isNotEmpty) {
+      bodyParts.add('Status: $status');
+    }
+
+    final reporterDateRaw = model?.reporterDate ??
+        panicData['ReporterDate']?.toString() ??
+        panicData['reporterDate']?.toString();
+    if (reporterDateRaw != null && reporterDateRaw.isNotEmpty) {
+      final parsed = DateTime.tryParse(reporterDateRaw);
+      if (parsed != null) {
+        try {
+          bodyParts.add(DateFormat('dd MMM yyyy HH:mm', 'id_ID').format(parsed));
+        } catch (_) {
+          bodyParts.add(parsed.toString());
+        }
+      } else {
+        bodyParts.add(reporterDateRaw);
+      }
+    }
+
+    final description = model?.description ??
+        panicData['Description']?.toString() ??
+        panicData['description']?.toString();
+    if (description != null && description.isNotEmpty) {
+      bodyParts.add(description);
+    }
+
+    final body = bodyParts.isNotEmpty
+        ? bodyParts.join(' • ')
+        : 'Ada situasi darurat - tap untuk membuka';
+
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
-        _panicButtonChannel.id,
-        _panicButtonChannel.name,
-        channelDescription: _panicButtonChannel.description,
-        importance: Importance.max, // Maximum importance
-        priority: Priority.max, // Maximum priority
+        _panicAndroidChannel.id,
+        _panicAndroidChannel.name,
+        channelDescription: _panicAndroidChannel.description,
+        importance: Importance.max,
+        priority: Priority.max,
+        category: AndroidNotificationCategory.call,
+        // Don't auto-launch UI while app is in background. User must tap notification.
+        fullScreenIntent: false,
         playSound: true,
         enableVibration: true,
-        vibrationPattern: Int64List.fromList([
-          0, 500, 200, 500, 200, 500, 200, 500, 200, 500, // Strong vibration pattern
-        ]),
-        enableLights: true,
-        color: const Color(0xFFE74C3C), // Red color for urgency
-        icon: '@mipmap/launcher_icon',
-        styleInformation: BigTextStyleInformation(
-          notificationBody,
-          contentTitle: title,
-          summaryText: 'Tekan untuk membuka aplikasi',
-        ),
-        // Full screen intent for maximum visibility (requires user permission)
-        fullScreenIntent: false, // Set to true if you want full screen (requires special permission)
-        category: AndroidNotificationCategory.alarm, // Alarm category for high priority
-        ongoing: true, // Make it ongoing so it's harder to dismiss
-        autoCancel: false, // Don't auto-cancel, user must interact
-      ),
-      iOS: const DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-        sound: 'default',
-        interruptionLevel: InterruptionLevel.critical, // Critical for iOS
+        ticker: 'panic',
       ),
     );
+
+    final payload = jsonEncode({
+      'type': 'panic_button',
+      ...rawData,
+    });
 
     await _localNotifications.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,
       title,
-      notificationBody,
+      body,
       details,
+      payload: payload,
     );
-    
-    print('✅ [PushNotification] Panic button heads-up notification shown');
   }
 }

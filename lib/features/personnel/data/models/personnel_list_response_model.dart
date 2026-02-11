@@ -124,6 +124,9 @@ class PersonnelApiModel {
   @JsonKey(name: 'IdAtasan')
   final String? idAtasan;
 
+  @JsonKey(name: 'NamaAtasan')
+  final String? namaAtasan;
+
   @JsonKey(name: 'TanggalPenerimaan')
   final String? tanggalPenerimaan;
 
@@ -201,6 +204,7 @@ class PersonnelApiModel {
     this.site,
     this.jabatan,
     this.idAtasan,
+    this.namaAtasan,
     this.tanggalPenerimaan,
     this.masaBerlakuPermit,
     this.kompetensiPekerjaan,
@@ -250,6 +254,7 @@ class PersonnelApiModel {
       site: site,
       jabatan: jabatan,
       atasan: idAtasan,
+      namaAtasan: namaAtasan,
       tanggalPenerimaanKaryawan:
           tanggalPenerimaan != null ? DateTime.tryParse(tanggalPenerimaan!) : null,
       masaBerlakuPermit:

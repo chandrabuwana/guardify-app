@@ -195,8 +195,7 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
                   _buildInfoRow('Site', personnel.site!),
                 if (personnel.jabatan != null)
                   _buildInfoRow('Jabatan', personnel.jabatan!),
-                if (personnel.atasan != null)
-                  _buildInfoRow('Atasan', personnel.atasan!),
+                _buildInfoRow('Atasan', personnel.namaAtasan ?? '-'),
                 if (personnel.tanggalPenerimaanKaryawan != null)
                   _buildInfoRow(
                     'Tgl Penerimaan Karyawan',
@@ -224,14 +223,19 @@ class _PersonnelDetailPageState extends State<PersonnelDetailPage> {
                   _buildInfoRow('Kelurahan', personnel.kelurahan!),
                 if (personnel.alamatDomisili != null)
                   _buildInfoRow('Alamat Domisili', personnel.alamatDomisili!),
-                if (personnel.updateBy != null)
-                  _buildInfoRow('Diverifikasi Oleh', personnel.updateBy!),
-                if (personnel.updateDate != null)
-                  _buildInfoRow(
-                    'Tanggal Verifikasi',
-                    DateFormat('dd MMMM yyyy - HH.mm', 'id_ID')
-                        .format(personnel.updateDate!),
-                  ),
+                if (personnel.status == 'Pending') ...[
+                  _buildInfoRow('Diverifikasi Oleh', '-'),
+                  _buildInfoRow('Tanggal Verifikasi', '-'),
+                ] else ...[
+                  if (personnel.updateBy != null)
+                    _buildInfoRow('Diverifikasi Oleh', personnel.updateBy!),
+                  if (personnel.updateDate != null)
+                    _buildInfoRow(
+                      'Tanggal Verifikasi',
+                      DateFormat('dd MMMM yyyy - HH.mm', 'id_ID')
+                          .format(personnel.updateDate!),
+                    ),
+                ],
               ],
             ),
           ),

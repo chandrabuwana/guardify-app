@@ -25,6 +25,7 @@ class PersonnelModel extends Personnel {
     super.site,
     super.jabatan,
     super.atasan,
+    super.namaAtasan,
     super.tanggalPenerimaanKaryawan,
     super.masaBerlakuPermit,
     super.kompetensiPekerjaan,
