@@ -8,6 +8,7 @@ import '../../domain/usecases/get_incident_locations.dart';
 import '../../domain/usecases/get_incident_types.dart';
 import '../../domain/usecases/update_incident_status.dart';
 import '../../domain/usecases/edit_incident.dart';
+import '../../domain/usecases/update_all_incident.dart';
 import 'incident_event.dart';
 import 'incident_state.dart';
 
@@ -21,6 +22,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
   final GetIncidentTypes getIncidentTypes;
   final UpdateIncidentStatus updateIncidentStatus;
   final EditIncident editIncident;
+  final UpdateAllIncident updateAllIncident;
 
   static const int pageSize = 10;
 
@@ -33,6 +35,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
     required this.getIncidentTypes,
     required this.updateIncidentStatus,
     required this.editIncident,
+    required this.updateAllIncident,
   }) : super(const IncidentState()) {
     on<LoadIncidentListEvent>(_onLoadIncidentList);
     on<LoadMoreIncidentListEvent>(_onLoadMoreIncidentList);
@@ -48,6 +51,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
     on<LoadIncidentTypesEvent>(_onLoadIncidentTypes);
     on<UpdateIncidentStatusEvent>(_onUpdateIncidentStatus);
     on<EditIncidentEvent>(_onEditIncident);
+    on<UpdateAllIncidentEvent>(_onUpdateAllIncident);
     on<ClearIncidentErrorEvent>(_onClearError);
   }
 
@@ -508,6 +512,45 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
       emit(state.copyWith(
         isLoading: false,
         errorMessage: 'Gagal mengedit insiden: ${e.toString()}',
+      )      );
+    }
+  }
+
+  Future<void> _onUpdateAllIncident(
+    UpdateAllIncidentEvent event,
+    Emitter<IncidentState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    try {
+      final success = await updateAllIncident(
+        incidentId: event.incidentId,
+        picId: event.picId,
+        team: event.team,
+        handlingTask: event.handlingTask,
+        notes: event.notes,
+        feedback: event.feedback,
+        evidence: event.evidence,
+        status: event.status,
+      );
+
+      if (success) {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: null,
+        ));
+        // Refresh lists after update
+        add(const RefreshIncidentListEvent());
+        add(const RefreshMyTasksEvent());
+      } else {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: 'Gagal memperbarui insiden',
+        ));
+      }
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: 'Gagal memperbarui insiden: ${e.toString()}',
       ));
     }
   }

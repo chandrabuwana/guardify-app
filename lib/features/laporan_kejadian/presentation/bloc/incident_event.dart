@@ -216,6 +216,41 @@ class EditIncidentEvent extends IncidentEvent {
       ];
 }
 
+// Update all incident (for PJO/Deputy to assign PIC and Team)
+class UpdateAllIncidentEvent extends IncidentEvent {
+  final String incidentId;
+  final String picId;
+  final List<String> team;
+  final String handlingTask;
+  final String? notes;
+  final String? feedback;
+  final String? evidence;
+  final String status;
+
+  const UpdateAllIncidentEvent({
+    required this.incidentId,
+    required this.picId,
+    required this.team,
+    required this.handlingTask,
+    this.notes,
+    this.feedback,
+    this.evidence,
+    required this.status,
+  });
+
+  @override
+  List<Object?> get props => [
+        incidentId,
+        picId,
+        team,
+        handlingTask,
+        notes,
+        feedback,
+        evidence,
+        status,
+      ];
+}
+
 // Clear error
 class ClearIncidentErrorEvent extends IncidentEvent {
   const ClearIncidentErrorEvent();

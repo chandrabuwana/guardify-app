@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/design/colors.dart';
+import '../../../../core/utils/user_role_helper.dart';
+import '../../../../core/constants/enums.dart';
 import '../bloc/incident_bloc.dart';
 import '../bloc/incident_event.dart';
 import '../bloc/incident_state.dart';
@@ -24,14 +26,19 @@ class _IncidentListPageState extends State<IncidentListPage>
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Timer? _searchDebounce;
+  bool _isPengawas = false;
 
   @override
   void initState() {
     super.initState();
+    // Initialize tab controller with default 2 tabs first
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_onTabChanged);
     _scrollController.addListener(_onScroll);
-
+    
+    // Load user role and update tab controller if needed
+    _loadUserRole();
+    
     // Load initial data after frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -39,6 +46,15 @@ class _IncidentListPageState extends State<IncidentListPage>
         context.read<IncidentBloc>().add(const LoadIncidentLocationsEvent());
         context.read<IncidentBloc>().add(const LoadIncidentTypesEvent());
       }
+    });
+  }
+
+  Future<void> _loadUserRole() async {
+    final role = await UserRoleHelper.getUserRole();
+    final isPengawas = role == UserRole.pengawas;
+    
+    setState(() {
+      _isPengawas = isPengawas;
     });
   }
 
@@ -67,10 +83,15 @@ class _IncidentListPageState extends State<IncidentListPage>
 
   void _onScroll() {
     if (_isBottom) {
-      if (_tabController.index == 0) {
+      // Untuk pengawas, selalu load more incident list
+      if (_isPengawas) {
         context.read<IncidentBloc>().add(const LoadMoreIncidentListEvent());
       } else {
-        context.read<IncidentBloc>().add(const LoadMoreMyTasksEvent());
+        if (_tabController.index == 0) {
+          context.read<IncidentBloc>().add(const LoadMoreIncidentListEvent());
+        } else {
+          context.read<IncidentBloc>().add(const LoadMoreMyTasksEvent());
+        }
       }
     }
   }
@@ -85,10 +106,15 @@ class _IncidentListPageState extends State<IncidentListPage>
   void _performSearch(String query) {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 500), () {
-      if (_tabController.index == 0) {
+      // Untuk pengawas, selalu search incident list
+      if (_isPengawas) {
         context.read<IncidentBloc>().add(SearchIncidentListEvent(query));
       } else {
-        context.read<IncidentBloc>().add(SearchMyTasksEvent(query));
+        if (_tabController.index == 0) {
+          context.read<IncidentBloc>().add(SearchIncidentListEvent(query));
+        } else {
+          context.read<IncidentBloc>().add(SearchMyTasksEvent(query));
+        }
       }
     });
   }
@@ -120,25 +146,27 @@ class _IncidentListPageState extends State<IncidentListPage>
               },
             ),
           ],
-          bottom: TabBar(
-            controller: _tabController,
-            indicatorColor: primaryColor,
-            indicatorWeight: 3,
-            labelColor: primaryColor,
-            unselectedLabelColor: Colors.grey,
-            labelStyle: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-            ),
-            unselectedLabelStyle: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.normal,
-            ),
-            tabs: const [
-              Tab(text: 'Daftar Insiden'),
-              Tab(text: 'Tugas Saya'),
-            ],
-          ),
+          bottom: _isPengawas
+              ? null // Pengawas tidak punya tab bar
+              : TabBar(
+                  controller: _tabController,
+                  indicatorColor: primaryColor,
+                  indicatorWeight: 3,
+                  labelColor: primaryColor,
+                  unselectedLabelColor: Colors.grey,
+                  labelStyle: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.normal,
+                  ),
+                  tabs: const [
+                    Tab(text: 'Daftar Insiden'),
+                    Tab(text: 'Tugas Saya'),
+                  ],
+                ),
         ),
         body: SafeArea(
           child: BlocConsumer<IncidentBloc, IncidentState>(
@@ -155,72 +183,75 @@ class _IncidentListPageState extends State<IncidentListPage>
             builder: (context, state) {
               return Column(
                 children: [
-                  // Search and Filter Bar
-                  Container(
-                    padding: REdgeInsets.all(16),
-                    color: Colors.white,
-                    child: Row(
-                      children: [
-                        // Search Bar
-                        Expanded(
-                          child: Container(
+                  // Search and Filter Bar (tidak ditampilkan untuk pengawas)
+                  if (!_isPengawas)
+                    Container(
+                      padding: REdgeInsets.all(16),
+                      color: Colors.white,
+                      child: Row(
+                        children: [
+                          // Search Bar
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: primaryColor),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: TextField(
+                                controller: _searchController,
+                                decoration: InputDecoration(
+                                  hintText: 'Cari',
+                                  hintStyle: TextStyle(
+                                    color: primaryColor.withOpacity(0.6),
+                                    fontSize: 14.sp,
+                                  ),
+                                  prefixIcon: Icon(
+                                    Icons.search,
+                                    color: primaryColor,
+                                    size: 20.r,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: REdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                style: TextStyle(fontSize: 14.sp),
+                                onChanged: _performSearch,
+                              ),
+                            ),
+                          ),
+                          12.horizontalSpace,
+                          // Filter Button
+                          Container(
+                            width: 48.w,
+                            height: 48.h,
                             decoration: BoxDecoration(
-                              border: Border.all(color: primaryColor),
+                              color: primaryColor,
                               borderRadius: BorderRadius.circular(8.r),
                             ),
-                            child: TextField(
-                              controller: _searchController,
-                              decoration: InputDecoration(
-                                hintText: 'Cari',
-                                hintStyle: TextStyle(
-                                  color: primaryColor.withOpacity(0.6),
-                                  fontSize: 14.sp,
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.search,
-                                  color: primaryColor,
-                                  size: 20.r,
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: REdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                              ),
-                              style: TextStyle(fontSize: 14.sp),
-                              onChanged: _performSearch,
+                            child: IconButton(
+                              icon: const Icon(Icons.filter_list, color: Colors.white),
+                              onPressed: () {
+                                // TODO: Implement filter dialog
+                              },
                             ),
                           ),
-                        ),
-                        12.horizontalSpace,
-                        // Filter Button
-                        Container(
-                          width: 48.w,
-                          height: 48.h,
-                          decoration: BoxDecoration(
-                            color: primaryColor,
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.filter_list, color: Colors.white),
-                            onPressed: () {
-                              // TODO: Implement filter dialog
-                            },
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
 
-                  // Tab View
+                  // Tab View (untuk pengawas hanya tampilkan list semua)
                   Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildIncidentListTab(),
-                        _buildMyTasksTab(),
-                      ],
-                    ),
+                    child: _isPengawas
+                        ? _buildIncidentListTab() // Pengawas hanya lihat semua insiden
+                        : TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildIncidentListTab(),
+                              _buildMyTasksTab(),
+                            ],
+                          ),
                   ),
                 ],
               );
@@ -237,10 +268,15 @@ class _IncidentListPageState extends State<IncidentListPage>
             );
             if (result == true && mounted) {
               // Refresh list after creating incident
-              if (_tabController.index == 0) {
+              // Untuk pengawas, selalu refresh incident list
+              if (_isPengawas) {
                 context.read<IncidentBloc>().add(const RefreshIncidentListEvent());
               } else {
-                context.read<IncidentBloc>().add(const RefreshMyTasksEvent());
+                if (_tabController.index == 0) {
+                  context.read<IncidentBloc>().add(const RefreshIncidentListEvent());
+                } else {
+                  context.read<IncidentBloc>().add(const RefreshMyTasksEvent());
+                }
               }
             }
           },
@@ -398,7 +434,8 @@ class _IncidentListPageState extends State<IncidentListPage>
   Widget _buildIncidentCard(IncidentEntity incident) {
     final statusColor = _getStatusColor(incident.statusColor);
     final statusTextColor = _getStatusTextColor(incident.statusColor);
-    final isFromMyTasks = _tabController.index == 1;
+    // Untuk pengawas, selalu false (tidak ada tab "Tugas Saya")
+    final isFromMyTasks = !_isPengawas && _tabController.index == 1;
 
     return InkWell(
       onTap: () {
@@ -418,10 +455,15 @@ class _IncidentListPageState extends State<IncidentListPage>
         ).then((result) {
           if (result == true && mounted) {
             // Refresh list after update
-            if (_tabController.index == 0) {
+            // Untuk pengawas, selalu refresh incident list
+            if (_isPengawas) {
               context.read<IncidentBloc>().add(const RefreshIncidentListEvent());
             } else {
-              context.read<IncidentBloc>().add(const RefreshMyTasksEvent());
+              if (_tabController.index == 0) {
+                context.read<IncidentBloc>().add(const RefreshIncidentListEvent());
+              } else {
+                context.read<IncidentBloc>().add(const RefreshMyTasksEvent());
+              }
             }
           }
         });
