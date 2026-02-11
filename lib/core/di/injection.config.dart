@@ -160,6 +160,8 @@ import '../../features/laporan_kejadian/domain/usecases/get_my_tasks.dart'
     as _i667;
 import '../../features/laporan_kejadian/domain/usecases/get_user_list.dart'
     as _i558;
+import '../../features/laporan_kejadian/domain/usecases/update_all_incident.dart'
+    as _i455;
 import '../../features/laporan_kejadian/domain/usecases/update_incident_status.dart'
     as _i109;
 import '../../features/laporan_kejadian/presentation/bloc/incident_bloc.dart'
@@ -412,6 +414,8 @@ Future<_i174.GetIt> init(
       () => _i558.GetUserList(gh<_i110.IncidentRepository>()));
   gh.factory<_i109.UpdateIncidentStatus>(
       () => _i109.UpdateIncidentStatus(gh<_i110.IncidentRepository>()));
+  gh.factory<_i455.UpdateAllIncident>(
+      () => _i455.UpdateAllIncident(gh<_i110.IncidentRepository>()));
   gh.factory<_i65.ChatBloc>(() => _i65.ChatBloc(
         gh<_i420.ChatRepository>(),
         gh<_i374.SignalRChatService>(),
@@ -428,16 +432,6 @@ Future<_i174.GetIt> init(
       () => _i802.ActivatePanicButtonUseCase(gh<_i67.PanicButtonRepository>()));
   gh.factory<_i248.GetVerificationItemsUseCase>(() =>
       _i248.GetVerificationItemsUseCase(gh<_i67.PanicButtonRepository>()));
-  gh.factory<_i529.IncidentBloc>(() => _i529.IncidentBloc(
-        getIncidentList: gh<_i507.GetIncidentList>(),
-        getMyTasks: gh<_i667.GetMyTasks>(),
-        getIncidentDetail: gh<_i328.GetIncidentDetail>(),
-        createIncidentReport: gh<_i589.CreateIncidentReport>(),
-        getIncidentLocations: gh<_i156.GetIncidentLocations>(),
-        getIncidentTypes: gh<_i893.GetIncidentTypes>(),
-        updateIncidentStatus: gh<_i109.UpdateIncidentStatus>(),
-        editIncident: gh<_i609.EditIncident>(),
-      ));
   gh.factory<_i476.NewsBloc>(
       () => injectionModule.newsBloc(gh<_i258.NewsRepository>()));
   gh.lazySingleton<_i87.TestResultRepository>(() =>
@@ -511,6 +505,17 @@ Future<_i174.GetIt> init(
             gh<_i420.GetCurrentTask>(),
             gh<_i206.GetCurrentShift>(),
           ));
+  gh.factory<_i529.IncidentBloc>(() => _i529.IncidentBloc(
+        getIncidentList: gh<_i507.GetIncidentList>(),
+        getMyTasks: gh<_i667.GetMyTasks>(),
+        getIncidentDetail: gh<_i328.GetIncidentDetail>(),
+        createIncidentReport: gh<_i589.CreateIncidentReport>(),
+        getIncidentLocations: gh<_i156.GetIncidentLocations>(),
+        getIncidentTypes: gh<_i893.GetIncidentTypes>(),
+        updateIncidentStatus: gh<_i109.UpdateIncidentStatus>(),
+        editIncident: gh<_i609.EditIncident>(),
+        updateAllIncident: gh<_i455.UpdateAllIncident>(),
+      ));
   gh.factory<_i996.LaporanKegiatanBloc>(() => _i996.LaporanKegiatanBloc(
         getLaporanList: gh<_i830.GetLaporanList>(),
         getLaporanDetail: gh<_i313.GetLaporanDetail>(),

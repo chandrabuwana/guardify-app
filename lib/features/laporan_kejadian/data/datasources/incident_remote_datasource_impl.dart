@@ -622,4 +622,70 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
       throw Exception('Failed to get user list: $e');
     }
   }
+
+  @override
+  Future<bool> updateAllIncident({
+    required String incidentId,
+    required String picId,
+    required List<String> team,
+    required String handlingTask,
+    String? notes,
+    String? feedback,
+    String? evidence,
+    required String status,
+  }) async {
+    try {
+      final requestData = <String, dynamic>{
+        'Id': incidentId,
+        'PicId': picId,
+        'Team': team,
+        'HandlingTask': handlingTask,
+        'Status': status,
+      };
+
+      if (notes != null && notes.isNotEmpty) {
+        requestData['Notes'] = notes;
+      }
+
+      if (feedback != null && feedback.isNotEmpty) {
+        requestData['FeedBack'] = feedback;
+      }
+
+      if (evidence != null && evidence.isNotEmpty) {
+        requestData['Evidence'] = evidence;
+      }
+
+      final response = await _dio.post(
+        '/Incident/updateall',
+        data: requestData,
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update incident: ${response.statusMessage}');
+      }
+
+      final responseData = response.data;
+      if (responseData is Map<String, dynamic>) {
+        final succeeded = responseData['Succeeded'] as bool? ?? false;
+        if (!succeeded) {
+          final message = responseData['Message'] as String? ?? 'Failed to update incident';
+          throw Exception(message);
+        }
+        return true;
+      }
+
+      throw Exception('Invalid response format');
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorData = e.response!.data;
+        final errorMessage = errorData['Message'] as String? ?? 
+                           errorData['message'] as String? ?? 
+                           'Failed to update incident';
+        throw Exception(errorMessage);
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to update incident: $e');
+    }
+  }
 }

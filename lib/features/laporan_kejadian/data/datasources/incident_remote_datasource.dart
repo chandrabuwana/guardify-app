@@ -74,5 +74,17 @@ abstract class IncidentRemoteDataSource {
 
   /// Get user list for dropdown (Penanggung Jawab and Tim)
   Future<List<Map<String, String>>> getUserList();
+
+  /// Update all incident (for PJO/Deputy to assign PIC and Team)
+  Future<bool> updateAllIncident({
+    required String incidentId,
+    required String picId,
+    required List<String> team,
+    required String handlingTask,
+    String? notes,
+    String? feedback,
+    String? evidence,
+    required String status,
+  });
 }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,6 +9,7 @@ import '../../../../core/utils/user_role_helper.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../../../../shared/widgets/custom_dropdown.dart';
+import '../../../../shared/widgets/searchable_dropdown.dart';
 import '../../../../shared/widgets/TextInput/input_primary.dart';
 import '../../../../core/di/injection.dart';
 import '../../domain/entities/incident_entity.dart';
@@ -35,6 +37,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   bool _statusUpdated = false;
   UserRole? _userRole;
   bool _isPJOOrDeputy = false;
+  bool _isDanton = false;
+  bool _isPengawas = false;
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -47,6 +52,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     setState(() {
       _userRole = role;
       _isPJOOrDeputy = role == UserRole.pjo || role == UserRole.deputy;
+      _isDanton = role == UserRole.danton;
+      _isPengawas = role == UserRole.pengawas;
+      _isAdmin = role == UserRole.admin;
     });
   }
 
@@ -98,11 +106,13 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
 
     return BlocListener<IncidentBloc, IncidentState>(
       listener: (context, state) {
-        if (state.errorMessage != null) {
+        if (state.errorMessage != null && !_statusUpdated) {
+          // Only show error if not in the middle of an update operation
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage!),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
         }
@@ -325,11 +335,19 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   // Action Buttons
                   // Untuk PJO/Deputy di tab "Daftar Insiden": Tugaskan, Eskalasi, Verifikasi, Revisi
                   // Untuk danton di tab "Daftar Insiden": Konfirmasi dan Tandai Tidak Valid
+                  // Untuk pengawas di tab "Daftar Insiden": Tugaskan, Verifikasi, Revisi
+                  // Untuk admin di tab "Daftar Insiden": Verifikasi, Revisi (jika status COMPLETED)
                   // Untuk tab "Tugas Saya" (anggota): Proses dan Tandai Sebagai Selesai
                   if (!widget.isFromMyTasks) 
-                    _isPJOOrDeputy 
-                      ? _buildPJOOrDeputyActionButtons(incident)
-                      : _buildDantonActionButtons(incident)
+                    _isPengawas
+                      ? _buildPengawasActionButtons(incident)
+                      : _isPJOOrDeputy 
+                        ? _buildPJOOrDeputyActionButtons(incident)
+                        : _isDanton
+                          ? _buildDantonActionButtons(incident)
+                          : _isAdmin
+                            ? _buildAdminActionButtons(incident)
+                            : const SizedBox.shrink()
                   else 
                     _buildActionButton(incident),
                   16.verticalSpace,
@@ -417,6 +435,123 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPengawasActionButtons(IncidentEntity incident) {
+    // Untuk Pengawas: Tugaskan dan Verifikasi
+    final apiStatus = _getApiStatus(incident.status);
+    
+    return BlocBuilder<IncidentBloc, IncidentState>(
+      builder: (context, state) {
+        final buttons = <Widget>[];
+        
+        // Tombol Tugaskan untuk status OPEN atau ACKNOWLEDGE
+        if (apiStatus == 'OPEN' || apiStatus == 'ACKNOWLEDGE') {
+          buttons.add(
+            UIButton(
+              text: 'Tugaskan',
+              fullWidth: true,
+              size: UIButtonSize.large,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _showAssignDialog(context, incident);
+                    },
+            ),
+          );
+        }
+        
+        // Tombol Verifikasi untuk status COMPLETED
+        if (apiStatus == 'COMPLETED') {
+          buttons.add(
+            UIButton(
+              text: 'Verifikasi',
+              fullWidth: true,
+              size: UIButtonSize.large,
+              variant: UIButtonVariant.success,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _showVerifyDialog(context, incident);
+                    },
+            ),
+          );
+        }
+        
+        if (buttons.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        return Column(children: buttons);
+      },
+    );
+  }
+
+  Widget _buildAdminActionButtons(IncidentEntity incident) {
+    // Untuk Admin: Verifikasi dan Revisi (hanya untuk status COMPLETED)
+    final apiStatus = _getApiStatus(incident.status);
+    
+    return BlocBuilder<IncidentBloc, IncidentState>(
+      builder: (context, state) {
+        final buttons = <Widget>[];
+        
+        // Tombol Verifikasi dan Revisi untuk status COMPLETED
+        if (apiStatus == 'COMPLETED') {
+          buttons.addAll([
+            // Tombol Verifikasi
+            UIButton(
+              text: 'Verifikasi',
+              fullWidth: true,
+              size: UIButtonSize.large,
+              variant: UIButtonVariant.success,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _statusUpdated = true;
+                      context.read<IncidentBloc>().add(
+                            UpdateIncidentStatusEvent(
+                              incidentId: incident.id,
+                              status: 'VERIFIED',
+                              notes: 'Diverifikasi oleh ${_userRole?.displayName ?? 'Admin'}',
+                            ),
+                          );
+                    },
+            ),
+            16.verticalSpace,
+            // Tombol Revisi
+            UIButton(
+              text: 'Revisi',
+              fullWidth: true,
+              size: UIButtonSize.large,
+              buttonType: UIButtonType.outline,
+              variant: UIButtonVariant.warning,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _statusUpdated = true;
+                      context.read<IncidentBloc>().add(
+                            UpdateIncidentStatusEvent(
+                              incidentId: incident.id,
+                              status: 'PROGRESS',
+                              notes: 'Direvisi oleh ${_userRole?.displayName ?? 'Admin'}',
+                            ),
+                          );
+                    },
+            ),
+          ]);
+        }
+        
+        if (buttons.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        return Column(children: buttons);
+      },
     );
   }
 
@@ -585,8 +720,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
 
   Widget _buildActionButton(IncidentEntity incident) {
     // Tentukan status dari API
-    // OPEN (menunggu) -> tombol "Proses" -> update ke PROGRESS
-    // PROGRESS (proses) -> tombol "Tandai Sebagai Selesai" -> update ke COMPLETED
+    // OPEN (menunggu) -> tombol "Proses" -> update ke PROGRESS (menggunakan /Incident/update)
+    // PROGRESS (proses) -> tombol "Tandai Sebagai Selesai" -> update ke COMPLETED (menggunakan /Incident/updateall)
     
     // Mapping status dari entity ke API status
     // Dari incident_api_model.dart:
@@ -610,13 +745,17 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
 
     String buttonText;
     String nextStatus;
+    bool useUpdateAll = false; // Flag untuk menentukan API yang digunakan
+    
     if (apiStatus == 'OPEN') {
       buttonText = 'Proses';
       nextStatus = 'PROGRESS';
+      useUpdateAll = false; // Gunakan /Incident/update
     } else {
       // apiStatus == 'PROGRESS'
       buttonText = 'Tandai Sebagai Selesai';
       nextStatus = 'COMPLETED';
+      useUpdateAll = true; // Gunakan /Incident/updateall
     }
 
     return BlocBuilder<IncidentBloc, IncidentState>(
@@ -630,12 +769,19 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
               ? null
               : () {
                   _statusUpdated = true; // Set flag before update
-                  context.read<IncidentBloc>().add(
-                        UpdateIncidentStatusEvent(
-                          incidentId: incident.id,
-                          status: nextStatus,
-                        ),
-                      );
+                  
+                  if (useUpdateAll) {
+                    // Untuk "Tandai Sebagai Selesai", gunakan /Incident/updateall
+                    _showCompleteDialog(context, incident);
+                  } else {
+                    // Untuk "Proses", gunakan /Incident/update
+                    context.read<IncidentBloc>().add(
+                          UpdateIncidentStatusEvent(
+                            incidentId: incident.id,
+                            status: nextStatus,
+                          ),
+                        );
+                  }
                 },
         );
       },
@@ -644,36 +790,32 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
 
   Future<void> _showAssignDialog(BuildContext context, IncidentEntity incident) async {
     final datasource = getIt<IncidentRemoteDataSource>();
-    String? selectedPjId;
-    String? selectedPicId;
+    String? selectedPjId; // PIC ID (Penanggung Jawab)
+    List<String> selectedTeamIds = []; // Team IDs (Anggota - multiple selection)
     final tugasPenangananController = TextEditingController();
     bool isLoading = true;
     bool isSubmitting = false;
     List<Map<String, String>> userList = [];
-    Map<String, String>? incidentApiData;
 
-    // Load user list and incident detail
+    // Load user list
     try {
       final users = await datasource.getUserList();
-      final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
       
+      // Sort user list by name (alphabetically)
       userList = users;
-      incidentApiData = {
-        'areasDescription': apiModel.areasDescription ?? apiModel.areas?.name ?? '',
-        'areasId': apiModel.areasId ?? '',
-        'idIncidentType': apiModel.idIncidentType?.toString() ?? '0',
-        'incidentDate': apiModel.incidentDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-        'incidentTime': apiModel.incidentTime ?? '00:00:00',
-        'incidentDescription': apiModel.incidentDescription ?? '',
-        'reportId': apiModel.reportId ?? '',
-      };
+      userList.sort((a, b) {
+        final nameA = (a['name'] ?? '').toLowerCase();
+        final nameB = (b['name'] ?? '').toLowerCase();
+        return nameA.compareTo(nameB);
+      });
+      
       isLoading = false;
     } catch (e) {
       isLoading = false;
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal memuat data: $e'),
+            content: Text('Gagal memuat data: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -682,25 +824,84 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     }
 
     if (!context.mounted) return;
-    final apiData = incidentApiData;
+
+    final incidentBloc = context.read<IncidentBloc>();
 
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(
-            'Tugaskan Insiden',
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-          ),
-          content: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (dialogContext) => BlocProvider.value(
+        value: incidentBloc,
+        child: BlocListener<IncidentBloc, IncidentState>(
+          listener: (context, state) {
+            if (!state.isLoading && isSubmitting) {
+              if (state.errorMessage == null) {
+                // Success - close dialog
+                Navigator.of(context).pop();
+                _statusUpdated = true;
+              } else {
+                // Error - show error and reset submitting
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.errorMessage!),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              }
+            }
+          },
+          child: StatefulBuilder(
+          builder: (context, setState) => Dialog(
+            backgroundColor: Colors.white,
+            insetPadding: REdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Container(
+            width: double.maxFinite,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: REdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey, width: 0.5),
+                    ),
+                  ),
+                  child: Row(
                     children: [
+                      Expanded(
+                        child: Text(
+                          'Tugaskan Insiden',
+                          style: TextStyle(
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.black87),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Flexible(
+                  child: isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : SingleChildScrollView(
+                          padding: REdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                       // Penanggung Jawab
-                      CustomDropdown<String?>(
+                      SearchableDropdown<String?>(
                         label: 'Penanggung Jawab',
                         hint: 'Pilih Penanggung Jawab',
                         value: selectedPjId,
@@ -716,21 +917,76 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                         },
                       ),
                       20.verticalSpace,
-                      // Tim
-                      CustomDropdown<String?>(
-                        label: 'Tim',
-                        hint: 'Pilih Tim',
-                        value: selectedPicId,
-                        items: userList.map((user) => DropdownItem<String?>(
-                          value: user['id'],
-                          text: user['name'] ?? '',
-                        )).toList(),
-                        isRequired: true,
-                        onChanged: (value) {
-                          setState(() {
-                            selectedPicId = value;
-                          });
-                        },
+                      // Tim (Multiple Selection)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Tim',
+                                style: TS.labelLarge,
+                              ),
+                              Text(
+                                '*',
+                                style: TS.bodyLarge.copyWith(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                          8.verticalSpace,
+                          InkWell(
+                            onTap: () => _showTeamSelectionDialog(
+                              context,
+                              userList,
+                              selectedTeamIds,
+                              (selectedIds) {
+                                setState(() {
+                                  selectedTeamIds = selectedIds;
+                                });
+                              },
+                            ),
+                            child: Container(
+                              width: double.infinity,
+                              padding: REdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10.r),
+                                border: Border.all(
+                                  color: Colors.grey.shade300,
+                                  width: 1,
+                                ),
+                                color: inputColor,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      selectedTeamIds.isEmpty
+                                          ? 'Pilih Tim'
+                                          : selectedTeamIds.length == 1
+                                              ? userList
+                                                  .firstWhere(
+                                                    (u) => u['id'] == selectedTeamIds.first,
+                                                    orElse: () => {'name': ''},
+                                                  )['name'] ?? 'Pilih Tim'
+                                              : '${selectedTeamIds.length} anggota dipilih',
+                                      style: TS.bodyLarge.copyWith(
+                                        color: selectedTeamIds.isEmpty
+                                            ? appHintColor
+                                            : Colors.black87,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.keyboard_arrow_down,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       20.verticalSpace,
                       // Tugas Penanganan
@@ -747,22 +1003,47 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                           return null;
                         },
                       ),
-                    ],
-                  ),
+                            ],
+                          ),
+                        ),
                 ),
-          actions: [
-            TextButton(
-              onPressed: isSubmitting ? null : () => Navigator.of(context).pop(),
-              child: const Text('Batal'),
-            ),
-            TextButton(
-              onPressed: isSubmitting
-                  ? null
-                  : () async {
-                      if (selectedPjId == null || selectedPicId == null) {
+                // Actions
+                Container(
+                  padding: REdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      top: BorderSide(color: Colors.grey, width: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        child: const Text('Batal'),
+                      ),
+                      12.horizontalSpace,
+                      ElevatedButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                      if (selectedPjId == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Mohon pilih Penanggung Jawab dan Tim'),
+                            content: Text('Mohon pilih Penanggung Jawab'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (selectedTeamIds.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Mohon pilih minimal 1 anggota Tim'),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -782,57 +1063,354 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                       setState(() {
                         isSubmitting = true;
                       });
-
-                      try {
-                        final incidentDate = DateTime.parse(apiData['incidentDate']!);
-                        final idIncidentType = int.parse(apiData['idIncidentType']!);
-                        
-                        if (!context.mounted) return;
-                        
-                        context.read<IncidentBloc>().add(
-                          EditIncidentEvent(
-                            incidentId: incident.id,
-                            areasDescription: apiData['areasDescription']!,
-                            areasId: apiData['areasId']!,
-                            idIncidentType: idIncidentType,
-                            incidentDate: incidentDate,
-                            incidentTime: apiData['incidentTime']!,
-                            incidentDescription: apiData['incidentDescription']!,
-                            reportId: apiData['reportId']!,
-                            notesAction: tugasPenangananController.text.trim(),
-                            picId: selectedPicId,
-                            pjId: selectedPjId,
-                            status: 'ASSIGNED',
-                          ),
-                        );
-
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                          _statusUpdated = true;
-                        }
-                      } catch (e) {
-                        setState(() {
-                          isSubmitting = false;
-                        });
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Gagal menugaskan: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
+                      
+                      // Dispatch event - BlocListener will handle the response
+                      context.read<IncidentBloc>().add(
+                        UpdateAllIncidentEvent(
+                          incidentId: incident.id,
+                          picId: selectedPjId!,
+                          team: selectedTeamIds,
+                          handlingTask: tugasPenangananController.text.trim(),
+                          status: 'ASSIGNED',
+                        ),
+                      );
                     },
-              child: isSubmitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Tugaskan'),
+                        child: isSubmitting
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Tugaskan'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: REdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+        ),
+      ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showVerifyDialog(BuildContext context, IncidentEntity incident) async {
+    final datasource = getIt<IncidentRemoteDataSource>();
+    String? picId;
+    List<String> team = [];
+    String handlingTask = '';
+
+    // Load incident detail untuk mendapatkan data yang sudah ada
+    try {
+      final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+      
+      picId = apiModel.picId;
+      // Team diambil dari incidentDetail jika ada
+      if (apiModel.incidentDetail != null && apiModel.incidentDetail!.isNotEmpty) {
+        team = apiModel.incidentDetail!
+            .map((detail) {
+              if (detail is Map<String, dynamic>) {
+                return detail['UserId']?.toString() ?? '';
+              }
+              return '';
+            })
+            .where((id) => id.isNotEmpty)
+            .toList();
+      }
+      handlingTask = apiModel.notesAction ?? '';
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    // Tampilkan dialog konfirmasi
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Verifikasi Insiden'),
+        content: const Text('Apakah Anda yakin ingin memverifikasi insiden ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Verifikasi'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // Verifikasi menggunakan updateAllIncident
+    try {
+      context.read<IncidentBloc>().add(
+        UpdateAllIncidentEvent(
+          incidentId: incident.id,
+          picId: picId ?? '',
+          team: team,
+          handlingTask: handlingTask,
+          status: 'VERIFIED',
+        ),
+      );
+
+      if (context.mounted) {
+        _statusUpdated = true;
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memverifikasi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showCompleteDialog(BuildContext context, IncidentEntity incident) async {
+    final datasource = getIt<IncidentRemoteDataSource>();
+    String? picId;
+    List<String> team = [];
+    String handlingTask = '';
+
+    // Load incident detail untuk mendapatkan data yang sudah ada
+    try {
+      final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+      
+      picId = apiModel.picId;
+      // Team diambil dari incidentDetail jika ada
+      if (apiModel.incidentDetail != null && apiModel.incidentDetail!.isNotEmpty) {
+        team = apiModel.incidentDetail!
+            .map((detail) {
+              if (detail is Map<String, dynamic>) {
+                return detail['UserId']?.toString() ?? '';
+              }
+              return '';
+            })
+            .where((id) => id.isNotEmpty)
+            .toList();
+      }
+      handlingTask = apiModel.notesAction ?? '';
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    // Tampilkan dialog konfirmasi
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Tandai Sebagai Selesai'),
+        content: const Text('Apakah Anda yakin ingin menandai insiden ini sebagai selesai?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Selesai'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // Update status ke COMPLETED menggunakan updateAllIncident
+    try {
+      context.read<IncidentBloc>().add(
+        UpdateAllIncidentEvent(
+          incidentId: incident.id,
+          picId: picId ?? '',
+          team: team,
+          handlingTask: handlingTask,
+          status: 'COMPLETED',
+        ),
+      );
+
+      if (context.mounted) {
+        _statusUpdated = true;
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menandai sebagai selesai: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showTeamSelectionDialog(
+    BuildContext context,
+    List<Map<String, String>> userList,
+    List<String> selectedIds,
+    Function(List<String>) onSelected,
+  ) {
+    List<String> tempSelectedIds = List.from(selectedIds);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => Dialog(
+          backgroundColor: Colors.white,
+          insetPadding: REdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Container(
+            width: double.maxFinite,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: REdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey, width: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Pilih Tim',
+                          style: TextStyle(
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.black87),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: REdgeInsets.all(16),
+                    itemCount: userList.length,
+                    itemBuilder: (context, index) {
+                      final user = userList[index];
+                      final userId = user['id'] ?? '';
+                      final userName = user['name'] ?? '';
+                      final isSelected = tempSelectedIds.contains(userId);
+
+                      return CheckboxListTile(
+                        value: isSelected,
+                        onChanged: (value) {
+                          setState(() {
+                            if (value == true) {
+                              if (!tempSelectedIds.contains(userId)) {
+                                tempSelectedIds.add(userId);
+                              }
+                            } else {
+                              tempSelectedIds.remove(userId);
+                            }
+                          });
+                        },
+                        title: Text(
+                          userName,
+                          style: TS.bodyLarge,
+                        ),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      );
+                    },
+                  ),
+                ),
+                // Actions
+                Container(
+                  padding: REdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      top: BorderSide(color: Colors.grey, width: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Batal'),
+                      ),
+                      12.horizontalSpace,
+                      ElevatedButton(
+                        onPressed: () {
+                          onSelected(tempSelectedIds);
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Pilih'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: REdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
