@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
-import 'package:dio/dio.dart';
 import '../../../../shared/entities/failure.dart';
 import '../../../../core/constants/enums.dart';
 import '../../domain/entities/user_profile.dart';
@@ -20,6 +19,39 @@ class BMIRepositoryImpl implements BMIRepository {
   final BmiRemoteDataSource remoteDataSource;
 
   BMIRepositoryImpl(this.localDataSource, this.remoteDataSource);
+
+  List<UserProfile> _mapBmiRecordsToUniqueUserProfiles(
+    List<BmiDataModel> bmiRecords,
+  ) {
+    final Map<String, BmiDataModel> latestByUserId = {};
+
+    for (final record in bmiRecords) {
+      final userId = record.user?.id ?? record.userId;
+      if (userId.isEmpty) continue;
+
+      final currentDate = record.updateDate ?? record.createDate;
+      final existing = latestByUserId[userId];
+      if (existing == null) {
+        latestByUserId[userId] = record;
+        continue;
+      }
+
+      final existingDate = existing.updateDate ?? existing.createDate;
+
+      if (existingDate == null && currentDate != null) {
+        latestByUserId[userId] = record;
+        continue;
+      }
+
+      if (existingDate != null && currentDate != null) {
+        if (currentDate.isAfter(existingDate)) {
+          latestByUserId[userId] = record;
+        }
+      }
+    }
+
+    return latestByUserId.values.map((r) => BmiMapper.toUserProfile(r)).toList();
+  }
 
   @override
   Future<Either<Failure, UserProfile>> getUserProfile(String userId) async {
@@ -79,34 +111,22 @@ class BMIRepositoryImpl implements BMIRepository {
   Future<Either<Failure, List<UserProfile>>> searchUserProfiles(
       String query) async {
     try {
-      // Call User/list API to get all users
-      final request = UserListRequestModel(
+      final request = BmiListRequestModel(
         filter: [
-          FilterModel(field: '', search: ''),
+          FilterModel(field: 'fullname', search: query),
         ],
         sort: SortModel(field: '', type: 0),
-        start: 0,
-        length: 0, // Get all records
+        start: 1,
+        length: 20,
       );
 
-      final response = await remoteDataSource.getUserList(request);
+      final response = await remoteDataSource.getBmiList(request);
 
-      if (response.succeeded == false) {
-        return Left(ServerFailure(response.message ?? 'Failed to get user list'));
+      if (!response.succeeded) {
+        return Left(ServerFailure(response.message));
       }
 
-      // Convert to list of UserProfile using mapper
-      var userProfiles = BmiMapper.userListToUserProfileList(response.list);
-
-      // Filter profiles by query (client-side filtering)
-      if (query.isNotEmpty) {
-        userProfiles = userProfiles.where((profile) {
-          return profile.name.toLowerCase().contains(query.toLowerCase()) ||
-              profile.role.displayName
-                  .toLowerCase()
-                  .contains(query.toLowerCase());
-        }).toList();
-      }
+      final userProfiles = _mapBmiRecordsToUniqueUserProfiles(response.list);
 
       // Get pinned IDs and update profiles
       final pinnedIds = await localDataSource.getPinnedUserIds();
@@ -123,24 +143,22 @@ class BMIRepositoryImpl implements BMIRepository {
   @override
   Future<Either<Failure, List<UserProfile>>> getAllUserProfiles() async {
     try {
-      // Call User/list API to get all users
-      final request = UserListRequestModel(
+      final request = BmiListRequestModel(
         filter: [
           FilterModel(field: '', search: ''),
         ],
         sort: SortModel(field: '', type: 0),
         start: 0,
-        length: 0, // Get all records
+        length: 0,
       );
 
-      final response = await remoteDataSource.getUserList(request);
+      final response = await remoteDataSource.getBmiList(request);
 
-      if (response.succeeded == false) {
-        return Left(ServerFailure(response.message ?? 'Failed to get user list'));
+      if (!response.succeeded) {
+        return Left(ServerFailure(response.message));
       }
 
-      // Convert to list of UserProfile using mapper
-      final userProfiles = BmiMapper.userListToUserProfileList(response.list);
+      final userProfiles = _mapBmiRecordsToUniqueUserProfiles(response.list);
 
       // Get pinned IDs and update profiles
       final pinnedIds = await localDataSource.getPinnedUserIds();
@@ -161,15 +179,11 @@ class BMIRepositoryImpl implements BMIRepository {
     required int pageSize,
   }) async {
     try {
-      // Call User/list API to get paginated users
-      // API menggunakan Start (1-based) dan Length (items per page)
-      // Start is 1-based, so we need to calculate: (page - 1) * pageSize + 1
-      // Example: page=1, pageSize=10 -> Start=1; page=2, pageSize=10 -> Start=11
-      final start = (page - 1) * pageSize + 1;
-      // Ensure length is at least 1 for pagination
+      // API expects Start as page number (1-based), not record offset
+      final start = page;
       final validLength = pageSize > 0 ? pageSize : 10;
-      
-      final request = UserListRequestModel(
+ 
+      final request = BmiListRequestModel(
         filter: [
           FilterModel(field: '', search: ''),
         ],
@@ -178,53 +192,13 @@ class BMIRepositoryImpl implements BMIRepository {
         length: validLength,
       );
 
-      // Debug: Log request before sending
-      print('═══════════════════════════════════════');
-      print('📤 User List API Request Debug');
-      print('═══════════════════════════════════════');
-      print('📄 Page: $page');
-      print('📏 PageSize: $pageSize');
-      print('📍 Start (offset): $start');
-      print('📊 Length: $validLength');
-      print('📋 Request JSON: ${request.toJson()}');
-      print('═══════════════════════════════════════\n');
+      final response = await remoteDataSource.getBmiList(request);
 
-      final response = await remoteDataSource.getUserList(request);
-
-      // Debug logging
-      print('═══════════════════════════════════════');
-      print('📡 User List API Response Debug');
-      print('═══════════════════════════════════════');
-      print('✅ Succeeded: ${response.succeeded}');
-      print('📊 Count (total): ${response.count}');
-      print('🔍 Filtered: ${response.filtered}');
-      print('📋 List length (received): ${response.list.length}');
-      if (response.message != null) {
-        print('💬 Message: ${response.message}');
-      }
-      print('───────────────────────────────────────');
-
-      if (response.list.isNotEmpty) {
-        for (var i = 0; i < response.list.length; i++) {
-          final item = response.list[i];
-          print('[$i] UserId: ${item.id}');
-          print('    Name: ${item.fullname}');
-        }
-      }
-      print('═══════════════════════════════════════\n');
-
-      if (response.succeeded == false) {
-        return Left(ServerFailure(response.message ?? 'Failed to get user list'));
+      if (!response.succeeded) {
+        return Left(ServerFailure(response.message));
       }
 
-      // Convert to list of UserProfile using mapper
-      final userProfiles = BmiMapper.userListToUserProfileList(response.list);
-
-      print('� Unique users after mapping: ${userProfiles.length}');
-      for (var i = 0; i < userProfiles.length; i++) {
-        print('  [$i] ${userProfiles[i].name} (${userProfiles[i].id})');
-      }
-      print('───────────────────────────────────────\n');
+      final userProfiles = _mapBmiRecordsToUniqueUserProfiles(response.list);
 
       // Get pinned IDs and update profiles
       final pinnedIds = await localDataSource.getPinnedUserIds();
@@ -240,24 +214,15 @@ class BMIRepositoryImpl implements BMIRepository {
       // Page 1: Start=1, Length=10 -> hasMore = (1 + 10 - 1) < 23 = true
       // Page 2: Start=11, Length=10 -> hasMore = (11 + 10 - 1) < 23 = true  
       // Page 3: Start=21, Length=10 -> hasMore = (21 + 10 - 1) < 23 = false
-      final lastItemIndex = start + validLength - 1;
+      // If API returns total records in Count, estimate loaded records as (page * limit)
+      final estimatedLoaded = page * validLength;
       
       // Always use count (total records) for determining if there's more data
       // Count represents total available records, filtered is just current page count
       final totalAvailable = response.count > 0 ? response.count : response.filtered;
-      final hasMore = lastItemIndex < totalAvailable;
-      
-      print('📊 Pagination Calculation:');
-      print('   Start: $start');
-      print('   Length: $validLength');
-      print('   Last Item Index: $lastItemIndex');
-      print('   Count (total records): ${response.count}');
-      print('   Filtered (current page): ${response.filtered}');
-      print('   Items Received: ${response.list.length}');
-      print('   Total Available (using count): $totalAvailable');
-      print('   Has More: $hasMore');
-      print('   ⚠️ Note: Using COUNT for hasMore, not FILTERED');
-      print('───────────────────────────────────────\n');
+      final hasMore = totalAvailable > 0
+          ? estimatedLoaded < totalAvailable
+          : response.list.length == validLength;
 
       final paginatedResponse = PaginatedResponse<UserProfile>(
         data: updatedProfiles,
@@ -270,22 +235,8 @@ class BMIRepositoryImpl implements BMIRepository {
 
       return Right(paginatedResponse);
     } catch (e, stackTrace) {
-      print('═══════════════════════════════════════');
-      print('❌ Error in getUserProfilesPaginated');
-      print('═══════════════════════════════════════');
-      print('Error: $e');
-      print('Error Type: ${e.runtimeType}');
-      if (e is DioException) {
-        print('DioException Details:');
-        print('  - Type: ${e.type}');
-        print('  - Status Code: ${e.response?.statusCode}');
-        print('  - Status Message: ${e.response?.statusMessage}');
-        print('  - Response Data: ${e.response?.data}');
-        print('  - Request Path: ${e.requestOptions.path}');
-        print('  - Request Data: ${e.requestOptions.data}');
-      }
+      print('Error in getUserProfilesPaginated: $e');
       print('Stack trace: $stackTrace');
-      print('═══════════════════════════════════════\n');
       return Left(ServerFailure(e.toString()));
     }
   }

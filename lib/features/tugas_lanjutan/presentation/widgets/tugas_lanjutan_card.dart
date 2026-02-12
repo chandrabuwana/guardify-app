@@ -43,24 +43,29 @@ class TugasLanjutanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd MMMM yyyy - HH.mm', 'id_ID');
 
-    return Container(
-      margin: REdgeInsets.only(bottom: 16),
-      padding: REdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+        onTap: () => _showDetailModal(context),
+        child: Container(
+          margin: REdgeInsets.only(bottom: 16),
+          padding: REdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           // Header with title and "Selesai" button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -216,8 +221,113 @@ class TugasLanjutanCard extends StatelessWidget {
               ),
             ),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  Future<void> _showDetailModal(BuildContext context) async {
+    final dateFormat = DateFormat('dd-MM-yyyy HH:mm');
+
+    if (!context.mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return SafeArea(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+            ),
+            child: Padding(
+              padding: REdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40.w,
+                      height: 4.h,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                    ),
+                  ),
+                  12.verticalSpace,
+                  Text(
+                    'Detail Tugas Lanjutan',
+                    style: TS.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  12.verticalSpace,
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildDetailRow('Status', ': ${_getStatusText(tugas.status)}'),
+                          8.verticalSpace,
+                          _buildDetailRow('Lokasi', ': ${tugas.lokasi}'),
+                          8.verticalSpace,
+                          _buildDetailRow(
+                            'Tugas',
+                            ': ${tugas.catatan?.isNotEmpty == true ? tugas.catatan! : '-'}',
+                          ),
+                          8.verticalSpace,
+                          _buildDetailRow(
+                            'Bukti Penyelesaian',
+                            ': ${tugas.buktiUrl?.isNotEmpty == true ? tugas.buktiUrl! : '-'}',
+                          ),
+                          8.verticalSpace,
+                          _buildDetailRow(
+                            'Catatan',
+                            ': ${tugas.deskripsi.isNotEmpty ? tugas.deskripsi : '-'}',
+                          ),
+                          8.verticalSpace,
+                          _buildDetailRow(
+                            'Diselesaikan Oleh',
+                            ': ${tugas.diselesaikanOleh?.isNotEmpty == true ? tugas.diselesaikanOleh! : '-'}',
+                          ),
+                          8.verticalSpace,
+                          _buildDetailRow(
+                            'Diselesaikan Pada',
+                            ': ${tugas.tanggalSelesai != null ? dateFormat.format(tugas.tanggalSelesai!) : '-'}',
+                          ),
+                          16.verticalSpace,
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey[200],
+                                padding: REdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                'Tutup',
+                                style: TS.labelLarge.copyWith(color: Colors.black87),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

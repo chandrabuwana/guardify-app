@@ -27,10 +27,12 @@ class _BMIListPageState extends State<BMIListPage> {
   BMIBloc? _bmiBloc;
   bool _hasInitialLoad = false; // Flag untuk mencegah multiple initial loads
   Timer? _searchDebounce; // Debounce timer untuk search
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     // Delay load data untuk memastikan widget sudah fully mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -59,7 +61,26 @@ class _BMIListPageState extends State<BMIListPage> {
   void dispose() {
     _searchController.dispose();
     _searchDebounce?.cancel();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!mounted) return;
+
+    final state = bmiBloc.state;
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+
+    // Trigger before reaching the end
+    const triggerOffset = 200.0;
+    if (position.pixels >= (position.maxScrollExtent - triggerOffset)) {
+      bmiBloc.add(BMILoadMoreUsers());
+    }
   }
 
   void _loadData() {
@@ -411,25 +432,9 @@ class _BMIListPageState extends State<BMIListPage> {
     }
 
     // Tidak ada RefreshIndicator - data hanya di-load sekali saat pertama kali buka
-    return NotificationListener<ScrollNotification>(
-      onNotification: (ScrollNotification scrollInfo) {
-        // Hanya proses jika scroll sudah selesai (bukan saat sedang scroll)
-        if (scrollInfo is ScrollEndNotification) {
-          final metrics = scrollInfo.metrics;
-          final threshold = metrics.maxScrollExtent - 200;
-          
-          if (!state.isLoadingMore &&
-              state.hasMoreData &&
-              metrics.pixels >= threshold &&
-              metrics.maxScrollExtent > 0 &&
-              metrics.pixels < metrics.maxScrollExtent) {
-            bmiBloc.add(BMILoadMoreUsers());
-          }
-        }
-        return false;
-      },
-      child: GridView.builder(
+    return GridView.builder(
         key: const PageStorageKey('bmi_list_grid'),
+        controller: _scrollController,
         padding: REdgeInsets.symmetric(horizontal: 16, vertical: 8),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
@@ -449,8 +454,7 @@ class _BMIListPageState extends State<BMIListPage> {
             key: ValueKey('user_${userProfile.id}_$index'),
           );
         },
-      ),
-    );
+      );
   }
 
   Widget _buildLoadingCard() {
@@ -541,11 +545,10 @@ class _BMIListPageState extends State<BMIListPage> {
             Padding(
               padding: REdgeInsets.symmetric(horizontal: 12, vertical: 12),
               child: Column(
-                mainAxisSize: MainAxisSize.max,
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Spacer(),
                   // Profile Photo
                   Center(
                     child: Container(
@@ -593,7 +596,7 @@ class _BMIListPageState extends State<BMIListPage> {
                     ),
                   ),
 
-                  10.verticalSpace,
+                  6.verticalSpace,
 
                   // Name
                   Center(
@@ -611,12 +614,12 @@ class _BMIListPageState extends State<BMIListPage> {
                   ),
 
                   if (hasData) ...[
-                    10.verticalSpace,
+                    8.verticalSpace,
 
                     // BMI Value with Status Badge
                     Center(
                       child: Container(
-                      padding: REdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: REdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -639,7 +642,7 @@ class _BMIListPageState extends State<BMIListPage> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFFB71C1C),
-                              fontSize: 17.sp,
+                              fontSize: 16.sp,
                             ),
                           ),
                           if (bmiStatus != null) ...[
@@ -658,14 +661,14 @@ class _BMIListPageState extends State<BMIListPage> {
                       ),
                     ),
 
-                    12.verticalSpace,
+                    8.verticalSpace,
 
                     // Weight and Height Info
                     Center(
                       child: Container(
                         width: double.infinity,
                         padding:
-                            REdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                            REdgeInsets.symmetric(vertical: 6, horizontal: 8),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -678,7 +681,7 @@ class _BMIListPageState extends State<BMIListPage> {
                           borderRadius: BorderRadius.circular(12.r),
                           border: Border.all(
                             color: const Color(0xFFB71C1C).withOpacity(0.15),
-                            width: 1.5,
+                            width: 1,
                           ),
                         ),
                         child: Row(
@@ -692,17 +695,17 @@ class _BMIListPageState extends State<BMIListPage> {
                                   'Berat',
                                   style: TextStyle(
                                     color: const Color(0xFF2C5F7C),
-                                    fontSize: 11.sp,
+                                    fontSize: 10.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                4.verticalSpace,
+                                2.verticalSpace,
                                 Text(
-                                  '${userProfile.currentWeight!.toStringAsFixed(0)} KG',
+                                  '${userProfile.currentWeight!.toStringAsFixed(1).replaceAll('.', ',')} KG',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: const Color(0xFFB71C1C),
-                                    fontSize: 13.sp,
+                                    fontSize: 11.sp,
                                   ),
                                 ),
                               ],
@@ -710,7 +713,7 @@ class _BMIListPageState extends State<BMIListPage> {
                           ),
                           Container(
                             width: 1.5,
-                            height: 30.h,
+                            height: 24.h,
                             decoration: BoxDecoration(
                               color: const Color(0xFFB71C1C).withOpacity(0.2),
                               borderRadius: BorderRadius.circular(1),
@@ -724,17 +727,17 @@ class _BMIListPageState extends State<BMIListPage> {
                                   'Tinggi',
                                   style: TextStyle(
                                     color: const Color(0xFF2C5F7C),
-                                    fontSize: 11.sp,
+                                    fontSize: 10.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                4.verticalSpace,
+                                2.verticalSpace,
                                 Text(
-                                  '${userProfile.height!.toStringAsFixed(0)} CM',
+                                  '${userProfile.height!.toStringAsFixed(1).replaceAll('.', ',')} CM',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: const Color(0xFFB71C1C),
-                                    fontSize: 13.sp,
+                                    fontSize: 11.sp,
                                   ),
                                 ),
                               ],
@@ -745,7 +748,7 @@ class _BMIListPageState extends State<BMIListPage> {
                       ),
                     ),
                   ] else ...[
-                    10.verticalSpace,
+                    8.verticalSpace,
                     Center(
                       child: Column(
                         children: [
@@ -767,7 +770,6 @@ class _BMIListPageState extends State<BMIListPage> {
                       ),
                     ),
                   ],
-                  const Spacer(),
                 ],
               ),
             ),

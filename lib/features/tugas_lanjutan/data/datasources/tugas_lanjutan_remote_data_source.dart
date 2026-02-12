@@ -64,9 +64,11 @@ abstract class TugasLanjutanRemoteDataSource {
 class TugasLanjutanRemoteDataSourceImpl
     implements TugasLanjutanRemoteDataSource {
   final TugasLanjutanApiClient apiClient;
+  final Dio dio;
 
   TugasLanjutanRemoteDataSourceImpl(Dio dio)
-      : apiClient = TugasLanjutanApiClient(dio);
+      : dio = dio,
+        apiClient = TugasLanjutanApiClient(dio);
 
   /// Convert CarryOverTaskItemModel to TugasLanjutanModel
   TugasLanjutanModel _carriedOverTaskToModel(CarriedOverTaskItemModel item, int index) {
@@ -90,16 +92,16 @@ class TugasLanjutanRemoteDataSourceImpl
       lokasi: item.location ?? '',
       pelapor: pelapor,
       tanggal: reportDate,
-      deskripsi: item.reportNote.isNotEmpty
-          ? item.reportNote
-          : 'Tugas lanjutan',
+      // Catatan = ReportNote
+      deskripsi: item.reportNote,
       status: status,
-      diselesaikanOleh: item.solverId != null
-          ? '${item.updateBy ?? item.solverId}'
-          : null,
+      // Diselesaikan Oleh = UpdateBy
+      diselesaikanOleh: item.solver?.fullname ?? item.updateBy,
       diselesaikanOlehId: item.solverId,
       tanggalSelesai: solverDate,
-      buktiUrl: item.file,
+      // Bukti Penyelesaian = EvidenceUrl
+      buktiUrl: item.evidenceUrl,
+      // Tugas = SolverNote
       catatan: item.solverNote,
     );
   }
@@ -225,15 +227,58 @@ class TugasLanjutanRemoteDataSourceImpl
 
   @override
   Future<TugasLanjutanModel> getTugasLanjutanDetail(String id) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      final response = await dio.get('/CarriedOverTask/get/$id');
 
-    final tugas = _mockData.firstWhere(
-      (tugas) => tugas.id == id,
-      orElse: () => throw Exception('Tugas lanjutan not found'),
-    );
+      final data = response.data;
+      if (data is! Map<String, dynamic>) {
+        throw Exception('Invalid response format');
+      }
 
-    return tugas;
+      final reportName = data['ReportName'] as Map<String, dynamic>?;
+
+      final reportDateStr = (data['ReportDate'] as String?) ??
+          (data['CreateDate'] as String?) ??
+          '';
+      final solverDateStr = data['SolverDate'] as String?;
+
+      final tanggal = reportDateStr.isNotEmpty
+          ? (DateTime.tryParse(reportDateStr) ?? DateTime.now())
+          : DateTime.now();
+      final tanggalSelesai = solverDateStr != null
+          ? DateTime.tryParse(solverDateStr)
+          : null;
+
+      final statusApi = (data['Status'] as String?) ?? '';
+      final status = statusApi.toUpperCase() == 'OPEN'
+          ? TugasLanjutanStatus.belum
+          : TugasLanjutanStatus.selesai;
+
+      final pelapor = (reportName?['Fullname'] as String?) ??
+          (data['CreateBy'] as String?) ??
+          '';
+
+      final diselesaikanOleh = data['UpdateBy'] as String?;
+
+      final buktiUrl = data['EvidenceUrl'] as String?;
+
+      return TugasLanjutanModel(
+        id: data['Id'] as String? ?? id,
+        title: 'Tugas Lanjutan',
+        lokasi: (data['Location'] as String?) ?? '',
+        pelapor: pelapor,
+        tanggal: tanggal,
+        deskripsi: (data['ReportNote'] as String?) ?? '',
+        status: status,
+        diselesaikanOleh: diselesaikanOleh,
+        diselesaikanOlehId: data['SolverId'] as String?,
+        tanggalSelesai: tanggalSelesai,
+        buktiUrl: buktiUrl,
+        catatan: data['SolverNote'] as String?,
+      );
+    } on DioException catch (e) {
+      throw Exception(e.message ?? 'Failed to get task detail');
+    }
   }
 
   @override

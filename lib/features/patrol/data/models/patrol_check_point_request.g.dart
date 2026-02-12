@@ -15,13 +15,15 @@ PhotoPatroliModel _$PhotoPatroliModelFromJson(Map<String, dynamic> json) =>
           filename: $checkedConvert('Filename', (v) => v as String),
           mimeType: $checkedConvert('MimeType', (v) => v as String),
           base64: $checkedConvert('Base64', (v) => v as String),
+          fileSize: $checkedConvert('FileSize', (v) => (v as num?)?.toInt()),
         );
         return val;
       },
       fieldKeyMap: const {
         'filename': 'Filename',
         'mimeType': 'MimeType',
-        'base64': 'Base64'
+        'base64': 'Base64',
+        'fileSize': 'FileSize'
       },
     );
 
@@ -30,6 +32,7 @@ Map<String, dynamic> _$PhotoPatroliModelToJson(PhotoPatroliModel instance) =>
       'Filename': instance.filename,
       'MimeType': instance.mimeType,
       'Base64': instance.base64,
+      'FileSize': instance.fileSize,
     };
 
 TokenModel _$TokenModelFromJson(Map<String, dynamic> json) => $checkedCreate(

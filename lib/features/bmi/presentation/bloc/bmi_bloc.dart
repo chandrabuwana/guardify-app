@@ -131,7 +131,7 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
       hasInitialLoadAttempted: true, // Set flag bahwa sudah pernah attempt
     ));
 
-    final result = await getUserProfilesPaginated(page: 1, pageSize: 10);
+    final result = await getUserProfilesPaginated(page: 1, pageSize: 20);
 
     result.fold(
       (failure) {
@@ -175,7 +175,7 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
 
     final nextPage = state.currentPage + 1;
     print('📄 Loading page: $nextPage');
-    final result = await getUserProfilesPaginated(page: nextPage, pageSize: 10);
+    final result = await getUserProfilesPaginated(page: nextPage, pageSize: 20);
 
     result.fold(
       (failure) {

@@ -386,6 +386,7 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
         idShiftDetail: idShiftDetail,
         device: deviceName,
         idAreas: selectedArea.id, // IdAreas from selected location
+        photoPath: _proofImage?.path,
         latitude: actualLat,
         locationName: selectedArea.name, // LocationName from selected location
         longitude: actualLng,
@@ -476,7 +477,7 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                       // Title
                       const Center(
                         child: Text(
-                          'Absensi Patroli',
+                          'Absensi Patroli222',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,

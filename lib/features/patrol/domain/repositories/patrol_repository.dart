@@ -48,6 +48,7 @@ abstract class PatrolRepository {
     required String idShiftDetail,
     required String device,
     required String idAreas,
+    String? photoPath,
     required double latitude,
     required String locationName,
     required double longitude,
