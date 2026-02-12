@@ -175,7 +175,7 @@ class _AttendanceRekapKehadiranDetailScreenContentState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildInfoFieldInCard(
-                    'Status Laporan',
+                    'Status Laporan123',
                     _formatStatusLaporan(detail.statusLaporan),
                   ),
                   16.verticalSpace,

@@ -20,6 +20,7 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
     required super.laporanPengamanan,
     super.laporanPengamananCheckout,
     super.fotoPengamanan,
+    super.fotoPengamananCheckout,
     super.tugasLanjutan,
     required super.tugasTertunda,
     super.carryOver,
@@ -61,6 +62,9 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       laporanPengamananCheckout: json['laporan_pengamanan_checkout'] as String?,
       fotoPengamanan: json['foto_pengamanan'] != null
           ? List<String>.from(json['foto_pengamanan'] as List)
+          : null,
+      fotoPengamananCheckout: json['foto_pengamanan_checkout'] != null
+          ? List<String>.from(json['foto_pengamanan_checkout'] as List)
           : null,
       tugasLanjutan: json['tugas_lanjutan'] as String?,
       tugasTertunda: json['tugas_tertunda'] as bool? ?? false,
@@ -117,6 +121,7 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       'laporan_pengamanan': laporanPengamanan,
       'laporan_pengamanan_checkout': laporanPengamananCheckout,
       'foto_pengamanan': fotoPengamanan,
+      'foto_pengamanan_checkout': fotoPengamananCheckout,
       'tugas_lanjutan': tugasLanjutan,
       'tugas_tertunda': tugasTertunda,
       'carry_over': carryOver,
@@ -160,6 +165,7 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       laporanPengamanan: entity.laporanPengamanan,
       laporanPengamananCheckout: entity.laporanPengamananCheckout,
       fotoPengamanan: entity.fotoPengamanan,
+      fotoPengamananCheckout: entity.fotoPengamananCheckout,
       tugasLanjutan: entity.tugasLanjutan,
       tugasTertunda: entity.tugasTertunda,
       carryOver: entity.carryOver,
@@ -201,6 +207,7 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       laporanPengamanan: laporanPengamanan,
       laporanPengamananCheckout: laporanPengamananCheckout,
       fotoPengamanan: fotoPengamanan,
+      fotoPengamananCheckout: fotoPengamananCheckout,
       tugasLanjutan: tugasLanjutan,
       tugasTertunda: tugasTertunda,
       carryOver: carryOver,

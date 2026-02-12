@@ -276,17 +276,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading());
 
     try {
-      final currentPasswordValidation =
-          validator.Validators.validatePassword(event.currentPassword);
-      if (currentPasswordValidation != null) {
-        emit(AuthState.error('Current password: $currentPasswordValidation'));
+      if (event.currentPassword.trim().isEmpty) {
+        emit(AuthState.error('Password saat ini tidak boleh kosong'));
         return;
       }
 
-      final newPasswordValidation =
-          validator.Validators.validatePassword(event.newPassword);
-      if (newPasswordValidation != null) {
-        emit(AuthState.error('New password: $newPasswordValidation'));
+      if (event.newPassword.trim().isEmpty) {
+        emit(AuthState.error('Password baru tidak boleh kosong'));
         return;
       }
 
@@ -296,10 +292,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      // Mock change password
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await authRemoteDataSource.changePassword(
+        event.currentPassword.trim(),
+        event.newPassword.trim(),
+      );
+
+      final succeeded = response['Succeeded'] == true;
+      final message = (response['Message'] as String?)?.trim();
+      final description = (response['Description'] as String?)?.trim();
+      final errorMessage =
+          (message != null && message.isNotEmpty) ? message : (description ?? 'Ubah password gagal');
+
+      if (!succeeded) {
+        emit(AuthState.error(errorMessage));
+        return;
+      }
 
       emit(state.copyWith(
+        status: AuthStatus.changePasswordSuccess,
         isLoading: false,
         errorMessage: null,
       ));

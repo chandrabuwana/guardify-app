@@ -498,7 +498,7 @@ class LaporanKegiatanRemoteDataSourceImpl
     final photoPakaian = data['PhotoPakaian'] as Map<String, dynamic>?;
     final fotoPakaianPersonil = photoPakaian?['Url'] as String?;
 
-    // Handle PhotoPengamanan (bisa single atau list)
+    // Handle PhotoPengamanan (check-in)
     List<String>? fotoPengamanan;
     final photoPengamanan = data['PhotoPengamanan'] as Map<String, dynamic>?;
     if (photoPengamanan != null && photoPengamanan['Url'] != null) {
@@ -513,13 +513,13 @@ class LaporanKegiatanRemoteDataSourceImpl
     // final photoCheckout = data['PhotoCheckout'] as Map<String, dynamic>?;
     // final photoCheckoutUrl = photoCheckout?['Url'] as String?;
 
-    // Handle PhotoCheckoutPengamanan
+    // Handle PhotoCheckoutPengamanan (check-out)
+    List<String>? fotoPengamananCheckout;
     final photoCheckoutPengamanan =
         data['PhotoCheckoutPengamanan'] as Map<String, dynamic>?;
     if (photoCheckoutPengamanan != null &&
         photoCheckoutPengamanan['Url'] != null) {
-      fotoPengamanan ??= [];
-      fotoPengamanan.add(photoCheckoutPengamanan['Url'] as String);
+      fotoPengamananCheckout = [photoCheckoutPengamanan['Url'] as String];
     }
 
     // Handle PhotoCheckoutPakaian
@@ -634,6 +634,7 @@ class LaporanKegiatanRemoteDataSourceImpl
       laporanPengamanan: data['Notes'] as String? ?? '',
       laporanPengamananCheckout: data['NotesCheckout'] as String?,
       fotoPengamanan: fotoPengamanan,
+      fotoPengamananCheckout: fotoPengamananCheckout,
       tugasLanjutan: data['Patrol'] as String? ?? '',
       tugasTertunda: tugasTertunda,
       carryOver: data['CarryOver'] as String?,

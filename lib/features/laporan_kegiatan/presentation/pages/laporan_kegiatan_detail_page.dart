@@ -288,7 +288,8 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           16.verticalSpace,
 
           // Foto Pengamanan
-          if (laporan.fotoPengamanan != null && laporan.fotoPengamanan!.isNotEmpty)
+          if (laporan.fotoPengamanan != null &&
+              laporan.fotoPengamanan!.isNotEmpty)
             _buildFotoPengamananCard(laporan.fotoPengamanan!)
           else
             _buildFileCard('Foto Pengamanan', null),
@@ -349,12 +350,16 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           ],
 
           // Laporan Pengamanan
-          _buildInfoCard('Laporan Pengamanan Checkout', laporan.laporanPengamanan ?? '-',),
+          _buildInfoCard(
+            'Laporan Pengamanan Checkout',
+            laporan.laporanPengamananCheckout ?? '-',
+          ),
           16.verticalSpace,
 
           // Foto Pengamanan
-          if (laporan.fotoPengamanan != null && laporan.fotoPengamanan!.isNotEmpty)
-            _buildFotoPengamananCard(laporan.fotoPengamanan!)
+          if (laporan.fotoPengamananCheckout != null &&
+              laporan.fotoPengamananCheckout!.isNotEmpty)
+            _buildFotoPengamananCard(laporan.fotoPengamananCheckout!)
           else
             _buildFileCard('Foto Pengamanan', null),
           16.verticalSpace,
