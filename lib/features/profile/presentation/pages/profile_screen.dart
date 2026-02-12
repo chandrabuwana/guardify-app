@@ -12,6 +12,8 @@ import '../bloc/profile_state.dart';
 import '../widgets/profile_menu_item.dart';
 import '../widgets/profile_header.dart';
 import 'profile_details_screen.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/pages/change_password_page.dart';
 
 /// Layar utama profil yang menampilkan informasi singkat dan menu-menu profil
 class ProfileScreen extends StatelessWidget {
@@ -199,7 +201,7 @@ class ProfileScreenView extends StatelessWidget {
                         ),
                         child: Padding(
                           padding: EdgeInsets.all(20.w),
-                          child: Column(
+                          child: ListView(
                             children: [
                               SizedBox(height: 20.h),
 
@@ -217,6 +219,15 @@ class ProfileScreenView extends StatelessWidget {
                                 icon: Icons.help_outline,
                                 title: 'Bantuan',
                                 onTap: () => _navigateToHelp(context),
+                              ),
+
+                              SizedBox(height: 16.h),
+
+                              // Menu Ubah Password
+                              ProfileMenuItem(
+                                icon: Icons.lock_outline,
+                                title: 'Ubah Password',
+                                onTap: () => _navigateToChangePassword(context),
                               ),
 
                               SizedBox(height: 16.h),
@@ -239,7 +250,7 @@ class ProfileScreenView extends StatelessWidget {
                                 onTap: () => _showDeleteAccountConfirmation(context),
                               ),
 
-                              const Spacer(),
+                              SizedBox(height: 20.h),
                             ],
                           ),
                         ),
@@ -298,6 +309,17 @@ class ProfileScreenView extends StatelessWidget {
     // TODO: Implement navigation to help page
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Fitur bantuan akan segera tersedia')),
+    );
+  }
+
+  void _navigateToChangePassword(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => BlocProvider(
+          create: (context) => getIt<AuthBloc>(),
+          child: const ChangePasswordPage(),
+        ),
+      ),
     );
   }
 

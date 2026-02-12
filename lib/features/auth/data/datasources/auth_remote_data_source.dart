@@ -23,6 +23,12 @@ abstract class AuthRemoteDataSource {
     @Body() Map<String, dynamic> body,
   );
 
+  @PUT('/User/change_password/{password}/{new_password}')
+  Future<Map<String, dynamic>> changePassword(
+    @Path('password') String password,
+    @Path('new_password') String newPassword,
+  );
+
   @POST('/CurrentLocation/employee')
   Future<CurrentLocationResponseModel> getEmployeeLocations(
     @Body() CurrentLocationRequestModel request,

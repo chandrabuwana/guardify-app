@@ -49,14 +49,27 @@ class AttendanceRekapRemoteDataSourceImpl
 
       throw Exception('Invalid response format');
     } on DioException catch (e) {
-      if (e.response != null) {
-        final errorMessage = e.response?.data['Message'] ??
-            e.response?.data['Description'] ??
-            'Failed to get attendance recap';
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Network error: ${e.message}');
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 503) {
+        throw Exception('Server sedang maintenance. Silakan coba lagi nanti.');
       }
+
+      if (e.response != null) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          final errorMessage =
+              data['Message'] ?? data['Description'] ?? 'Failed to get attendance recap';
+          throw Exception(errorMessage);
+        }
+
+        if (data is String && data.trim().isNotEmpty) {
+          throw Exception('Failed to get attendance recap (${statusCode ?? 'unknown'})');
+        }
+
+        throw Exception('Failed to get attendance recap (${statusCode ?? 'unknown'})');
+      }
+
+      throw Exception('Network error: ${e.message}');
     } catch (e) {
       throw Exception('Failed to get attendance recap: $e');
     }
@@ -87,14 +100,30 @@ class AttendanceRekapRemoteDataSourceImpl
 
       throw Exception('Invalid response format');
     } on DioException catch (e) {
-      if (e.response != null) {
-        final errorMessage = e.response?.data['Message'] ??
-            e.response?.data['Description'] ??
-            'Failed to get attendance recap detail';
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Network error: ${e.message}');
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 503) {
+        throw Exception('Server sedang maintenance. Silakan coba lagi nanti.');
       }
+
+      if (e.response != null) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          final errorMessage = data['Message'] ??
+              data['Description'] ??
+              'Failed to get attendance recap detail';
+          throw Exception(errorMessage);
+        }
+
+        if (data is String && data.trim().isNotEmpty) {
+          throw Exception(
+              'Failed to get attendance recap detail (${statusCode ?? 'unknown'})');
+        }
+
+        throw Exception(
+            'Failed to get attendance recap detail (${statusCode ?? 'unknown'})');
+      }
+
+      throw Exception('Network error: ${e.message}');
     } catch (e) {
       throw Exception('Failed to get attendance recap detail: $e');
     }

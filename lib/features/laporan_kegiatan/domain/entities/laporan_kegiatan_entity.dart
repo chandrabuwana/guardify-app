@@ -60,6 +60,7 @@ class LaporanKegiatanEntity extends Equatable {
   final String laporanPengamanan;
   final String? laporanPengamananCheckout;
   final List<String>? fotoPengamanan;
+  final List<String>? fotoPengamananCheckout;
   final String? tugasLanjutan;
   final bool tugasTertunda;
   final String? carryOver;
@@ -106,6 +107,7 @@ class LaporanKegiatanEntity extends Equatable {
     required this.laporanPengamanan,
     this.laporanPengamananCheckout,
     this.fotoPengamanan,
+    this.fotoPengamananCheckout,
     this.tugasLanjutan,
     required this.tugasTertunda,
     this.carryOver,
@@ -146,6 +148,7 @@ class LaporanKegiatanEntity extends Equatable {
         laporanPengamanan,
         laporanPengamananCheckout,
         fotoPengamanan,
+        fotoPengamananCheckout,
         tugasLanjutan,
         tugasTertunda,
         carryOver,
@@ -185,6 +188,7 @@ class LaporanKegiatanEntity extends Equatable {
     String? laporanPengamanan,
     String? laporanPengamananCheckout,
     List<String>? fotoPengamanan,
+    List<String>? fotoPengamananCheckout,
     String? tugasLanjutan,
     bool? tugasTertunda,
     String? carryOver,
@@ -224,6 +228,8 @@ class LaporanKegiatanEntity extends Equatable {
       laporanPengamananCheckout:
           laporanPengamananCheckout ?? this.laporanPengamananCheckout,
       fotoPengamanan: fotoPengamanan ?? this.fotoPengamanan,
+      fotoPengamananCheckout:
+          fotoPengamananCheckout ?? this.fotoPengamananCheckout,
       tugasLanjutan: tugasLanjutan ?? this.tugasLanjutan,
       tugasTertunda: tugasTertunda ?? this.tugasTertunda,
       carryOver: carryOver ?? this.carryOver,

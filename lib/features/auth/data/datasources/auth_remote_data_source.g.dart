@@ -74,6 +74,35 @@ class _AuthRemoteDataSource implements AuthRemoteDataSource {
   }
 
   @override
+  Future<Map<String, dynamic>> changePassword(
+    String password,
+    String newPassword,
+  ) async {
+    const _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    final _result = await _dio
+        .fetch<Map<String, dynamic>>(_setStreamType<Map<String, dynamic>>(Options(
+      method: 'PUT',
+      headers: _headers,
+      extra: _extra,
+    )
+            .compose(
+              _dio.options,
+              '/User/change_password/${password}/${newPassword}',
+              queryParameters: queryParameters,
+              data: _data,
+            )
+            .copyWith(
+                baseUrl: _combineBaseUrls(
+              _dio.options.baseUrl,
+              baseUrl,
+            ))));
+    return _result.data!;
+  }
+
+  @override
   Future<CurrentLocationResponseModel> getEmployeeLocations(
       CurrentLocationRequestModel request) async {
     const _extra = <String, dynamic>{};

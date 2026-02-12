@@ -4,6 +4,7 @@ enum AuthStatus {
   initial,
   loading,
   passwordResetLinkSent,
+  changePasswordSuccess,
   authenticated,
   unauthenticated,
   error,
