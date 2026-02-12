@@ -14,10 +14,14 @@ class PhotoPatroliModel {
   @JsonKey(name: 'Base64')
   final String base64;
 
+  @JsonKey(name: 'FileSize')
+  final int? fileSize;
+
   PhotoPatroliModel({
     required this.filename,
     required this.mimeType,
     required this.base64,
+    this.fileSize,
   });
 
   factory PhotoPatroliModel.fromJson(Map<String, dynamic> json) =>

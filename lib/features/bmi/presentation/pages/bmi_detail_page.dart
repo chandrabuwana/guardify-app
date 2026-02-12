@@ -206,9 +206,9 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                   ),
                 ],
               ),
-              child: userProfile.profileImageUrl != null
-                  ? ClipOval(
-                      child: Image.network(
+              child: ClipOval(
+                child: userProfile.profileImageUrl != null
+                    ? Image.network(
                         userProfile.profileImageUrl!,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
@@ -221,16 +221,16 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                             ),
                           );
                         },
+                      )
+                    : Container(
+                        color: neutral20,
+                        child: Icon(
+                          Icons.person,
+                          size: 60.w,
+                          color: neutral50,
+                        ),
                       ),
-                    )
-                  : Container(
-                      color: neutral20,
-                      child: Icon(
-                        Icons.person,
-                        size: 60.w,
-                        color: neutral50,
-                      ),
-                    ),
+              ),
             ),
 
             24.verticalSpace,
@@ -265,7 +265,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                   fontWeight: FontWeight.w500,
                 ),
                 children: [
-                  const TextSpan(text: 'Your body mass index is '),
+                  const TextSpan(text: 'Your BMI is '),
                   TextSpan(
                     text: userProfile.currentBMI!.toStringAsFixed(1).replaceAll('.', ','),
                     style: TextStyle(
@@ -302,7 +302,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                   Expanded(
                     child: _buildInfoColumn(
                       'Height',
-                      '${userProfile.height!.toStringAsFixed(0)} CM',
+                      '${userProfile.height!.toStringAsFixed(1).replaceAll('.', ',')} CM',
                     ),
                   ),
                   Container(
@@ -316,7 +316,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                   Expanded(
                     child: _buildInfoColumn(
                       'Weight',
-                      '${userProfile.currentWeight!.toStringAsFixed(0)} KG',
+                      '${userProfile.currentWeight!.toStringAsFixed(1).replaceAll('.', ',')} KG',
                     ),
                   ),
                   Container(
@@ -847,7 +847,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                             ),
                           ),
                           Text(
-                            '${record.height.toStringAsFixed(0)} CM',
+                            '${record.height.toStringAsFixed(1).replaceAll('.', ',')} CM',
                             style: TS.bodyMedium.copyWith(
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFFB71C1C),
@@ -871,7 +871,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                             ),
                           ),
                           Text(
-                            '${record.weight.toStringAsFixed(0)} Kg',
+                            '${record.weight.toStringAsFixed(1).replaceAll('.', ',')} Kg',
                             style: TS.bodyMedium.copyWith(
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFFB71C1C),
