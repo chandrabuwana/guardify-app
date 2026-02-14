@@ -29,7 +29,10 @@ import '../../../patrol/domain/entities/patrol_route.dart';
 import '../../../profile/presentation/pages/profile_screen.dart';
 import '../../../test_result/presentation/pages/test_result_page.dart';
 import '../../../chat/presentation/pages/chat_list_page.dart';
+import '../../../chat/presentation/pages/chat_conversation_page.dart';
 import '../../../chat/presentation/bloc/chat_bloc.dart';
+import '../../../chat/presentation/bloc/chat_event.dart';
+import '../../../chat/domain/entities/chat.dart';
 import '../../../news/presentation/pages/news_list_page.dart';
 import '../../../news/presentation/bloc/news_bloc.dart';
 import '../../../personnel/presentation/pages/personnel_list_page.dart';
@@ -1077,16 +1080,16 @@ class __HomePageViewState extends State<_HomePageView> {
                       ),
                       10.verticalSpace,
 
-                      // Kirim Pesan button (solid filled)
+                      // Kirim Pesan button (solid filled) - navigasi ke chat
                       SizedBox(
                         width: double.infinity,
                         height: 32.h,
                         child: ElevatedButton(
                           onPressed: () {
-                            context.read<HomeBloc>().add(
-                                  ShowSnackbarEvent(
-                                      'Kirim pesan ke ${member['nama']}'),
-                                );
+                            _navigateToChat(
+                              member['userId'] ?? '',
+                              member['nama'] ?? 'Anggota Tim',
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
@@ -1621,6 +1624,108 @@ class __HomePageViewState extends State<_HomePageView> {
     ];
   }
 
+
+  /// Navigate to chat with a specific user (create conversation and open chat)
+  Future<void> _navigateToChat(String userId, String userName) async {
+    if (userId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ID pengguna tidak valid'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Get current user ID to verify
+    final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+    if (currentUserId == null || currentUserId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal mendapatkan ID pengguna saat ini'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Don't create conversation if trying to chat with self
+    if (userId == currentUserId) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak dapat mengirim pesan ke diri sendiri'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      // Create ChatBloc instance
+      final chatBloc = getIt<ChatBloc>();
+
+      // Create conversation with the user
+      chatBloc.add(ChatCreateConversation(memberUserIds: [userId]));
+
+      // Wait for conversation to be created
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      if (!mounted) return;
+
+      final currentState = chatBloc.state;
+      if (currentState.selectedChatId != null) {
+        // Find the chat that was just created
+        final newChat = currentState.chats.firstWhere(
+          (chat) => chat.id == currentState.selectedChatId,
+          orElse: () => Chat(
+            id: currentState.selectedChatId!,
+            name: userName.isNotEmpty ? userName : 'Anggota Tim',
+            type: ChatType.direct,
+            participantIds: [userId],
+            unreadCount: 0,
+            isActive: true,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BlocProvider.value(
+              value: chatBloc,
+              child: ChatConversationPage(chat: newChat),
+            ),
+          ),
+        );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal membuka chat'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error navigating to chat: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membuka chat: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   void _showPanicDialog() {
     showDialog(
