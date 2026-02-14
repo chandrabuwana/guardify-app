@@ -78,13 +78,22 @@ abstract class IncidentRemoteDataSource {
   /// Update all incident (for PJO/Deputy to assign PIC and Team)
   Future<bool> updateAllIncident({
     required String incidentId,
-    required String picId,
+    required String areasDescription,
+    required String areasId,
+    required int idIncidentType,
+    required DateTime incidentDate,
+    required String incidentTime,
+    required String incidentDescription,
+    required String reportId,
+    String? notesAction,
+    String? picId,
     required List<String> team,
-    required String handlingTask,
-    String? notes,
-    String? feedback,
+    String? handlingTask,
+    String? solvedAction,
+    DateTime? solvedDate,
     String? evidence,
     required String status,
+    Map<String, dynamic>? incidentImage, // {Filename, MimeType, Base64, FileSize}
   });
 }
 

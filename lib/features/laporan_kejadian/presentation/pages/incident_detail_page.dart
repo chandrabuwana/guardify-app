@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/utils/user_role_helper.dart';
@@ -12,11 +16,17 @@ import '../../../../shared/widgets/custom_dropdown.dart';
 import '../../../../shared/widgets/searchable_dropdown.dart';
 import '../../../../shared/widgets/TextInput/input_primary.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/security/security_manager.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../domain/entities/incident_entity.dart';
 import '../../data/datasources/incident_remote_datasource.dart';
 import '../bloc/incident_bloc.dart';
 import '../bloc/incident_event.dart';
 import '../bloc/incident_state.dart';
+import '../../../chat/presentation/bloc/chat_bloc.dart';
+import '../../../chat/presentation/bloc/chat_event.dart';
+import '../../../chat/presentation/pages/chat_conversation_page.dart';
+import '../../../chat/domain/entities/chat.dart';
 
 class IncidentDetailPage extends StatefulWidget {
   final IncidentEntity incident;
@@ -40,6 +50,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   bool _isDanton = false;
   bool _isPengawas = false;
   bool _isAdmin = false;
+  String? _evidenceFromApi; // Store Evidence from API Data level
 
   @override
   void initState() {
@@ -63,11 +74,25 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     super.didChangeDependencies();
     // Load detail from API when dependencies are available
     if (!_hasLoadedDetail) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (mounted) {
           try {
             final bloc = context.read<IncidentBloc>();
             bloc.add(GetIncidentDetailEvent(widget.incident.id));
+            
+            // Also load API model to get Evidence from Data level
+            try {
+              final datasource = getIt<IncidentRemoteDataSource>();
+              final apiModel = await datasource.getIncidentDetailApiModel(widget.incident.id);
+              if (mounted) {
+                setState(() {
+                  _evidenceFromApi = apiModel.evidence;
+                });
+              }
+            } catch (e) {
+              debugPrint('Failed to load API model for Evidence: $e');
+            }
+            
             _hasLoadedDetail = true;
           } catch (e) {
             // If bloc is not available, that's okay - we'll use widget.incident data
@@ -197,13 +222,6 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   ),
                   20.verticalSpace,
 
-                  // Nama Danton
-                  _buildReadOnlyField(
-                    label: 'Nama Danton',
-                    value: incident.namaDanton ?? '-',
-                  ),
-                  20.verticalSpace,
-
                   // Tanggal Insiden
                   _buildReadOnlyField(
                     label: 'Tanggal Insiden*',
@@ -256,36 +274,18 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                     _buildPhotoField(incident.fotoInsiden!),
                   20.verticalSpace,
 
-                  // Aksi
-                  _buildReadOnlyField(
-                    label: 'Aksi',
-                    value: 'Pembuatan Keputusan',
-                  ),
+                  // Aksi Section
+                  _buildAksiSection(incident),
                   20.verticalSpace,
 
-                  // Penanggung Jawab
-                  _buildReadOnlyField(
-                    label: 'Penanggung Jawab',
-                    value: incident.pic ?? '-',
-                  ),
+                  // Tim Petugas (horizontal scrollable cards)
+                  _buildTeamSection(incident),
                   20.verticalSpace,
 
-                  // Tim Petugas
-                  _buildReadOnlyField(
-                    label: 'Tim Petugas',
-                    value: incident.incidentDetail != null && incident.incidentDetail!.isNotEmpty
-                        ? incident.incidentDetail!
-                            .map((detail) => detail['Fullname']?.toString() ?? detail['fullname']?.toString() ?? '-')
-                            .where((name) => name != '-')
-                            .join(', ')
-                        : '-',
-                  ),
-                  20.verticalSpace,
-
-                  // Tugas Penanganan
+                  // Tugas Penanganan (dari NotesAction atau HandlingTask di IncidentDetail)
                   _buildReadOnlyField(
                     label: 'Tugas Penanganan',
-                    value: incident.notesAction ?? '-',
+                    value: _getHandlingTask(incident),
                     maxLines: 3,
                   ),
                   20.verticalSpace,
@@ -293,7 +293,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   // Note Penyelesaian
                   _buildReadOnlyField(
                     label: 'Note Penyelesaian',
-                    value: incident.solvedAction ?? '-',
+                    value: _getActionTakenNote(incident) ?? incident.solvedAction ?? '-',
                     maxLines: 3,
                   ),
                   20.verticalSpace,
@@ -301,35 +301,42 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   // Tanggal Penyelesaian
                   _buildReadOnlyField(
                     label: 'Tanggal Penyelesaian',
-                    value: incident.solvedDate != null
-                        ? DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(incident.solvedDate!)
-                        : '-',
+                    value: _getCompletionDate(incident),
                   ),
                   20.verticalSpace,
 
-                  // Bukti Penyelesaian (dari IncidentDetail jika ada)
-                  if (incident.incidentDetail != null && incident.incidentDetail!.isNotEmpty)
-                    ...incident.incidentDetail!
-                        .where((detail) => detail['File'] != null || detail['file'] != null)
-                        .map((detail) {
-                          final file = detail['File'] ?? detail['file'];
-                          final fileUrl = file is Map 
-                              ? (file['Url'] ?? file['url'] ?? file['FileUrl'] ?? file['fileUrl'])
-                              : file?.toString();
-                          if (fileUrl != null && fileUrl.toString().isNotEmpty) {
-                            return Column(
-                              children: [
-                                _buildReadOnlyField(
-                                  label: 'Bukti Penyelesaian',
-                                  value: fileUrl.toString(),
-                                ),
-                                20.verticalSpace,
-                              ],
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        })
-                        .toList(),
+                  // Bukti Penyelesaian
+                  _buildEvidenceField(incident),
+                  20.verticalSpace,
+
+                  // Diselesaikan Oleh
+                  _buildReadOnlyField(
+                    label: 'Diselesaikan Oleh',
+                    value: _getCompletedBy(incident),
+                  ),
+                  20.verticalSpace,
+
+                  // Diverifikasi Oleh
+                  _buildReadOnlyField(
+                    label: 'Diverifikasi Oleh',
+                    value: _getVerifiedBy(incident),
+                  ),
+                  20.verticalSpace,
+
+                  // Tanggal Verifikasi
+                  _buildReadOnlyField(
+                    label: 'Tanggal Verifikasi',
+                    value: _getVerifiedDate(incident),
+                  ),
+                  20.verticalSpace,
+
+                  // Completion Feedback
+                  _buildReadOnlyField(
+                    label: 'Completion Feedback',
+                    value: _getSupervisorFeedback(incident),
+                    maxLines: 3,
+                  ),
+                  20.verticalSpace,
                   32.verticalSpace,
 
                   // Action Buttons
@@ -356,6 +363,554 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  // Helper methods to extract data from IncidentDetail
+  String? _getFirstIncidentDetailValue(IncidentEntity incident, String key) {
+    if (incident.incidentDetail == null || incident.incidentDetail!.isEmpty) {
+      return null;
+    }
+    final firstDetail = incident.incidentDetail!.first;
+    final value = firstDetail[key];
+    if (value != null && value.toString().isNotEmpty && value.toString() != '-') {
+      return value.toString();
+    }
+    return null;
+  }
+
+  String _getReviewedBy(IncidentEntity incident) {
+    final reviewedName = _getFirstIncidentDetailValue(incident, 'ReviewedName');
+    if (reviewedName != null && reviewedName.isNotEmpty && reviewedName != '-') {
+      return reviewedName;
+    }
+    return '-';
+  }
+
+  String? _getActionTakenNote(IncidentEntity incident) {
+    return _getFirstIncidentDetailValue(incident, 'ActionTakenNote');
+  }
+
+  String _getHandlingTask(IncidentEntity incident) {
+    final handlingTask = _getFirstIncidentDetailValue(incident, 'HandlingTask');
+    if (handlingTask != null && handlingTask.isNotEmpty) {
+      return handlingTask;
+    }
+    return incident.notesAction ?? '-';
+  }
+
+  String _getCompletionDate(IncidentEntity incident) {
+    // Tanggal Penyelesaian = VerifiedDate
+    final verifiedDate = _getFirstIncidentDetailValue(incident, 'VerifiedDate');
+    if (verifiedDate != null && verifiedDate.isNotEmpty) {
+      try {
+        final dateTime = DateTime.parse(verifiedDate);
+        return DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(dateTime);
+      } catch (e) {
+        return verifiedDate;
+      }
+    }
+    return '-';
+  }
+
+  String _getCompletedBy(IncidentEntity incident) {
+    final completedName = _getFirstIncidentDetailValue(incident, 'CompletedName');
+    if (completedName != null && completedName.isNotEmpty && completedName != '-') {
+      return completedName;
+    }
+    return '-';
+  }
+
+  String _getVerifiedBy(IncidentEntity incident) {
+    final verifiedName = _getFirstIncidentDetailValue(incident, 'VerifiedName');
+    if (verifiedName != null && verifiedName.isNotEmpty && verifiedName != '-') {
+      return verifiedName;
+    }
+    return '-';
+  }
+
+  String _getVerifiedDate(IncidentEntity incident) {
+    // Tanggal Verifikasi = SolvedDate
+    if (incident.solvedDate != null) {
+      return DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(incident.solvedDate!);
+    }
+    final solvedDate = _getFirstIncidentDetailValue(incident, 'SolvedDate');
+    if (solvedDate != null && solvedDate.isNotEmpty) {
+      try {
+        final dateTime = DateTime.parse(solvedDate);
+        return DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(dateTime);
+      } catch (e) {
+        return solvedDate;
+      }
+    }
+    return '-';
+  }
+
+  String _getSupervisorFeedback(IncidentEntity incident) {
+    final feedback = _getFirstIncidentDetailValue(incident, 'SupervisorFeedback');
+    if (feedback != null && feedback.isNotEmpty && feedback != '-') {
+      return feedback;
+    }
+    return '-';
+  }
+
+  Widget _buildEvidenceField(IncidentEntity incident) {
+    // Evidence is at Data level, not in IncidentDetail
+    // Try to get from API model first, then fallback to IncidentDetail
+    String? evidence = _evidenceFromApi;
+    if (evidence == null || evidence.isEmpty || evidence == '-') {
+      evidence = _getFirstIncidentDetailValue(incident, 'Evidence');
+    }
+    
+    if (evidence == null || evidence.isEmpty || evidence == '-') {
+      return _buildReadOnlyField(
+        label: 'Bukti Penyelesaian',
+        value: '-',
+      );
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Bukti Penyelesaian',
+          style: TS.labelLarge,
+        ),
+        8.verticalSpace,
+        GestureDetector(
+          onTap: () {
+            _showImagePreview(evidence!);
+          },
+          child: Container(
+            width: double.infinity,
+            height: 200.h,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(10.r),
+              color: Colors.grey.shade100,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10.r),
+              child: Image.network(
+                evidence,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                      color: primaryColor,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey.shade200,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image,
+                          size: 48.sp,
+                          color: Colors.grey.shade400,
+                        ),
+                        8.verticalSpace,
+                        Text(
+                          'Gagal memuat gambar',
+                          style: TS.bodySmall.copyWith(
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showImagePreview(String imageUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: REdgeInsets.all(16),
+          child: Stack(
+            children: [
+              InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Center(
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.broken_image,
+                              size: 64.sp,
+                              color: Colors.white,
+                            ),
+                            16.verticalSpace,
+                            Text(
+                              'Gagal memuat gambar',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _navigateToChat(String userId, String userName) async {
+    try {
+      // Validate userId
+      if (userId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ID pengguna tidak valid'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Get or create ChatBloc
+      ChatBloc? chatBloc;
+      try {
+        chatBloc = context.read<ChatBloc>();
+      } catch (e) {
+        // If ChatBloc is not available in context, create new one
+        chatBloc = getIt<ChatBloc>();
+      }
+
+      // Get current user ID to verify
+      final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      if (currentUserId == null || currentUserId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal mendapatkan ID pengguna saat ini'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Don't create conversation if trying to chat with self
+      if (userId == currentUserId) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tidak dapat mengirim pesan ke diri sendiri'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Create conversation with the user
+      chatBloc.add(ChatCreateConversation(memberUserIds: [userId]));
+      
+      // Wait for conversation to be created
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Navigate to conversation page
+      if (mounted) {
+        final currentState = chatBloc.state;
+        if (currentState.selectedChatId != null) {
+          // Find the chat that was just created
+          final newChat = currentState.chats.firstWhere(
+            (chat) => chat.id == currentState.selectedChatId,
+            orElse: () => Chat(
+              id: currentState.selectedChatId!,
+              name: userName.isNotEmpty ? userName : 'Anggota Tim',
+              type: ChatType.direct,
+              participantIds: [userId],
+              unreadCount: 0,
+              isActive: true,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+          );
+          
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BlocProvider.value(
+                value: chatBloc!,
+                child: ChatConversationPage(chat: newChat),
+              ),
+            ),
+          );
+        } else {
+          // If chat creation failed, show error
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Gagal membuka chat'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error navigating to chat: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membuka chat: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+
+  Widget _buildAksiSection(IncidentEntity incident) {
+    final reviewedName = _getReviewedBy(incident);
+    final actionTakenNote = _getActionTakenNote(incident);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Aksi',
+          style: TS.labelLarge.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        8.verticalSpace,
+        // Dikonfirmasi Oleh
+        _buildReadOnlyField(
+          label: 'Dikonfirmasi Oleh',
+          value: reviewedName,
+        ),
+        20.verticalSpace,
+        // Pembuatan Keputusan
+        _buildReadOnlyField(
+          label: 'Pembuatan Keputusan',
+          value: actionTakenNote ?? '-',
+        ),
+        20.verticalSpace,
+        // Penanggung Jawab
+        _buildReadOnlyField(
+          label: 'Penanggung Jawab',
+          value: incident.pic ?? '-',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTeamSection(IncidentEntity incident) {
+    // Handle IncidentDetail and Teams
+    // IncidentDetail contains detailed info (HandlingTask, ActionTakenNote, etc.)
+    // Teams contains basic info (UserName, UserPhoto, etc.)
+    
+    final List<Map<String, dynamic>> teamMembers = [];
+    
+    if (incident.incidentDetail != null && incident.incidentDetail!.isNotEmpty) {
+      for (var detail in incident.incidentDetail!) {
+        final detailMap = Map<String, dynamic>.from(detail as Map);
+        // Add all team members (from both IncidentDetail and Teams)
+        teamMembers.add(detailMap);
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tim Petugas',
+          style: TS.labelLarge.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        8.verticalSpace,
+        // Display team members in horizontal scrollable cards
+        if (teamMembers.isNotEmpty)
+          SizedBox(
+            height: 200.h, // Increased height to prevent overflow
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: teamMembers.length,
+              itemBuilder: (context, index) {
+                return _buildTeamMemberCardHorizontal(teamMembers[index]);
+              },
+            ),
+          )
+        else
+          _buildReadOnlyField(
+            label: 'Tim Petugas',
+            value: '-',
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTeamMemberCardHorizontal(Map<String, dynamic> member) {
+    final userName = member['UserName']?.toString() ?? '';
+    final userPhoto = member['UserPhoto']?.toString();
+    // Try to get userId from multiple possible fields
+    final userId = member['UserId']?.toString() ?? 
+                   member['userId']?.toString() ?? 
+                   member['Id']?.toString() ?? 
+                   '';
+    
+    // Check if userId is valid (not empty and not default UUID)
+    final isValidUserId = userId.isNotEmpty && 
+                          userId != '00000000-0000-0000-0000-000000000000';
+    
+    // Role bisa dari status atau field lain, default "Anggota Masuk"
+    final role = 'Anggota Masuk';
+    
+    return Container(
+      width: 140.w,
+      margin: EdgeInsets.only(right: 12.w),
+      padding: REdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // Use min to prevent overflow
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Profile Picture
+          ClipRRect(
+            borderRadius: BorderRadius.circular(40.r),
+            child: userPhoto != null && userPhoto.isNotEmpty
+                ? Image.network(
+                    userPhoto,
+                    width: 70.w, // Reduced from 80 to 70
+                    height: 70.h, // Reduced from 80 to 70
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 70.w,
+                        height: 70.h,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(40.r),
+                        ),
+                        child: Icon(Icons.person, size: 35.r, color: Colors.grey.shade600),
+                      );
+                    },
+                  )
+                : Container(
+                    width: 70.w,
+                    height: 70.h,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(40.r),
+                    ),
+                    child: Icon(Icons.person, size: 35.r, color: Colors.grey.shade600),
+                  ),
+          ),
+          6.verticalSpace, // Reduced from 8
+          // Name
+          Flexible(
+            child: Text(
+              userName.isNotEmpty ? userName : 'Anggota Tim',
+              style: TS.bodySmall.copyWith( // Changed from bodyMedium to bodySmall
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          4.verticalSpace,
+          // Role
+          Text(
+            role,
+            style: TS.bodySmall.copyWith(
+              color: Colors.red,
+              fontSize: 10.sp, // Smaller font
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          6.verticalSpace, // Reduced from 8
+          // Kirim Pesan Button
+          SizedBox(
+            width: double.infinity,
+            height: 32.h, // Fixed height
+            child: ElevatedButton(
+              onPressed: isValidUserId && userName.isNotEmpty ? () async {
+                _navigateToChat(userId, userName);
+              } : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isValidUserId ? Colors.red : Colors.grey.shade400,
+                foregroundColor: Colors.white,
+                padding: REdgeInsets.symmetric(vertical: 4), // Reduced padding
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                disabledBackgroundColor: Colors.grey.shade300,
+                disabledForegroundColor: Colors.grey.shade600,
+              ),
+              child: Text(
+                'Kirim Pesan',
+                style: TS.bodySmall.copyWith(
+                  color: Colors.white,
+                  fontSize: 10.sp, // Smaller font
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -446,8 +1001,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
       builder: (context, state) {
         final buttons = <Widget>[];
         
-        // Tombol Tugaskan untuk status OPEN atau ACKNOWLEDGE
-        if (apiStatus == 'OPEN' || apiStatus == 'ACKNOWLEDGE') {
+        // Tombol Tugaskan untuk status OPEN, ACKNOWLEDGE, atau ESCALATED
+        if (apiStatus == 'OPEN' || apiStatus == 'ACKNOWLEDGE' || apiStatus == 'ESCALATED') {
           buttons.add(
             UIButton(
               text: 'Tugaskan',
@@ -796,10 +1351,12 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     bool isLoading = true;
     bool isSubmitting = false;
     List<Map<String, String>> userList = [];
+    Map<String, String>? incidentApiData;
 
-    // Load user list
+    // Load user list and incident detail
     try {
       final users = await datasource.getUserList();
+      final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
       
       // Sort user list by name (alphabetically)
       userList = users;
@@ -808,6 +1365,16 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
         final nameB = (b['name'] ?? '').toLowerCase();
         return nameA.compareTo(nameB);
       });
+
+      incidentApiData = {
+        'areasDescription': apiModel.areasDescription ?? apiModel.areas?.name ?? '',
+        'areasId': apiModel.areasId ?? '',
+        'idIncidentType': apiModel.idIncidentType?.toString() ?? '0',
+        'incidentDate': apiModel.incidentDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'incidentTime': apiModel.incidentTime ?? '00:00:00',
+        'incidentDescription': apiModel.incidentDescription ?? '',
+        'reportId': apiModel.reportId ?? '',
+      };
       
       isLoading = false;
     } catch (e) {
@@ -824,6 +1391,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     }
 
     if (!context.mounted) return;
+    final apiData = incidentApiData;
 
     final incidentBloc = context.read<IncidentBloc>();
 
@@ -1068,6 +1636,14 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                       context.read<IncidentBloc>().add(
                         UpdateAllIncidentEvent(
                           incidentId: incident.id,
+                          areasDescription: apiData['areasDescription']!,
+                          areasId: apiData['areasId']!,
+                          idIncidentType: int.parse(apiData['idIncidentType']!),
+                          incidentDate: DateTime.parse(apiData['incidentDate']!),
+                          incidentTime: apiData['incidentTime']!,
+                          incidentDescription: apiData['incidentDescription']!,
+                          reportId: apiData['reportId']!,
+                          notesAction: tugasPenangananController.text.trim(),
                           picId: selectedPjId!,
                           team: selectedTeamIds,
                           handlingTask: tugasPenangananController.text.trim(),
@@ -1112,25 +1688,52 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     String? picId;
     List<String> team = [];
     String handlingTask = '';
+    Map<String, String>? incidentApiData;
 
     // Load incident detail untuk mendapatkan data yang sudah ada
     try {
       final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
       
       picId = apiModel.picId;
-      // Team diambil dari incidentDetail jika ada
-      if (apiModel.incidentDetail != null && apiModel.incidentDetail!.isNotEmpty) {
-        team = apiModel.incidentDetail!
-            .map((detail) {
-              if (detail is Map<String, dynamic>) {
-                return detail['UserId']?.toString() ?? '';
+      // Team diambil dari Teams list
+      if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+        team = apiModel.teams!
+            .map((teamMember) {
+              if (teamMember is Map<String, dynamic>) {
+                return teamMember['UserId']?.toString() ?? '';
               }
               return '';
             })
             .where((id) => id.isNotEmpty)
             .toList();
       }
-      handlingTask = apiModel.notesAction ?? '';
+      // HandlingTask diambil dari IncidentDetail jika ada, atau dari NotesAction
+      handlingTask = '';
+      if (apiModel.incidentDetail != null) {
+        if (apiModel.incidentDetail is Map<String, dynamic>) {
+          final detail = apiModel.incidentDetail as Map<String, dynamic>;
+          handlingTask = detail['HandlingTask']?.toString() ?? apiModel.notesAction ?? '';
+        } else if (apiModel.incidentDetail is List && (apiModel.incidentDetail as List).isNotEmpty) {
+          final detailList = apiModel.incidentDetail as List;
+          final firstDetail = detailList.first;
+          if (firstDetail is Map<String, dynamic>) {
+            handlingTask = firstDetail['HandlingTask']?.toString() ?? apiModel.notesAction ?? '';
+          }
+        }
+      }
+      if (handlingTask.isEmpty) {
+        handlingTask = apiModel.notesAction ?? '';
+      }
+
+      incidentApiData = {
+        'areasDescription': apiModel.areasDescription ?? apiModel.areas?.name ?? '',
+        'areasId': apiModel.areasId ?? '',
+        'idIncidentType': apiModel.idIncidentType?.toString() ?? '0',
+        'incidentDate': apiModel.incidentDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'incidentTime': apiModel.incidentTime ?? '00:00:00',
+        'incidentDescription': apiModel.incidentDescription ?? '',
+        'reportId': apiModel.reportId ?? '',
+      };
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1144,6 +1747,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     }
 
     if (!context.mounted) return;
+    final apiData = incidentApiData;
 
     // Tampilkan dialog konfirmasi
     final confirmed = await showDialog<bool>(
@@ -1175,7 +1779,15 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
       context.read<IncidentBloc>().add(
         UpdateAllIncidentEvent(
           incidentId: incident.id,
-          picId: picId ?? '',
+          areasDescription: apiData['areasDescription']!,
+          areasId: apiData['areasId']!,
+          idIncidentType: int.parse(apiData['idIncidentType']!),
+          incidentDate: DateTime.parse(apiData['incidentDate']!),
+          incidentTime: apiData['incidentTime']!,
+          incidentDescription: apiData['incidentDescription']!,
+          reportId: apiData['reportId']!,
+          notesAction: handlingTask,
+          picId: picId,
           team: team,
           handlingTask: handlingTask,
           status: 'VERIFIED',
@@ -1200,28 +1812,57 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
 
   Future<void> _showCompleteDialog(BuildContext context, IncidentEntity incident) async {
     final datasource = getIt<IncidentRemoteDataSource>();
+    final imagePicker = ImagePicker();
     String? picId;
     List<String> team = [];
     String handlingTask = '';
+    Map<String, String>? incidentApiData;
+    File? selectedImage;
 
     // Load incident detail untuk mendapatkan data yang sudah ada
     try {
       final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
       
       picId = apiModel.picId;
-      // Team diambil dari incidentDetail jika ada
-      if (apiModel.incidentDetail != null && apiModel.incidentDetail!.isNotEmpty) {
-        team = apiModel.incidentDetail!
-            .map((detail) {
-              if (detail is Map<String, dynamic>) {
-                return detail['UserId']?.toString() ?? '';
+      // Team diambil dari Teams list
+      if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+        team = apiModel.teams!
+            .map((teamMember) {
+              if (teamMember is Map<String, dynamic>) {
+                return teamMember['UserId']?.toString() ?? '';
               }
               return '';
             })
             .where((id) => id.isNotEmpty)
             .toList();
       }
-      handlingTask = apiModel.notesAction ?? '';
+      // HandlingTask diambil dari IncidentDetail jika ada, atau dari NotesAction
+      handlingTask = '';
+      if (apiModel.incidentDetail != null) {
+        if (apiModel.incidentDetail is Map<String, dynamic>) {
+          final detail = apiModel.incidentDetail as Map<String, dynamic>;
+          handlingTask = detail['HandlingTask']?.toString() ?? apiModel.notesAction ?? '';
+        } else if (apiModel.incidentDetail is List && (apiModel.incidentDetail as List).isNotEmpty) {
+          final detailList = apiModel.incidentDetail as List;
+          final firstDetail = detailList.first;
+          if (firstDetail is Map<String, dynamic>) {
+            handlingTask = firstDetail['HandlingTask']?.toString() ?? apiModel.notesAction ?? '';
+          }
+        }
+      }
+      if (handlingTask.isEmpty) {
+        handlingTask = apiModel.notesAction ?? '';
+      }
+
+      incidentApiData = {
+        'areasDescription': apiModel.areasDescription ?? apiModel.areas?.name ?? '',
+        'areasId': apiModel.areasId ?? '',
+        'idIncidentType': apiModel.idIncidentType?.toString() ?? '0',
+        'incidentDate': apiModel.incidentDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'incidentTime': apiModel.incidentTime ?? '00:00:00',
+        'incidentDescription': apiModel.incidentDescription ?? '',
+        'reportId': apiModel.reportId ?? '',
+      };
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1235,41 +1876,176 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     }
 
     if (!context.mounted) return;
+    final apiData = incidentApiData;
 
-    // Tampilkan dialog konfirmasi
+    // Tampilkan dialog dengan form upload image
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Tandai Sebagai Selesai'),
-        content: const Text('Apakah Anda yakin ingin menandai insiden ini sebagai selesai?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Tandai Sebagai Selesai'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Apakah Anda yakin ingin menandai insiden ini sebagai selesai?'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Upload Bukti Foto (Opsional)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                if (selectedImage == null)
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final source = await showDialog<ImageSource>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Pilih Sumber Foto'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                                title: const Text('Kamera'),
+                                onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.photo_library, color: Colors.green),
+                                title: const Text('Galeri'),
+                                onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+
+                      if (source != null) {
+                        try {
+                          final XFile? image = await imagePicker.pickImage(
+                            source: source,
+                            imageQuality: 85,
+                          );
+
+                          if (image != null) {
+                            setState(() {
+                              selectedImage = File(image.path);
+                            });
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Gagal mengambil foto: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.add_photo_alternate),
+                    label: const Text('Pilih Foto'),
+                  )
+                else
+                  Column(
+                    children: [
+                      Image.file(
+                        selectedImage!,
+                        height: 150,
+                        fit: BoxFit.cover,
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            selectedImage = null;
+                          });
+                        },
+                        child: const Text('Hapus Foto'),
+                      ),
+                    ],
+                  ),
+              ],
             ),
-            child: const Text('Selesai'),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Selesai'),
+            ),
+          ],
+        ),
       ),
     );
 
     if (confirmed != true || !context.mounted) return;
+
+    // Convert image to base64 if selected
+    Map<String, dynamic>? incidentImage;
+    if (selectedImage != null) {
+      try {
+        final bytes = await selectedImage!.readAsBytes();
+        final base64Image = base64Encode(bytes);
+        final fileName = path.basename(selectedImage!.path);
+        final extension = path.extension(fileName).toLowerCase();
+        
+        String mimeType = 'image/jpeg';
+        if (extension == '.png') {
+          mimeType = 'image/png';
+        } else if (extension == '.jpg' || extension == '.jpeg') {
+          mimeType = 'image/jpeg';
+        } else if (extension == '.gif') {
+          mimeType = 'image/gif';
+        }
+
+        incidentImage = {
+          'Filename': fileName,
+          'MimeType': mimeType,
+          'Base64': base64Image,
+          'FileSize': bytes.length,
+        };
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal memproses gambar: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
 
     // Update status ke COMPLETED menggunakan updateAllIncident
     try {
       context.read<IncidentBloc>().add(
         UpdateAllIncidentEvent(
           incidentId: incident.id,
-          picId: picId ?? '',
+          areasDescription: apiData['areasDescription']!,
+          areasId: apiData['areasId']!,
+          idIncidentType: int.parse(apiData['idIncidentType']!),
+          incidentDate: DateTime.parse(apiData['incidentDate']!),
+          incidentTime: apiData['incidentTime']!,
+          incidentDescription: apiData['incidentDescription']!,
+          reportId: apiData['reportId']!,
+          notesAction: handlingTask,
+          picId: picId,
           team: team,
           handlingTask: handlingTask,
+          solvedDate: DateTime.now(),
           status: 'COMPLETED',
+          incidentImage: incidentImage,
         ),
       );
 

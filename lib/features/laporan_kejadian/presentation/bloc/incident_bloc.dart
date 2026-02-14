@@ -24,7 +24,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
   final EditIncident editIncident;
   final UpdateAllIncident updateAllIncident;
 
-  static const int pageSize = 10;
+  static const int pageSize = 50; // Increased from 10 to 50 to show more incidents
 
   IncidentBloc({
     required this.getIncidentList,
@@ -68,9 +68,10 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
     ));
 
     try {
+      // Use pageSize for consistency
       final incidents = await getIncidentList(
         start: event.start,
-        length: event.length,
+        length: event.length, // Now defaults to 50 from LoadIncidentListEvent
         searchQuery: event.searchQuery,
         status: event.status,
       );
@@ -524,13 +525,22 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
     try {
       final success = await updateAllIncident(
         incidentId: event.incidentId,
+        areasDescription: event.areasDescription,
+        areasId: event.areasId,
+        idIncidentType: event.idIncidentType,
+        incidentDate: event.incidentDate,
+        incidentTime: event.incidentTime,
+        incidentDescription: event.incidentDescription,
+        reportId: event.reportId,
+        notesAction: event.notesAction,
         picId: event.picId,
         team: event.team,
         handlingTask: event.handlingTask,
-        notes: event.notes,
-        feedback: event.feedback,
+        solvedAction: event.solvedAction,
+        solvedDate: event.solvedDate,
         evidence: event.evidence,
         status: event.status,
+        incidentImage: event.incidentImage,
       );
 
       if (success) {

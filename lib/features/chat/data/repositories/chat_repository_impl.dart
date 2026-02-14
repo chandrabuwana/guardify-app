@@ -667,11 +667,23 @@ class ChatRepositoryImpl implements ChatRepository {
         throw Exception('Current user ID not found');
       }
 
+      // Filter out empty or invalid user IDs
+      final validMemberIds = memberUserIds
+          .where((id) => id.isNotEmpty && id != currentUserId)
+          .toList();
+
       // Ensure current user is in the member list
-      final allMemberIds = <String>[...memberUserIds];
+      final allMemberIds = <String>[...validMemberIds];
       if (!allMemberIds.contains(currentUserId)) {
         allMemberIds.add(currentUserId);
       }
+
+      // Ensure we have at least 2 users (current user + at least 1 other)
+      if (allMemberIds.length < 2) {
+        throw Exception('Conversation requires at least 2 users. Current: ${allMemberIds.length}');
+      }
+
+      print('📝 Creating conversation with ${allMemberIds.length} users: $allMemberIds');
 
       final request = CreateConversationRequestModel(
         memberUserIds: allMemberIds,

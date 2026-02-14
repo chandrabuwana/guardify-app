@@ -583,16 +583,15 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   }
 
   Widget _buildMessageInput() {
-    // Get keyboard height - MediaQuery will automatically adjust when keyboard appears
-    final mediaQuery = MediaQuery.of(context);
-    final keyboardHeight = mediaQuery.viewInsets.bottom;
+    // Use SafeArea bottom padding for devices with bottom notch/bar
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     
     return Container(
       padding: EdgeInsets.only(
         left: 16.w,
         right: 16.w,
-        top: 16.h,
-        bottom: keyboardHeight > 0 ? keyboardHeight : 16.h,
+        top: 8.h,
+        bottom: bottomPadding > 0 ? bottomPadding : 8.h,
       ),
       decoration: BoxDecoration(
         color: Colors.white,

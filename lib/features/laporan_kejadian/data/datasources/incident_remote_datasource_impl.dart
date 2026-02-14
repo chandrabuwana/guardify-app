@@ -27,7 +27,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
   @override
   Future<List<IncidentModel>> getIncidentList({
     int start = 0,
-    int length = 10,
+    int length = 50, // Increased from 10 to 50
     String? searchQuery,
     String? status,
   }) async {
@@ -60,15 +60,23 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
 
       // Convert to models
       final models = <IncidentModel>[];
-      for (var apiModel in responseData.list) {
+      print('📋 DataSource: Parsing ${responseData.list.length} incidents');
+      for (var i = 0; i < responseData.list.length; i++) {
         try {
-          models.add(apiModel.toIncidentModel());
-        } catch (e) {
+          final apiModel = responseData.list[i];
+          final model = apiModel.toIncidentModel();
+          models.add(model);
+          print('✅ DataSource: Successfully parsed incident ${i + 1}/${responseData.list.length}: ${model.id}');
+        } catch (e, stackTrace) {
+          // Log error but continue processing
+          print('❌ DataSource: Error parsing incident ${i + 1}/${responseData.list.length}: $e');
+          print('❌ DataSource: Stack trace: $stackTrace');
           // Skip invalid items but continue processing
           continue;
         }
       }
       
+      print('📋 DataSource: Successfully parsed ${models.length}/${responseData.list.length} incidents');
       return models;
     } on DioException catch (e) {
       print('❌ DataSource: DioException - ${e.message}');
@@ -89,7 +97,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
   @override
   Future<List<IncidentModel>> getMyTasks({
     int start = 0,
-    int length = 10,
+    int length = 50, // Increased from 10 to 50
     String? searchQuery,
     String? status,
   }) async {
@@ -100,13 +108,14 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         throw Exception('User ID not found');
       }
 
-      // Create request with PicId filter
+      // Create request WITHOUT PicId filter - we'll filter in client side
+      // to include both PIC and team members
       final request = IncidentListRequest.initial(
         start: start,
-        length: length,
+        length: length * 2, // Get more data to account for filtering
         searchQuery: searchQuery,
         status: status,
-        picId: userId,
+        // Don't filter by picId here - filter in client side instead
       );
 
       // Call API
@@ -130,11 +139,31 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
       }
 
       // Convert to models
-      final models = responseData.list
+      final allModels = responseData.list
           .map((apiModel) => apiModel.toIncidentModel())
           .toList();
 
-      return models;
+      // Filter: Include incidents where user is PIC OR is in Teams
+      final filteredModels = allModels.where((model) {
+        // Check if user is PIC
+        if (model.picId == userId) {
+          return true;
+        }
+        
+        // Check if user is in Teams
+        if (model.incidentDetail != null && model.incidentDetail!.isNotEmpty) {
+          for (var detail in model.incidentDetail!) {
+            final teamUserId = detail['UserId']?.toString() ?? '';
+            if (teamUserId == userId) {
+              return true;
+            }
+          }
+        }
+        
+        return false;
+      }).toList();
+
+      return filteredModels;
     } on DioException catch (e) {
       if (e.response != null) {
         throw Exception(
@@ -151,9 +180,9 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     try {
       print('[IncidentRemoteDataSource] Getting incident detail for ID: $incidentId');
       
-      // Call GET /Incident/get/{id} endpoint
+      // Call GET /Incident/getAll/{id} endpoint
       final response = await _dio.get(
-        '/Incident/get/$incidentId',
+        '/Incident/getAll/$incidentId',
       );
 
       // Check response
@@ -206,9 +235,9 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
   @override
   Future<IncidentApiModel> getIncidentDetailApiModel(String incidentId) async {
     try {
-      // Call GET /Incident/get/{id} endpoint
+      // Call GET /Incident/getAll/{id} endpoint
       final response = await _dio.get(
-        '/Incident/get/$incidentId',
+        '/Incident/getAll/$incidentId',
       );
 
       // Check response
@@ -626,37 +655,68 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
   @override
   Future<bool> updateAllIncident({
     required String incidentId,
-    required String picId,
+    required String areasDescription,
+    required String areasId,
+    required int idIncidentType,
+    required DateTime incidentDate,
+    required String incidentTime,
+    required String incidentDescription,
+    required String reportId,
+    String? notesAction,
+    String? picId,
     required List<String> team,
-    required String handlingTask,
-    String? notes,
-    String? feedback,
+    String? handlingTask,
+    String? solvedAction,
+    DateTime? solvedDate,
     String? evidence,
     required String status,
+    Map<String, dynamic>? incidentImage,
   }) async {
     try {
       final requestData = <String, dynamic>{
-        'Id': incidentId,
-        'PicId': picId,
-        'Team': team,
-        'HandlingTask': handlingTask,
+        'Id': incidentId, // Add incidentId to request body
+        'AreasDescription': areasDescription,
+        'AreasId': areasId,
+        'IdIncidentType': idIncidentType,
+        'IncidentDate': incidentDate.toIso8601String(),
+        'IncidentTime': incidentTime,
+        'IncidentDescription': incidentDescription,
+        'ReportId': reportId,
         'Status': status,
+        'Team': team,
       };
 
-      if (notes != null && notes.isNotEmpty) {
-        requestData['Notes'] = notes;
+      if (notesAction != null && notesAction.isNotEmpty) {
+        requestData['NotesAction'] = notesAction;
       }
 
-      if (feedback != null && feedback.isNotEmpty) {
-        requestData['FeedBack'] = feedback;
+      if (picId != null && picId.isNotEmpty) {
+        requestData['PicId'] = picId;
+      }
+
+      if (handlingTask != null && handlingTask.isNotEmpty) {
+        requestData['HandlingTask'] = handlingTask;
+      }
+
+      if (solvedAction != null && solvedAction.isNotEmpty) {
+        requestData['SolvedAction'] = solvedAction;
+      }
+
+      if (solvedDate != null) {
+        requestData['SolvedDate'] = solvedDate.toIso8601String();
       }
 
       if (evidence != null && evidence.isNotEmpty) {
         requestData['Evidence'] = evidence;
       }
 
+      if (incidentImage != null) {
+        requestData['IncidentImage'] = incidentImage;
+      }
+
+      // Try with incidentId in URL path first, if that doesn't work, it's in body
       final response = await _dio.post(
-        '/Incident/updateall',
+        '/Incident/updateall/$incidentId',
         data: requestData,
       );
 
@@ -679,7 +739,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
       if (e.response != null) {
         final errorData = e.response!.data;
         final errorMessage = errorData['Message'] as String? ?? 
-                           errorData['message'] as String? ?? 
+                           errorData['message'] as String? ??
                            'Failed to update incident';
         throw Exception(errorMessage);
       }

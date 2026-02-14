@@ -183,24 +183,42 @@ class IncidentRepositoryImpl implements IncidentRepository {
   @override
   Future<bool> updateAllIncident({
     required String incidentId,
-    required String picId,
+    required String areasDescription,
+    required String areasId,
+    required int idIncidentType,
+    required DateTime incidentDate,
+    required String incidentTime,
+    required String incidentDescription,
+    required String reportId,
+    String? notesAction,
+    String? picId,
     required List<String> team,
-    required String handlingTask,
-    String? notes,
-    String? feedback,
+    String? handlingTask,
+    String? solvedAction,
+    DateTime? solvedDate,
     String? evidence,
     required String status,
+    Map<String, dynamic>? incidentImage,
   }) async {
     try {
       return await remoteDataSource.updateAllIncident(
         incidentId: incidentId,
+        areasDescription: areasDescription,
+        areasId: areasId,
+        idIncidentType: idIncidentType,
+        incidentDate: incidentDate,
+        incidentTime: incidentTime,
+        incidentDescription: incidentDescription,
+        reportId: reportId,
+        notesAction: notesAction,
         picId: picId,
         team: team,
         handlingTask: handlingTask,
-        notes: notes,
-        feedback: feedback,
+        solvedAction: solvedAction,
+        solvedDate: solvedDate,
         evidence: evidence,
         status: status,
+        incidentImage: incidentImage,
       );
     } catch (e) {
       throw Exception('Failed to update incident: $e');

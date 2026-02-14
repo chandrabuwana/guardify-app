@@ -95,6 +95,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     try {
       final chats = await chatRepository.getChats();
+      // Sort chats by lastMessageTimestamp descending (newest first)
+      chats.sort((a, b) {
+        final aTime = a.lastMessageTimestamp ?? a.updatedAt;
+        final bTime = b.lastMessageTimestamp ?? b.updatedAt;
+        return bTime.compareTo(aTime);
+      });
       emit(state.copyWith(
         isLoading: false,
         chats: chats,
@@ -676,6 +682,13 @@ ChatCreateConversation event,
         return chat;
       }).toList();
 
+      // Sort chats by lastMessageTimestamp descending (newest first)
+      updatedChats.sort((a, b) {
+        final aTime = a.lastMessageTimestamp ?? a.updatedAt;
+        final bTime = b.lastMessageTimestamp ?? b.updatedAt;
+        return bTime.compareTo(aTime);
+      });
+
       emit(state.copyWith(
         messages: updatedMessages,
         chats: updatedChats,
@@ -718,6 +731,13 @@ ChatCreateConversation event,
         return chat;
       }).toList();
 
+      // Sort chats by lastMessageTimestamp descending (newest first)
+      updatedChats.sort((a, b) {
+        final aTime = a.lastMessageTimestamp ?? a.updatedAt;
+        final bTime = b.lastMessageTimestamp ?? b.updatedAt;
+        return bTime.compareTo(aTime);
+      });
+
       emit(state.copyWith(
         messages: updatedMessages,
         chats: updatedChats,
@@ -744,6 +764,13 @@ ChatCreateConversation event,
         }
         return chat;
       }).toList();
+
+      // Sort chats by lastMessageTimestamp descending (newest first)
+      updatedChats.sort((a, b) {
+        final aTime = a.lastMessageTimestamp ?? a.updatedAt;
+        final bTime = b.lastMessageTimestamp ?? b.updatedAt;
+        return bTime.compareTo(aTime);
+      });
 
       emit(state.copyWith(
         chats: updatedChats,

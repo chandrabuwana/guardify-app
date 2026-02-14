@@ -5,27 +5,30 @@ class IncidentApiModel {
   final String id;
   final String? areasDescription;
   final String? areasId;
-  final AreasModel? areas;
+  final dynamic areas; // Can be String or AreasModel
   final String? createBy;
   final DateTime? createDate;
   final int? idIncidentType;
-  final IncidentTypeApiModel? incidentType;
+  final dynamic incidentType; // Can be String or IncidentTypeApiModel
   final DateTime? incidentDate;
   final String? incidentTime;
   final String? incidentDescription;
   final String? notesAction;
   final String? picId;
-  final UserModel? pic;
+  final dynamic pic; // Can be String or UserModel
+  final String? picPhoto;
   final String? pjId;
-  final UserModel? pj;
+  final dynamic pj; // Can be String or UserModel
   final String? reportId;
-  final UserModel? report;
+  final dynamic report; // Can be String or UserModel
   final String? solvedAction;
   final DateTime? solvedDate;
   final String? status;
+  final String? evidence;
   final String? updateBy;
   final DateTime? updateDate;
-  final List<dynamic>? incidentDetail;
+  final dynamic incidentDetail; // Can be Map or List
+  final List<dynamic>? teams;
 
   const IncidentApiModel({
     required this.id,
@@ -42,6 +45,7 @@ class IncidentApiModel {
     this.notesAction,
     this.picId,
     this.pic,
+    this.picPhoto,
     this.pjId,
     this.pj,
     this.reportId,
@@ -49,27 +53,84 @@ class IncidentApiModel {
     this.solvedAction,
     this.solvedDate,
     this.status,
+    this.evidence,
     this.updateBy,
     this.updateDate,
     this.incidentDetail,
+    this.teams,
   });
 
   factory IncidentApiModel.fromJson(Map<String, dynamic> json) {
+    // Handle areas - can be String or Map
+    dynamic areas;
+    if (json['Areas'] != null) {
+      if (json['Areas'] is String) {
+        areas = json['Areas'];
+      } else if (json['Areas'] is Map<String, dynamic>) {
+        areas = AreasModel.fromJson(json['Areas'] as Map<String, dynamic>);
+      }
+    }
+
+    // Handle incidentType - can be String or Map
+    dynamic incidentType;
+    if (json['IncidentType'] != null) {
+      if (json['IncidentType'] is String) {
+        incidentType = json['IncidentType'];
+      } else if (json['IncidentType'] is Map<String, dynamic>) {
+        incidentType = IncidentTypeApiModel.fromJson(json['IncidentType'] as Map<String, dynamic>);
+      }
+    }
+
+    // Handle pic - can be String or Map
+    dynamic pic;
+    if (json['Pic'] != null) {
+      if (json['Pic'] is String) {
+        pic = json['Pic'];
+      } else if (json['Pic'] is Map<String, dynamic>) {
+        pic = UserModel.fromJson(json['Pic'] as Map<String, dynamic>);
+      }
+    }
+
+    // Handle pj - can be String or Map
+    dynamic pj;
+    if (json['Pj'] != null) {
+      if (json['Pj'] is String) {
+        pj = json['Pj'];
+      } else if (json['Pj'] is Map<String, dynamic>) {
+        pj = UserModel.fromJson(json['Pj'] as Map<String, dynamic>);
+      }
+    }
+
+    // Handle report - can be String or Map
+    dynamic report;
+    if (json['Report'] != null) {
+      if (json['Report'] is String) {
+        report = json['Report'];
+      } else if (json['Report'] is Map<String, dynamic>) {
+        report = UserModel.fromJson(json['Report'] as Map<String, dynamic>);
+      }
+    }
+
+    // Handle solvedDate - can be "0001-01-01T00:00:00" which should be null
+    DateTime? solvedDate;
+    if (json['SolvedDate'] != null) {
+      final solvedDateStr = json['SolvedDate'].toString();
+      if (solvedDateStr != '0001-01-01T00:00:00' && solvedDateStr.isNotEmpty) {
+        solvedDate = DateTime.tryParse(solvedDateStr);
+      }
+    }
+
     return IncidentApiModel(
       id: json['Id']?.toString() ?? '',
       areasDescription: json['AreasDescription']?.toString(),
       areasId: json['AreasId']?.toString(),
-      areas: json['Areas'] != null
-          ? AreasModel.fromJson(json['Areas'] as Map<String, dynamic>)
-          : null,
+      areas: areas,
       createBy: json['CreateBy']?.toString(),
       createDate: json['CreateDate'] != null
           ? DateTime.tryParse(json['CreateDate'].toString())
           : null,
       idIncidentType: json['IdIncidentType'] as int?,
-      incidentType: json['IncidentType'] != null
-          ? IncidentTypeApiModel.fromJson(json['IncidentType'] as Map<String, dynamic>)
-          : null,
+      incidentType: incidentType,
       incidentDate: json['IncidentDate'] != null
           ? DateTime.tryParse(json['IncidentDate'].toString())
           : null,
@@ -77,27 +138,22 @@ class IncidentApiModel {
       incidentDescription: json['IncidentDescription']?.toString(),
       notesAction: json['NotesAction']?.toString(),
       picId: json['PicId']?.toString(),
-      pic: json['Pic'] != null
-          ? UserModel.fromJson(json['Pic'] as Map<String, dynamic>)
-          : null,
+      pic: pic,
+      picPhoto: json['PicPhoto']?.toString(),
       pjId: json['PjId']?.toString(),
-      pj: json['Pj'] != null
-          ? UserModel.fromJson(json['Pj'] as Map<String, dynamic>)
-          : null,
+      pj: pj,
       reportId: json['ReportId']?.toString(),
-      report: json['Report'] != null
-          ? UserModel.fromJson(json['Report'] as Map<String, dynamic>)
-          : null,
+      report: report,
       solvedAction: json['SolvedAction']?.toString(),
-      solvedDate: json['SolvedDate'] != null
-          ? DateTime.tryParse(json['SolvedDate'].toString())
-          : null,
+      solvedDate: solvedDate,
       status: json['Status']?.toString(),
+      evidence: json['Evidence']?.toString(),
       updateBy: json['UpdateBy']?.toString(),
       updateDate: json['UpdateDate'] != null
           ? DateTime.tryParse(json['UpdateDate'].toString())
           : null,
-      incidentDetail: json['IncidentDetail'] as List<dynamic>?,
+      incidentDetail: json['IncidentDetail'], // Can be Map or List
+      teams: json['Teams'] as List<dynamic>?,
     );
   }
 
@@ -167,8 +223,15 @@ class IncidentApiModel {
 
     // Parse incident type
     IncidentType? incidentTypeEnum;
-    if (incidentType != null && incidentType!.name != null) {
-      switch (incidentType!.name!.toLowerCase()) {
+    String? incidentTypeName;
+    if (incidentType != null && incidentType is IncidentTypeApiModel) {
+      incidentTypeName = (incidentType as IncidentTypeApiModel).name;
+    } else if (incidentType is String) {
+      incidentTypeName = incidentType;
+    }
+    
+    if (incidentTypeName != null && incidentTypeName.isNotEmpty) {
+      switch (incidentTypeName.toLowerCase()) {
         case 'keamanan':
           incidentTypeEnum = IncidentType.keamanan;
           break;
@@ -205,32 +268,108 @@ class IncidentApiModel {
     return IncidentModel(
       id: id,
       status: incidentStatus,
-      pelapor: report?.fullname,
+      pelapor: report is UserModel ? report.fullname : (report is String ? report : null),
       pelaporId: reportId,
-      namaDanton: pj?.fullname,
+      namaDanton: pj is UserModel ? pj.fullname : (pj is String ? pj : null),
       tanggalInsiden: incidentDate,
       jamInsiden: combinedDateTime ?? incidentDate,
-      lokasiInsiden: areas?.name ?? areasDescription,
+      lokasiInsiden: (areas is AreasModel ? areas.name : (areas is String ? areas : null)) ?? areasDescription,
       detailLokasiInsiden: areasDescription,
       tipeInsiden: incidentTypeEnum,
       deskripsiInsiden: incidentDescription ?? '',
-      pic: pic?.fullname,
+      pic: pic is UserModel ? pic.fullname : (pic is String ? pic : null),
       picId: picId,
       createDate: createDate,
       createBy: createBy,
       notesAction: notesAction,
       solvedAction: solvedAction,
       solvedDate: solvedDate,
-      incidentDetail: incidentDetail != null
-          ? incidentDetail!
-              .map((item) {
-                if (item is Map) {
-                  return Map<String, dynamic>.from(item);
+      incidentDetail: () {
+        // Combine IncidentDetail and Teams
+        // Prioritize Teams (which have UserName) and merge with IncidentDetail (which have detailed info)
+        final List<Map<String, dynamic>> result = [];
+        final List<Map<String, dynamic>> incidentDetailList = [];
+        
+        // Collect IncidentDetail data first
+        if (incidentDetail != null) {
+          if (incidentDetail is Map<String, dynamic>) {
+            incidentDetailList.add(Map<String, dynamic>.from(incidentDetail));
+          } else if (incidentDetail is List) {
+            for (var item in incidentDetail as List) {
+              if (item is Map) {
+                incidentDetailList.add(Map<String, dynamic>.from(item));
+              }
+            }
+          }
+        }
+        
+        // Start with Teams (which have UserName) as base
+        if (teams != null && teams!.isNotEmpty) {
+          for (var team in teams!) {
+            if (team is Map<String, dynamic>) {
+              final teamMap = Map<String, dynamic>.from(team);
+              final teamUserId = teamMap['UserId']?.toString() ?? '';
+              final teamUserName = teamMap['UserName']?.toString() ?? '';
+              
+              // Find matching IncidentDetail by UserId or UserName
+              Map<String, dynamic>? matchingDetail;
+              if (teamUserId.isNotEmpty) {
+                // Try to match by UserId first
+                try {
+                  matchingDetail = incidentDetailList.firstWhere(
+                    (item) {
+                      final itemUserId = item['UserId']?.toString() ?? '';
+                      return itemUserId.isNotEmpty && itemUserId == teamUserId;
+                    },
+                  );
+                } catch (e) {
+                  matchingDetail = null;
                 }
-                return <String, dynamic>{};
-              })
-              .toList()
-          : null,
+              }
+              
+              // If no match by UserId and we have UserName, try to match by UserName
+              if (matchingDetail == null && teamUserName.isNotEmpty) {
+                try {
+                  matchingDetail = incidentDetailList.firstWhere(
+                    (item) {
+                      final itemUserName = item['UserName']?.toString() ?? '';
+                      return itemUserName.isNotEmpty && itemUserName.toLowerCase() == teamUserName.toLowerCase();
+                    },
+                  );
+                } catch (e) {
+                  matchingDetail = null;
+                }
+              }
+              
+              // Merge: use Team data (has UserName) and add detailed info from IncidentDetail
+              final merged = Map<String, dynamic>.from(teamMap);
+              if (matchingDetail != null) {
+                // Add detailed info from IncidentDetail but keep UserName from Teams
+                merged.addAll(matchingDetail);
+                // Ensure UserName from Teams is preserved
+                if (teamMap['UserName'] != null) {
+                  merged['UserName'] = teamMap['UserName'];
+                }
+                // Ensure UserPhoto from Teams is preserved
+                if (teamMap['UserPhoto'] != null) {
+                  merged['UserPhoto'] = teamMap['UserPhoto'];
+                }
+                // Ensure UserId from IncidentDetail is preserved (if Teams doesn't have it)
+                if (teamUserId.isEmpty && matchingDetail['UserId'] != null) {
+                  merged['UserId'] = matchingDetail['UserId'];
+                }
+              }
+              
+              result.add(merged);
+            }
+          }
+        } else {
+          // If no Teams, use IncidentDetail as fallback
+          result.addAll(incidentDetailList);
+        }
+        
+        return result.isNotEmpty ? result : null;
+      }(),
     );
   }
 }

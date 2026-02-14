@@ -17,7 +17,7 @@ class LoadIncidentListEvent extends IncidentEvent {
 
   const LoadIncidentListEvent({
     this.start = 0,
-    this.length = 10,
+    this.length = 50, // Increased from 10 to 50
     this.searchQuery,
     this.status,
   });
@@ -219,35 +219,62 @@ class EditIncidentEvent extends IncidentEvent {
 // Update all incident (for PJO/Deputy to assign PIC and Team)
 class UpdateAllIncidentEvent extends IncidentEvent {
   final String incidentId;
-  final String picId;
+  final String areasDescription;
+  final String areasId;
+  final int idIncidentType;
+  final DateTime incidentDate;
+  final String incidentTime;
+  final String incidentDescription;
+  final String reportId;
+  final String? notesAction;
+  final String? picId;
   final List<String> team;
-  final String handlingTask;
-  final String? notes;
-  final String? feedback;
+  final String? handlingTask;
+  final String? solvedAction;
+  final DateTime? solvedDate;
   final String? evidence;
   final String status;
+  final Map<String, dynamic>? incidentImage;
 
   const UpdateAllIncidentEvent({
     required this.incidentId,
-    required this.picId,
+    required this.areasDescription,
+    required this.areasId,
+    required this.idIncidentType,
+    required this.incidentDate,
+    required this.incidentTime,
+    required this.incidentDescription,
+    required this.reportId,
+    this.notesAction,
+    this.picId,
     required this.team,
-    required this.handlingTask,
-    this.notes,
-    this.feedback,
+    this.handlingTask,
+    this.solvedAction,
+    this.solvedDate,
     this.evidence,
     required this.status,
+    this.incidentImage,
   });
 
   @override
   List<Object?> get props => [
         incidentId,
+        areasDescription,
+        areasId,
+        idIncidentType,
+        incidentDate,
+        incidentTime,
+        incidentDescription,
+        reportId,
+        notesAction,
         picId,
         team,
         handlingTask,
-        notes,
-        feedback,
+        solvedAction,
+        solvedDate,
         evidence,
         status,
+        incidentImage,
       ];
 }
 

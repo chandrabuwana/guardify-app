@@ -49,7 +49,7 @@ class IncidentListRequest {
     // API uses 1-based indexing, so convert 0-based to 1-based
     // Ensure start is at least 1 and length is positive
     final validStart = start < 0 ? 1 : start + 1;
-    final validLength = length <= 0 ? 10 : length;
+    final validLength = length <= 0 ? 50 : length; // Increased from 10 to 50
     
     return {
       'Filter': filter.map((f) => f.toJson()).toList(),
@@ -62,7 +62,7 @@ class IncidentListRequest {
   // Default request for initial load
   factory IncidentListRequest.initial({
     int start = 0,
-    int length = 10,
+    int length = 50, // Increased from 10 to 50
     String? searchQuery,
     String? status,
     String? picId,

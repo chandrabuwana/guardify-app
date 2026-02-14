@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,18 +22,36 @@ class ChatListPage extends StatefulWidget {
   State<ChatListPage> createState() => _ChatListPageState();
 }
 
-class _ChatListPageState extends State<ChatListPage> {
+class _ChatListPageState extends State<ChatListPage> with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearchingUsers = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     context.read<ChatBloc>().add(const ChatLoadChats());
+    // Start periodic refresh every 15 seconds to pick up new messages
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted && !_isSearchingUsers) {
+        context.read<ChatBloc>().add(const ChatLoadChats());
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Reload chat list when app comes back to foreground
+    if (state == AppLifecycleState.resumed && mounted && !_isSearchingUsers) {
+      context.read<ChatBloc>().add(const ChatLoadChats());
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -277,7 +296,12 @@ class _ChatListPageState extends State<ChatListPage> {
                   child: ChatConversationPage(chat: chat),
                 ),
               ),
-            );
+            ).then((_) {
+              // Reload chat list when returning from conversation
+              if (mounted) {
+                context.read<ChatBloc>().add(const ChatLoadChats());
+              }
+            });
           },
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -619,7 +643,12 @@ class _ChatListPageState extends State<ChatListPage> {
                       child: ChatConversationPage(chat: newChat),
                     ),
                   ),
-                );
+                ).then((_) {
+                  // Reload chat list when returning from conversation
+                  if (mounted) {
+                    context.read<ChatBloc>().add(const ChatLoadChats());
+                  }
+                });
                 
                 // Clear search
                 _searchController.clear();
