@@ -42,6 +42,26 @@ class CarriedOverTaskResponseModel {
   Map<String, dynamic> toJson() => _$CarriedOverTaskResponseModelToJson(this);
 }
 
+/// Solver Model (User information)
+@JsonSerializable()
+class SolverModel {
+  @JsonKey(name: 'Id')
+  final String? id;
+
+  @JsonKey(name: 'Fullname')
+  final String? fullname;
+
+  SolverModel({
+    this.id,
+    this.fullname,
+  });
+
+  factory SolverModel.fromJson(Map<String, dynamic> json) =>
+      _$SolverModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SolverModelToJson(this);
+}
+
 /// Item model for CarriedOverTask
 @JsonSerializable()
 class CarriedOverTaskItemModel {
@@ -75,6 +95,9 @@ class CarriedOverTaskItemModel {
   @JsonKey(name: 'SolverId')
   final String? solverId;
 
+  @JsonKey(name: 'Solver')
+  final SolverModel? solver;
+
   @JsonKey(name: 'SolverNote')
   final String? solverNote;
 
@@ -93,6 +116,9 @@ class CarriedOverTaskItemModel {
   @JsonKey(name: 'File')
   final String? file;
 
+  @JsonKey(name: 'EvidenceUrl')
+  final String? evidenceUrl;
+
   CarriedOverTaskItemModel({
     required this.id,
     required this.createBy,
@@ -104,12 +130,14 @@ class CarriedOverTaskItemModel {
     required this.reportNote,
     this.solverDate,
     this.solverId,
+    this.solver,
     this.solverNote,
     required this.status,
     this.updateBy,
     this.updateDate,
     this.location,
     this.file,
+    this.evidenceUrl,
   });
 
   factory CarriedOverTaskItemModel.fromJson(Map<String, dynamic> json) =>

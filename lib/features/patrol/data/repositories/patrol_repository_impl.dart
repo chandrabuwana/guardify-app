@@ -316,6 +316,7 @@ class PatrolRepositoryImpl implements PatrolRepository {
             filename: encodedPhoto['Filename'] as String,
             mimeType: encodedPhoto['MimeType'] as String,
             base64: encodedPhoto['Base64'] as String,
+            fileSize: encodedPhoto['FileSize'] as int?,
           );
         }
       }
@@ -382,6 +383,7 @@ class PatrolRepositoryImpl implements PatrolRepository {
         'Filename': filename,
         'MimeType': mime,
         'Base64': base64Str,
+        'FileSize': bytes.length,
       };
     } catch (_) {
       return null;
@@ -442,6 +444,7 @@ class PatrolRepositoryImpl implements PatrolRepository {
     required String idShiftDetail,
     required String device,
     required String idAreas,
+    String? photoPath,
     required double latitude,
     required String locationName,
     required double longitude,
@@ -459,6 +462,20 @@ class PatrolRepositoryImpl implements PatrolRepository {
       final finalLatitude = latitude;
       final finalLongitude = longitude;
 
+      // Build photo patroli
+      PhotoPatroliModel? photoPatroli;
+      if (photoPath != null && photoPath.isNotEmpty) {
+        final encodedPhoto = await _encodePhoto(photoPath);
+        if (encodedPhoto != null) {
+          photoPatroli = PhotoPatroliModel(
+            filename: encodedPhoto['Filename'] as String,
+            mimeType: encodedPhoto['MimeType'] as String,
+            base64: encodedPhoto['Base64'] as String,
+            fileSize: encodedPhoto['FileSize'] as int?,
+          );
+        }
+      }
+
       // Call remote data source
       final result = await remoteDataSource.insertAttendanceDetail(
         idShiftDetail: idShiftDetail,
@@ -467,6 +484,7 @@ class PatrolRepositoryImpl implements PatrolRepository {
         latitude: finalLatitude,
         locationName: locationName,
         longitude: finalLongitude,
+        photoPatroli: photoPatroli,
       );
 
       return Right(result);

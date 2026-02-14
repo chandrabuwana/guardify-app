@@ -72,12 +72,18 @@ CarriedOverTaskItemModel _$CarriedOverTaskItemModelFromJson(
           reportNote: $checkedConvert('ReportNote', (v) => v as String),
           solverDate: $checkedConvert('SolverDate', (v) => v as String?),
           solverId: $checkedConvert('SolverId', (v) => v as String?),
+          solver: $checkedConvert(
+              'Solver',
+              (v) => v == null
+                  ? null
+                  : SolverModel.fromJson(v as Map<String, dynamic>)),
           solverNote: $checkedConvert('SolverNote', (v) => v as String?),
           status: $checkedConvert('Status', (v) => v as String),
           updateBy: $checkedConvert('UpdateBy', (v) => v as String?),
           updateDate: $checkedConvert('UpdateDate', (v) => v as String?),
           location: $checkedConvert('Location', (v) => v as String?),
           file: $checkedConvert('File', (v) => v as String?),
+          evidenceUrl: $checkedConvert('EvidenceUrl', (v) => v as String?),
         );
         return val;
       },
@@ -92,12 +98,14 @@ CarriedOverTaskItemModel _$CarriedOverTaskItemModelFromJson(
         'reportNote': 'ReportNote',
         'solverDate': 'SolverDate',
         'solverId': 'SolverId',
+        'solver': 'Solver',
         'solverNote': 'SolverNote',
         'status': 'Status',
         'updateBy': 'UpdateBy',
         'updateDate': 'UpdateDate',
         'location': 'Location',
-        'file': 'File'
+        'file': 'File',
+        'evidenceUrl': 'EvidenceUrl'
       },
     );
 
@@ -114,12 +122,14 @@ Map<String, dynamic> _$CarriedOverTaskItemModelToJson(
       'ReportNote': instance.reportNote,
       'SolverDate': instance.solverDate,
       'SolverId': instance.solverId,
+      'Solver': instance.solver?.toJson(),
       'SolverNote': instance.solverNote,
       'Status': instance.status,
       'UpdateBy': instance.updateBy,
       'UpdateDate': instance.updateDate,
       'Location': instance.location,
       'File': instance.file,
+      'EvidenceUrl': instance.evidenceUrl,
     };
 
 ReportNameModel _$ReportNameModelFromJson(Map<String, dynamic> json) =>
@@ -152,4 +162,23 @@ Map<String, dynamic> _$ReportNameModelToJson(ReportNameModel instance) =>
       'Username': instance.username,
       'Email': instance.email,
       'NoNrp': instance.noNrp,
+    };
+
+SolverModel _$SolverModelFromJson(Map<String, dynamic> json) => $checkedCreate(
+      'SolverModel',
+      json,
+      ($checkedConvert) {
+        final val = SolverModel(
+          id: $checkedConvert('Id', (v) => v as String?),
+          fullname: $checkedConvert('Fullname', (v) => v as String?),
+        );
+        return val;
+      },
+      fieldKeyMap: const {'id': 'Id', 'fullname': 'Fullname'},
+    );
+
+Map<String, dynamic> _$SolverModelToJson(SolverModel instance) =>
+    <String, dynamic>{
+      'Id': instance.id,
+      'Fullname': instance.fullname,
     };

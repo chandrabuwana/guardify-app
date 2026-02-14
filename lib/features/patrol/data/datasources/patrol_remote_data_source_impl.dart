@@ -431,6 +431,7 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
     required String idShiftDetail,
     required String device,
     required String idAreas,
+    PhotoPatroliModel? photoPatroli,
     required double latitude,
     required String locationName,
     required double longitude,
@@ -451,6 +452,7 @@ class PatrolRemoteDataSourceImpl implements PatrolRemoteDataSource {
         'Latitude': latitude,
         'LocationName': locationName,
         'Longitude': longitude,
+        if (photoPatroli != null) 'PhotoPatroli': photoPatroli.toJson(),
       };
 
       final response = await apiClient.insertAttendanceDetail(request);

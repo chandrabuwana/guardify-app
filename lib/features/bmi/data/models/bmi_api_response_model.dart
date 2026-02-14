@@ -6,22 +6,22 @@ part 'bmi_api_response_model.g.dart';
 /// Response model untuk BMI List API
 @JsonSerializable()
 class BmiListResponseModel {
-  @JsonKey(name: 'Count')
+  @JsonKey(name: 'Count', defaultValue: 0)
   final int count;
 
-  @JsonKey(name: 'Filtered')
+  @JsonKey(name: 'Filtered', defaultValue: 0)
   final int filtered;
 
-  @JsonKey(name: 'List')
+  @JsonKey(name: 'List', defaultValue: <BmiDataModel>[]) 
   final List<BmiDataModel> list;
 
-  @JsonKey(name: 'Code')
+  @JsonKey(name: 'Code', defaultValue: 0)
   final int code;
 
-  @JsonKey(name: 'Succeeded')
+  @JsonKey(name: 'Succeeded', defaultValue: false)
   final bool succeeded;
 
-  @JsonKey(name: 'Message')
+  @JsonKey(name: 'Message', defaultValue: '')
   final String message;
 
   @JsonKey(name: 'Description')

@@ -1718,11 +1718,11 @@ class _AttendanceRekapEditScreenState extends State<AttendanceRekapEditScreen> {
                     ],
    
                     // Bukti Penyelesaian Tugas Lanjutan
-                    if (detail.photoCheckout?.hasPhoto == true) ...[
+                    if (detail.photoCheckoutPengamanan?.hasPhoto == true) ...[
                       16.verticalSpace,
                       _buildImageCard(
                         'Bukti Penyelesaian Tugas Lanjutan',
-                        detail.photoCheckout?.url,
+                        detail.photoCheckoutPengamanan?.url,
                       ),
                     ],
 

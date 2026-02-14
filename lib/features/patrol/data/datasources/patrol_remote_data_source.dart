@@ -49,6 +49,7 @@ abstract class PatrolRemoteDataSource {
     required String idShiftDetail,
     required String device,
     required String idAreas,
+    PhotoPatroliModel? photoPatroli,
     required double latitude,
     required String locationName,
     required double longitude,
