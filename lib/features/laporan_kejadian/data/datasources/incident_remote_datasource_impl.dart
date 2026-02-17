@@ -361,6 +361,19 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         mail: mail,
       );
 
+      // Determine initial status based on reporter role
+      // Rules:
+      // - Pelapor = Anggota/Danton -> Status = Open (menunggu)
+      // - Pelapor = PJO/Deputy/Pengawas -> Status = ACKNOWLEDGE (diterima)
+      String initialStatus = 'Open';
+      if (roleId.isNotEmpty) {
+        // Check if reporter is PJO, Deputy, or Pengawas
+        // Role IDs: PJO='PJO', DPT='DPT', PGW='PGW'
+        if (roleId == 'PJO' || roleId == 'DPT' || roleId == 'PGW') {
+          initialStatus = 'ACKNOWLEDGE';
+        }
+      }
+
       // Create request
       final request = CreateIncidentRequest(
         areasDescription: lokasiInsidenName, // Use area name instead of detail location
@@ -375,7 +388,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         reportId: reporterId,
         solvedAction: null,
         solvedDate: DateTime.now(), // Set to current date time
-        status: 'Open',
+        status: initialStatus,
         token: token,
       );
 
@@ -402,9 +415,18 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
 
         // API doesn't return incident data, so we create a minimal model
         // The actual incident will be available after refresh
+        // Determine status based on reporter role
+        IncidentStatus initialStatusModel = IncidentStatus.menunggu;
+        if (roleId.isNotEmpty) {
+          // Check if reporter is PJO, Deputy, or Pengawas
+          if (roleId == 'PJO' || roleId == 'DPT' || roleId == 'PGW') {
+            initialStatusModel = IncidentStatus.diterima;
+          }
+        }
+        
         return IncidentModel(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
-          status: IncidentStatus.menunggu,
+          status: initialStatusModel,
           deskripsiInsiden: deskripsiInsiden,
           tanggalInsiden: tanggalInsiden,
           jamInsiden: jamInsiden,
@@ -724,6 +746,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     String? picId,
     required List<String> team,
     String? handlingTask,
+    String? actionTakenNote,
     String? solvedAction,
     DateTime? solvedDate,
     String? evidence,
@@ -786,6 +809,10 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
 
       if (handlingTask != null && handlingTask.isNotEmpty) {
         requestData['HandlingTask'] = handlingTask;
+      }
+
+      if (actionTakenNote != null && actionTakenNote.isNotEmpty) {
+        requestData['ActionTakenNote'] = actionTakenNote;
       }
 
       if (solvedAction != null && solvedAction.isNotEmpty) {

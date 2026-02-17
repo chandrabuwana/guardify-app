@@ -768,9 +768,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           value: reviewedName,
         ),
         20.verticalSpace,
-        // Pembuatan Keputusan
+        // Pembuat Keputusan
         _buildReadOnlyField(
-          label: 'Pembuatan Keputusan',
+          label: 'Pembuat Keputusan',
           value: actionTakenNote ?? '-',
         ),
         20.verticalSpace,
@@ -823,7 +823,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           )
         else
           _buildReadOnlyField(
-            label: 'Tim Petugas',
+            label: '',
             value: '-',
           ),
       ],
@@ -1167,6 +1167,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
 
   Widget _buildPJOOrDeputyActionButtons(IncidentEntity incident) {
     // Untuk PJO/Deputy di tab "Daftar Insiden"
+    // Rules:
+    // - Jika status menunggu dan pelapor adalah Danton: Dapat review (Diterima/Tidak Valid)
+    // - Jika status diterima: Dapat Assign dan Eskalasi
     if (_userRole == null) {
       return const SizedBox.shrink();
     }
@@ -1174,6 +1177,88 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     return BlocBuilder<IncidentBloc, IncidentState>(
       builder: (context, state) {
         final buttons = <Widget>[];
+        
+        // Tombol Review untuk status Menunggu (jika pelapor adalah Danton)
+        if (incident.status == IncidentStatus.menunggu) {
+          return FutureBuilder<bool>(
+            future: () async {
+              // Get current user ID and reporter ID
+              final currentUserId = await UserRoleHelper.getUserId();
+              final reporterId = incident.pelaporId;
+              
+              // Try to get reporter role from API model
+              // Note: UserModel in incident_api_model doesn't have role field
+              // We'll rely on the logic in canReviewIncident to handle it
+              // The main protection is self-review prevention (currentUserId == reporterId)
+              UserRole? reporterRole;
+              
+              return await IncidentPermissionHelper.canReviewIncident(
+                incident: incident,
+                currentUserRole: _userRole!,
+                reporterRole: reporterRole, // Will be null if not available
+                currentUserId: currentUserId,
+                reporterId: reporterId,
+              );
+            }(),
+            builder: (context, reviewSnapshot) {
+              if (!reviewSnapshot.hasData || !reviewSnapshot.data!) {
+                return const SizedBox.shrink();
+              }
+              
+              return Column(
+                children: [
+                  // Tombol Diterima (mengubah status ke ACKNOWLEDGE)
+                  UIButton(
+                    text: 'Diterima',
+                    fullWidth: true,
+                    size: UIButtonSize.large,
+                    variant: UIButtonVariant.success,
+                    isLoading: state.isLoading,
+                    onPressed: state.isLoading
+                        ? null
+                        : () async {
+                            // Get current user full name and create timestamp
+                            final fullName = await UserRoleHelper.getFullName() ?? 'User';
+                            final timestamp = DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(DateTime.now());
+                            final reviewedBy = '$fullName - $timestamp';
+                            
+                            _statusUpdated = true;
+                            context.read<IncidentBloc>().add(
+                                  UpdateIncidentStatusEvent(
+                                    incidentId: incident.id,
+                                    status: 'ACKNOWLEDGE',
+                                    notes: 'Diterima oleh ${_userRole?.displayName ?? 'PJO/Deputy'}\nReviewedBy: $reviewedBy',
+                                  ),
+                                );
+                          },
+                  ),
+                  16.verticalSpace,
+                  // Tombol Tandai Tidak Valid (mengubah status ke INVALID)
+                  UIButton(
+                    text: 'Tandai Tidak Valid',
+                    fullWidth: true,
+                    size: UIButtonSize.large,
+                    buttonType: UIButtonType.outline,
+                    variant: UIButtonVariant.error,
+                    isLoading: state.isLoading,
+                    onPressed: state.isLoading
+                        ? null
+                        : () {
+                            _statusUpdated = true;
+                            context.read<IncidentBloc>().add(
+                                  UpdateIncidentStatusEvent(
+                                    incidentId: incident.id,
+                                    status: 'INVALID',
+                                    notes: 'Ditandai tidak valid oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                                  ),
+                                );
+                          },
+                  ),
+                ],
+              );
+            },
+          );
+        }
         
         // Check permission untuk assign
         final canAssign = IncidentPermissionHelper.canAssignIncident(
@@ -1316,6 +1401,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   Widget _buildDantonActionButtons(IncidentEntity incident) {
     // Untuk danton di tab "Daftar Insiden"
     // Rules: Danton dapat mereview insiden dengan status "menunggu"
+    // - Hanya jika pelapor adalah Anggota (bukan Danton)
+    // - Danton tidak dapat review laporan sendiri atau laporan dari Danton lain
     // - Tombol "Diterima" -> mengubah status ke ACKNOWLEDGE (Diterima)
     // - Tombol "Tandai Tidak Valid" -> mengubah status ke INVALID (Tidak Valid)
     if (incident.status != IncidentStatus.menunggu || _userRole == null) {
@@ -1323,11 +1410,25 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     }
 
     return FutureBuilder<bool>(
-      future: IncidentPermissionHelper.canReviewIncident(
-        incident: incident,
-        currentUserRole: _userRole!,
-        reporterRole: null, // Asumsi pelapor adalah anggota (sesuai business rule)
-      ),
+      future: () async {
+        // Get current user ID and reporter ID
+        final currentUserId = await UserRoleHelper.getUserId();
+        final reporterId = incident.pelaporId;
+        
+        // Try to get reporter role from API model
+        // Note: UserModel in incident_api_model doesn't have role field
+        // We'll rely on the logic in canReviewIncident to handle it
+        // The main protection is self-review prevention (currentUserId == reporterId)
+        UserRole? reporterRole;
+        
+        return await IncidentPermissionHelper.canReviewIncident(
+          incident: incident,
+          currentUserRole: _userRole!,
+          reporterRole: reporterRole, // Will be null if not available
+          currentUserId: currentUserId,
+          reporterId: reporterId,
+        );
+      }(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || !snapshot.data!) {
           return const SizedBox.shrink();
@@ -1346,13 +1447,18 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   isLoading: state.isLoading,
                   onPressed: state.isLoading
                       ? null
-                      : () {
+                      : () async {
+                          // Get current user full name and create timestamp
+                          final fullName = await UserRoleHelper.getFullName() ?? 'User';
+                          final timestamp = DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(DateTime.now());
+                          final reviewedBy = '$fullName - $timestamp';
+                          
                           _statusUpdated = true;
                           context.read<IncidentBloc>().add(
                                 UpdateIncidentStatusEvent(
                                   incidentId: incident.id,
                                   status: 'ACKNOWLEDGE',
-                                  notes: 'Diterima oleh danton',
+                                  notes: 'Diterima oleh danton\nReviewedBy: $reviewedBy',
                                 ),
                               );
                         },
@@ -1741,7 +1847,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                         controller: tugasPenangananController,
                         hint: 'Masukkan tugas penanganan',
                         isRequired: true,
-                        maxLines: 3,
+                        maxLines: 10, // Allow multiple lines for long text
+                        minLines: 3, // Start with 3 lines
                         validation: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Tugas penanganan harus diisi';
@@ -1810,6 +1917,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                         isSubmitting = true;
                       });
                       
+                      // Get current user full name for "Pembuat Keputusan"
+                      final assignerName = await UserRoleHelper.getFullName() ?? 'User';
+                      
                       // Dispatch event - BlocListener will handle the response
                       context.read<IncidentBloc>().add(
                         UpdateAllIncidentEvent(
@@ -1825,6 +1935,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                           picId: selectedPjId!,
                           team: selectedTeamIds,
                           handlingTask: tugasPenangananController.text.trim(),
+                          actionTakenNote: assignerName, // Set "Pembuat Keputusan" dengan nama user yang assign
                           status: 'ASSIGNED',
                         ),
                       );

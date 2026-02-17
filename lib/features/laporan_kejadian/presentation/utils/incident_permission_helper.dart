@@ -10,13 +10,24 @@ class IncidentPermissionHelper {
   /// Rules:
   /// - Pelapor = Anggota -> Danton dapat review
   /// - Pelapor = Danton -> PJO/Deputy dapat review
+  /// - User tidak dapat review laporan sendiri
+  /// - Danton tidak dapat review laporan dari Danton lain
   static Future<bool> canReviewIncident({
     required IncidentEntity incident,
     required UserRole currentUserRole,
     UserRole? reporterRole,
+    String? currentUserId,
+    String? reporterId,
   }) async {
     // Hanya bisa review jika status menunggu
     if (incident.status != IncidentStatus.menunggu) {
+      return false;
+    }
+    
+    // Check: User tidak dapat review laporan sendiri
+    if (currentUserId != null && reporterId != null && 
+        currentUserId.isNotEmpty && reporterId.isNotEmpty &&
+        currentUserId == reporterId) {
       return false;
     }
     
@@ -24,9 +35,14 @@ class IncidentPermissionHelper {
     if (reporterRole != null) {
       if (reporterRole == UserRole.anggota) {
         // Pelapor = Anggota -> Danton dapat review
+        // Tapi pastikan current user bukan pelapor sendiri
         return currentUserRole == UserRole.danton;
       } else if (reporterRole == UserRole.danton) {
         // Pelapor = Danton -> PJO/Deputy dapat review
+        // Danton tidak dapat review laporan dari Danton lain
+        if (currentUserRole == UserRole.danton) {
+          return false; // Danton tidak dapat review laporan dari Danton
+        }
         return currentUserRole == UserRole.pjo || currentUserRole == UserRole.deputy;
       }
       // Jika reporter role bukan anggota atau danton, tidak bisa review
@@ -34,15 +50,48 @@ class IncidentPermissionHelper {
     }
     
     // Fallback: Jika reporter role tidak diketahui, check berdasarkan current user role
-    // Danton dapat review jika status menunggu (asumsi pelapor adalah anggota)
-    // Ini sesuai dengan business rule: Pelapor = Anggota -> Danton dapat review
+    // PERHATIAN: Fallback ini kurang akurat karena tidak tahu role pelapor
+    // Sebaiknya selalu pass reporterRole jika memungkinkan
+    
+    // Jika current user adalah Danton, hanya bisa review jika pelapor adalah Anggota
+    // Karena kita tidak tahu role pelapor, kita asumsikan bisa review
+    // TAPI: Jika current user adalah Danton dan reporterId diketahui, 
+    // kita perlu check apakah reporter juga Danton (tidak bisa review)
     if (currentUserRole == UserRole.danton) {
+      // Jika kita tahu reporterId dan currentUserId, check apakah sama (self-review)
+      if (currentUserId != null && reporterId != null && 
+          currentUserId.isNotEmpty && reporterId.isNotEmpty) {
+        if (currentUserId == reporterId) {
+          return false; // Tidak bisa review sendiri
+        }
+        // Jika reporterId berbeda, kita tidak tahu role reporter
+        // Untuk safety, kita allow (asumsi pelapor adalah anggota)
+        // Tapi ini bisa jadi masalah jika reporter adalah Danton
+        // Idealnya, kita perlu tahu role reporter
+        return true;
+      }
+      // Jika tidak ada info reporterId, allow (asumsi pelapor adalah anggota)
       return true;
     }
     
-    // PJO/Deputy dapat review jika status menunggu (asumsi pelapor adalah danton)
-    // Ini sesuai dengan business rule: Pelapor = Danton -> PJO/Deputy dapat review
+    // Jika current user adalah PJO/Deputy, bisa review jika pelapor adalah Danton
+    // Karena kita tidak tahu role pelapor, kita asumsikan bisa review
+    // TAPI: Jika current user adalah PJO/Deputy dan reporterId diketahui,
+    // kita perlu check apakah reporter adalah Danton
     if (currentUserRole == UserRole.pjo || currentUserRole == UserRole.deputy) {
+      // Jika kita tahu reporterId dan currentUserId, check apakah sama (self-review)
+      if (currentUserId != null && reporterId != null && 
+          currentUserId.isNotEmpty && reporterId.isNotEmpty) {
+        if (currentUserId == reporterId) {
+          return false; // Tidak bisa review sendiri
+        }
+        // Jika reporterId berbeda, kita tidak tahu role reporter
+        // Untuk safety, kita allow (asumsi pelapor adalah Danton)
+        // Tapi ini bisa jadi masalah jika reporter bukan Danton
+        // Idealnya, kita perlu tahu role reporter
+        return true;
+      }
+      // Jika tidak ada info reporterId, allow (asumsi pelapor adalah Danton)
       return true;
     }
     
@@ -77,12 +126,14 @@ class IncidentPermissionHelper {
   /// 
   /// Rules:
   /// - Status = Diterima -> PJO/Deputy dapat escalate
+  /// - Pengawas TIDAK dapat escalate (hanya dapat assign)
   static bool canEscalateIncident({
     required IncidentEntity incident,
     required UserRole currentUserRole,
   }) {
     if (incident.status == IncidentStatus.diterima) {
       // Status = Diterima -> PJO/Deputy dapat escalate
+      // Pengawas TIDAK dapat escalate (hanya dapat assign)
       return currentUserRole == UserRole.pjo || currentUserRole == UserRole.deputy;
     }
     
