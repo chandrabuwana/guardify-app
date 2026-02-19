@@ -89,8 +89,14 @@ class CreateIncidentRequest {
   @JsonKey(name: 'Status')
   final String status;
 
+  @JsonKey(name: 'Evidence')
+  final String? evidence;
+
   @JsonKey(name: 'Token', includeToJson: false, includeFromJson: false)
   final TokenModel? token;
+
+  @JsonKey(name: 'IncidentImage', includeToJson: false, includeFromJson: false)
+  final Map<String, dynamic>? incidentImage;
 
   CreateIncidentRequest({
     required this.areasDescription,
@@ -106,7 +112,9 @@ class CreateIncidentRequest {
     this.solvedAction,
     this.solvedDate,
     required this.status,
+    this.evidence,
     this.token,
+    this.incidentImage,
   });
 
   factory CreateIncidentRequest.fromJson(Map<String, dynamic> json) =>
@@ -117,6 +125,10 @@ class CreateIncidentRequest {
     // Manually add Token if it exists
     if (token != null) {
       json['Token'] = token!.toJson();
+    }
+    // Manually add IncidentImage if it exists
+    if (incidentImage != null) {
+      json['IncidentImage'] = incidentImage;
     }
     return json;
   }

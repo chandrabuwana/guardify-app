@@ -31,21 +31,33 @@ class IncidentPermissionHelper {
       return false;
     }
     
+    // Get reporter role from incident if not provided
+    UserRole? actualReporterRole = reporterRole;
+    if (actualReporterRole == null && incident.reporterRole != null && incident.reporterRole!.isNotEmpty) {
+      actualReporterRole = UserRole.fromValue(incident.reporterRole!);
+    }
+    
     // Jika reporter role diketahui, check berdasarkan rules
-    if (reporterRole != null) {
-      if (reporterRole == UserRole.anggota) {
+    if (actualReporterRole != null) {
+      if (actualReporterRole == UserRole.anggota) {
         // Pelapor = Anggota -> Danton dapat review
         // Tapi pastikan current user bukan pelapor sendiri
         return currentUserRole == UserRole.danton;
-      } else if (reporterRole == UserRole.danton) {
+      } else if (actualReporterRole == UserRole.danton) {
         // Pelapor = Danton -> PJO/Deputy dapat review
         // Danton tidak dapat review laporan dari Danton lain
         if (currentUserRole == UserRole.danton) {
           return false; // Danton tidak dapat review laporan dari Danton
         }
         return currentUserRole == UserRole.pjo || currentUserRole == UserRole.deputy;
+      } else if (actualReporterRole == UserRole.pjo || 
+                 actualReporterRole == UserRole.deputy || 
+                 actualReporterRole == UserRole.pengawas) {
+        // Pelapor = PJO/Deputy/Pengawas -> Status langsung Diterima (tidak menunggu)
+        // Tidak perlu review, jadi tidak ada yang bisa review
+        return false;
       }
-      // Jika reporter role bukan anggota atau danton, tidak bisa review
+      // Jika reporter role tidak dikenal, tidak bisa review
       return false;
     }
     

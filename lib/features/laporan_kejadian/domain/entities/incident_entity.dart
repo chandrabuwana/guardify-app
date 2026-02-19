@@ -24,6 +24,7 @@ class IncidentEntity extends Equatable {
   final IncidentStatus status;
   final String? pelapor; // Reporter name
   final String? pelaporId; // Reporter ID
+  final String? reporterRole; // Reporter role (from Roles field in API)
   final String? namaDanton; // Danton name
   final DateTime? tanggalInsiden; // Incident date
   final DateTime? jamInsiden; // Incident time
@@ -48,6 +49,7 @@ class IncidentEntity extends Equatable {
     required this.status,
     this.pelapor,
     this.pelaporId,
+    this.reporterRole,
     this.namaDanton,
     this.tanggalInsiden,
     this.jamInsiden,
@@ -139,6 +141,7 @@ class IncidentEntity extends Equatable {
     IncidentStatus? status,
     String? pelapor,
     String? pelaporId,
+    String? reporterRole,
     String? namaDanton,
     DateTime? tanggalInsiden,
     DateTime? jamInsiden,
@@ -190,6 +193,7 @@ class IncidentEntity extends Equatable {
         status,
         pelapor,
         pelaporId,
+        reporterRole,
         namaDanton,
         tanggalInsiden,
         jamInsiden,

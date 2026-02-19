@@ -1,6 +1,31 @@
 import '../../domain/entities/incident_entity.dart';
 import 'incident_model.dart';
 
+/// Role model untuk Roles dari API response
+class RoleModel {
+  final String id;
+  final String nama;
+
+  const RoleModel({
+    required this.id,
+    required this.nama,
+  });
+
+  factory RoleModel.fromJson(Map<String, dynamic> json) {
+    return RoleModel(
+      id: json['Id']?.toString() ?? '',
+      nama: json['Nama']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'Id': id,
+      'Nama': nama,
+    };
+  }
+}
+
 class IncidentApiModel {
   final String id;
   final String? areasDescription;
@@ -29,6 +54,7 @@ class IncidentApiModel {
   final DateTime? updateDate;
   final dynamic incidentDetail; // Can be Map or List
   final List<dynamic>? teams;
+  final List<RoleModel>? roles; // Roles dari pelapor (Reporter)
 
   const IncidentApiModel({
     required this.id,
@@ -58,6 +84,7 @@ class IncidentApiModel {
     this.updateDate,
     this.incidentDetail,
     this.teams,
+    this.roles,
   });
 
   factory IncidentApiModel.fromJson(Map<String, dynamic> json) {
@@ -154,6 +181,11 @@ class IncidentApiModel {
           : null,
       incidentDetail: json['IncidentDetail'], // Can be Map or List
       teams: json['Teams'] as List<dynamic>?,
+      roles: json['Roles'] != null
+          ? (json['Roles'] as List)
+              .map((r) => RoleModel.fromJson(r as Map<String, dynamic>))
+              .toList()
+          : null,
     );
   }
 
@@ -183,6 +215,7 @@ class IncidentApiModel {
       'UpdateBy': updateBy,
       'UpdateDate': updateDate?.toIso8601String(),
       'IncidentDetail': incidentDetail,
+      'Roles': roles?.map((r) => r.toJson()).toList(),
     };
   }
 
@@ -537,4 +570,3 @@ class UserModel {
     };
   }
 }
-

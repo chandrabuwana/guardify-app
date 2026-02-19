@@ -525,6 +525,14 @@ class _IncidentListPageState extends State<IncidentListPage>
               // Tipe Insiden
               _buildInfoRow('Tipe Insiden', incident.tipeInsidenDisplayName),
               8.verticalSpace,
+              // Role Pelapor
+              _buildInfoRow(
+                'Role Pelapor',
+                incident.reporterRole != null && incident.reporterRole!.isNotEmpty
+                    ? UserRole.fromValue(incident.reporterRole!).displayName
+                    : '-',
+              ),
+              8.verticalSpace,
               // Lokasi
               _buildInfoRow('Lokasi', incident.lokasiInsiden ?? '-'),
               8.verticalSpace,

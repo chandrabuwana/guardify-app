@@ -449,7 +449,11 @@ class _PhotoPickerFieldState extends State<PhotoPickerField> {
           ],
 
           // Add Photo Button
-          if (!widget.multiple || widget.photos.length < widget.maxPhotos)
+          // Show button only if:
+          // - multiple is false and no photos yet, OR
+          // - multiple is true and photos count < maxPhotos
+          if ((!widget.multiple && widget.photos.isEmpty) || 
+              (widget.multiple && widget.photos.length < widget.maxPhotos))
             GestureDetector(
               onTap: _showPhotoOptions,
               child: Container(

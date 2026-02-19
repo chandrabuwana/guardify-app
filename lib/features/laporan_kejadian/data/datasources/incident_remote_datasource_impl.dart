@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:convert';
+import 'package:path/path.dart' as path;
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -10,8 +13,8 @@ import '../models/incident_list_response.dart';
 import '../models/incident_detail_response.dart';
 import '../models/incident_type_list_api_response.dart';
 import '../models/create_incident_request.dart';
-import '../models/edit_incident_request.dart';
-import '../models/incident_api_model.dart';
+import '../models/incident_api_model.dart' hide RoleModel;
+import '../models/update_all_incident_request.dart';
 import '../../../bmi/data/models/bmi_api_response_model.dart' as bmi_models;
 import '../../domain/entities/incident_entity.dart';
 import '../../../patrol/data/models/area_list_api_response.dart';
@@ -374,9 +377,47 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         }
       }
 
+      // Process incident image if provided
+      Map<String, dynamic>? incidentImage;
+      if (fotoInsiden != null && fotoInsiden.isNotEmpty) {
+        try {
+          final imageFile = File(fotoInsiden);
+          if (await imageFile.exists()) {
+            final bytes = await imageFile.readAsBytes();
+            final base64Image = base64Encode(bytes);
+            final fileName = path.basename(imageFile.path);
+            final extension = path.extension(fileName).toLowerCase();
+            
+            // Determine MIME type from extension
+            String mimeType = 'image/jpeg';
+            if (extension == '.png') {
+              mimeType = 'image/png';
+            } else if (extension == '.jpg' || extension == '.jpeg') {
+              mimeType = 'image/jpeg';
+            } else if (extension == '.gif') {
+              mimeType = 'image/gif';
+            } else if (extension == '.webp') {
+              mimeType = 'image/webp';
+            } else if (extension == '.bmp') {
+              mimeType = 'image/bmp';
+            }
+
+            incidentImage = {
+              'Filename': fileName,
+              'MimeType': mimeType,
+              'Base64': base64Image,
+              'FileSize': bytes.length,
+            };
+          }
+        } catch (e) {
+          // Log error but don't fail the request if image processing fails
+          print('Warning: Failed to process incident image: $e');
+        }
+      }
+
       // Create request
       final request = CreateIncidentRequest(
-        areasDescription: lokasiInsidenName, // Use area name instead of detail location
+        areasDescription: detailLokasiInsiden, // Use detail location from form field
         areasId: lokasiInsidenId,
         idIncidentType: idIncidentType,
         incidentDate: tanggalInsiden,
@@ -389,7 +430,9 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         solvedAction: null,
         solvedDate: DateTime.now(), // Set to current date time
         status: initialStatus,
+        evidence: null, // Evidence is typically empty for new incidents
         token: token,
+        incidentImage: incidentImage,
       );
 
       // Call API
@@ -571,50 +614,46 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     Map<String, dynamic>? file,
   }) async {
     try {
-      final requestData = <String, dynamic>{
-        'Id': incidentId,
-        'Status': status,
-      };
-
-      if (notes != null && notes.isNotEmpty) {
-        requestData['Notes'] = notes;
+      // Get current incident data first
+      final apiModel = await getIncidentDetailApiModel(incidentId);
+      
+      // Get team from existing data
+      List<String> team = [];
+      if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+        team = apiModel.teams!
+            .map((teamMember) {
+              if (teamMember is Map<String, dynamic>) {
+                return teamMember['UserId']?.toString() ?? '';
+              }
+              return '';
+            })
+            .where((id) => id.isNotEmpty)
+            .toList();
       }
 
-      if (file != null) {
-        requestData['File'] = file;
-      }
-
-      final response = await _dio.post(
-        '/Incident/update',
-        data: requestData,
+      // Use updateAllIncident method
+      return await updateAllIncident(
+        incidentId: incidentId,
+        areasDescription: apiModel.areasDescription ?? '',
+        areasId: apiModel.areasId ?? '',
+        idIncidentType: apiModel.idIncidentType ?? 0,
+        incidentDate: apiModel.incidentDate ?? DateTime.now(),
+        incidentTime: apiModel.incidentTime ?? '00:00:00',
+        incidentDescription: apiModel.incidentDescription ?? '',
+        reportId: apiModel.reportId ?? '',
+        notesAction: notes ?? apiModel.notesAction,
+        picId: apiModel.picId,
+        team: team,
+        handlingTask: null,
+        actionTakenNote: null,
+        solvedAction: null,
+        solvedDate: null,
+        evidence: null,
+        status: status,
+        incidentImage: file,
       );
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to update incident: ${response.statusMessage}');
-      }
-
-      final responseData = response.data;
-      if (responseData is Map<String, dynamic>) {
-        final succeeded = responseData['Succeeded'] as bool? ?? false;
-        if (!succeeded) {
-          final message = responseData['Message'] as String? ?? 'Failed to update incident';
-          throw Exception(message);
-        }
-        return true;
-      }
-
-      throw Exception('Invalid response format');
-    } on DioException catch (e) {
-      if (e.response != null) {
-        final errorData = e.response!.data;
-        final errorMessage = errorData['Message'] as String? ?? 
-                           errorData['message'] as String? ?? 
-                           'Failed to update incident';
-        throw Exception(errorMessage);
-      }
-      throw Exception('Network error: ${e.message}');
     } catch (e) {
-      throw Exception('Failed to update incident: $e');
+      throw Exception('Failed to update incident status: $e');
     }
   }
 
@@ -636,51 +675,44 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     required String status,
   }) async {
     try {
-      final request = EditIncidentRequest(
+      // Get current incident data to preserve team
+      final apiModel = await getIncidentDetailApiModel(incidentId);
+      
+      // Get team from existing data
+      List<String> team = [];
+      if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+        team = apiModel.teams!
+            .map((teamMember) {
+              if (teamMember is Map<String, dynamic>) {
+                return teamMember['UserId']?.toString() ?? '';
+              }
+              return '';
+            })
+            .where((id) => id.isNotEmpty)
+            .toList();
+      }
+
+      // Use updateAllIncident method
+      return await updateAllIncident(
+        incidentId: incidentId,
         areasDescription: areasDescription,
         areasId: areasId,
         idIncidentType: idIncidentType,
         incidentDate: incidentDate,
         incidentTime: incidentTime,
         incidentDescription: incidentDescription,
+        reportId: reportId,
         notesAction: notesAction,
         picId: picId,
-        pjId: pjId,
-        reportId: reportId,
+        team: team,
+        handlingTask: null,
+        actionTakenNote: null,
         solvedAction: solvedAction,
         solvedDate: solvedDate,
+        evidence: null,
         status: status,
+        incidentImage: null,
       );
-
-      final response = await _dio.put(
-        '/Incident/edit/$incidentId',
-        data: request.toJson(),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to edit incident: ${response.statusMessage}');
-      }
-
-      final responseData = response.data;
-      if (responseData is Map<String, dynamic>) {
-        final succeeded = responseData['Succeeded'] as bool? ?? false;
-        if (!succeeded) {
-          final message = responseData['Message'] as String? ?? 'Failed to edit incident';
-          throw Exception(message);
-        }
-        return true;
-      }
-
-      throw Exception('Invalid response format');
-    } on DioException catch (e) {
-      if (e.response != null) {
-        final errorData = e.response!.data;
-        final errorMessage = errorData['Message'] as String? ?? 
-                           errorData['message'] as String? ?? 
-                           'Failed to edit incident';
-        throw Exception(errorMessage);
-      }
-      throw Exception('Network error: ${e.message}');
     } catch (e) {
       throw Exception('Failed to edit incident: $e');
     }
@@ -776,109 +808,83 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         mail: mail,
       );
 
-      // Build request data - ensure all required fields are included
-      final requestData = <String, dynamic>{
-        'Id': incidentId,
-        'AreasDescription': areasDescription,
-        'AreasId': areasId,
-        'IdIncidentType': idIncidentType,
-        'IncidentDate': incidentDate.toIso8601String(),
-        'IncidentTime': incidentTime,
-        'IncidentDescription': incidentDescription,
-        'ReportId': reportId,
-        'Status': status,
-        'Token': token.toJson(), // Add Token payload
-      };
-
-      // Add optional fields only if they have values
-      if (notesAction != null && notesAction.isNotEmpty) {
-        requestData['NotesAction'] = notesAction;
-      }
-
-      if (picId != null && picId.isNotEmpty) {
-        requestData['PicId'] = picId;
-      }
-
-      // Team is required, ensure it's always included
-      if (team.isNotEmpty) {
-        requestData['Team'] = team;
-      } else {
-        // If team is empty, send empty array
-        requestData['Team'] = <String>[];
-      }
-
-      if (handlingTask != null && handlingTask.isNotEmpty) {
-        requestData['HandlingTask'] = handlingTask;
-      }
-
-      if (actionTakenNote != null && actionTakenNote.isNotEmpty) {
-        requestData['ActionTakenNote'] = actionTakenNote;
-      }
-
-      if (solvedAction != null && solvedAction.isNotEmpty) {
-        requestData['SolvedAction'] = solvedAction;
-      }
-
-      if (solvedDate != null) {
-        requestData['SolvedDate'] = solvedDate.toIso8601String();
-      }
-
+      // Convert evidence string to EvidenceModel if provided
+      EvidenceModel? evidenceModel;
       if (evidence != null && evidence.isNotEmpty) {
-        requestData['Evidence'] = evidence;
+        // If evidence is a URL string, we can't convert it to EvidenceModel
+        // Only convert if it's already a Map
+        // For now, we'll skip evidence if it's a string URL
       }
 
+      // Convert incidentImage to EvidenceModel if provided
       if (incidentImage != null) {
-        requestData['IncidentImage'] = incidentImage;
+        evidenceModel = EvidenceModel.fromMap(incidentImage);
       }
 
-      // Try different endpoint patterns based on common API patterns
-      // Pattern 1: POST /Incident/updateall (ID in body)
-      // Pattern 2: POST /Incident/updateall/{id} (ID in path)
-      // Pattern 3: PUT /Incident/updateall/{id} (ID in path, PUT method)
-      Response response;
+      // Determine fields based on status and action
+      String? completedBy;
+      DateTime? incidentCompletionDate;
+      String? verifiedBy;
+      DateTime? verifiedDate;
+      String? reviewedBy;
+      DateTime? reviewedDate;
       
-      // Try Pattern 1: POST without ID in path
-      try {
-        response = await _dio.post(
-          '/Incident/updateall',
-          data: requestData,
-        );
-        if (response.statusCode != 200) {
-          throw DioException(
-            requestOptions: response.requestOptions,
-            response: response,
-            type: DioExceptionType.badResponse,
-          );
-        }
-      } on DioException {
-        // Try Pattern 2: POST with ID in path
-        try {
-          response = await _dio.post(
-            '/Incident/updateall/$incidentId',
-            data: requestData,
-          );
-          if (response.statusCode != 200) {
-            throw DioException(
-              requestOptions: response.requestOptions,
-              response: response,
-              type: DioExceptionType.badResponse,
-            );
-          }
-        } on DioException {
-          // Try Pattern 3: PUT with ID in path
-          response = await _dio.put(
-            '/Incident/updateall/$incidentId',
-            data: requestData,
-          );
-          if (response.statusCode != 200) {
-            throw DioException(
-              requestOptions: response.requestOptions,
-              response: response,
-              type: DioExceptionType.badResponse,
-            );
-          }
-        }
+      if (status == 'COMPLETED') {
+        completedBy = userId;
+        incidentCompletionDate = DateTime.now();
+      } else if (status == 'VERIFIED') {
+        verifiedBy = userId;
+        verifiedDate = DateTime.now();
+      } else if (status == 'ACKNOWLEDGE' || status == 'INVALID') {
+        // ReviewedBy harus menggunakan user ID yang login (GUID), bukan nama
+        reviewedBy = userId.isNotEmpty ? userId : null;
+        reviewedDate = DateTime.now();
       }
+
+      // Get createDate from response /incident/getall
+      DateTime? createDateFromResponse;
+      try {
+        final apiModel = await getIncidentDetailApiModel(incidentId);
+        createDateFromResponse = apiModel.createDate;
+      } catch (e) {
+        // If error getting incident detail, createDate will be null (field will be omitted)
+      }
+
+      // Create request using UpdateAllIncidentRequest model
+      final request = UpdateAllIncidentRequest(
+        id: incidentId,
+        areasDescription: areasDescription,
+        areasId: areasId,
+        idIncidentType: idIncidentType,
+        incidentDate: incidentDate,
+        incidentTime: incidentTime,
+        incidentDescription: incidentDescription,
+        reportId: reportId,
+        picId: picId,
+        team: team,
+        handlingTask: handlingTask,
+        notes: notesAction ?? actionTakenNote,
+        feedBack: null, // FeedBack can be added later if needed
+        evidence: evidenceModel,
+        status: status,
+        solvedAction: solvedAction,
+        solvedDate: solvedDate,
+        incidentCompletionDate: incidentCompletionDate,
+        completedBy: completedBy,
+        verifiedBy: verifiedBy,
+        verifiedDate: verifiedDate,
+        reviewedBy: reviewedBy,
+        reviewedDate: reviewedDate,
+        supervisorFeedback: null, // Can be added later if needed
+        createDate: createDateFromResponse, // Ambil dari response /incident/getall
+        token: token,
+      );
+
+      // Call API using POST /Incident/updateall
+      final response = await _dio.post(
+        '/Incident/updateall',
+        data: request.toJson(),
+      );
 
       if (response.statusCode != 200) {
         throw Exception('Failed to update incident: ${response.statusMessage}');

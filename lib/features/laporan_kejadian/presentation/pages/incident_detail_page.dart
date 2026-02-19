@@ -466,17 +466,14 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   }
 
   String _getVerifiedDate(IncidentEntity incident) {
-    // Tanggal Verifikasi = SolvedDate
-    if (incident.solvedDate != null) {
-      return DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(incident.solvedDate!);
-    }
-    final solvedDate = _getFirstIncidentDetailValue(incident, 'SolvedDate');
-    if (solvedDate != null && solvedDate.isNotEmpty) {
+    // Tanggal Verifikasi = VerifiedDate dari IncidentDetail
+    final verifiedDate = _getFirstIncidentDetailValue(incident, 'VerifiedDate');
+    if (verifiedDate != null && verifiedDate.isNotEmpty) {
       try {
-        final dateTime = DateTime.parse(solvedDate);
+        final dateTime = DateTime.parse(verifiedDate);
         return DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(dateTime);
       } catch (e) {
-        return solvedDate;
+        return verifiedDate;
       }
     }
     return '-';
@@ -1169,7 +1166,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     // Untuk PJO/Deputy di tab "Daftar Insiden"
     // Rules:
     // - Jika status menunggu dan pelapor adalah Danton: Dapat review (Diterima/Tidak Valid)
-    // - Jika status diterima: Dapat Assign dan Eskalasi
+    // - Jika status diterima (setelah danton review): Dapat Assign PIC dan Tim, serta Eskalasi
+    //   * Setelah danton review dan accept, PJO/Deputy akan assign PIC dan tim melalui dialog assign
     if (_userRole == null) {
       return const SizedBox.shrink();
     }
@@ -1217,19 +1215,55 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                     onPressed: state.isLoading
                         ? null
                         : () async {
-                            // Get current user full name and create timestamp
-                            final fullName = await UserRoleHelper.getFullName() ?? 'User';
-                            final timestamp = DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(DateTime.now());
-                            final reviewedBy = '$fullName - $timestamp';
-                            
-                            _statusUpdated = true;
-                            context.read<IncidentBloc>().add(
-                                  UpdateIncidentStatusEvent(
-                                    incidentId: incident.id,
-                                    status: 'ACKNOWLEDGE',
-                                    notes: 'Diterima oleh ${_userRole?.displayName ?? 'PJO/Deputy'}\nReviewedBy: $reviewedBy',
+                            // Get incident detail untuk mendapatkan semua field yang diperlukan
+                            try {
+                              final datasource = getIt<IncidentRemoteDataSource>();
+                              final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+                              
+                              // Get team from existing data
+                              List<String> team = [];
+                              if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+                                team = apiModel.teams!
+                                    .map((teamMember) {
+                                      if (teamMember is Map<String, dynamic>) {
+                                        return teamMember['UserId']?.toString() ?? '';
+                                      }
+                                      return '';
+                                    })
+                                    .where((id) => id.isNotEmpty)
+                                    .toList();
+                              }
+                              
+                              _statusUpdated = true;
+                              context.read<IncidentBloc>().add(
+                                    UpdateAllIncidentEvent(
+                                      incidentId: incident.id,
+                                      areasDescription: apiModel.areasDescription ?? '',
+                                      areasId: apiModel.areasId ?? '',
+                                      idIncidentType: apiModel.idIncidentType ?? 0,
+                                      incidentDate: apiModel.incidentDate ?? DateTime.now(),
+                                      incidentTime: apiModel.incidentTime ?? '00:00:00',
+                                      incidentDescription: apiModel.incidentDescription ?? '',
+                                      reportId: apiModel.reportId ?? '',
+                                      notesAction: apiModel.notesAction ?? 'Diterima oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                                      picId: apiModel.picId,
+                                      team: team,
+                                      solvedAction: apiModel.solvedAction,
+                                      solvedDate: apiModel.solvedDate,
+                                      evidence: apiModel.evidence,
+                                      status: 'ACKNOWLEDGE',
+                                    ),
+                                  );
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Gagal memuat data: ${e.toString()}'),
+                                    backgroundColor: Colors.red,
                                   ),
                                 );
+                              }
+                            }
                           },
                   ),
                   16.verticalSpace,
@@ -1243,15 +1277,56 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                     isLoading: state.isLoading,
                     onPressed: state.isLoading
                         ? null
-                        : () {
-                            _statusUpdated = true;
-                            context.read<IncidentBloc>().add(
-                                  UpdateIncidentStatusEvent(
-                                    incidentId: incident.id,
-                                    status: 'INVALID',
-                                    notes: 'Ditandai tidak valid oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                        : () async {
+                            // Get incident detail untuk mendapatkan semua field yang diperlukan
+                            try {
+                              final datasource = getIt<IncidentRemoteDataSource>();
+                              final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+                              
+                              // Get team from existing data
+                              List<String> team = [];
+                              if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+                                team = apiModel.teams!
+                                    .map((teamMember) {
+                                      if (teamMember is Map<String, dynamic>) {
+                                        return teamMember['UserId']?.toString() ?? '';
+                                      }
+                                      return '';
+                                    })
+                                    .where((id) => id.isNotEmpty)
+                                    .toList();
+                              }
+                              
+                              _statusUpdated = true;
+                              context.read<IncidentBloc>().add(
+                                    UpdateAllIncidentEvent(
+                                      incidentId: incident.id,
+                                      areasDescription: apiModel.areasDescription ?? '',
+                                      areasId: apiModel.areasId ?? '',
+                                      idIncidentType: apiModel.idIncidentType ?? 0,
+                                      incidentDate: apiModel.incidentDate ?? DateTime.now(),
+                                      incidentTime: apiModel.incidentTime ?? '00:00:00',
+                                      incidentDescription: apiModel.incidentDescription ?? '',
+                                      reportId: apiModel.reportId ?? '',
+                                      notesAction: apiModel.notesAction ?? 'Ditandai tidak valid oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                                      picId: apiModel.picId,
+                                      team: team,
+                                      solvedAction: apiModel.solvedAction,
+                                      solvedDate: apiModel.solvedDate,
+                                      evidence: apiModel.evidence,
+                                      status: 'INVALID',
+                                    ),
+                                  );
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Gagal memuat data: ${e.toString()}'),
+                                    backgroundColor: Colors.red,
                                   ),
                                 );
+                              }
+                            }
                           },
                   ),
                 ],
@@ -1448,19 +1523,55 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   onPressed: state.isLoading
                       ? null
                       : () async {
-                          // Get current user full name and create timestamp
-                          final fullName = await UserRoleHelper.getFullName() ?? 'User';
-                          final timestamp = DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(DateTime.now());
-                          final reviewedBy = '$fullName - $timestamp';
-                          
-                          _statusUpdated = true;
-                          context.read<IncidentBloc>().add(
-                                UpdateIncidentStatusEvent(
-                                  incidentId: incident.id,
-                                  status: 'ACKNOWLEDGE',
-                                  notes: 'Diterima oleh danton\nReviewedBy: $reviewedBy',
+                          // Get incident detail untuk mendapatkan semua field yang diperlukan
+                          try {
+                            final datasource = getIt<IncidentRemoteDataSource>();
+                            final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+                            
+                            // Get team from existing data
+                            List<String> team = [];
+                            if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+                              team = apiModel.teams!
+                                  .map((teamMember) {
+                                    if (teamMember is Map<String, dynamic>) {
+                                      return teamMember['UserId']?.toString() ?? '';
+                                    }
+                                    return '';
+                                  })
+                                  .where((id) => id.isNotEmpty)
+                                  .toList();
+                            }
+                            
+                            _statusUpdated = true;
+                            context.read<IncidentBloc>().add(
+                                  UpdateAllIncidentEvent(
+                                    incidentId: incident.id,
+                                    areasDescription: apiModel.areasDescription ?? '',
+                                    areasId: apiModel.areasId ?? '',
+                                    idIncidentType: apiModel.idIncidentType ?? 0,
+                                    incidentDate: apiModel.incidentDate ?? DateTime.now(),
+                                    incidentTime: apiModel.incidentTime ?? '00:00:00',
+                                    incidentDescription: apiModel.incidentDescription ?? '',
+                                    reportId: apiModel.reportId ?? '',
+                                    notesAction: apiModel.notesAction ?? 'Diterima oleh danton',
+                                    picId: apiModel.picId,
+                                    team: team,
+                                    solvedAction: apiModel.solvedAction,
+                                    solvedDate: apiModel.solvedDate,
+                                    evidence: apiModel.evidence,
+                                    status: 'ACKNOWLEDGE',
+                                  ),
+                                );
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Gagal memuat data: ${e.toString()}'),
+                                  backgroundColor: Colors.red,
                                 ),
                               );
+                            }
+                          }
                         },
                 ),
                 16.verticalSpace,
@@ -1474,15 +1585,56 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   isLoading: state.isLoading,
                   onPressed: state.isLoading
                       ? null
-                      : () {
-                          _statusUpdated = true;
-                          context.read<IncidentBloc>().add(
-                                UpdateIncidentStatusEvent(
-                                  incidentId: incident.id,
-                                  status: 'INVALID',
-                                  notes: 'Ditandai tidak valid oleh danton',
+                      : () async {
+                          // Get incident detail untuk mendapatkan semua field yang diperlukan
+                          try {
+                            final datasource = getIt<IncidentRemoteDataSource>();
+                            final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+                            
+                            // Get team from existing data
+                            List<String> team = [];
+                            if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+                              team = apiModel.teams!
+                                  .map((teamMember) {
+                                    if (teamMember is Map<String, dynamic>) {
+                                      return teamMember['UserId']?.toString() ?? '';
+                                    }
+                                    return '';
+                                  })
+                                  .where((id) => id.isNotEmpty)
+                                  .toList();
+                            }
+                            
+                            _statusUpdated = true;
+                            context.read<IncidentBloc>().add(
+                                  UpdateAllIncidentEvent(
+                                    incidentId: incident.id,
+                                    areasDescription: apiModel.areasDescription ?? '',
+                                    areasId: apiModel.areasId ?? '',
+                                    idIncidentType: apiModel.idIncidentType ?? 0,
+                                    incidentDate: apiModel.incidentDate ?? DateTime.now(),
+                                    incidentTime: apiModel.incidentTime ?? '00:00:00',
+                                    incidentDescription: apiModel.incidentDescription ?? '',
+                                    reportId: apiModel.reportId ?? '',
+                                    notesAction: apiModel.notesAction ?? 'Ditandai tidak valid oleh danton',
+                                    picId: apiModel.picId,
+                                    team: team,
+                                    solvedAction: apiModel.solvedAction,
+                                    solvedDate: apiModel.solvedDate,
+                                    evidence: apiModel.evidence,
+                                    status: 'INVALID',
+                                  ),
+                                );
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Gagal memuat data: ${e.toString()}'),
+                                  backgroundColor: Colors.red,
                                 ),
                               );
+                            }
+                          }
                         },
                 ),
               ],

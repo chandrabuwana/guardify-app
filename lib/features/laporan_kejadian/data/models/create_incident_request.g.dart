@@ -31,6 +31,7 @@ CreateIncidentRequest _$CreateIncidentRequestFromJson(
           solvedDate: $checkedConvert('SolvedDate',
               (v) => v == null ? null : DateTime.parse(v as String)),
           status: $checkedConvert('Status', (v) => v as String),
+          evidence: $checkedConvert('Evidence', (v) => v as String?),
         );
         return val;
       },
@@ -47,7 +48,8 @@ CreateIncidentRequest _$CreateIncidentRequestFromJson(
         'reportId': 'ReportId',
         'solvedAction': 'SolvedAction',
         'solvedDate': 'SolvedDate',
-        'status': 'Status'
+        'status': 'Status',
+        'evidence': 'Evidence'
       },
     );
 
@@ -67,4 +69,5 @@ Map<String, dynamic> _$CreateIncidentRequestToJson(
       'SolvedAction': instance.solvedAction,
       'SolvedDate': instance.solvedDate?.toIso8601String(),
       'Status': instance.status,
+      'Evidence': instance.evidence,
     };
