@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:gal/gal.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
@@ -488,14 +490,11 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                       ),
                     ),
                   
-                  // Show text content if available
+                  // Show text content if available (with clickable links)
                   if (message.content.isNotEmpty)
-                    Text(
+                    _buildLinkifiedText(
                       message.content,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: isMe ? Colors.white : neutral90,
-                      ),
+                      isMe: isMe,
                     ),
                   
                   // Show file attachment info if not image
@@ -831,6 +830,115 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
       setState(() {
         _selectedImage = null;
       });
+    }
+  }
+
+  /// Build text widget with clickable links
+  Widget _buildLinkifiedText(String text, {required bool isMe}) {
+    // Regex to detect URLs (http, https, www)
+    final urlRegex = RegExp(
+      r'(https?://[^\s]+)|(www\.[^\s]+)',
+      caseSensitive: false,
+    );
+
+    final matches = urlRegex.allMatches(text).toList();
+
+    // If no links found, return plain text
+    if (matches.isEmpty) {
+      return Text(
+        text,
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: isMe ? Colors.white : neutral90,
+        ),
+      );
+    }
+
+    // Build rich text with clickable links
+    final spans = <TextSpan>[];
+    int lastEnd = 0;
+
+    for (final match in matches) {
+      // Add plain text before the link
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastEnd, match.start),
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: isMe ? Colors.white : neutral90,
+          ),
+        ));
+      }
+
+      // Add clickable link
+      final linkText = match.group(0)!;
+      spans.add(TextSpan(
+        text: linkText,
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: isMe ? Colors.white : primaryColor,
+          decoration: TextDecoration.underline,
+          decorationColor: isMe ? Colors.white : primaryColor,
+          fontWeight: FontWeight.w500,
+        ),
+        recognizer: TapGestureRecognizer()
+          ..onTap = () {
+            _launchUrl(linkText);
+          },
+      ));
+
+      lastEnd = match.end;
+    }
+
+    // Add remaining plain text after last link
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastEnd),
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: isMe ? Colors.white : neutral90,
+        ),
+      ));
+    }
+
+    return RichText(
+      text: TextSpan(children: spans),
+    );
+  }
+
+  /// Launch URL in external browser
+  Future<void> _launchUrl(String url) async {
+    // Add https:// if URL starts with www.
+    String finalUrl = url;
+    if (url.startsWith('www.')) {
+      finalUrl = 'https://$url';
+    }
+
+    try {
+      final uri = Uri.parse(finalUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        debugPrint('⚠️ Cannot launch URL: $finalUrl');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Tidak dapat membuka link: $finalUrl'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error launching URL: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membuka link: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

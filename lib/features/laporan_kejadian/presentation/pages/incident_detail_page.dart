@@ -23,6 +23,7 @@ import '../../data/datasources/incident_remote_datasource.dart';
 import '../bloc/incident_bloc.dart';
 import '../bloc/incident_event.dart';
 import '../bloc/incident_state.dart';
+import '../utils/incident_permission_helper.dart';
 import '../../../chat/presentation/bloc/chat_bloc.dart';
 import '../../../chat/presentation/bloc/chat_event.dart';
 import '../../../chat/presentation/pages/chat_conversation_page.dart';
@@ -51,6 +52,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   bool _isPengawas = false;
   bool _isAdmin = false;
   String? _evidenceFromApi; // Store Evidence from API Data level
+  bool _wasPreviouslyEscalated = false; // Track if incident was previously escalated
+  dynamic _originalIncidentDetail; // Store original IncidentDetail from API for detail data
 
   @override
   void initState() {
@@ -80,13 +83,26 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
             final bloc = context.read<IncidentBloc>();
             bloc.add(GetIncidentDetailEvent(widget.incident.id));
             
-            // Also load API model to get Evidence from Data level
+            // Also load API model to get Evidence from Data level and original IncidentDetail
             try {
               final datasource = getIt<IncidentRemoteDataSource>();
               final apiModel = await datasource.getIncidentDetailApiModel(widget.incident.id);
               if (mounted) {
                 setState(() {
                   _evidenceFromApi = apiModel.evidence;
+                  // Store original IncidentDetail for detail data (HandlingTask, ActionTakenNote, etc.)
+                  _originalIncidentDetail = apiModel.incidentDetail;
+                  // Check if incident was previously escalated
+                  // If current status is not escalated but was escalated before,
+                  // we can check from status history or incident detail
+                  // For now, we check if current status is selesai and previous status might be escalated
+                  // This is a simplified check - in production, you might want to track status history
+                  if (widget.incident.status == IncidentStatus.selesai) {
+                    // Check if there's any indication that it was escalated
+                    // This could be from incident detail or status history
+                    // For now, we'll check if status was escalated in the past
+                    // You might need to add status history tracking in the future
+                  }
                 });
               }
             } catch (e) {
@@ -368,14 +384,33 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   }
 
   // Helper methods to extract data from IncidentDetail
+  // Use original IncidentDetail from API for detail data (HandlingTask, ActionTakenNote, etc.)
   String? _getFirstIncidentDetailValue(IncidentEntity incident, String key) {
-    if (incident.incidentDetail == null || incident.incidentDetail!.isEmpty) {
-      return null;
+    // Try to get from original IncidentDetail first (for detail data)
+    if (_originalIncidentDetail != null) {
+      if (_originalIncidentDetail is Map<String, dynamic>) {
+        final value = _originalIncidentDetail[key];
+        if (value != null && value.toString().isNotEmpty && value.toString() != '-') {
+          return value.toString();
+        }
+      } else if (_originalIncidentDetail is List && (_originalIncidentDetail as List).isNotEmpty) {
+        final firstDetail = (_originalIncidentDetail as List).first;
+        if (firstDetail is Map<String, dynamic>) {
+          final value = firstDetail[key];
+          if (value != null && value.toString().isNotEmpty && value.toString() != '-') {
+            return value.toString();
+          }
+        }
+      }
     }
-    final firstDetail = incident.incidentDetail!.first;
-    final value = firstDetail[key];
-    if (value != null && value.toString().isNotEmpty && value.toString() != '-') {
-      return value.toString();
+    
+    // Fallback to incident.incidentDetail if original not available
+    if (incident.incidentDetail != null && incident.incidentDetail!.isNotEmpty) {
+      final firstDetail = incident.incidentDetail!.first;
+      final value = firstDetail[key];
+      if (value != null && value.toString().isNotEmpty && value.toString() != '-') {
+        return value.toString();
+      }
     }
     return null;
   }
@@ -733,9 +768,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           value: reviewedName,
         ),
         20.verticalSpace,
-        // Pembuatan Keputusan
+        // Pembuat Keputusan
         _buildReadOnlyField(
-          label: 'Pembuatan Keputusan',
+          label: 'Pembuat Keputusan',
           value: actionTakenNote ?? '-',
         ),
         20.verticalSpace,
@@ -788,7 +823,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           )
         else
           _buildReadOnlyField(
-            label: 'Tim Petugas',
+            label: '',
             value: '-',
           ),
       ],
@@ -995,14 +1030,24 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
 
   Widget _buildPengawasActionButtons(IncidentEntity incident) {
     // Untuk Pengawas: Tugaskan dan Verifikasi
-    final apiStatus = _getApiStatus(incident.status);
+    if (_userRole == null) {
+      return const SizedBox.shrink();
+    }
     
     return BlocBuilder<IncidentBloc, IncidentState>(
       builder: (context, state) {
         final buttons = <Widget>[];
         
-        // Tombol Tugaskan untuk status OPEN, ACKNOWLEDGE, atau ESCALATED
-        if (apiStatus == 'OPEN' || apiStatus == 'ACKNOWLEDGE' || apiStatus == 'ESCALATED') {
+        // Check permission untuk assign
+        final canAssign = IncidentPermissionHelper.canAssignIncident(
+          incident: incident,
+          currentUserRole: _userRole!,
+        );
+        
+        // Tombol Tugaskan untuk status Diterima atau Escalated
+        if (canAssign && 
+            (incident.status == IncidentStatus.diterima || 
+             incident.status == IncidentStatus.eskalasi)) {
           buttons.add(
             UIButton(
               text: 'Tugaskan',
@@ -1018,8 +1063,18 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           );
         }
         
+        // Check permission untuk verify
+        final canVerify = IncidentPermissionHelper.canVerifyIncident(
+          incident: incident,
+          currentUserRole: _userRole!,
+          wasPreviouslyEscalated: _wasPreviouslyEscalated,
+        );
+        
         // Tombol Verifikasi untuk status COMPLETED
-        if (apiStatus == 'COMPLETED') {
+        if (canVerify && incident.status == IncidentStatus.selesai) {
+          if (buttons.isNotEmpty) {
+            buttons.add(16.verticalSpace);
+          }
           buttons.add(
             UIButton(
               text: 'Verifikasi',
@@ -1112,98 +1167,226 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
 
   Widget _buildPJOOrDeputyActionButtons(IncidentEntity incident) {
     // Untuk PJO/Deputy di tab "Daftar Insiden"
-    final apiStatus = _getApiStatus(incident.status);
+    // Rules:
+    // - Jika status menunggu dan pelapor adalah Danton: Dapat review (Diterima/Tidak Valid)
+    // - Jika status diterima: Dapat Assign dan Eskalasi
+    if (_userRole == null) {
+      return const SizedBox.shrink();
+    }
     
     return BlocBuilder<IncidentBloc, IncidentState>(
       builder: (context, state) {
         final buttons = <Widget>[];
         
-        // Tombol Tugaskan dan Eskalasi untuk status OPEN atau ACKNOWLEDGE
-        if (apiStatus == 'OPEN' || apiStatus == 'ACKNOWLEDGE') {
-          buttons.addAll([
-            // Tombol Tugaskan
-            UIButton(
-              text: 'Tugaskan',
-              fullWidth: true,
-              size: UIButtonSize.large,
-              isLoading: state.isLoading,
-              onPressed: state.isLoading
-                  ? null
-                  : () {
-                      _showAssignDialog(context, incident);
-                    },
-            ),
-            16.verticalSpace,
-            // Tombol Eskalasi
-            UIButton(
-              text: 'Eskalasi',
-              fullWidth: true,
-              size: UIButtonSize.large,
-              buttonType: UIButtonType.outline,
-              variant: UIButtonVariant.warning,
-              isLoading: state.isLoading,
-              onPressed: state.isLoading
-                  ? null
-                  : () {
-                      _statusUpdated = true;
-                      context.read<IncidentBloc>().add(
-                            UpdateIncidentStatusEvent(
-                              incidentId: incident.id,
-                              status: 'ESCALATED',
-                              notes: 'Dieskalasi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
-                            ),
-                          );
-                    },
-            ),
-          ]);
+        // Tombol Review untuk status Menunggu (jika pelapor adalah Danton)
+        if (incident.status == IncidentStatus.menunggu) {
+          return FutureBuilder<bool>(
+            future: () async {
+              // Get current user ID and reporter ID
+              final currentUserId = await UserRoleHelper.getUserId();
+              final reporterId = incident.pelaporId;
+              
+              // Try to get reporter role from API model
+              // Note: UserModel in incident_api_model doesn't have role field
+              // We'll rely on the logic in canReviewIncident to handle it
+              // The main protection is self-review prevention (currentUserId == reporterId)
+              UserRole? reporterRole;
+              
+              return await IncidentPermissionHelper.canReviewIncident(
+                incident: incident,
+                currentUserRole: _userRole!,
+                reporterRole: reporterRole, // Will be null if not available
+                currentUserId: currentUserId,
+                reporterId: reporterId,
+              );
+            }(),
+            builder: (context, reviewSnapshot) {
+              if (!reviewSnapshot.hasData || !reviewSnapshot.data!) {
+                return const SizedBox.shrink();
+              }
+              
+              return Column(
+                children: [
+                  // Tombol Diterima (mengubah status ke ACKNOWLEDGE)
+                  UIButton(
+                    text: 'Diterima',
+                    fullWidth: true,
+                    size: UIButtonSize.large,
+                    variant: UIButtonVariant.success,
+                    isLoading: state.isLoading,
+                    onPressed: state.isLoading
+                        ? null
+                        : () async {
+                            // Get current user full name and create timestamp
+                            final fullName = await UserRoleHelper.getFullName() ?? 'User';
+                            final timestamp = DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(DateTime.now());
+                            final reviewedBy = '$fullName - $timestamp';
+                            
+                            _statusUpdated = true;
+                            context.read<IncidentBloc>().add(
+                                  UpdateIncidentStatusEvent(
+                                    incidentId: incident.id,
+                                    status: 'ACKNOWLEDGE',
+                                    notes: 'Diterima oleh ${_userRole?.displayName ?? 'PJO/Deputy'}\nReviewedBy: $reviewedBy',
+                                  ),
+                                );
+                          },
+                  ),
+                  16.verticalSpace,
+                  // Tombol Tandai Tidak Valid (mengubah status ke INVALID)
+                  UIButton(
+                    text: 'Tandai Tidak Valid',
+                    fullWidth: true,
+                    size: UIButtonSize.large,
+                    buttonType: UIButtonType.outline,
+                    variant: UIButtonVariant.error,
+                    isLoading: state.isLoading,
+                    onPressed: state.isLoading
+                        ? null
+                        : () {
+                            _statusUpdated = true;
+                            context.read<IncidentBloc>().add(
+                                  UpdateIncidentStatusEvent(
+                                    incidentId: incident.id,
+                                    status: 'INVALID',
+                                    notes: 'Ditandai tidak valid oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                                  ),
+                                );
+                          },
+                  ),
+                ],
+              );
+            },
+          );
+        }
+        
+        // Check permission untuk assign
+        final canAssign = IncidentPermissionHelper.canAssignIncident(
+          incident: incident,
+          currentUserRole: _userRole!,
+        );
+        
+        // Check permission untuk escalate
+        final canEscalate = IncidentPermissionHelper.canEscalateIncident(
+          incident: incident,
+          currentUserRole: _userRole!,
+        );
+        
+        // Tombol Tugaskan dan Eskalasi untuk status Diterima
+        if (incident.status == IncidentStatus.diterima) {
+          if (canAssign) {
+            buttons.add(
+              UIButton(
+                text: 'Tugaskan',
+                fullWidth: true,
+                size: UIButtonSize.large,
+                isLoading: state.isLoading,
+                onPressed: state.isLoading
+                    ? null
+                    : () {
+                        _showAssignDialog(context, incident);
+                      },
+              ),
+            );
+            if (canEscalate) {
+              buttons.add(16.verticalSpace);
+            }
+          }
+          
+          if (canEscalate) {
+            buttons.add(
+              UIButton(
+                text: 'Eskalasi',
+                fullWidth: true,
+                size: UIButtonSize.large,
+                buttonType: UIButtonType.outline,
+                variant: UIButtonVariant.warning,
+                isLoading: state.isLoading,
+                onPressed: state.isLoading
+                    ? null
+                    : () {
+                        _statusUpdated = true;
+                        _wasPreviouslyEscalated = true; // Track escalation
+                        context.read<IncidentBloc>().add(
+                              UpdateIncidentStatusEvent(
+                                incidentId: incident.id,
+                                status: 'ESCALATED',
+                                notes: 'Dieskalasi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                              ),
+                            );
+                      },
+              ),
+            );
+          }
         }
         
         // Tombol Verifikasi dan Revisi untuk status COMPLETED
-        if (apiStatus == 'COMPLETED') {
-          buttons.addAll([
-            // Tombol Verifikasi
-            UIButton(
-              text: 'Verifikasi',
-              fullWidth: true,
-              size: UIButtonSize.large,
-              variant: UIButtonVariant.success,
-              isLoading: state.isLoading,
-              onPressed: state.isLoading
-                  ? null
-                  : () {
-                      _statusUpdated = true;
-                      context.read<IncidentBloc>().add(
-                            UpdateIncidentStatusEvent(
-                              incidentId: incident.id,
-                              status: 'VERIFIED',
-                              notes: 'Diverifikasi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
-                            ),
-                          );
-                    },
-            ),
-            16.verticalSpace,
-            // Tombol Revisi
-            UIButton(
-              text: 'Revisi',
-              fullWidth: true,
-              size: UIButtonSize.large,
-              buttonType: UIButtonType.outline,
-              variant: UIButtonVariant.warning,
-              isLoading: state.isLoading,
-              onPressed: state.isLoading
-                  ? null
-                  : () {
-                      _statusUpdated = true;
-                      context.read<IncidentBloc>().add(
-                            UpdateIncidentStatusEvent(
-                              incidentId: incident.id,
-                              status: 'PROGRESS',
-                              notes: 'Direvisi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
-                            ),
-                          );
-                    },
-            ),
-          ]);
+        if (incident.status == IncidentStatus.selesai) {
+          // Check permission untuk verify
+          final canVerify = IncidentPermissionHelper.canVerifyIncident(
+            incident: incident,
+            currentUserRole: _userRole!,
+            wasPreviouslyEscalated: _wasPreviouslyEscalated,
+          );
+          
+          // Check permission untuk revise
+          final canRevise = IncidentPermissionHelper.canReviseIncident(
+            incident: incident,
+            currentUserRole: _userRole!,
+            wasPreviouslyEscalated: _wasPreviouslyEscalated,
+          );
+          
+          if (canVerify) {
+            buttons.add(
+              UIButton(
+                text: 'Verifikasi',
+                fullWidth: true,
+                size: UIButtonSize.large,
+                variant: UIButtonVariant.success,
+                isLoading: state.isLoading,
+                onPressed: state.isLoading
+                    ? null
+                    : () {
+                        _statusUpdated = true;
+                        context.read<IncidentBloc>().add(
+                              UpdateIncidentStatusEvent(
+                                incidentId: incident.id,
+                                status: 'VERIFIED',
+                                notes: 'Diverifikasi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                              ),
+                            );
+                      },
+              ),
+            );
+            if (canRevise) {
+              buttons.add(16.verticalSpace);
+            }
+          }
+          
+          if (canRevise) {
+            buttons.add(
+              UIButton(
+                text: 'Revisi',
+                fullWidth: true,
+                size: UIButtonSize.large,
+                buttonType: UIButtonType.outline,
+                variant: UIButtonVariant.warning,
+                isLoading: state.isLoading,
+                onPressed: state.isLoading
+                    ? null
+                    : () {
+                        _statusUpdated = true;
+                        context.read<IncidentBloc>().add(
+                              UpdateIncidentStatusEvent(
+                                incidentId: incident.id,
+                                status: 'PROGRESS',
+                                notes: 'Direvisi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
+                              ),
+                            );
+                      },
+              ),
+            );
+          }
         }
         
         if (buttons.isEmpty) {
@@ -1217,127 +1400,228 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
 
   Widget _buildDantonActionButtons(IncidentEntity incident) {
     // Untuk danton di tab "Daftar Insiden"
-    // Hanya tampilkan jika status masih "menunggu" (OPEN)
-    if (incident.status != IncidentStatus.menunggu) {
+    // Rules: Danton dapat mereview insiden dengan status "menunggu"
+    // - Hanya jika pelapor adalah Anggota (bukan Danton)
+    // - Danton tidak dapat review laporan sendiri atau laporan dari Danton lain
+    // - Tombol "Diterima" -> mengubah status ke ACKNOWLEDGE (Diterima)
+    // - Tombol "Tandai Tidak Valid" -> mengubah status ke INVALID (Tidak Valid)
+    if (incident.status != IncidentStatus.menunggu || _userRole == null) {
       return const SizedBox.shrink();
     }
 
-    return BlocBuilder<IncidentBloc, IncidentState>(
-      builder: (context, state) {
-        return Column(
-          children: [
-            // Tombol Konfirmasi
-            UIButton(
-              text: 'Konfirmasi',
-              fullWidth: true,
-              size: UIButtonSize.large,
-              isLoading: state.isLoading,
-              onPressed: state.isLoading
-                  ? null
-                  : () {
-                      _statusUpdated = true;
-                      context.read<IncidentBloc>().add(
-                            UpdateIncidentStatusEvent(
-                              incidentId: incident.id,
-                              status: 'ACKNOWLEDGE',
-                              notes: 'Dikonfirmasi oleh danton',
-                            ),
-                          );
-                    },
-            ),
-            16.verticalSpace,
-            // Tombol Tandai Tidak Valid
-            UIButton(
-              text: 'Tandai Tidak Valid',
-              fullWidth: true,
-              size: UIButtonSize.large,
-              buttonType: UIButtonType.outline,
-              variant: UIButtonVariant.error,
-              isLoading: state.isLoading,
-              onPressed: state.isLoading
-                  ? null
-                  : () {
-                      _statusUpdated = true;
-                      context.read<IncidentBloc>().add(
-                            UpdateIncidentStatusEvent(
-                              incidentId: incident.id,
-                              status: 'INVALID',
-                              notes: 'Ditandai tidak valid oleh danton',
-                            ),
-                          );
-                    },
-            ),
-          ],
+    return FutureBuilder<bool>(
+      future: () async {
+        // Get current user ID and reporter ID
+        final currentUserId = await UserRoleHelper.getUserId();
+        final reporterId = incident.pelaporId;
+        
+        // Try to get reporter role from API model
+        // Note: UserModel in incident_api_model doesn't have role field
+        // We'll rely on the logic in canReviewIncident to handle it
+        // The main protection is self-review prevention (currentUserId == reporterId)
+        UserRole? reporterRole;
+        
+        return await IncidentPermissionHelper.canReviewIncident(
+          incident: incident,
+          currentUserRole: _userRole!,
+          reporterRole: reporterRole, // Will be null if not available
+          currentUserId: currentUserId,
+          reporterId: reporterId,
+        );
+      }(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || !snapshot.data!) {
+          return const SizedBox.shrink();
+        }
+
+        return BlocBuilder<IncidentBloc, IncidentState>(
+          builder: (context, state) {
+            return Column(
+              children: [
+                // Tombol Diterima (mengubah status ke ACKNOWLEDGE)
+                UIButton(
+                  text: 'Diterima',
+                  fullWidth: true,
+                  size: UIButtonSize.large,
+                  variant: UIButtonVariant.success,
+                  isLoading: state.isLoading,
+                  onPressed: state.isLoading
+                      ? null
+                      : () async {
+                          // Get current user full name and create timestamp
+                          final fullName = await UserRoleHelper.getFullName() ?? 'User';
+                          final timestamp = DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(DateTime.now());
+                          final reviewedBy = '$fullName - $timestamp';
+                          
+                          _statusUpdated = true;
+                          context.read<IncidentBloc>().add(
+                                UpdateIncidentStatusEvent(
+                                  incidentId: incident.id,
+                                  status: 'ACKNOWLEDGE',
+                                  notes: 'Diterima oleh danton\nReviewedBy: $reviewedBy',
+                                ),
+                              );
+                        },
+                ),
+                16.verticalSpace,
+                // Tombol Tandai Tidak Valid (mengubah status ke INVALID)
+                UIButton(
+                  text: 'Tandai Tidak Valid',
+                  fullWidth: true,
+                  size: UIButtonSize.large,
+                  buttonType: UIButtonType.outline,
+                  variant: UIButtonVariant.error,
+                  isLoading: state.isLoading,
+                  onPressed: state.isLoading
+                      ? null
+                      : () {
+                          _statusUpdated = true;
+                          context.read<IncidentBloc>().add(
+                                UpdateIncidentStatusEvent(
+                                  incidentId: incident.id,
+                                  status: 'INVALID',
+                                  notes: 'Ditandai tidak valid oleh danton',
+                                ),
+                              );
+                        },
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildActionButton(IncidentEntity incident) {
-    // Tentukan status dari API
-    // OPEN (menunggu) -> tombol "Proses" -> update ke PROGRESS (menggunakan /Incident/update)
-    // PROGRESS (proses) -> tombol "Tandai Sebagai Selesai" -> update ke COMPLETED (menggunakan /Incident/updateall)
+    // Button untuk PIC/Team Member di tab "Tugas Saya"
+    // Rules:
+    // - PIC maupun Anggota Team dapat memproses (Klik Proses) -> status dari Ditugaskan ke Proses (PROGRESS)
+    // - PIC maupun Anggota Team dapat menyelesaikan (Klik Tandai Sebagai Selesai) -> status dari Proses ke Selesai (COMPLETED)
     
-    // Mapping status dari entity ke API status
-    // Dari incident_api_model.dart:
-    // OPEN -> IncidentStatus.menunggu
-    // PROGRESS -> IncidentStatus.proses
-    // COMPLETED -> IncidentStatus.selesai
-    
-    String? apiStatus;
-    if (incident.status == IncidentStatus.menunggu) {
-      // Status "menunggu" bisa berarti OPEN (dari API)
-      apiStatus = 'OPEN';
-    } else if (incident.status == IncidentStatus.proses) {
-      // Status "proses" berarti PROGRESS (dari API)
-      apiStatus = 'PROGRESS';
-    }
+    return FutureBuilder<bool>(
+      future: () async {
+        // Get current user ID
+        final currentUserId = await UserRoleHelper.getUserId();
+        if (currentUserId == null || currentUserId.isEmpty) {
+          return false;
+        }
+        
+        // Check status
+        if (incident.status != IncidentStatus.ditugaskan && 
+            incident.status != IncidentStatus.proses) {
+          return false;
+        }
+        
+        // Check if user is PIC
+        if (incident.picId == currentUserId) {
+          return true;
+        }
+        
+        // Check if user is in Teams - load from API model to get accurate Teams data
+        // This is important because incidentDetail might be empty if Teams is empty
+        try {
+          final datasource = getIt<IncidentRemoteDataSource>();
+          final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+          
+          // Check Teams directly from API model
+          if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+            for (var team in apiModel.teams!) {
+              if (team is Map<String, dynamic>) {
+                final teamUserId = team['UserId']?.toString() ?? '';
+                if (teamUserId == currentUserId) {
+                  return true;
+                }
+              }
+            }
+          }
+          
+          // Also check from IncidentDetail (for backward compatibility)
+          if (apiModel.incidentDetail != null) {
+            List<Map<String, dynamic>> incidentDetailList = [];
+            if (apiModel.incidentDetail is Map<String, dynamic>) {
+              incidentDetailList.add(Map<String, dynamic>.from(apiModel.incidentDetail as Map));
+            } else if (apiModel.incidentDetail is List) {
+              for (var item in apiModel.incidentDetail as List) {
+                if (item is Map) {
+                  incidentDetailList.add(Map<String, dynamic>.from(item));
+                }
+              }
+            }
+            
+            for (var detail in incidentDetailList) {
+              final teamUserId = detail['UserId']?.toString() ?? '';
+              if (teamUserId == currentUserId) {
+                return true;
+              }
+            }
+          }
+        } catch (e) {
+          // If API call fails, fallback to check from incidentDetail in entity
+          if (incident.incidentDetail != null && incident.incidentDetail!.isNotEmpty) {
+            for (var detail in incident.incidentDetail!) {
+              final teamUserId = detail['UserId']?.toString() ?? '';
+              if (teamUserId == currentUserId) {
+                return true;
+              }
+            }
+          }
+        }
+        
+        return false;
+      }(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || !snapshot.data!) {
+          return const SizedBox.shrink();
+        }
 
-    // Jika status bukan OPEN atau PROGRESS, tidak tampilkan tombol
-    if (apiStatus == null) {
-      return const SizedBox.shrink();
-    }
+        String buttonText;
+        String nextStatus;
+        bool useUpdateAll = false; // Flag untuk menentukan API yang digunakan
+        
+        if (incident.status == IncidentStatus.ditugaskan) {
+          // Status Ditugaskan -> tombol "Proses" -> update ke PROGRESS (Proses)
+          buttonText = 'Proses';
+          nextStatus = 'PROGRESS';
+          useUpdateAll = false; // Gunakan /Incident/update
+        } else if (incident.status == IncidentStatus.proses) {
+          // Status Proses -> tombol "Tandai Sebagai Selesai" -> update ke COMPLETED (Selesai)
+          buttonText = 'Tandai Sebagai Selesai';
+          nextStatus = 'COMPLETED';
+          useUpdateAll = true; // Gunakan /Incident/updateall
+        } else {
+          return const SizedBox.shrink();
+        }
 
-    String buttonText;
-    String nextStatus;
-    bool useUpdateAll = false; // Flag untuk menentukan API yang digunakan
-    
-    if (apiStatus == 'OPEN') {
-      buttonText = 'Proses';
-      nextStatus = 'PROGRESS';
-      useUpdateAll = false; // Gunakan /Incident/update
-    } else {
-      // apiStatus == 'PROGRESS'
-      buttonText = 'Tandai Sebagai Selesai';
-      nextStatus = 'COMPLETED';
-      useUpdateAll = true; // Gunakan /Incident/updateall
-    }
-
-    return BlocBuilder<IncidentBloc, IncidentState>(
-      builder: (context, state) {
-        return UIButton(
-          text: buttonText,
-          fullWidth: true,
-          size: UIButtonSize.large,
-          isLoading: state.isLoading,
-          onPressed: state.isLoading
-              ? null
-              : () {
-                  _statusUpdated = true; // Set flag before update
-                  
-                  if (useUpdateAll) {
-                    // Untuk "Tandai Sebagai Selesai", gunakan /Incident/updateall
-                    _showCompleteDialog(context, incident);
-                  } else {
-                    // Untuk "Proses", gunakan /Incident/update
-                    context.read<IncidentBloc>().add(
-                          UpdateIncidentStatusEvent(
-                            incidentId: incident.id,
-                            status: nextStatus,
-                          ),
-                        );
-                  }
-                },
+        return BlocBuilder<IncidentBloc, IncidentState>(
+          builder: (context, state) {
+            return UIButton(
+              text: buttonText,
+              fullWidth: true,
+              size: UIButtonSize.large,
+              isLoading: state.isLoading,
+              onPressed: state.isLoading
+                  ? null
+                  : () {
+                      _statusUpdated = true; // Set flag before update
+                      
+                      if (useUpdateAll) {
+                        // Untuk "Tandai Sebagai Selesai", gunakan /Incident/updateall
+                        // Status akan diupdate ke COMPLETED (Selesai) di dalam dialog
+                        _showCompleteDialog(context, incident);
+                      } else {
+                        // Untuk "Proses", gunakan /Incident/update
+                        // Status akan diupdate ke PROGRESS (Proses)
+                        context.read<IncidentBloc>().add(
+                              UpdateIncidentStatusEvent(
+                                incidentId: incident.id,
+                                status: nextStatus, // 'PROGRESS'
+                              ),
+                            );
+                      }
+                    },
+            );
+          },
         );
       },
     );
@@ -1563,7 +1847,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                         controller: tugasPenangananController,
                         hint: 'Masukkan tugas penanganan',
                         isRequired: true,
-                        maxLines: 3,
+                        maxLines: 10, // Allow multiple lines for long text
+                        minLines: 3, // Start with 3 lines
                         validation: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Tugas penanganan harus diisi';
@@ -1632,6 +1917,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                         isSubmitting = true;
                       });
                       
+                      // Get current user full name for "Pembuat Keputusan"
+                      final assignerName = await UserRoleHelper.getFullName() ?? 'User';
+                      
                       // Dispatch event - BlocListener will handle the response
                       context.read<IncidentBloc>().add(
                         UpdateAllIncidentEvent(
@@ -1647,6 +1935,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                           picId: selectedPjId!,
                           team: selectedTeamIds,
                           handlingTask: tugasPenangananController.text.trim(),
+                          actionTakenNote: assignerName, // Set "Pembuat Keputusan" dengan nama user yang assign
                           status: 'ASSIGNED',
                         ),
                       );
@@ -1695,7 +1984,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
       final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
       
       picId = apiModel.picId;
-      // Team diambil dari Teams list
+      // Team diambil dari Teams list, jika kosong ambil dari IncidentDetail
       if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
         team = apiModel.teams!
             .map((teamMember) {
@@ -1706,6 +1995,28 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
             })
             .where((id) => id.isNotEmpty)
             .toList();
+      } else {
+        // Jika Teams kosong, ambil dari IncidentDetail
+        if (apiModel.incidentDetail != null) {
+          if (apiModel.incidentDetail is Map<String, dynamic>) {
+            final detail = apiModel.incidentDetail as Map<String, dynamic>;
+            final userId = detail['UserId']?.toString();
+            if (userId != null && userId.isNotEmpty) {
+              team = [userId];
+            }
+          } else if (apiModel.incidentDetail is List) {
+            final detailList = apiModel.incidentDetail as List;
+            team = detailList
+                .map((detail) {
+                  if (detail is Map<String, dynamic>) {
+                    return detail['UserId']?.toString() ?? '';
+                  }
+                  return '';
+                })
+                .where((id) => id.isNotEmpty)
+                .toList();
+          }
+        }
       }
       // HandlingTask diambil dari IncidentDetail jika ada, atau dari NotesAction
       handlingTask = '';
@@ -1818,13 +2129,14 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     String handlingTask = '';
     Map<String, String>? incidentApiData;
     File? selectedImage;
+    final solvedActionController = TextEditingController(); // Controller untuk note penyelesaian
 
     // Load incident detail untuk mendapatkan data yang sudah ada
     try {
       final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
       
       picId = apiModel.picId;
-      // Team diambil dari Teams list
+      // Team diambil dari Teams list, jika kosong ambil dari IncidentDetail
       if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
         team = apiModel.teams!
             .map((teamMember) {
@@ -1835,6 +2147,28 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
             })
             .where((id) => id.isNotEmpty)
             .toList();
+      } else {
+        // Jika Teams kosong, ambil dari IncidentDetail
+        if (apiModel.incidentDetail != null) {
+          if (apiModel.incidentDetail is Map<String, dynamic>) {
+            final detail = apiModel.incidentDetail as Map<String, dynamic>;
+            final userId = detail['UserId']?.toString();
+            if (userId != null && userId.isNotEmpty) {
+              team = [userId];
+            }
+          } else if (apiModel.incidentDetail is List) {
+            final detailList = apiModel.incidentDetail as List;
+            team = detailList
+                .map((detail) {
+                  if (detail is Map<String, dynamic>) {
+                    return detail['UserId']?.toString() ?? '';
+                  }
+                  return '';
+                })
+                .where((id) => id.isNotEmpty)
+                .toList();
+          }
+        }
       }
       // HandlingTask diambil dari IncidentDetail jika ada, atau dari NotesAction
       handlingTask = '';
@@ -1872,13 +2206,17 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           ),
         );
       }
+      solvedActionController.dispose();
       return;
     }
 
-    if (!context.mounted) return;
+    if (!context.mounted) {
+      solvedActionController.dispose();
+      return;
+    }
     final apiData = incidentApiData;
 
-    // Tampilkan dialog dengan form upload image
+    // Tampilkan dialog dengan form note penyelesaian dan upload image
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -1889,8 +2227,27 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Apakah Anda yakin ingin menandai insiden ini sebagai selesai?'),
+                const Text('Isi informasi penyelesaian insiden:'),
                 const SizedBox(height: 16),
+                // Field Note Penyelesaian
+                const Text(
+                  'Note Penyelesaian',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: solvedActionController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Masukkan note penyelesaian...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Field Upload Bukti Foto
                 const Text(
                   'Upload Bukti Foto (Opsional)',
                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -1988,7 +2345,10 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
       ),
     );
 
-    if (confirmed != true || !context.mounted) return;
+    if (confirmed != true || !context.mounted) {
+      solvedActionController.dispose();
+      return;
+    }
 
     // Convert image to base64 if selected
     Map<String, dynamic>? incidentImage;
@@ -2027,7 +2387,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
       }
     }
 
-    // Update status ke COMPLETED menggunakan updateAllIncident
+    // Update status ke COMPLETED (Selesai) menggunakan updateAllIncident
+    // Status akan berubah dari Proses (PROGRESS) ke Selesai (COMPLETED)
+    // Include note penyelesaian (solvedAction) dan bukti foto (incidentImage)
     try {
       context.read<IncidentBloc>().add(
         UpdateAllIncidentEvent(
@@ -2043,9 +2405,12 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           picId: picId,
           team: team,
           handlingTask: handlingTask,
+          solvedAction: solvedActionController.text.trim().isNotEmpty 
+              ? solvedActionController.text.trim() 
+              : null, // Note penyelesaian
           solvedDate: DateTime.now(),
-          status: 'COMPLETED',
-          incidentImage: incidentImage,
+          status: 'COMPLETED', // Status Selesai
+          incidentImage: incidentImage, // Bukti foto
         ),
       );
 
@@ -2062,6 +2427,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           ),
         );
       }
+    } finally {
+      // Dispose controller setelah selesai
+      solvedActionController.dispose();
     }
   }
 

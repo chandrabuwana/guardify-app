@@ -536,6 +536,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         picId: event.picId,
         team: event.team,
         handlingTask: event.handlingTask,
+        actionTakenNote: event.actionTakenNote,
         solvedAction: event.solvedAction,
         solvedDate: event.solvedDate,
         evidence: event.evidence,

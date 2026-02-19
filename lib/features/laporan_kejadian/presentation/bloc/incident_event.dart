@@ -230,6 +230,7 @@ class UpdateAllIncidentEvent extends IncidentEvent {
   final String? picId;
   final List<String> team;
   final String? handlingTask;
+  final String? actionTakenNote; // Nama user yang assign (untuk "Pembuat Keputusan")
   final String? solvedAction;
   final DateTime? solvedDate;
   final String? evidence;
@@ -249,6 +250,7 @@ class UpdateAllIncidentEvent extends IncidentEvent {
     this.picId,
     required this.team,
     this.handlingTask,
+    this.actionTakenNote,
     this.solvedAction,
     this.solvedDate,
     this.evidence,
@@ -270,6 +272,7 @@ class UpdateAllIncidentEvent extends IncidentEvent {
         picId,
         team,
         handlingTask,
+        actionTakenNote,
         solvedAction,
         solvedDate,
         evidence,

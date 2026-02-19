@@ -285,12 +285,13 @@ class IncidentApiModel {
       solvedAction: solvedAction,
       solvedDate: solvedDate,
       incidentDetail: () {
-        // Combine IncidentDetail and Teams
-        // Prioritize Teams (which have UserName) and merge with IncidentDetail (which have detailed info)
+        // IMPORTANT: Only use Teams for team display
+        // If Teams is empty, return empty list (don't use IncidentDetail as fallback for team display)
+        // IncidentDetail is preserved separately in the model for other data (HandlingTask, ActionTakenNote, etc.)
         final List<Map<String, dynamic>> result = [];
         final List<Map<String, dynamic>> incidentDetailList = [];
         
-        // Collect IncidentDetail data first
+        // Collect IncidentDetail data first (for merging with Teams only)
         if (incidentDetail != null) {
           if (incidentDetail is Map<String, dynamic>) {
             incidentDetailList.add(Map<String, dynamic>.from(incidentDetail));
@@ -303,7 +304,7 @@ class IncidentApiModel {
           }
         }
         
-        // Start with Teams (which have UserName) as base
+        // Only use Teams for team display - if Teams is empty, return empty list
         if (teams != null && teams!.isNotEmpty) {
           for (var team in teams!) {
             if (team is Map<String, dynamic>) {
@@ -363,10 +364,9 @@ class IncidentApiModel {
               result.add(merged);
             }
           }
-        } else {
-          // If no Teams, use IncidentDetail as fallback
-          result.addAll(incidentDetailList);
         }
+        // If Teams is empty, return empty list (don't use IncidentDetail as fallback for team display)
+        // Note: Original IncidentDetail is still available in incidentDetail field for other purposes (HandlingTask, etc.)
         
         return result.isNotEmpty ? result : null;
       }(),

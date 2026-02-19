@@ -138,21 +138,51 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
             : 'Failed to load my tasks');
       }
 
-      // Convert to models
-      final allModels = responseData.list
-          .map((apiModel) => apiModel.toIncidentModel())
-          .toList();
-
-      // Filter: Include incidents where user is PIC OR is in Teams
-      final filteredModels = allModels.where((model) {
+      // Filter: Include incidents where:
+      // 1. Status = Ditugaskan (ASSIGNED) OR Proses (PROGRESS)
+      // 2. User is PIC OR is in Teams
+      // IMPORTANT: Check Teams directly from API model before converting to IncidentModel
+      // because incidentDetail might be empty if Teams is empty (after our recent changes)
+      final filteredApiModels = responseData.list.where((apiModel) {
+        // Check status: hanya tampilkan jika status ditugaskan atau proses
+        final apiStatus = apiModel.status?.toUpperCase().trim() ?? '';
+        final isAssignedOrInProgress = apiStatus == 'ASSIGNED' || apiStatus == 'PROGRESS';
+        if (!isAssignedOrInProgress) {
+          return false;
+        }
+        
         // Check if user is PIC
-        if (model.picId == userId) {
+        if (apiModel.picId == userId) {
           return true;
         }
         
-        // Check if user is in Teams
-        if (model.incidentDetail != null && model.incidentDetail!.isNotEmpty) {
-          for (var detail in model.incidentDetail!) {
+        // Check if user is in Teams (from API model directly)
+        if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+          for (var team in apiModel.teams!) {
+            if (team is Map<String, dynamic>) {
+              final teamUserId = team['UserId']?.toString() ?? '';
+              if (teamUserId == userId) {
+                return true;
+              }
+            }
+          }
+        }
+        
+        // Also check from IncidentDetail (for backward compatibility)
+        // This handles cases where Teams might be empty but IncidentDetail has team info
+        if (apiModel.incidentDetail != null) {
+          List<Map<String, dynamic>> incidentDetailList = [];
+          if (apiModel.incidentDetail is Map<String, dynamic>) {
+            incidentDetailList.add(Map<String, dynamic>.from(apiModel.incidentDetail as Map));
+          } else if (apiModel.incidentDetail is List) {
+            for (var item in apiModel.incidentDetail as List) {
+              if (item is Map) {
+                incidentDetailList.add(Map<String, dynamic>.from(item));
+              }
+            }
+          }
+          
+          for (var detail in incidentDetailList) {
             final teamUserId = detail['UserId']?.toString() ?? '';
             if (teamUserId == userId) {
               return true;
@@ -162,6 +192,11 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         
         return false;
       }).toList();
+
+      // Convert filtered API models to IncidentModel
+      final filteredModels = filteredApiModels
+          .map((apiModel) => apiModel.toIncidentModel())
+          .toList();
 
       return filteredModels;
     } on DioException catch (e) {
@@ -304,6 +339,41 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
           '${jamInsiden.minute.toString().padLeft(2, '0')}:'
           '${jamInsiden.second.toString().padLeft(2, '0')}';
 
+      // Get current user data for Token
+      final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
+      final username = await SecurityManager.readSecurely('user_username') ?? '';
+      final fullName = await SecurityManager.readSecurely('user_fullname') ?? '';
+      final mail = await SecurityManager.readSecurely('user_mail') ?? '';
+      final roleId = await SecurityManager.readSecurely('user_role_id') ?? '';
+      final roleName = await SecurityManager.readSecurely('user_role_name') ?? '';
+
+      // Create Token model
+      final token = TokenModel(
+        id: userId,
+        role: [
+          RoleModel(
+            id: roleId,
+            nama: roleName.isNotEmpty ? roleName : 'Anggota',
+          ),
+        ],
+        username: username,
+        fullName: fullName,
+        mail: mail,
+      );
+
+      // Determine initial status based on reporter role
+      // Rules:
+      // - Pelapor = Anggota/Danton -> Status = Open (menunggu)
+      // - Pelapor = PJO/Deputy/Pengawas -> Status = ACKNOWLEDGE (diterima)
+      String initialStatus = 'Open';
+      if (roleId.isNotEmpty) {
+        // Check if reporter is PJO, Deputy, or Pengawas
+        // Role IDs: PJO='PJO', DPT='DPT', PGW='PGW'
+        if (roleId == 'PJO' || roleId == 'DPT' || roleId == 'PGW') {
+          initialStatus = 'ACKNOWLEDGE';
+        }
+      }
+
       // Create request
       final request = CreateIncidentRequest(
         areasDescription: lokasiInsidenName, // Use area name instead of detail location
@@ -318,7 +388,8 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         reportId: reporterId,
         solvedAction: null,
         solvedDate: DateTime.now(), // Set to current date time
-        status: 'Open',
+        status: initialStatus,
+        token: token,
       );
 
       // Call API
@@ -344,9 +415,18 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
 
         // API doesn't return incident data, so we create a minimal model
         // The actual incident will be available after refresh
+        // Determine status based on reporter role
+        IncidentStatus initialStatusModel = IncidentStatus.menunggu;
+        if (roleId.isNotEmpty) {
+          // Check if reporter is PJO, Deputy, or Pengawas
+          if (roleId == 'PJO' || roleId == 'DPT' || roleId == 'PGW') {
+            initialStatusModel = IncidentStatus.diterima;
+          }
+        }
+        
         return IncidentModel(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
-          status: IncidentStatus.menunggu,
+          status: initialStatusModel,
           deskripsiInsiden: deskripsiInsiden,
           tanggalInsiden: tanggalInsiden,
           jamInsiden: jamInsiden,
@@ -666,6 +746,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     String? picId,
     required List<String> team,
     String? handlingTask,
+    String? actionTakenNote,
     String? solvedAction,
     DateTime? solvedDate,
     String? evidence,
@@ -673,8 +754,31 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     Map<String, dynamic>? incidentImage,
   }) async {
     try {
+      // Get current user data for Token
+      final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
+      final username = await SecurityManager.readSecurely('user_username') ?? '';
+      final fullName = await SecurityManager.readSecurely('user_fullname') ?? '';
+      final mail = await SecurityManager.readSecurely('user_mail') ?? '';
+      final roleId = await SecurityManager.readSecurely('user_role_id') ?? '';
+      final roleName = await SecurityManager.readSecurely('user_role_name') ?? '';
+
+      // Create Token model
+      final token = TokenModel(
+        id: userId,
+        role: [
+          RoleModel(
+            id: roleId,
+            nama: roleName.isNotEmpty ? roleName : 'Anggota',
+          ),
+        ],
+        username: username,
+        fullName: fullName,
+        mail: mail,
+      );
+
+      // Build request data - ensure all required fields are included
       final requestData = <String, dynamic>{
-        'Id': incidentId, // Add incidentId to request body
+        'Id': incidentId,
         'AreasDescription': areasDescription,
         'AreasId': areasId,
         'IdIncidentType': idIncidentType,
@@ -683,9 +787,10 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         'IncidentDescription': incidentDescription,
         'ReportId': reportId,
         'Status': status,
-        'Team': team,
+        'Token': token.toJson(), // Add Token payload
       };
 
+      // Add optional fields only if they have values
       if (notesAction != null && notesAction.isNotEmpty) {
         requestData['NotesAction'] = notesAction;
       }
@@ -694,8 +799,20 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         requestData['PicId'] = picId;
       }
 
+      // Team is required, ensure it's always included
+      if (team.isNotEmpty) {
+        requestData['Team'] = team;
+      } else {
+        // If team is empty, send empty array
+        requestData['Team'] = <String>[];
+      }
+
       if (handlingTask != null && handlingTask.isNotEmpty) {
         requestData['HandlingTask'] = handlingTask;
+      }
+
+      if (actionTakenNote != null && actionTakenNote.isNotEmpty) {
+        requestData['ActionTakenNote'] = actionTakenNote;
       }
 
       if (solvedAction != null && solvedAction.isNotEmpty) {
@@ -714,11 +831,54 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         requestData['IncidentImage'] = incidentImage;
       }
 
-      // Try with incidentId in URL path first, if that doesn't work, it's in body
-      final response = await _dio.post(
-        '/Incident/updateall/$incidentId',
-        data: requestData,
-      );
+      // Try different endpoint patterns based on common API patterns
+      // Pattern 1: POST /Incident/updateall (ID in body)
+      // Pattern 2: POST /Incident/updateall/{id} (ID in path)
+      // Pattern 3: PUT /Incident/updateall/{id} (ID in path, PUT method)
+      Response response;
+      
+      // Try Pattern 1: POST without ID in path
+      try {
+        response = await _dio.post(
+          '/Incident/updateall',
+          data: requestData,
+        );
+        if (response.statusCode != 200) {
+          throw DioException(
+            requestOptions: response.requestOptions,
+            response: response,
+            type: DioExceptionType.badResponse,
+          );
+        }
+      } on DioException {
+        // Try Pattern 2: POST with ID in path
+        try {
+          response = await _dio.post(
+            '/Incident/updateall/$incidentId',
+            data: requestData,
+          );
+          if (response.statusCode != 200) {
+            throw DioException(
+              requestOptions: response.requestOptions,
+              response: response,
+              type: DioExceptionType.badResponse,
+            );
+          }
+        } on DioException {
+          // Try Pattern 3: PUT with ID in path
+          response = await _dio.put(
+            '/Incident/updateall/$incidentId',
+            data: requestData,
+          );
+          if (response.statusCode != 200) {
+            throw DioException(
+              requestOptions: response.requestOptions,
+              response: response,
+              type: DioExceptionType.badResponse,
+            );
+          }
+        }
+      }
 
       if (response.statusCode != 200) {
         throw Exception('Failed to update incident: ${response.statusMessage}');
@@ -728,7 +888,10 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
       if (responseData is Map<String, dynamic>) {
         final succeeded = responseData['Succeeded'] as bool? ?? false;
         if (!succeeded) {
-          final message = responseData['Message'] as String? ?? 'Failed to update incident';
+          final message = responseData['Message'] as String? ?? 
+                        responseData['message'] as String? ??
+                        responseData['Description'] as String? ??
+                        'Failed to update incident';
           throw Exception(message);
         }
         return true;
@@ -738,9 +901,18 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     } on DioException catch (e) {
       if (e.response != null) {
         final errorData = e.response!.data;
-        final errorMessage = errorData['Message'] as String? ?? 
-                           errorData['message'] as String? ??
-                           'Failed to update incident';
+        String errorMessage = 'Failed to update incident';
+        
+        if (errorData is Map<String, dynamic>) {
+          errorMessage = errorData['Message'] as String? ?? 
+                        errorData['message'] as String? ??
+                        errorData['Description'] as String? ??
+                        errorData['description'] as String? ??
+                        errorMessage;
+        } else if (errorData is String) {
+          errorMessage = errorData;
+        }
+        
         throw Exception(errorMessage);
       }
       throw Exception('Network error: ${e.message}');

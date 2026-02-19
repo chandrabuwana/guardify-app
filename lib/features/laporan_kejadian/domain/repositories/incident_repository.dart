@@ -85,6 +85,7 @@ abstract class IncidentRepository {
     String? picId,
     required List<String> team,
     String? handlingTask,
+    String? actionTakenNote,
     String? solvedAction,
     DateTime? solvedDate,
     String? evidence,
