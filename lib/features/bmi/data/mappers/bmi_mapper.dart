@@ -58,6 +58,7 @@ class BmiMapper {
       height: bmiData.height,
       currentBMI: bmiData.bmi,
       currentBMIStatus: bmiData.bmiStatus,
+      bmiCategory: bmiData.category,
       lastUpdated: bmiData.updateDate,
       isPinned: false, // Will be managed locally
       recommendation: bmiData.recommendation, // Ambil dari API

@@ -129,25 +129,25 @@ class UserApiDataModel {
   final String? feedback;
 
   @JsonKey(name: 'Status')
-  final String status;
+  final String? status;
 
   @JsonKey(name: 'Token')
-  final String token;
+  final String? token;
 
   @JsonKey(name: 'IsLockout')
-  final bool isLockout;
+  final bool? isLockout;
 
   @JsonKey(name: 'AccessFailedCount')
-  final int accessFailedCount;
+  final int? accessFailedCount;
 
   @JsonKey(name: 'Active')
-  final bool active;
+  final bool? active;
 
   @JsonKey(name: 'CreateBy')
-  final String createBy;
+  final String? createBy;
 
   @JsonKey(name: 'CreateDate')
-  final String createDate;
+  final String? createDate;
 
   @JsonKey(name: 'UpdateBy')
   final String? updateBy;
@@ -199,22 +199,84 @@ class UserApiDataModel {
     this.kelurahan,
     this.alamatDomisili,
     this.feedback,
-    required this.status,
-    required this.token,
-    required this.isLockout,
-    required this.accessFailedCount,
-    required this.active,
-    required this.createBy,
-    required this.createDate,
+    this.status,
+    this.token,
+    this.isLockout,
+    this.accessFailedCount,
+    this.active,
+    this.createBy,
+    this.createDate,
     this.updateBy,
     this.updateDate,
     this.nrk,
     this.personnelNo,
-    required this.roles,
+    this.roles = const <RoleApiModel>[],
   });
 
-  factory UserApiDataModel.fromJson(Map<String, dynamic> json) =>
-      _$UserApiDataModelFromJson(json);
+  factory UserApiDataModel.fromJson(Map<String, dynamic> json) {
+    try {
+      return _$UserApiDataModelFromJson(json);
+    } catch (_) {
+      final rawRoles = json['Roles'];
+      final roles = rawRoles is List
+          ? rawRoles
+              .whereType<Map<String, dynamic>>()
+              .map(RoleApiModel.fromJson)
+              .toList()
+          : const <RoleApiModel>[];
+
+      return UserApiDataModel(
+        id: json['Id']?.toString() ?? '',
+        username: json['Username']?.toString() ?? '',
+        password: json['Password']?.toString(),
+        fullname: json['Fullname']?.toString() ?? '',
+        email: json['Email']?.toString(),
+        mail: json['Mail']?.toString(),
+        phoneNumber: json['PhoneNumber']?.toString(),
+        noNrp: json['NoNrp']?.toString(),
+        noKtp: json['NoKtp']?.toString(),
+        tempatLahir: json['TempatLahir']?.toString(),
+        tanggalLahir: json['TanggalLahir']?.toString(),
+        jenisKelamin: json['JenisKelamin']?.toString(),
+        pendidikan: json['Pendidikan']?.toString(),
+        teleponPribadi: json['TeleponPribadi']?.toString(),
+        teleponDarurat: json['TeleponDarurat']?.toString(),
+        site: json['Site']?.toString(),
+        jabatan: json['Jabatan']?.toString(),
+        idAtasan: json['IdAtasan']?.toString(),
+        tanggalPenerimaan: json['TanggalPenerimaan']?.toString(),
+        masaBerlakuPermit: json['MasaBerlakuPermit']?.toString(),
+        kompetensiPekerjaan: json['KompetensiPekerjaan']?.toString(),
+        urlKtp: json['UrlKtp']?.toString(),
+        urlKta: json['UrlKta']?.toString(),
+        urlFoto: json['UrlFoto']?.toString(),
+        p3tdK3lh: json['P3tdK3lh']?.toString(),
+        p3tdSecurity: json['P3tdSecurity']?.toString(),
+        urlPernyataanTidakMerokok: json['UrlPernyataanTidakMerokok']?.toString(),
+        wargaNegara: json['WargaNegara']?.toString(),
+        provinsi: json['Provinsi']?.toString(),
+        kotaKabupaten: json['KotaKabupaten']?.toString(),
+        kecamatan: json['Kecamatan']?.toString(),
+        kelurahan: json['Kelurahan']?.toString(),
+        alamatDomisili: json['AlamatDomisili']?.toString(),
+        feedback: json['Feedback']?.toString(),
+        status: json['Status']?.toString(),
+        token: json['Token']?.toString(),
+        isLockout: json['IsLockout'] is bool ? json['IsLockout'] as bool : null,
+        accessFailedCount: json['AccessFailedCount'] is num
+            ? (json['AccessFailedCount'] as num).toInt()
+            : null,
+        active: json['Active'] is bool ? json['Active'] as bool : null,
+        createBy: json['CreateBy']?.toString(),
+        createDate: json['CreateDate']?.toString(),
+        updateBy: json['UpdateBy']?.toString(),
+        updateDate: json['UpdateDate']?.toString(),
+        nrk: json['Nrk']?.toString(),
+        personnelNo: json['PersonnelNo']?.toString(),
+        roles: roles,
+      );
+    }
+  }
 
   Map<String, dynamic> toJson() => _$UserApiDataModelToJson(this);
 
@@ -262,7 +324,7 @@ class UserApiDataModel {
       site: site ?? '-',
       jabatan: jabatan ?? (roles.isNotEmpty ? roles.first.nama : '-'),
       atasan: idAtasan ?? '-',
-      tglPenerimaanKaryawan: parsedTanggalPenerimaan ?? DateTime.parse(createDate),
+      tglPenerimaanKaryawan: parsedTanggalPenerimaan ?? DateTime.tryParse(createDate ?? '') ?? DateTime.now(),
       masaBerlakuPermit: parsedMasaBerlakuPermit ?? DateTime.now().add(const Duration(days: 365)),
       kompetensiPekerjaan: kompetensiPekerjaan ?? '-',
       wargaNegara: wargaNegara ?? '-',

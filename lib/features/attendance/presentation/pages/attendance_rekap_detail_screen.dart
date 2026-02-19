@@ -213,11 +213,11 @@ class _AttendanceRekapDetailScreenContentState
                     ],
 
                     // Bukti Penyelesaian Tugas Lanjutan
-                    if (detail.photoCheckoutPengamanan?.hasPhoto == true) ...[
+                    if (detail.photoOvertime?.hasPhoto == true) ...[
                       16.verticalSpace,
                       _buildImageCard(
                         'Bukti Penyelesaian Tugas Lanjutan',
-                        detail.photoCheckoutPengamanan?.url,
+                        detail.photoOvertime?.url,
                       ),
                     ],
 
