@@ -321,7 +321,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           // Pakaian Personil (selesai)
           _buildFileCard(
             'Pakaian Personil',
-            laporan.fotoPakaianPersonil,
+            laporan.fotoCheckoutPakaian,
           ),
           16.verticalSpace,
 

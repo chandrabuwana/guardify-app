@@ -243,7 +243,9 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
                 borderRadius: BorderRadius.circular(30.r),
               ),
               child: Text(
-                _getBMIStatusDisplayText(bmiStatus!),
+                (userProfile.bmiCategory != null && userProfile.bmiCategory!.isNotEmpty)
+                    ? userProfile.bmiCategory!
+                    : _getBMIStatusDisplayText(bmiStatus!),
                 style: TS.headlineMedium.copyWith(
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF2C5F7C),

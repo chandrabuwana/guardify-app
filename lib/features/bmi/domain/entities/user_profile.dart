@@ -10,6 +10,7 @@ class UserProfile {
   final double? height; // dalam cm
   final double? currentBMI;
   final BMIStatus? currentBMIStatus;
+  final String? bmiCategory;
   final DateTime? lastUpdated;
   final bool isPinned; // untuk fitur pin di role non-anggota
   final String? recommendation; // rekomendasi dari API
@@ -23,6 +24,7 @@ class UserProfile {
     this.height,
     this.currentBMI,
     this.currentBMIStatus,
+    this.bmiCategory,
     this.lastUpdated,
     this.isPinned = false,
     this.recommendation,
@@ -54,6 +56,7 @@ class UserProfile {
     double? height,
     double? currentBMI,
     BMIStatus? currentBMIStatus,
+    String? bmiCategory,
     DateTime? lastUpdated,
     bool? isPinned,
     String? recommendation,
@@ -67,6 +70,7 @@ class UserProfile {
       height: height ?? this.height,
       currentBMI: currentBMI ?? this.currentBMI,
       currentBMIStatus: currentBMIStatus ?? this.currentBMIStatus,
+      bmiCategory: bmiCategory ?? this.bmiCategory,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       isPinned: isPinned ?? this.isPinned,
       recommendation: recommendation ?? this.recommendation,
@@ -85,6 +89,7 @@ class UserProfile {
         other.height == height &&
         other.currentBMI == currentBMI &&
         other.currentBMIStatus == currentBMIStatus &&
+        other.bmiCategory == bmiCategory &&
         other.lastUpdated == lastUpdated &&
         other.isPinned == isPinned &&
         other.recommendation == recommendation;
@@ -101,6 +106,7 @@ class UserProfile {
       height,
       currentBMI,
       currentBMIStatus,
+      bmiCategory,
       lastUpdated,
       isPinned,
       recommendation,
@@ -109,6 +115,6 @@ class UserProfile {
 
   @override
   String toString() {
-    return 'UserProfile(id: $id, name: $name, role: $role, currentWeight: $currentWeight, height: $height, currentBMI: $currentBMI, currentBMIStatus: $currentBMIStatus, lastUpdated: $lastUpdated, isPinned: $isPinned, recommendation: $recommendation)';
+    return 'UserProfile(id: $id, name: $name, role: $role, currentWeight: $currentWeight, height: $height, currentBMI: $currentBMI, currentBMIStatus: $currentBMIStatus, bmiCategory: $bmiCategory, lastUpdated: $lastUpdated, isPinned: $isPinned, recommendation: $recommendation)';
   }
 }

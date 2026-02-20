@@ -57,6 +57,7 @@ class LaporanKegiatanEntity extends Equatable {
   final String? jamAbsensi;
   final String? pakaianPersonil;
   final String? fotoPakaianPersonil;
+  final String? fotoCheckoutPakaian;
   final String laporanPengamanan;
   final String? laporanPengamananCheckout;
   final List<String>? fotoPengamanan;
@@ -104,6 +105,7 @@ class LaporanKegiatanEntity extends Equatable {
     this.jamAbsensi,
     this.pakaianPersonil,
     this.fotoPakaianPersonil,
+    this.fotoCheckoutPakaian,
     required this.laporanPengamanan,
     this.laporanPengamananCheckout,
     this.fotoPengamanan,
@@ -145,6 +147,7 @@ class LaporanKegiatanEntity extends Equatable {
         jamAbsensi,
         pakaianPersonil,
         fotoPakaianPersonil,
+        fotoCheckoutPakaian,
         laporanPengamanan,
         laporanPengamananCheckout,
         fotoPengamanan,
@@ -185,6 +188,7 @@ class LaporanKegiatanEntity extends Equatable {
     String? jamAbsensi,
     String? pakaianPersonil,
     String? fotoPakaianPersonil,
+    String? fotoCheckoutPakaian,
     String? laporanPengamanan,
     String? laporanPengamananCheckout,
     List<String>? fotoPengamanan,
@@ -224,6 +228,7 @@ class LaporanKegiatanEntity extends Equatable {
       jamAbsensi: jamAbsensi ?? this.jamAbsensi,
       pakaianPersonil: pakaianPersonil ?? this.pakaianPersonil,
       fotoPakaianPersonil: fotoPakaianPersonil ?? this.fotoPakaianPersonil,
+      fotoCheckoutPakaian: fotoCheckoutPakaian ?? this.fotoCheckoutPakaian,
       laporanPengamanan: laporanPengamanan ?? this.laporanPengamanan,
       laporanPengamananCheckout:
           laporanPengamananCheckout ?? this.laporanPengamananCheckout,

@@ -228,12 +228,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     if (userRole != UserRole.pengawas) {
       print('');
       print('🏠 Checking if we should load current task...');
-      final currentState = state as HomeLoaded;
-      final hasShift = currentState.currentShift != null;
+      final hasShift = currentShift != null;
       print('  - currentShift != null: $hasShift');
       
       if (hasShift) {
-        final shift = currentState.currentShift!;
+        final shift = currentShift!;
       print('🏠 ✅ Shift data available, preparing to load current task');
       
       // Try to get idShiftDetail, fallback to id if idShiftDetail is null
@@ -260,20 +259,23 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         print('🏠 No shift data - updating state to show empty tasks');
         // Update state to show empty tasks (card will still appear with "Tidak ada tugas hari ini")
         // State was already emitted above, so we can safely use copyWith
-        emit(currentState.copyWith(
-          todayTasks: [], // Empty tasks - card will show "Tidak ada tugas hari ini"
-          isLoadingPatrolTasks: false, // Stop loading so card appears
-        ));
+        if (state is HomeLoaded) {
+          emit((state as HomeLoaded).copyWith(
+            todayTasks: [], // Empty tasks - card will show "Tidak ada tugas hari ini"
+            isLoadingPatrolTasks: false, // Stop loading so card appears
+          ));
+        }
         print('🏠 ✅ State updated - card "Tugas Hari Ini" will appear with empty message');
       }
     } else {
       // For pengawas, don't load current task
       print('🏠 ⚠️ Pengawas role - skipping current task load');
-      final currentState = state as HomeLoaded;
-      emit(currentState.copyWith(
-        todayTasks: [],
-        isLoadingPatrolTasks: false,
-      ));
+      if (state is HomeLoaded) {
+        emit((state as HomeLoaded).copyWith(
+          todayTasks: [],
+          isLoadingPatrolTasks: false,
+        ));
+      }
     }
     print('');
   }
