@@ -1165,8 +1165,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   Widget _buildPJOOrDeputyActionButtons(IncidentEntity incident) {
     // Untuk PJO/Deputy di tab "Daftar Insiden"
     // Rules:
-    // - Jika status menunggu dan pelapor adalah Danton: Dapat review (Diterima/Tidak Valid)
-    // - Jika status diterima (setelah danton review): Dapat Assign PIC dan Tim, serta Eskalasi
+    // - Jika pelapor adalah Anggota: Hanya Danton yang bisa review, PJO/Deputy TIDAK bisa review
+    // - Jika pelapor adalah Danton dan status menunggu: PJO/Deputy dapat review (Diterima/Tidak Valid)
+    // - Jika status diterima (setelah danton review): PJO/Deputy dapat Assign PIC dan Tim, serta Eskalasi
     //   * Setelah danton review dan accept, PJO/Deputy akan assign PIC dan tim melalui dialog assign
     if (_userRole == null) {
       return const SizedBox.shrink();
@@ -1177,6 +1178,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
         final buttons = <Widget>[];
         
         // Tombol Review untuk status Menunggu (jika pelapor adalah Danton)
+        // Rules: Jika pelapor adalah Anggota, hanya Danton yang bisa review
+        //        Jika pelapor adalah Danton, PJO/Deputy bisa review
+        //        PJO/Deputy hanya bisa assign setelah danton review (status Diterima)
         if (incident.status == IncidentStatus.menunggu) {
           return FutureBuilder<bool>(
             future: () async {
@@ -1184,16 +1188,18 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
               final currentUserId = await UserRoleHelper.getUserId();
               final reporterId = incident.pelaporId;
               
-              // Try to get reporter role from API model
-              // Note: UserModel in incident_api_model doesn't have role field
-              // We'll rely on the logic in canReviewIncident to handle it
-              // The main protection is self-review prevention (currentUserId == reporterId)
+              // Get reporter role from incident entity
+              // Jika pelapor adalah Anggota, hanya Danton yang bisa review
+              // Jika pelapor adalah Danton, PJO/Deputy bisa review
               UserRole? reporterRole;
+              if (incident.reporterRole != null && incident.reporterRole!.isNotEmpty) {
+                reporterRole = UserRole.fromValue(incident.reporterRole!);
+              }
               
               return await IncidentPermissionHelper.canReviewIncident(
                 incident: incident,
                 currentUserRole: _userRole!,
-                reporterRole: reporterRole, // Will be null if not available
+                reporterRole: reporterRole,
                 currentUserId: currentUserId,
                 reporterId: reporterId,
               );

@@ -55,6 +55,15 @@ class IncidentApiModel {
   final dynamic incidentDetail; // Can be Map or List
   final List<dynamic>? teams;
   final List<RoleModel>? roles; // Roles dari pelapor (Reporter)
+  final String? reviewedBy;
+  final DateTime? reviewedDate;
+  final String? handlingTask;
+  final String? feedBack;
+  final String? supervisorFeedback;
+  final String? verifiedBy;
+  final DateTime? verifiedDate;
+  final String? completedBy;
+  final DateTime? incidentCompletionDate;
 
   const IncidentApiModel({
     required this.id,
@@ -85,6 +94,15 @@ class IncidentApiModel {
     this.incidentDetail,
     this.teams,
     this.roles,
+    this.reviewedBy,
+    this.reviewedDate,
+    this.handlingTask,
+    this.feedBack,
+    this.supervisorFeedback,
+    this.verifiedBy,
+    this.verifiedDate,
+    this.completedBy,
+    this.incidentCompletionDate,
   });
 
   factory IncidentApiModel.fromJson(Map<String, dynamic> json) {
@@ -185,6 +203,21 @@ class IncidentApiModel {
           ? (json['Roles'] as List)
               .map((r) => RoleModel.fromJson(r as Map<String, dynamic>))
               .toList()
+          : null,
+      reviewedBy: json['ReviewedBy']?.toString(),
+      reviewedDate: json['ReviewedDate'] != null
+          ? DateTime.tryParse(json['ReviewedDate'].toString())
+          : null,
+      handlingTask: json['HandlingTask']?.toString(),
+      feedBack: json['FeedBack']?.toString(),
+      supervisorFeedback: json['SupervisorFeedback']?.toString(),
+      verifiedBy: json['VerifiedBy']?.toString(),
+      verifiedDate: json['VerifiedDate'] != null
+          ? DateTime.tryParse(json['VerifiedDate'].toString())
+          : null,
+      completedBy: json['CompletedBy']?.toString(),
+      incidentCompletionDate: json['IncidentCompletionDate'] != null
+          ? DateTime.tryParse(json['IncidentCompletionDate'].toString())
           : null,
     );
   }

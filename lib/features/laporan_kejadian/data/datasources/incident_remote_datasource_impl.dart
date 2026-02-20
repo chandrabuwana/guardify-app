@@ -821,14 +821,54 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         evidenceModel = EvidenceModel.fromMap(incidentImage);
       }
 
+      // Get all fields from response /incident/getall
+      IncidentApiModel? apiModel;
+      try {
+        apiModel = await getIncidentDetailApiModel(incidentId);
+      } catch (e) {
+        // If error getting incident detail, continue with provided values
+      }
+
       // Determine fields based on status and action
+      // For PJO/Deputy assign (ASSIGNED), all fields should be taken from response
       String? completedBy;
       DateTime? incidentCompletionDate;
       String? verifiedBy;
       DateTime? verifiedDate;
       String? reviewedBy;
       DateTime? reviewedDate;
+      String? handlingTaskFromResponse;
+      String? feedBackFromResponse;
+      String? supervisorFeedbackFromResponse;
+      DateTime? createDateFromResponse;
       
+      // Get fields from response if available
+      if (apiModel != null) {
+        createDateFromResponse = apiModel.createDate;
+        handlingTaskFromResponse = apiModel.handlingTask;
+        feedBackFromResponse = apiModel.feedBack;
+        supervisorFeedbackFromResponse = apiModel.supervisorFeedback;
+        
+        // For PJO/Deputy assign (status ASSIGNED), take ReviewedBy and ReviewedDate from response
+        if (status == 'ASSIGNED') {
+          reviewedBy = apiModel.reviewedBy;
+          reviewedDate = apiModel.reviewedDate;
+          verifiedBy = apiModel.verifiedBy;
+          verifiedDate = apiModel.verifiedDate;
+          completedBy = apiModel.completedBy;
+          incidentCompletionDate = apiModel.incidentCompletionDate;
+        } else {
+          // For other statuses, use response values as fallback but allow override
+          reviewedBy = apiModel.reviewedBy;
+          reviewedDate = apiModel.reviewedDate;
+          verifiedBy = apiModel.verifiedBy;
+          verifiedDate = apiModel.verifiedDate;
+          completedBy = apiModel.completedBy;
+          incidentCompletionDate = apiModel.incidentCompletionDate;
+        }
+      }
+      
+      // Override with new values based on status
       if (status == 'COMPLETED') {
         completedBy = userId;
         incidentCompletionDate = DateTime.now();
@@ -839,15 +879,6 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         // ReviewedBy harus menggunakan user ID yang login (GUID), bukan nama
         reviewedBy = userId.isNotEmpty ? userId : null;
         reviewedDate = DateTime.now();
-      }
-
-      // Get createDate from response /incident/getall
-      DateTime? createDateFromResponse;
-      try {
-        final apiModel = await getIncidentDetailApiModel(incidentId);
-        createDateFromResponse = apiModel.createDate;
-      } catch (e) {
-        // If error getting incident detail, createDate will be null (field will be omitted)
       }
 
       // Create request using UpdateAllIncidentRequest model
@@ -862,9 +893,9 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         reportId: reportId,
         picId: picId,
         team: team,
-        handlingTask: handlingTask,
+        handlingTask: handlingTask ?? handlingTaskFromResponse ?? '',
         notes: notesAction ?? actionTakenNote,
-        feedBack: null, // FeedBack can be added later if needed
+        feedBack: feedBackFromResponse ?? '',
         evidence: evidenceModel,
         status: status,
         solvedAction: solvedAction,
@@ -875,7 +906,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         verifiedDate: verifiedDate,
         reviewedBy: reviewedBy,
         reviewedDate: reviewedDate,
-        supervisorFeedback: null, // Can be added later if needed
+        supervisorFeedback: supervisorFeedbackFromResponse ?? '',
         createDate: createDateFromResponse, // Ambil dari response /incident/getall
         token: token,
       );
