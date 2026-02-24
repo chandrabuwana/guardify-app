@@ -74,6 +74,11 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         length: event.length, // Now defaults to 50 from LoadIncidentListEvent
         searchQuery: event.searchQuery,
         status: event.status,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        picId: event.picId,
+        incidentTypeId: event.incidentTypeId,
+        locationId: event.locationId,
       );
 
       emit(IncidentState(
@@ -86,6 +91,12 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         types: state.types,
         errorMessage: null,
         searchQuery: event.searchQuery,
+        filterStatus: event.status,
+        filterStartDate: event.startDate,
+        filterEndDate: event.endDate,
+        filterPicId: event.picId,
+        filterIncidentTypeId: event.incidentTypeId,
+        filterLocationId: event.locationId,
         currentPage: 0,
         hasReachedMax: incidents.length < pageSize,
         hasReachedMaxMyTasks: state.hasReachedMaxMyTasks,
@@ -113,6 +124,12 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         start: nextPage * pageSize,
         length: pageSize,
         searchQuery: state.searchQuery,
+        status: state.filterStatus,
+        startDate: state.filterStartDate,
+        endDate: state.filterEndDate,
+        picId: state.filterPicId,
+        incidentTypeId: state.filterIncidentTypeId,
+        locationId: state.filterLocationId,
       );
 
       // Create new state with ALL new lists to ensure Equatable detects the change
@@ -156,6 +173,12 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         start: 0,
         length: pageSize,
         searchQuery: state.searchQuery,
+        status: state.filterStatus,
+        startDate: state.filterStartDate,
+        endDate: state.filterEndDate,
+        picId: state.filterPicId,
+        incidentTypeId: state.filterIncidentTypeId,
+        locationId: state.filterLocationId,
       );
 
       // Create new state with ALL new lists to ensure Equatable detects the change
@@ -169,6 +192,12 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         types: List.from(state.types), // New list reference
         errorMessage: null,
         searchQuery: state.searchQuery,
+        filterStatus: state.filterStatus,
+        filterStartDate: state.filterStartDate,
+        filterEndDate: state.filterEndDate,
+        filterPicId: state.filterPicId,
+        filterIncidentTypeId: state.filterIncidentTypeId,
+        filterLocationId: state.filterLocationId,
         currentPage: 0,
         hasReachedMax: incidents.length < pageSize,
         hasReachedMaxMyTasks: state.hasReachedMaxMyTasks,
@@ -200,6 +229,12 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         start: 0,
         length: pageSize,
         searchQuery: event.query.isEmpty ? null : event.query,
+        status: event.status,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        picId: event.picId,
+        incidentTypeId: event.incidentTypeId,
+        locationId: event.locationId,
       );
 
       // Create new state with ALL new lists to ensure Equatable detects the change
@@ -213,6 +248,12 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         types: List.from(state.types), // New list reference
         errorMessage: null,
         searchQuery: event.query,
+        filterStatus: event.status,
+        filterStartDate: event.startDate,
+        filterEndDate: event.endDate,
+        filterPicId: event.picId,
+        filterIncidentTypeId: event.incidentTypeId,
+        filterLocationId: event.locationId,
         currentPage: 0,
         hasReachedMax: incidents.length < pageSize,
         hasReachedMaxMyTasks: state.hasReachedMaxMyTasks,
@@ -542,6 +583,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         evidence: event.evidence,
         status: event.status,
         incidentImage: event.incidentImage,
+        supervisorFeedback: event.supervisorFeedback,
       );
 
       if (success) {

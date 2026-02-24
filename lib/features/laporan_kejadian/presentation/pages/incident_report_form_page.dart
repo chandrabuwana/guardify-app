@@ -60,6 +60,7 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
   IncidentLocationEntity? _selectedLocation;
   IncidentTypeEntity? _selectedType;
   List<String> _fotoPaths = [];
+  bool _hasSubmitted = false; // Flag untuk memastikan form hanya ditutup setelah submit berhasil
 
   @override
   void initState() {
@@ -151,6 +152,11 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
     // Get current user ID
     final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
 
+    // Set flag bahwa form sudah di-submit
+    setState(() {
+      _hasSubmitted = true;
+    });
+
     BlocProvider.of<IncidentBloc>(context, listen: false).add(
           CreateIncidentReportEvent(
             reporterId: userId,
@@ -178,7 +184,9 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
             ),
           );
         }
-        if (state.incidentDetail != null && !state.isLoading) {
+        // Hanya tutup form jika sudah submit dan create berhasil
+        // Ini mencegah form ditutup saat baru dibuka karena incidentDetail sudah ada dari operasi sebelumnya
+        if (_hasSubmitted && state.incidentDetail != null && !state.isLoading) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Laporan insiden berhasil dibuat'),
@@ -288,7 +296,9 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
                       controller: _detailLokasiController,
                       hint: 'Masukkan detail lokasi',
                       isRequired: true,
-                      maxLines: 3,
+                      maxLines: 10, // Increased to allow more text to be visible
+                      minLines: 3, // Minimum 3 lines to show more text
+                      maxLength: 500,
                       validation: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Detail lokasi harus diisi';
@@ -335,7 +345,9 @@ class _IncidentReportFormPageState extends State<IncidentReportFormPage> {
                       controller: _deskripsiController,
                       hint: 'Masukkan deskripsi insiden',
                       isRequired: true,
-                      maxLines: 5,
+                      maxLines: 15, // Increased to allow more text to be visible
+                      minLines: 5, // Minimum 5 lines to show more text
+                      maxLength: 1000,
                       validation: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Deskripsi insiden harus diisi';

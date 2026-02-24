@@ -13,6 +13,11 @@ class GetIncidentList {
     int length = 10,
     String? searchQuery,
     IncidentStatus? status,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? picId,
+    String? incidentTypeId,
+    String? locationId,
   }) async {
     print('🎯 UseCase: Getting incident list - start: $start, length: $length');
     try {
@@ -21,6 +26,11 @@ class GetIncidentList {
         length: length,
         searchQuery: searchQuery,
         status: status,
+        startDate: startDate,
+        endDate: endDate,
+        picId: picId,
+        incidentTypeId: incidentTypeId,
+        locationId: locationId,
       );
       print('🎯 UseCase: Received ${entities.length} entities from repository');
       return entities;

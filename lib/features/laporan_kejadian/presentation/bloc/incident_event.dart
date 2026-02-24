@@ -14,16 +14,36 @@ class LoadIncidentListEvent extends IncidentEvent {
   final int length;
   final String? searchQuery;
   final IncidentStatus? status;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final String? picId;
+  final String? incidentTypeId;
+  final String? locationId;
 
   const LoadIncidentListEvent({
     this.start = 0,
     this.length = 50, // Increased from 10 to 50
     this.searchQuery,
     this.status,
+    this.startDate,
+    this.endDate,
+    this.picId,
+    this.incidentTypeId,
+    this.locationId,
   });
 
   @override
-  List<Object?> get props => [start, length, searchQuery, status];
+  List<Object?> get props => [
+        start,
+        length,
+        searchQuery,
+        status,
+        startDate,
+        endDate,
+        picId,
+        incidentTypeId,
+        locationId,
+      ];
 }
 
 // Load more incidents (pagination)
@@ -39,11 +59,33 @@ class RefreshIncidentListEvent extends IncidentEvent {
 // Search incidents
 class SearchIncidentListEvent extends IncidentEvent {
   final String query;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final IncidentStatus? status;
+  final String? picId;
+  final String? incidentTypeId;
+  final String? locationId;
 
-  const SearchIncidentListEvent(this.query);
+  const SearchIncidentListEvent(
+    this.query, {
+    this.startDate,
+    this.endDate,
+    this.status,
+    this.picId,
+    this.incidentTypeId,
+    this.locationId,
+  });
 
   @override
-  List<Object> get props => [query];
+  List<Object?> get props => [
+        query,
+        startDate,
+        endDate,
+        status,
+        picId,
+        incidentTypeId,
+        locationId,
+      ];
 }
 
 // Load my tasks
@@ -55,7 +97,7 @@ class LoadMyTasksEvent extends IncidentEvent {
 
   const LoadMyTasksEvent({
     this.start = 0,
-    this.length = 10,
+    this.length = 50, // Increased from 10 to 50 for better pagination
     this.searchQuery,
     this.status,
   });
@@ -230,12 +272,13 @@ class UpdateAllIncidentEvent extends IncidentEvent {
   final String? picId;
   final List<String> team;
   final String? handlingTask;
-  final String? actionTakenNote; // Nama user yang assign (untuk "Pembuat Keputusan")
+  final String? actionTakenNote; // Note penyelesaian yang diisi saat PIC/Anggota menyelesaikan insiden di TUGAS SAYA
   final String? solvedAction;
   final DateTime? solvedDate;
   final String? evidence;
   final String status;
   final Map<String, dynamic>? incidentImage;
+  final String? supervisorFeedback; // Feedback dari supervisor saat verifikasi/revisi
 
   const UpdateAllIncidentEvent({
     required this.incidentId,
@@ -256,6 +299,7 @@ class UpdateAllIncidentEvent extends IncidentEvent {
     this.evidence,
     required this.status,
     this.incidentImage,
+    this.supervisorFeedback,
   });
 
   @override
@@ -278,6 +322,7 @@ class UpdateAllIncidentEvent extends IncidentEvent {
         evidence,
         status,
         incidentImage,
+        supervisorFeedback,
       ];
 }
 

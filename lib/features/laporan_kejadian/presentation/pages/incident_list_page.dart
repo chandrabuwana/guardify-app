@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,10 +7,12 @@ import 'package:intl/intl.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/utils/user_role_helper.dart';
 import '../../../../core/constants/enums.dart';
+import '../../../../core/di/injection.dart';
 import '../bloc/incident_bloc.dart';
 import '../bloc/incident_event.dart';
 import '../bloc/incident_state.dart';
 import '../../domain/entities/incident_entity.dart';
+import '../../data/datasources/incident_remote_datasource.dart';
 import 'incident_report_form_page.dart';
 import 'incident_detail_page.dart';
 
@@ -27,6 +30,14 @@ class _IncidentListPageState extends State<IncidentListPage>
   final ScrollController _scrollController = ScrollController();
   Timer? _searchDebounce;
   bool _isPengawas = false;
+  
+  // Filter state
+  DateTime? _filterStartDate;
+  DateTime? _filterEndDate;
+  IncidentStatus? _filterStatus;
+  String? _filterPicId;
+  String? _filterIncidentTypeId;
+  String? _filterLocationId;
 
   @override
   void initState() {
@@ -41,10 +52,45 @@ class _IncidentListPageState extends State<IncidentListPage>
     
     // Load initial data after frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<IncidentBloc>().add(const LoadIncidentListEvent());
-        context.read<IncidentBloc>().add(const LoadIncidentLocationsEvent());
-        context.read<IncidentBloc>().add(const LoadIncidentTypesEvent());
+      if (!mounted) return;
+      try {
+        final bloc = context.read<IncidentBloc>();
+        final state = bloc.state;
+        
+        // Sync local filter state with bloc state
+        setState(() {
+          _filterStartDate = state.filterStartDate;
+          _filterEndDate = state.filterEndDate;
+          _filterStatus = state.filterStatus;
+          _filterPicId = state.filterPicId;
+          _filterIncidentTypeId = state.filterIncidentTypeId;
+          _filterLocationId = state.filterLocationId;
+          if (state.searchQuery != null && state.searchQuery!.isNotEmpty) {
+            _searchController.text = state.searchQuery!;
+          }
+        });
+        
+        if (!mounted) return;
+        
+        // Load locations and types first
+        bloc.add(const LoadIncidentLocationsEvent());
+        bloc.add(const LoadIncidentTypesEvent());
+        // Load incident list with any existing filters from state
+        bloc.add(
+          LoadIncidentListEvent(
+            searchQuery: _searchController.text.trim().isEmpty
+                ? null
+                : _searchController.text.trim(),
+            startDate: _filterStartDate,
+            endDate: _filterEndDate,
+            status: _filterStatus,
+            picId: _filterPicId,
+            incidentTypeId: _filterIncidentTypeId,
+            locationId: _filterLocationId,
+          ),
+        );
+      } catch (e) {
+        debugPrint('Error loading initial data: $e');
       }
     });
   }
@@ -73,25 +119,52 @@ class _IncidentListPageState extends State<IncidentListPage>
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging && mounted) {
-      if (_tabController.index == 0) {
-        context.read<IncidentBloc>().add(const LoadIncidentListEvent());
-      } else {
-        context.read<IncidentBloc>().add(const LoadMyTasksEvent());
+      try {
+        if (!mounted) return;
+        if (_tabController.index == 0) {
+          // Preserve filters when switching to incident list tab
+          final bloc = context.read<IncidentBloc>();
+          final state = bloc.state;
+          bloc.add(
+            LoadIncidentListEvent(
+              searchQuery: _searchController.text.trim().isEmpty
+                  ? null
+                  : _searchController.text.trim(),
+              startDate: _filterStartDate ?? state.filterStartDate,
+              endDate: _filterEndDate ?? state.filterEndDate,
+              status: _filterStatus ?? state.filterStatus,
+              picId: _filterPicId ?? state.filterPicId,
+              incidentTypeId: _filterIncidentTypeId ?? state.filterIncidentTypeId,
+              locationId: _filterLocationId ?? state.filterLocationId,
+            ),
+          );
+        } else {
+          if (mounted) {
+            context.read<IncidentBloc>().add(const LoadMyTasksEvent());
+          }
+        }
+      } catch (e) {
+        debugPrint('Error loading tab data: $e');
       }
     }
   }
 
   void _onScroll() {
     if (_isBottom) {
-      // Untuk pengawas, selalu load more incident list
-      if (_isPengawas) {
-        context.read<IncidentBloc>().add(const LoadMoreIncidentListEvent());
-      } else {
-        if (_tabController.index == 0) {
+      if (!mounted) return;
+      try {
+        // Untuk pengawas, selalu load more incident list
+        if (_isPengawas) {
           context.read<IncidentBloc>().add(const LoadMoreIncidentListEvent());
         } else {
-          context.read<IncidentBloc>().add(const LoadMoreMyTasksEvent());
+          if (_tabController.index == 0) {
+            context.read<IncidentBloc>().add(const LoadMoreIncidentListEvent());
+          } else {
+            context.read<IncidentBloc>().add(const LoadMoreMyTasksEvent());
+          }
         }
+      } catch (e) {
+        debugPrint('Error loading more incidents: $e');
       }
     }
   }
@@ -106,15 +179,42 @@ class _IncidentListPageState extends State<IncidentListPage>
   void _performSearch(String query) {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 500), () {
-      // Untuk pengawas, selalu search incident list
-      if (_isPengawas) {
-        context.read<IncidentBloc>().add(SearchIncidentListEvent(query));
-      } else {
-        if (_tabController.index == 0) {
-          context.read<IncidentBloc>().add(SearchIncidentListEvent(query));
+      if (!mounted) return;
+      try {
+        if (!mounted) return;
+        final bloc = context.read<IncidentBloc>();
+        // Untuk pengawas, selalu search incident list
+        if (_isPengawas) {
+          bloc.add(
+            SearchIncidentListEvent(
+              query,
+              startDate: _filterStartDate,
+              endDate: _filterEndDate,
+              status: _filterStatus,
+              picId: _filterPicId,
+              incidentTypeId: _filterIncidentTypeId,
+              locationId: _filterLocationId,
+            ),
+          );
         } else {
-          context.read<IncidentBloc>().add(SearchMyTasksEvent(query));
+          if (_tabController.index == 0) {
+            bloc.add(
+              SearchIncidentListEvent(
+                query,
+                startDate: _filterStartDate,
+                endDate: _filterEndDate,
+                status: _filterStatus,
+                picId: _filterPicId,
+                incidentTypeId: _filterIncidentTypeId,
+                locationId: _filterLocationId,
+              ),
+            );
+          } else {
+            bloc.add(SearchMyTasksEvent(query));
+          }
         }
+      } catch (e) {
+        debugPrint('Error searching incidents: $e');
       }
     });
   }
@@ -183,63 +283,62 @@ class _IncidentListPageState extends State<IncidentListPage>
             builder: (context, state) {
               return Column(
                 children: [
-                  // Search and Filter Bar (tidak ditampilkan untuk pengawas)
-                  if (!_isPengawas)
-                    Container(
-                      padding: REdgeInsets.all(16),
-                      color: Colors.white,
-                      child: Row(
-                        children: [
-                          // Search Bar
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: primaryColor),
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: TextField(
-                                controller: _searchController,
-                                decoration: InputDecoration(
-                                  hintText: 'Cari',
-                                  hintStyle: TextStyle(
-                                    color: primaryColor.withOpacity(0.6),
-                                    fontSize: 14.sp,
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.search,
-                                    color: primaryColor,
-                                    size: 20.r,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: REdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                ),
-                                style: TextStyle(fontSize: 14.sp),
-                                onChanged: _performSearch,
-                              ),
-                            ),
-                          ),
-                          12.horizontalSpace,
-                          // Filter Button
-                          Container(
-                            width: 48.w,
-                            height: 48.h,
+                  // Search and Filter Bar
+                  Container(
+                    padding: REdgeInsets.all(16),
+                    color: Colors.white,
+                    child: Row(
+                      children: [
+                        // Search Bar
+                        Expanded(
+                          child: Container(
                             decoration: BoxDecoration(
-                              color: primaryColor,
+                              border: Border.all(color: primaryColor),
                               borderRadius: BorderRadius.circular(8.r),
                             ),
-                            child: IconButton(
-                              icon: const Icon(Icons.filter_list, color: Colors.white),
-                              onPressed: () {
-                                // TODO: Implement filter dialog
-                              },
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Cari',
+                                hintStyle: TextStyle(
+                                  color: primaryColor.withOpacity(0.6),
+                                  fontSize: 14.sp,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: primaryColor,
+                                  size: 20.r,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: REdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                              style: TextStyle(fontSize: 14.sp),
+                              onChanged: _performSearch,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        12.horizontalSpace,
+                        // Filter Button
+                        Container(
+                          width: 48.w,
+                          height: 48.h,
+                          decoration: BoxDecoration(
+                            color: primaryColor,
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.filter_list, color: Colors.white),
+                            onPressed: () {
+                              _showFilterDialog(context);
+                            },
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
 
                   // Tab View (untuk pengawas hanya tampilkan list semua)
                   Expanded(
@@ -268,15 +367,47 @@ class _IncidentListPageState extends State<IncidentListPage>
             );
             if (result == true && mounted) {
               // Refresh list after creating incident
-              // Untuk pengawas, selalu refresh incident list
-              if (_isPengawas) {
-                context.read<IncidentBloc>().add(const RefreshIncidentListEvent());
-              } else {
-                if (_tabController.index == 0) {
-                  context.read<IncidentBloc>().add(const RefreshIncidentListEvent());
+              try {
+                if (!mounted) return;
+                final bloc = context.read<IncidentBloc>();
+                final state = bloc.state;
+                
+                // Untuk pengawas, selalu refresh incident list
+                if (_isPengawas) {
+                  bloc.add(
+                    LoadIncidentListEvent(
+                      searchQuery: _searchController.text.trim().isEmpty
+                          ? null
+                          : _searchController.text.trim(),
+                      startDate: _filterStartDate ?? state.filterStartDate,
+                      endDate: _filterEndDate ?? state.filterEndDate,
+                      status: _filterStatus ?? state.filterStatus,
+                      picId: _filterPicId ?? state.filterPicId,
+                      incidentTypeId: _filterIncidentTypeId ?? state.filterIncidentTypeId,
+                      locationId: _filterLocationId ?? state.filterLocationId,
+                    ),
+                  );
                 } else {
-                  context.read<IncidentBloc>().add(const RefreshMyTasksEvent());
+                  if (_tabController.index == 0) {
+                    bloc.add(
+                      LoadIncidentListEvent(
+                        searchQuery: _searchController.text.trim().isEmpty
+                            ? null
+                            : _searchController.text.trim(),
+                        startDate: _filterStartDate ?? state.filterStartDate,
+                        endDate: _filterEndDate ?? state.filterEndDate,
+                        status: _filterStatus ?? state.filterStatus,
+                        picId: _filterPicId ?? state.filterPicId,
+                        incidentTypeId: _filterIncidentTypeId ?? state.filterIncidentTypeId,
+                        locationId: _filterLocationId ?? state.filterLocationId,
+                      ),
+                    );
+                  } else {
+                    bloc.add(const RefreshMyTasksEvent());
+                  }
                 }
+              } catch (e) {
+                debugPrint('Error refreshing list after creating incident: $e');
               }
             }
           },
@@ -307,7 +438,28 @@ class _IncidentListPageState extends State<IncidentListPage>
         if (state.incidentList.isEmpty && !state.isLoading) {
           return RefreshIndicator(
             onRefresh: () async {
-              context.read<IncidentBloc>().add(const RefreshIncidentListEvent());
+              if (!mounted) return;
+              try {
+                if (!mounted) return;
+                final bloc = context.read<IncidentBloc>();
+                final state = bloc.state;
+                // Preserve filters when refreshing
+                bloc.add(
+                  LoadIncidentListEvent(
+                    searchQuery: _searchController.text.trim().isEmpty
+                        ? null
+                        : _searchController.text.trim(),
+                    startDate: _filterStartDate ?? state.filterStartDate,
+                    endDate: _filterEndDate ?? state.filterEndDate,
+                    status: _filterStatus ?? state.filterStatus,
+                    picId: _filterPicId ?? state.filterPicId,
+                    incidentTypeId: _filterIncidentTypeId ?? state.filterIncidentTypeId,
+                    locationId: _filterLocationId ?? state.filterLocationId,
+                  ),
+                );
+              } catch (e) {
+                debugPrint('Error refreshing incident list: $e');
+              }
             },
             color: primaryColor,
             child: SingleChildScrollView(
@@ -355,7 +507,28 @@ class _IncidentListPageState extends State<IncidentListPage>
 
         return RefreshIndicator(
           onRefresh: () async {
-            context.read<IncidentBloc>().add(const RefreshIncidentListEvent());
+            if (!mounted) return;
+            try {
+              if (!mounted) return;
+              final bloc = context.read<IncidentBloc>();
+              final state = bloc.state;
+              // Preserve filters when refreshing
+              bloc.add(
+                LoadIncidentListEvent(
+                  searchQuery: _searchController.text.trim().isEmpty
+                      ? null
+                      : _searchController.text.trim(),
+                  startDate: _filterStartDate ?? state.filterStartDate,
+                  endDate: _filterEndDate ?? state.filterEndDate,
+                  status: _filterStatus ?? state.filterStatus,
+                  picId: _filterPicId ?? state.filterPicId,
+                  incidentTypeId: _filterIncidentTypeId ?? state.filterIncidentTypeId,
+                  locationId: _filterLocationId ?? state.filterLocationId,
+                ),
+              );
+            } catch (e) {
+              debugPrint('Error refreshing incident list: $e');
+            }
           },
           color: primaryColor,
           child: ListView.builder(
@@ -405,7 +578,12 @@ class _IncidentListPageState extends State<IncidentListPage>
 
         return RefreshIndicator(
           onRefresh: () async {
-            context.read<IncidentBloc>().add(const RefreshMyTasksEvent());
+            if (!mounted) return;
+            try {
+              context.read<IncidentBloc>().add(const RefreshMyTasksEvent());
+            } catch (e) {
+              debugPrint('Error refreshing my tasks: $e');
+            }
           },
           color: primaryColor,
           child: ListView.builder(
@@ -439,34 +617,83 @@ class _IncidentListPageState extends State<IncidentListPage>
 
     return InkWell(
       onTap: () {
-        // Get bloc from parent context before navigation
-        final bloc = context.read<IncidentBloc>();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BlocProvider.value(
-              value: bloc,
-              child: IncidentDetailPage(
-                incident: incident, 
-                isFromMyTasks: isFromMyTasks,
+        // Check if context is still mounted before accessing bloc
+        if (!mounted) return;
+        
+        try {
+          // Get bloc from parent context before navigation
+          final bloc = context.read<IncidentBloc>();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BlocProvider.value(
+                value: bloc,
+                child: IncidentDetailPage(
+                  incident: incident, 
+                  isFromMyTasks: isFromMyTasks,
+                ),
               ),
             ),
-          ),
-        ).then((result) {
-          if (result == true && mounted) {
-            // Refresh list after update
-            // Untuk pengawas, selalu refresh incident list
-            if (_isPengawas) {
-              context.read<IncidentBloc>().add(const RefreshIncidentListEvent());
-            } else {
-              if (_tabController.index == 0) {
-                context.read<IncidentBloc>().add(const RefreshIncidentListEvent());
-              } else {
-                context.read<IncidentBloc>().add(const RefreshMyTasksEvent());
+          ).then((result) {
+            if (result == true && mounted) {
+              // Refresh list after update
+              try {
+                if (!mounted) return;
+                final bloc = context.read<IncidentBloc>();
+                final state = bloc.state;
+                
+                // Untuk pengawas, selalu refresh incident list
+                if (_isPengawas) {
+                  bloc.add(
+                    LoadIncidentListEvent(
+                      searchQuery: _searchController.text.trim().isEmpty
+                          ? null
+                          : _searchController.text.trim(),
+                      startDate: _filterStartDate ?? state.filterStartDate,
+                      endDate: _filterEndDate ?? state.filterEndDate,
+                      status: _filterStatus ?? state.filterStatus,
+                      picId: _filterPicId ?? state.filterPicId,
+                      incidentTypeId: _filterIncidentTypeId ?? state.filterIncidentTypeId,
+                      locationId: _filterLocationId ?? state.filterLocationId,
+                    ),
+                  );
+                } else {
+                  if (_tabController.index == 0) {
+                    bloc.add(
+                      LoadIncidentListEvent(
+                        searchQuery: _searchController.text.trim().isEmpty
+                            ? null
+                            : _searchController.text.trim(),
+                        startDate: _filterStartDate ?? state.filterStartDate,
+                        endDate: _filterEndDate ?? state.filterEndDate,
+                        status: _filterStatus ?? state.filterStatus,
+                        picId: _filterPicId ?? state.filterPicId,
+                        incidentTypeId: _filterIncidentTypeId ?? state.filterIncidentTypeId,
+                        locationId: _filterLocationId ?? state.filterLocationId,
+                      ),
+                    );
+                  } else {
+                    bloc.add(const RefreshMyTasksEvent());
+                  }
+                }
+              } catch (e) {
+                // Bloc might not be available, ignore
+                debugPrint('Error refreshing incident list: $e');
               }
             }
+          });
+        } catch (e) {
+          // Bloc might not be available, show error or ignore
+          debugPrint('Error accessing IncidentBloc: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Terjadi kesalahan saat membuka detail insiden'),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
-        });
+        }
       },
       child: Container(
         margin: REdgeInsets.only(bottom: 12),
@@ -628,6 +855,462 @@ class _IncidentListPageState extends State<IncidentListPage>
   String _formatDate(DateTime date) {
     final formatter = DateFormat('dd/MM/yyyy', 'id_ID');
     return formatter.format(date);
+  }
+
+  Future<void> _showFilterDialog(BuildContext context) async {
+    if (!mounted) return;
+    
+    // Get bloc before showing dialog
+    final bloc = context.read<IncidentBloc>();
+    final blocState = bloc.state;
+    
+    // Sync local state with bloc state (without setState to avoid rebuild issues)
+    _filterStartDate = _filterStartDate ?? blocState.filterStartDate;
+    _filterEndDate = _filterEndDate ?? blocState.filterEndDate;
+    _filterStatus = _filterStatus ?? blocState.filterStatus;
+    _filterPicId = _filterPicId ?? blocState.filterPicId;
+    _filterIncidentTypeId = _filterIncidentTypeId ?? blocState.filterIncidentTypeId;
+    _filterLocationId = _filterLocationId ?? blocState.filterLocationId;
+    
+    // Use the most up-to-date filter values (prefer local state, fallback to bloc state)
+    DateTime? tempStartDate = _filterStartDate ?? blocState.filterStartDate;
+    DateTime? tempEndDate = _filterEndDate ?? blocState.filterEndDate;
+    IncidentStatus? tempStatus = _filterStatus ?? blocState.filterStatus;
+    String? tempPicId = _filterPicId ?? blocState.filterPicId;
+    String? tempIncidentTypeId = _filterIncidentTypeId ?? blocState.filterIncidentTypeId;
+    String? tempLocationId = _filterLocationId ?? blocState.filterLocationId;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) => BlocProvider.value(
+        value: bloc,
+        child: StatefulBuilder(
+          builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Filter Insiden'),
+            contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.6,
+                ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                // Range Tanggal
+                const Text(
+                  'Range Tanggal',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: tempStartDate ?? DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (date != null) {
+                            setState(() {
+                              tempStartDate = date;
+                            });
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            tempStartDate != null
+                                ? DateFormat('dd/MM/yyyy').format(tempStartDate!)
+                                : 'Tanggal Mulai',
+                            style: TextStyle(
+                              color: tempStartDate != null
+                                  ? Colors.black
+                                  : Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: tempEndDate ?? DateTime.now(),
+                            firstDate: tempStartDate ?? DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (date != null) {
+                            setState(() {
+                              tempEndDate = date;
+                            });
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            tempEndDate != null
+                                ? DateFormat('dd/MM/yyyy').format(tempEndDate!)
+                                : 'Tanggal Akhir',
+                            style: TextStyle(
+                              color: tempEndDate != null
+                                  ? Colors.black
+                                  : Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Status
+                const Text(
+                  'Status',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                BlocBuilder<IncidentBloc, IncidentState>(
+                  builder: (context, state) {
+                    return DropdownButtonFormField<IncidentStatus?>(
+                      value: tempStatus,
+                      isExpanded: true,
+                      menuMaxHeight: MediaQuery.of(context).size.height * 0.4,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        isDense: true,
+                      ),
+                      hint: const Text('Pilih Status'),
+                      items: [
+                        const DropdownMenuItem<IncidentStatus?>(
+                          value: null,
+                          child: Text(
+                            'Semua Status',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        ...IncidentStatus.values.map((status) {
+                          return DropdownMenuItem<IncidentStatus?>(
+                            value: status,
+                            child: Text(
+                              _getStatusDisplayName(status),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          tempStatus = value;
+                        });
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // PIC
+                const Text(
+                  'PIC',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                FutureBuilder<List<Map<String, String>>>(
+                  future: _getUserList(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const CircularProgressIndicator();
+                    }
+                    final users = snapshot.data!;
+                    return DropdownButtonFormField<String?>(
+                      value: tempPicId,
+                      isExpanded: true,
+                      menuMaxHeight: MediaQuery.of(context).size.height * 0.4,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        isDense: true,
+                      ),
+                      hint: const Text('Pilih PIC'),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(
+                            'Semua PIC',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        ...users.map((user) {
+                          return DropdownMenuItem<String?>(
+                            value: user['id'],
+                            child: Text(
+                              user['name'] ?? '',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          tempPicId = value;
+                        });
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Tipe Insiden
+                const Text(
+                  'Tipe Insiden',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                BlocBuilder<IncidentBloc, IncidentState>(
+                  builder: (context, state) {
+                    return DropdownButtonFormField<String?>(
+                      value: tempIncidentTypeId,
+                      isExpanded: true,
+                      menuMaxHeight: MediaQuery.of(context).size.height * 0.4,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        isDense: true,
+                      ),
+                      hint: const Text('Pilih Tipe Insiden'),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(
+                            'Semua Tipe',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        ...state.types.map((type) {
+                          return DropdownMenuItem<String?>(
+                            value: type.id,
+                            child: Text(
+                              type.name,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          tempIncidentTypeId = value;
+                        });
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Lokasi Insiden
+                const Text(
+                  'Lokasi Insiden',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                BlocBuilder<IncidentBloc, IncidentState>(
+                  builder: (context, state) {
+                    return DropdownButtonFormField<String?>(
+                      value: tempLocationId,
+                      isExpanded: true,
+                      menuMaxHeight: MediaQuery.of(context).size.height * 0.4,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        isDense: true,
+                      ),
+                      hint: const Text('Pilih Lokasi'),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(
+                            'Semua Lokasi',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        ...state.locations.map((location) {
+                          return DropdownMenuItem<String?>(
+                            value: location.id,
+                            child: Text(
+                              location.name,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          tempLocationId = value;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ],
+                    ),
+                  ),
+                ),
+              ),
+            actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            actions: [
+            TextButton(
+                onPressed: () {
+                  // Reset filters
+                  setState(() {
+                    tempStartDate = null;
+                    tempEndDate = null;
+                    tempStatus = null;
+                    tempPicId = null;
+                    tempIncidentTypeId = null;
+                    tempLocationId = null;
+                  });
+                },
+                child: const Text('Reset'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop({
+                  'startDate': tempStartDate,
+                  'endDate': tempEndDate,
+                  'status': tempStatus,
+                  'picId': tempPicId,
+                  'incidentTypeId': tempIncidentTypeId,
+                  'locationId': tempLocationId,
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Terapkan'),
+            ),
+          ],
+          );
+        },
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _filterStartDate = result['startDate'] as DateTime?;
+        _filterEndDate = result['endDate'] as DateTime?;
+        _filterStatus = result['status'] as IncidentStatus?;
+        _filterPicId = result['picId'] as String?;
+        _filterIncidentTypeId = result['incidentTypeId'] as String?;
+        _filterLocationId = result['locationId'] as String?;
+      });
+
+      // Apply filter
+      if (mounted) {
+        try {
+          final bloc = context.read<IncidentBloc>();
+          bloc.add(
+            LoadIncidentListEvent(
+              searchQuery: _searchController.text.trim().isEmpty
+                  ? null
+                  : _searchController.text.trim(),
+              startDate: _filterStartDate,
+              endDate: _filterEndDate,
+              status: _filterStatus,
+              picId: _filterPicId,
+              incidentTypeId: _filterIncidentTypeId,
+              locationId: _filterLocationId,
+            ),
+          );
+        } catch (e) {
+          debugPrint('Error applying filter: $e');
+        }
+      }
+    }
+  }
+
+  Future<List<Map<String, String>>> _getUserList() async {
+    try {
+      final datasource = getIt<IncidentRemoteDataSource>();
+      final users = await datasource.getUserList();
+      // Sort by name
+      users.sort((a, b) {
+        final nameA = (a['name'] ?? '').toLowerCase();
+        final nameB = (b['name'] ?? '').toLowerCase();
+        return nameA.compareTo(nameB);
+      });
+      return users;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  String _getStatusDisplayName(IncidentStatus status) {
+    switch (status) {
+      case IncidentStatus.menunggu:
+        return 'Menunggu';
+      case IncidentStatus.diterima:
+        return 'Diterima';
+      case IncidentStatus.ditugaskan:
+        return 'Ditugaskan';
+      case IncidentStatus.proses:
+        return 'Proses';
+      case IncidentStatus.eskalasi:
+        return 'Eskalasi';
+      case IncidentStatus.selesai:
+        return 'Selesai';
+      case IncidentStatus.terverifikasi:
+        return 'Terverifikasi';
+      case IncidentStatus.tidakValid:
+        return 'Tidak Valid';
+    }
   }
 }
 

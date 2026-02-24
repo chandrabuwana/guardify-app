@@ -51,9 +51,11 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   bool _isDanton = false;
   bool _isPengawas = false;
   bool _isAdmin = false;
-  String? _evidenceFromApi; // Store Evidence from API Data level
+  String? _evidenceFromApi; // Store Evidence from API Data level (Bukti Penyelesaian)
+  String? _incidentImageFromApi; // Store IncidentImage from API Data level (Foto Insiden)
   bool _wasPreviouslyEscalated = false; // Track if incident was previously escalated
   dynamic _originalIncidentDetail; // Store original IncidentDetail from API for detail data
+  dynamic _apiModel; // Store API model untuk akses field Pj (Penanggung Jawab)
 
   @override
   void initState() {
@@ -83,30 +85,59 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
             final bloc = context.read<IncidentBloc>();
             bloc.add(GetIncidentDetailEvent(widget.incident.id));
             
-            // Also load API model to get Evidence from Data level and original IncidentDetail
+            // Also load API model to get IncidentImage, Evidence from Data level and original IncidentDetail
             try {
               final datasource = getIt<IncidentRemoteDataSource>();
               final apiModel = await datasource.getIncidentDetailApiModel(widget.incident.id);
               if (mounted) {
+                // Get Evidence dari field Evidence di Data level API (bukti penyelesaian)
+                // Get IncidentImage dari field IncidentImage di Data level API (foto insiden)
+                String? evidenceValue = apiModel.evidence;
+                String? incidentImageValue = apiModel.incidentImage;
+                
+                // Debug: Print raw values from API
+                debugPrint('🔍 Raw Evidence from API Data level: $evidenceValue');
+                debugPrint('🔍 Raw IncidentImage from API Data level: $incidentImageValue');
+                
+                // Clean up evidence value - remove "null" string or empty values
+                if (evidenceValue != null) {
+                  evidenceValue = evidenceValue.trim();
+                  if (evidenceValue.isEmpty || 
+                      evidenceValue == '-' || 
+                      evidenceValue.toLowerCase() == 'null') {
+                    evidenceValue = null;
+                  }
+                }
+                
                 setState(() {
-                  _evidenceFromApi = apiModel.evidence;
+                  _incidentImageFromApi = incidentImageValue; // Foto Insiden dari IncidentImage
+                  _evidenceFromApi = evidenceValue; // Bukti Penyelesaian dari Evidence di Data level
+                  
+                  debugPrint('✅ Final _incidentImageFromApi: $_incidentImageFromApi');
+                  debugPrint('✅ Final _evidenceFromApi (from Data level Evidence): $_evidenceFromApi');
+                  
                   // Store original IncidentDetail for detail data (HandlingTask, ActionTakenNote, etc.)
                   _originalIncidentDetail = apiModel.incidentDetail;
-                  // Check if incident was previously escalated
-                  // If current status is not escalated but was escalated before,
-                  // we can check from status history or incident detail
-                  // For now, we check if current status is selesai and previous status might be escalated
-                  // This is a simplified check - in production, you might want to track status history
-                  if (widget.incident.status == IncidentStatus.selesai) {
-                    // Check if there's any indication that it was escalated
-                    // This could be from incident detail or status history
-                    // For now, we'll check if status was escalated in the past
-                    // You might need to add status history tracking in the future
-                  }
+                  
+                  // Store API model untuk akses field Pj (Penanggung Jawab)
+                  _apiModel = apiModel;
+                  
+                  // Check if incident was previously escalated using helper method
+                  IncidentPermissionHelper.wasPreviouslyEscalated(
+                    incident: widget.incident,
+                    apiModel: apiModel,
+                  ).then((wasEscalated) {
+                    if (mounted) {
+                      setState(() {
+                        _wasPreviouslyEscalated = wasEscalated;
+                      });
+                    }
+                  });
                 });
               }
-            } catch (e) {
-              debugPrint('Failed to load API model for Evidence: $e');
+            } catch (e, stackTrace) {
+              debugPrint('❌ Failed to load API model for IncidentImage and Evidence: $e');
+              debugPrint('❌ Stack trace: $stackTrace');
             }
             
             _hasLoadedDetail = true;
@@ -149,24 +180,43 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
       listener: (context, state) {
         if (state.errorMessage != null && !_statusUpdated) {
           // Only show error if not in the middle of an update operation
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.errorMessage!),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
-            ),
-          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage!),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         }
         // Only show success message when status is updated (not loading and no error after update)
         if (_statusUpdated && !state.isLoading && state.errorMessage == null) {
           _statusUpdated = false; // Reset flag
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Status berhasil diperbarui'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context, true); // Return true to indicate update
+          // Use post frame callback to ensure context is still valid
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            // Check if widget is still mounted before using context
+            if (!mounted) return;
+            
+            try {
+              // Check if context is still valid
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Status berhasil diperbarui'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                // Use Navigator.of(context).pop to ensure proper context
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop(true); // Return true to indicate update
+                }
+              }
+            } catch (e) {
+              // Context is no longer valid, ignore
+              debugPrint('Error navigating after status update: $e');
+            }
+          });
         }
       },
       child: Scaffold(
@@ -231,10 +281,10 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   ),
                   20.verticalSpace,
 
-                  // Pelapor
+                  // Pelapor (dengan timestamp CreateDate)
                   _buildReadOnlyField(
                     label: 'Pelapor',
-                    value: incident.pelapor ?? '-',
+                    value: _getPelaporWithTimestamp(incident),
                   ),
                   20.verticalSpace,
 
@@ -285,9 +335,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   ),
                   20.verticalSpace,
 
-                  // Foto Insiden
-                  if (incident.fotoInsiden != null && incident.fotoInsiden!.isNotEmpty)
-                    _buildPhotoField(incident.fotoInsiden!),
+                  // Foto Insiden (dari IncidentImage di API)
+                  if (_incidentImageFromApi != null && _incidentImageFromApi!.isNotEmpty)
+                    _buildPhotoField(_incidentImageFromApi!),
                   20.verticalSpace,
 
                   // Aksi Section
@@ -306,10 +356,11 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   ),
                   20.verticalSpace,
 
-                  // Note Penyelesaian
+                  // Note Penyelesaian (diambil dari ActionTakenNote di IncidentDetail)
+                  // ActionTakenNote diisi saat PIC/Anggota menyelesaikan insiden di TUGAS SAYA
                   _buildReadOnlyField(
                     label: 'Note Penyelesaian',
-                    value: _getActionTakenNote(incident) ?? incident.solvedAction ?? '-',
+                    value: _getActionTakenNote(incident) ?? '-',
                     maxLines: 3,
                   ),
                   20.verticalSpace,
@@ -416,15 +467,166 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   }
 
   String _getReviewedBy(IncidentEntity incident) {
-    final reviewedName = _getFirstIncidentDetailValue(incident, 'ReviewedName');
-    if (reviewedName != null && reviewedName.isNotEmpty && reviewedName != '-') {
-      return reviewedName;
+    // Dikonfirmasi Oleh = Pic dari API model (bukan ReviewedName)
+    String? picValue;
+    
+    // Try to get from stored API model first
+    if (_apiModel != null) {
+      try {
+        final pic = _apiModel.pic;
+        if (pic != null) {
+          // Handle Pic as UserModel
+          if (pic is Map<String, dynamic>) {
+            picValue = pic['FullName']?.toString() ?? pic['fullname']?.toString();
+          } else if (pic is String) {
+            picValue = pic;
+          } else {
+            // Try to access as UserModel object
+            try {
+              picValue = pic.fullname?.toString() ?? pic.toString();
+            } catch (e) {
+              picValue = pic.toString();
+            }
+          }
+        }
+      } catch (e) {
+        // If error accessing API model, will use fallback
+        debugPrint('Error accessing Pic from stored API model: $e');
+      }
     }
-    return '-';
+    
+    // Clean up value
+    if (picValue != null && picValue.isNotEmpty && picValue != '-') {
+      return picValue;
+    }
+    
+    // Fallback to incident.pic if not available from API model
+    return incident.pic ?? '-';
   }
 
   String? _getActionTakenNote(IncidentEntity incident) {
     return _getFirstIncidentDetailValue(incident, 'ActionTakenNote');
+  }
+
+  String _getPelaporWithTimestamp(IncidentEntity incident) {
+    // Pelapor = Nama Pelapor - CreateDate (timestamp)
+    final pelaporName = incident.pelapor ?? '-';
+    
+    // Get CreateDate from API model or incident entity
+    DateTime? createDate;
+    
+    // Try to get from stored API model first
+    if (_apiModel != null) {
+      try {
+        createDate = _apiModel.createDate;
+      } catch (e) {
+        debugPrint('Error accessing createDate from stored API model: $e');
+      }
+    }
+    
+    // Fallback to incident.createDate
+    if (createDate == null) {
+      createDate = incident.createDate;
+    }
+    
+    // Format: Pelapor - CreateDate
+    if (pelaporName.isNotEmpty && pelaporName != '-') {
+      String formattedDate = '-';
+      if (createDate != null) {
+        try {
+          formattedDate = DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(createDate);
+        } catch (e) {
+          formattedDate = createDate.toString();
+        }
+      }
+      return '$pelaporName - $formattedDate';
+    }
+    
+    return pelaporName;
+  }
+
+  String _getPenanggungJawab(IncidentEntity incident) {
+    // Penanggung Jawab = Pj dari API model (bukan Pic)
+    // Pj bisa berupa String atau UserModel
+    String? pjValue;
+    
+    // Try to get from stored API model first
+    if (_apiModel != null) {
+      try {
+        final pj = _apiModel.pj;
+        if (pj != null) {
+          // Handle Pj as UserModel
+          if (pj is Map<String, dynamic>) {
+            pjValue = pj['FullName']?.toString() ?? pj['fullname']?.toString();
+          } else if (pj is String) {
+            pjValue = pj;
+          } else {
+            // Try to access as UserModel object
+            try {
+              pjValue = pj.fullname?.toString() ?? pj.toString();
+            } catch (e) {
+              pjValue = pj.toString();
+            }
+          }
+        }
+      } catch (e) {
+        // If error accessing API model, will use fallback
+        debugPrint('Error accessing Pj from stored API model: $e');
+      }
+    }
+    
+    // Clean up value
+    if (pjValue != null && pjValue.isNotEmpty && pjValue != '-') {
+      return pjValue;
+    }
+    
+    // Fallback to incident.pic if Pj not available
+    return incident.pic ?? '-';
+  }
+
+  String _getPembuatKeputusan(IncidentEntity incident) {
+    // Pembuat Keputusan = UserName - CreateDate dari IncidentDetail
+    // UserName dan CreateDate diisi saat user menugaskan (mengisi PIC, Anggota, klik Tugaskan)
+    String? userName;
+    String? createDateStr;
+    
+    // Try to get from original IncidentDetail first
+    if (_originalIncidentDetail != null) {
+      if (_originalIncidentDetail is Map<String, dynamic>) {
+        final detailMap = _originalIncidentDetail as Map<String, dynamic>;
+        userName = detailMap['UserName']?.toString();
+        createDateStr = detailMap['CreateDate']?.toString();
+      } else if (_originalIncidentDetail is List && (_originalIncidentDetail as List).isNotEmpty) {
+        final firstDetail = (_originalIncidentDetail as List).first;
+        if (firstDetail is Map<String, dynamic>) {
+          userName = firstDetail['UserName']?.toString();
+          createDateStr = firstDetail['CreateDate']?.toString();
+        }
+      }
+    }
+    
+    // Fallback to incident.incidentDetail if original not available
+    if ((userName == null || userName.isEmpty) && incident.incidentDetail != null && incident.incidentDetail!.isNotEmpty) {
+      final firstDetail = incident.incidentDetail!.first;
+      userName = firstDetail['UserName']?.toString();
+      createDateStr = firstDetail['CreateDate']?.toString();
+    }
+    
+    // Format: UserName - CreateDate
+    if (userName != null && userName.isNotEmpty && userName != '-') {
+      String formattedDate = '-';
+      if (createDateStr != null && createDateStr.isNotEmpty && createDateStr != '-') {
+        try {
+          final dateTime = DateTime.parse(createDateStr);
+          formattedDate = DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(dateTime);
+        } catch (e) {
+          formattedDate = createDateStr;
+        }
+      }
+      return '$userName - $formattedDate';
+    }
+    
+    return '-';
   }
 
   String _getHandlingTask(IncidentEntity incident) {
@@ -450,10 +652,47 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   }
 
   String _getCompletedBy(IncidentEntity incident) {
-    final completedName = _getFirstIncidentDetailValue(incident, 'CompletedName');
-    if (completedName != null && completedName.isNotEmpty && completedName != '-') {
-      return completedName;
+    // Diselesaikan Oleh = CompletedName - IncidentCompletionDate dari IncidentDetail
+    // CompletedName dan IncidentCompletionDate diisi saat user klik "Tandai Sebagai Selesai"
+    String? completedName;
+    String? completionDateStr;
+    
+    // Try to get from original IncidentDetail first
+    if (_originalIncidentDetail != null) {
+      if (_originalIncidentDetail is Map<String, dynamic>) {
+        final detailMap = _originalIncidentDetail as Map<String, dynamic>;
+        completedName = detailMap['CompletedName']?.toString();
+        completionDateStr = detailMap['IncidentCompletionDate']?.toString();
+      } else if (_originalIncidentDetail is List && (_originalIncidentDetail as List).isNotEmpty) {
+        final firstDetail = (_originalIncidentDetail as List).first;
+        if (firstDetail is Map<String, dynamic>) {
+          completedName = firstDetail['CompletedName']?.toString();
+          completionDateStr = firstDetail['IncidentCompletionDate']?.toString();
+        }
+      }
     }
+    
+    // Fallback to incident.incidentDetail if original not available
+    if ((completedName == null || completedName.isEmpty) && incident.incidentDetail != null && incident.incidentDetail!.isNotEmpty) {
+      final firstDetail = incident.incidentDetail!.first;
+      completedName = firstDetail['CompletedName']?.toString();
+      completionDateStr = firstDetail['IncidentCompletionDate']?.toString();
+    }
+    
+    // Format: CompletedName - IncidentCompletionDate
+    if (completedName != null && completedName.isNotEmpty && completedName != '-') {
+      String formattedDate = '-';
+      if (completionDateStr != null && completionDateStr.isNotEmpty && completionDateStr != '-') {
+        try {
+          final dateTime = DateTime.parse(completionDateStr);
+          formattedDate = DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(dateTime);
+        } catch (e) {
+          formattedDate = completionDateStr;
+        }
+      }
+      return '$completedName - $formattedDate';
+    }
+    
     return '-';
   }
 
@@ -488,19 +727,43 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   }
 
   Widget _buildEvidenceField(IncidentEntity incident) {
-    // Evidence is at Data level, not in IncidentDetail
-    // Try to get from API model first, then fallback to IncidentDetail
+    // Bukti Penyelesaian diambil dari Evidence di Data level API
+    // Menggunakan field Evidence dari level Data (bukan dari IncidentDetail)
     String? evidence = _evidenceFromApi;
-    if (evidence == null || evidence.isEmpty || evidence == '-') {
-      evidence = _getFirstIncidentDetailValue(incident, 'Evidence');
+    
+    // Debug: Print current evidence value
+    debugPrint('🔍 _buildEvidenceField - _evidenceFromApi: $evidence');
+    
+    // Clean up evidence value - remove "null" string or empty values
+    if (evidence != null) {
+      evidence = evidence.trim();
+      if (evidence.isEmpty || 
+          evidence == '-' || 
+          evidence.toLowerCase() == 'null') {
+        evidence = null;
+      }
     }
     
+    // Final check - also check if it's a valid URL
     if (evidence == null || evidence.isEmpty || evidence == '-') {
+      debugPrint('⚠️ _buildEvidenceField - No Evidence found from Data level, showing "-"');
       return _buildReadOnlyField(
         label: 'Bukti Penyelesaian',
         value: '-',
       );
     }
+    
+    // Ensure evidence is a valid URL (starts with http:// or https://)
+    final evidenceUrl = evidence;
+    if (!evidenceUrl.startsWith('http://') && !evidenceUrl.startsWith('https://')) {
+      debugPrint('⚠️ _buildEvidenceField - Evidence is not a valid URL: $evidenceUrl');
+      return _buildReadOnlyField(
+        label: 'Bukti Penyelesaian',
+        value: '-',
+      );
+    }
+    
+    debugPrint('✅ _buildEvidenceField - Using Evidence URL from Data level: $evidenceUrl');
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -512,7 +775,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
         8.verticalSpace,
         GestureDetector(
           onTap: () {
-            _showImagePreview(evidence!);
+            _showImagePreview(evidenceUrl);
           },
           child: Container(
             width: double.infinity,
@@ -525,7 +788,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10.r),
               child: Image.network(
-                evidence,
+                evidenceUrl,
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
@@ -746,7 +1009,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
 
   Widget _buildAksiSection(IncidentEntity incident) {
     final reviewedName = _getReviewedBy(incident);
-    final actionTakenNote = _getActionTakenNote(incident);
+    final pembuatKeputusan = _getPembuatKeputusan(incident);
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -765,16 +1028,17 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           value: reviewedName,
         ),
         20.verticalSpace,
-        // Pembuat Keputusan
+        // Pembuat Keputusan (UserName - CreateDate dari IncidentDetail)
+        // Diisi saat user menugaskan (mengisi PIC, Anggota, klik Tugaskan)
         _buildReadOnlyField(
           label: 'Pembuat Keputusan',
-          value: actionTakenNote ?? '-',
+          value: pembuatKeputusan,
         ),
         20.verticalSpace,
-        // Penanggung Jawab
+        // Penanggung Jawab (diambil dari field Pj di API, bukan Pic)
         _buildReadOnlyField(
           label: 'Penanggung Jawab',
-          value: incident.pic ?? '-',
+          value: _getPenanggungJawab(incident),
         ),
       ],
     );
@@ -992,32 +1256,56 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
         8.verticalSpace,
         GestureDetector(
           onTap: () {
-            // TODO: Show full image preview
+            _showImagePreview(photoUrl);
           },
           child: Container(
             width: double.infinity,
-            padding: REdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            height: 200.h,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(10.r),
-              color: Colors.white,
+              color: Colors.grey.shade100,
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    photoUrl,
-                    style: TS.bodyLarge.copyWith(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10.r),
+              child: Image.network(
+                photoUrl,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
                       color: primaryColor,
                     ),
-                  ),
-                ),
-                Icon(
-                  Icons.image,
-                  color: primaryColor,
-                  size: 20.sp,
-                ),
-              ],
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey.shade200,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image,
+                          size: 48.sp,
+                          color: Colors.grey.shade400,
+                        ),
+                        8.verticalSpace,
+                        Text(
+                          'Gagal memuat gambar',
+                          style: TS.bodySmall.copyWith(
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -1026,7 +1314,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   }
 
   Widget _buildPengawasActionButtons(IncidentEntity incident) {
-    // Untuk Pengawas: Tugaskan dan Verifikasi
+    // Untuk Pengawas: Tugaskan, Verifikasi, dan Revisi
     if (_userRole == null) {
       return const SizedBox.shrink();
     }
@@ -1060,32 +1348,61 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           );
         }
         
-        // Check permission untuk verify
+        // Check permission untuk verify dan revise
         final canVerify = IncidentPermissionHelper.canVerifyIncident(
           incident: incident,
           currentUserRole: _userRole!,
           wasPreviouslyEscalated: _wasPreviouslyEscalated,
         );
         
-        // Tombol Verifikasi untuk status COMPLETED
-        if (canVerify && incident.status == IncidentStatus.selesai) {
-          if (buttons.isNotEmpty) {
-            buttons.add(16.verticalSpace);
+        final canRevise = IncidentPermissionHelper.canReviseIncident(
+          incident: incident,
+          currentUserRole: _userRole!,
+          wasPreviouslyEscalated: _wasPreviouslyEscalated,
+        );
+        
+        // Tombol Verifikasi dan Revisi untuk status COMPLETED
+        if (incident.status == IncidentStatus.selesai) {
+          if (canVerify) {
+            if (buttons.isNotEmpty) {
+              buttons.add(16.verticalSpace);
+            }
+            buttons.add(
+              UIButton(
+                text: 'Verifikasi',
+                fullWidth: true,
+                size: UIButtonSize.large,
+                variant: UIButtonVariant.success,
+                isLoading: state.isLoading,
+                onPressed: state.isLoading
+                    ? null
+                    : () {
+                        _showVerifyDialog(context, incident);
+                      },
+              ),
+            );
+            if (canRevise) {
+              buttons.add(16.verticalSpace);
+            }
           }
-          buttons.add(
-            UIButton(
-              text: 'Verifikasi',
-              fullWidth: true,
-              size: UIButtonSize.large,
-              variant: UIButtonVariant.success,
-              isLoading: state.isLoading,
-              onPressed: state.isLoading
-                  ? null
-                  : () {
-                      _showVerifyDialog(context, incident);
-                    },
-            ),
-          );
+          
+          if (canRevise) {
+            buttons.add(
+              UIButton(
+                text: 'Revisi',
+                fullWidth: true,
+                size: UIButtonSize.large,
+                buttonType: UIButtonType.outline,
+                variant: UIButtonVariant.warning,
+                isLoading: state.isLoading,
+                onPressed: state.isLoading
+                    ? null
+                    : () {
+                        _showReviseDialog(context, incident);
+                      },
+              ),
+            );
+          }
         }
         
         if (buttons.isEmpty) {
@@ -1118,14 +1435,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
               onPressed: state.isLoading
                   ? null
                   : () {
-                      _statusUpdated = true;
-                      context.read<IncidentBloc>().add(
-                            UpdateIncidentStatusEvent(
-                              incidentId: incident.id,
-                              status: 'VERIFIED',
-                              notes: 'Diverifikasi oleh ${_userRole?.displayName ?? 'Admin'}',
-                            ),
-                          );
+                      _showVerifyDialog(context, incident);
                     },
             ),
             16.verticalSpace,
@@ -1140,14 +1450,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
               onPressed: state.isLoading
                   ? null
                   : () {
-                      _statusUpdated = true;
-                      context.read<IncidentBloc>().add(
-                            UpdateIncidentStatusEvent(
-                              incidentId: incident.id,
-                              status: 'PROGRESS',
-                              notes: 'Direvisi oleh ${_userRole?.displayName ?? 'Admin'}',
-                            ),
-                          );
+                      _showReviseDialog(context, incident);
                     },
             ),
           ]);
@@ -1428,14 +1731,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                 onPressed: state.isLoading
                     ? null
                     : () {
-                        _statusUpdated = true;
-                        context.read<IncidentBloc>().add(
-                              UpdateIncidentStatusEvent(
-                                incidentId: incident.id,
-                                status: 'VERIFIED',
-                                notes: 'Diverifikasi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
-                              ),
-                            );
+                        _showVerifyDialog(context, incident);
                       },
               ),
             );
@@ -1456,14 +1752,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                 onPressed: state.isLoading
                     ? null
                     : () {
-                        _statusUpdated = true;
-                        context.read<IncidentBloc>().add(
-                              UpdateIncidentStatusEvent(
-                                incidentId: incident.id,
-                                status: 'PROGRESS',
-                                notes: 'Direvisi oleh ${_userRole?.displayName ?? 'PJO/Deputy'}',
-                              ),
-                            );
+                        _showReviseDialog(context, incident);
                       },
               ),
             );
@@ -1496,16 +1785,46 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
         final currentUserId = await UserRoleHelper.getUserId();
         final reporterId = incident.pelaporId;
         
-        // Try to get reporter role from API model
-        // Note: UserModel in incident_api_model doesn't have role field
-        // We'll rely on the logic in canReviewIncident to handle it
-        // The main protection is self-review prevention (currentUserId == reporterId)
+        // Get reporter role from incident.reporterRole or API model
         UserRole? reporterRole;
+        
+        // Try to get from incident.reporterRole first
+        if (incident.reporterRole != null && incident.reporterRole!.isNotEmpty) {
+          try {
+            reporterRole = UserRole.fromValue(incident.reporterRole!);
+          } catch (e) {
+            // If parsing fails, try to get from API model
+            try {
+              final datasource = getIt<IncidentRemoteDataSource>();
+              final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+              if (apiModel.roles != null && apiModel.roles!.isNotEmpty) {
+                // Get first role from roles list (usually there's only one role for reporter)
+                final roleName = apiModel.roles!.first.nama;
+                reporterRole = UserRole.fromValue(roleName);
+              }
+            } catch (e) {
+              // If API call fails, reporterRole will remain null
+            }
+          }
+        } else {
+          // If incident.reporterRole is null, try to get from API model
+          try {
+            final datasource = getIt<IncidentRemoteDataSource>();
+            final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+            if (apiModel.roles != null && apiModel.roles!.isNotEmpty) {
+              // Get first role from roles list (usually there's only one role for reporter)
+              final roleName = apiModel.roles!.first.nama;
+              reporterRole = UserRole.fromValue(roleName);
+            }
+          } catch (e) {
+            // If API call fails, reporterRole will remain null
+          }
+        }
         
         return await IncidentPermissionHelper.canReviewIncident(
           incident: incident,
           currentUserRole: _userRole!,
-          reporterRole: reporterRole, // Will be null if not available
+          reporterRole: reporterRole, // Now properly extracted from incident or API
           currentUserId: currentUserId,
           reporterId: reporterId,
         );
@@ -1846,17 +2165,24 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
             if (!state.isLoading && isSubmitting) {
               if (state.errorMessage == null) {
                 // Success - close dialog
-                Navigator.of(context).pop();
+                // Use post frame callback to ensure context is valid
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (context.mounted && Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  }
+                });
                 _statusUpdated = true;
               } else {
                 // Error - show error and reset submitting
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.errorMessage!),
-                    backgroundColor: Colors.red,
-                    duration: const Duration(seconds: 4),
-                  ),
-                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.errorMessage!),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                }
               }
             }
           },
@@ -2007,6 +2333,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                         isRequired: true,
                         maxLines: 10, // Allow multiple lines for long text
                         minLines: 3, // Start with 3 lines
+                        maxLength: TextField.noMaxLength, // Allow unlimited text length
                         validation: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Tugas penanganan harus diisi';
@@ -2075,10 +2402,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                         isSubmitting = true;
                       });
                       
-                      // Get current user full name for "Pembuat Keputusan"
-                      final assignerName = await UserRoleHelper.getFullName() ?? 'User';
-                      
                       // Dispatch event - BlocListener will handle the response
+                      // Note: Pembuat Keputusan (UserName - CreateDate) akan otomatis diisi oleh backend
+                      // berdasarkan user yang melakukan assign (mengisi PIC, Anggota, klik Tugaskan)
                       context.read<IncidentBloc>().add(
                         UpdateAllIncidentEvent(
                           incidentId: incident.id,
@@ -2093,7 +2419,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                           picId: selectedPjId!,
                           team: selectedTeamIds,
                           handlingTask: tugasPenangananController.text.trim(),
-                          actionTakenNote: assignerName, // Set "Pembuat Keputusan" dengan nama user yang assign
+                          // actionTakenNote tidak diisi di sini, karena itu untuk Note Penyelesaian
+                          // Pembuat Keputusan (UserName - CreateDate) akan diisi otomatis oleh backend
                           status: 'ASSIGNED',
                         ),
                       );
@@ -2130,8 +2457,222 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     );
   }
 
+  Future<void> _showReviseDialog(BuildContext context, IncidentEntity incident) async {
+    final datasource = getIt<IncidentRemoteDataSource>();
+    final supervisorFeedbackController = TextEditingController();
+    String? picId;
+    List<String> team = [];
+    String handlingTask = '';
+    Map<String, String>? incidentApiData;
+
+    // Load incident detail untuk mendapatkan data yang sudah ada
+    try {
+      final apiModel = await datasource.getIncidentDetailApiModel(incident.id);
+      
+      picId = apiModel.picId;
+      // Team diambil dari Teams list, jika kosong ambil dari IncidentDetail
+      if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+        team = apiModel.teams!
+            .map((teamMember) {
+              if (teamMember is Map<String, dynamic>) {
+                return teamMember['UserId']?.toString() ?? '';
+              }
+              return '';
+            })
+            .where((id) => id.isNotEmpty)
+            .toList();
+      } else {
+        // Jika Teams kosong, ambil dari IncidentDetail
+        if (apiModel.incidentDetail != null) {
+          if (apiModel.incidentDetail is Map<String, dynamic>) {
+            final detail = apiModel.incidentDetail as Map<String, dynamic>;
+            final userId = detail['UserId']?.toString();
+            if (userId != null && userId.isNotEmpty) {
+              team = [userId];
+            }
+          } else if (apiModel.incidentDetail is List) {
+            final detailList = apiModel.incidentDetail as List;
+            team = detailList
+                .map((detail) {
+                  if (detail is Map<String, dynamic>) {
+                    return detail['UserId']?.toString() ?? '';
+                  }
+                  return '';
+                })
+                .where((id) => id.isNotEmpty)
+                .toList();
+          }
+        }
+      }
+      // HandlingTask diambil dari IncidentDetail jika ada, atau dari NotesAction
+      handlingTask = '';
+      if (apiModel.incidentDetail != null) {
+        if (apiModel.incidentDetail is Map<String, dynamic>) {
+          final detail = apiModel.incidentDetail as Map<String, dynamic>;
+          handlingTask = detail['HandlingTask']?.toString() ?? apiModel.notesAction ?? '';
+        } else if (apiModel.incidentDetail is List && (apiModel.incidentDetail as List).isNotEmpty) {
+          final detailList = apiModel.incidentDetail as List;
+          final firstDetail = detailList.first;
+          if (firstDetail is Map<String, dynamic>) {
+            handlingTask = firstDetail['HandlingTask']?.toString() ?? apiModel.notesAction ?? '';
+          }
+        }
+      }
+      if (handlingTask.isEmpty) {
+        handlingTask = apiModel.notesAction ?? '';
+      }
+
+      incidentApiData = {
+        'areasDescription': apiModel.areasDescription ?? apiModel.areas?.name ?? '',
+        'areasId': apiModel.areasId ?? '',
+        'idIncidentType': apiModel.idIncidentType?.toString() ?? '0',
+        'incidentDate': apiModel.incidentDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'incidentTime': apiModel.incidentTime ?? '00:00:00',
+        'incidentDescription': apiModel.incidentDescription ?? '',
+        'reportId': apiModel.reportId ?? '',
+      };
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      // Delay disposal to ensure dialog is fully closed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          supervisorFeedbackController.dispose();
+        } catch (e) {
+          // Controller already disposed, ignore
+        }
+      });
+      return;
+    }
+
+    if (!context.mounted) {
+      // Delay disposal to ensure dialog is fully closed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          supervisorFeedbackController.dispose();
+        } catch (e) {
+          // Controller already disposed, ignore
+        }
+      });
+      return;
+    }
+    final apiData = incidentApiData;
+
+    // Tampilkan dialog dengan field SupervisorFeedback
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Revisi Insiden'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Isi feedback supervisor (opsional):'),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: supervisorFeedbackController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Masukkan feedback supervisor...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Revisi'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Store controller text before potential disposal
+    final feedbackText = supervisorFeedbackController.text.trim();
+
+    if (confirmed != true || !context.mounted) {
+      // Delay disposal to ensure dialog is fully closed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          supervisorFeedbackController.dispose();
+        } catch (e) {
+          // Controller already disposed, ignore
+        }
+      });
+      return;
+    }
+
+    // Revisi menggunakan updateAllIncident
+    try {
+      context.read<IncidentBloc>().add(
+        UpdateAllIncidentEvent(
+          incidentId: incident.id,
+          areasDescription: apiData['areasDescription']!,
+          areasId: apiData['areasId']!,
+          idIncidentType: int.parse(apiData['idIncidentType']!),
+          incidentDate: DateTime.parse(apiData['incidentDate']!),
+          incidentTime: apiData['incidentTime']!,
+          incidentDescription: apiData['incidentDescription']!,
+          reportId: apiData['reportId']!,
+          notesAction: handlingTask,
+          picId: picId,
+          team: team,
+          handlingTask: handlingTask,
+          status: 'REVISED', // Status revisi dikirim sebagai REVISED ke backend
+          supervisorFeedback: feedbackText.isNotEmpty ? feedbackText : null,
+        ),
+      );
+
+      if (context.mounted) {
+        _statusUpdated = true;
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal merevisi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      // Delay disposal to ensure dialog is fully closed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          supervisorFeedbackController.dispose();
+        } catch (e) {
+          // Controller already disposed, ignore
+        }
+      });
+    }
+  }
+
   Future<void> _showVerifyDialog(BuildContext context, IncidentEntity incident) async {
     final datasource = getIt<IncidentRemoteDataSource>();
+    final supervisorFeedbackController = TextEditingController();
     String? picId;
     List<String> team = [];
     String handlingTask = '';
@@ -2218,32 +2759,68 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     if (!context.mounted) return;
     final apiData = incidentApiData;
 
-    // Tampilkan dialog konfirmasi
+    // Tampilkan dialog dengan field SupervisorFeedback
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Verifikasi Insiden'),
-        content: const Text('Apakah Anda yakin ingin memverifikasi insiden ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Verifikasi Insiden'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Isi feedback supervisor (opsional):'),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: supervisorFeedbackController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Masukkan feedback supervisor...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                ),
+              ],
             ),
-            child: const Text('Verifikasi'),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Verifikasi'),
+            ),
+          ],
+        ),
       ),
     );
 
-    if (confirmed != true || !context.mounted) return;
+    // Store controller text before potential disposal
+    final feedbackText = supervisorFeedbackController.text.trim();
+
+    if (confirmed != true || !context.mounted) {
+      // Delay disposal to ensure dialog is fully closed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          supervisorFeedbackController.dispose();
+        } catch (e) {
+          // Controller already disposed, ignore
+        }
+      });
+      return;
+    }
 
     // Verifikasi menggunakan updateAllIncident
+    // Note dari dialog verifikasi diisi ke SupervisorFeedback (bukan NotesAction)
     try {
       context.read<IncidentBloc>().add(
         UpdateAllIncidentEvent(
@@ -2260,6 +2837,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           team: team,
           handlingTask: handlingTask,
           status: 'VERIFIED',
+          supervisorFeedback: feedbackText.isNotEmpty ? feedbackText : null, // Note dari dialog verifikasi diisi ke SupervisorFeedback
         ),
       );
 
@@ -2276,6 +2854,15 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           ),
         );
       }
+    } finally {
+      // Delay disposal to ensure dialog is fully closed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          supervisorFeedbackController.dispose();
+        } catch (e) {
+          // Controller already disposed, ignore
+        }
+      });
     }
   }
 
@@ -2364,12 +2951,26 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           ),
         );
       }
-      solvedActionController.dispose();
+      // Delay disposal to ensure dialog is fully closed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          solvedActionController.dispose();
+        } catch (e) {
+          // Controller already disposed, ignore
+        }
+      });
       return;
     }
 
     if (!context.mounted) {
-      solvedActionController.dispose();
+      // Delay disposal to ensure dialog is fully closed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          solvedActionController.dispose();
+        } catch (e) {
+          // Controller already disposed, ignore
+        }
+      });
       return;
     }
     final apiData = incidentApiData;
@@ -2503,8 +3104,18 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
       ),
     );
 
+    // Store controller text before potential disposal
+    final actionTakenNote = solvedActionController.text.trim();
+
     if (confirmed != true || !context.mounted) {
-      solvedActionController.dispose();
+      // Delay disposal to ensure dialog is fully closed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          solvedActionController.dispose();
+        } catch (e) {
+          // Controller already disposed, ignore
+        }
+      });
       return;
     }
 
@@ -2541,6 +3152,14 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
             ),
           );
         }
+        // Delay disposal to ensure dialog is fully closed
+        Future.delayed(const Duration(milliseconds: 300), () {
+          try {
+            solvedActionController.dispose();
+          } catch (e) {
+            // Controller already disposed, ignore
+          }
+        });
         return;
       }
     }
@@ -2548,6 +3167,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     // Update status ke COMPLETED (Selesai) menggunakan updateAllIncident
     // Status akan berubah dari Proses (PROGRESS) ke Selesai (COMPLETED)
     // Include note penyelesaian (solvedAction) dan bukti foto (incidentImage)
+    // Note penyelesaian diisi ke SolvedAction di incident/updateAll
     try {
       context.read<IncidentBloc>().add(
         UpdateAllIncidentEvent(
@@ -2563,9 +3183,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           picId: picId,
           team: team,
           handlingTask: handlingTask,
-          solvedAction: solvedActionController.text.trim().isNotEmpty 
-              ? solvedActionController.text.trim() 
-              : null, // Note penyelesaian
+          solvedAction: actionTakenNote.isNotEmpty ? actionTakenNote : null, // Note penyelesaian diisi ke SolvedAction
           solvedDate: DateTime.now(),
           status: 'COMPLETED', // Status Selesai
           incidentImage: incidentImage, // Bukti foto
@@ -2586,8 +3204,14 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
         );
       }
     } finally {
-      // Dispose controller setelah selesai
-      solvedActionController.dispose();
+      // Delay disposal to ensure dialog is fully closed
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          solvedActionController.dispose();
+        } catch (e) {
+          // Controller already disposed, ignore
+        }
+      });
     }
   }
 

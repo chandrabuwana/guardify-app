@@ -14,12 +14,16 @@ BmiListResponseModel _$BmiListResponseModelFromJson(
       ($checkedConvert) {
         final val = BmiListResponseModel(
           count: $checkedConvert('Count', (v) => (v as num?)?.toInt() ?? 0),
-          filtered: $checkedConvert('Filtered', (v) => (v as num?)?.toInt() ?? 0),
+          filtered:
+              $checkedConvert('Filtered', (v) => (v as num?)?.toInt() ?? 0),
           list: $checkedConvert(
               'List',
-              (v) => (v as List<dynamic>? ?? const <dynamic>[])
-                  .map((e) => BmiDataModel.fromJson(e as Map<String, dynamic>))
-                  .toList()),
+              (v) =>
+                  (v as List<dynamic>?)
+                      ?.map((e) =>
+                          BmiDataModel.fromJson(e as Map<String, dynamic>))
+                      .toList() ??
+                  []),
           code: $checkedConvert('Code', (v) => (v as num?)?.toInt() ?? 0),
           succeeded: $checkedConvert('Succeeded', (v) => v as bool? ?? false),
           message: $checkedConvert('Message', (v) => v as String? ?? ''),

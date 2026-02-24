@@ -50,6 +50,7 @@ class IncidentApiModel {
   final DateTime? solvedDate;
   final String? status;
   final String? evidence;
+  final String? incidentImage; // Photo URL for incident
   final String? updateBy;
   final DateTime? updateDate;
   final dynamic incidentDetail; // Can be Map or List
@@ -89,6 +90,7 @@ class IncidentApiModel {
     this.solvedDate,
     this.status,
     this.evidence,
+    this.incidentImage,
     this.updateBy,
     this.updateDate,
     this.incidentDetail,
@@ -193,6 +195,7 @@ class IncidentApiModel {
       solvedDate: solvedDate,
       status: json['Status']?.toString(),
       evidence: json['Evidence']?.toString(),
+      incidentImage: json['IncidentImage']?.toString(), // Photo URL for incident
       updateBy: json['UpdateBy']?.toString(),
       updateDate: json['UpdateDate'] != null
           ? DateTime.tryParse(json['UpdateDate'].toString())
@@ -245,6 +248,8 @@ class IncidentApiModel {
       'SolvedAction': solvedAction,
       'SolvedDate': solvedDate?.toIso8601String(),
       'Status': status,
+      'Evidence': evidence,
+      'IncidentImage': incidentImage,
       'UpdateBy': updateBy,
       'UpdateDate': updateDate?.toIso8601String(),
       'IncidentDetail': incidentDetail,
@@ -331,22 +336,46 @@ class IncidentApiModel {
       }
     }
 
+    // Handle CreateBy - if it contains status-like value (e.g., "VERIFIED"), use UpdateBy instead
+    String? actualCreateBy = createBy;
+    final createByValue = createBy;
+    if (createByValue != null) {
+      final createByUpper = createByValue.toUpperCase();
+      if (createByUpper == 'VERIFIED' || 
+          createByUpper == 'ASSIGNED' || 
+          createByUpper == 'COMPLETED' ||
+          createByUpper == 'ACKNOWLEDGE') {
+        // CreateBy seems to contain status, use UpdateBy or report name instead
+        actualCreateBy = updateBy ?? (report is UserModel ? report.fullname : (report is String ? report : null));
+      }
+    }
+    
+    // Get reporter role from Roles field (first role if available)
+    String? reporterRoleValue;
+    if (roles != null && roles!.isNotEmpty) {
+      // Get first role ID as reporter role
+      reporterRoleValue = roles!.first.id;
+    }
+    
     return IncidentModel(
       id: id,
       status: incidentStatus,
       pelapor: report is UserModel ? report.fullname : (report is String ? report : null),
       pelaporId: reportId,
+      reporterRole: reporterRoleValue, // Set reporter role from Roles field
       namaDanton: pj is UserModel ? pj.fullname : (pj is String ? pj : null),
       tanggalInsiden: incidentDate,
       jamInsiden: combinedDateTime ?? incidentDate,
       lokasiInsiden: (areas is AreasModel ? areas.name : (areas is String ? areas : null)) ?? areasDescription,
       detailLokasiInsiden: areasDescription,
       tipeInsiden: incidentTypeEnum,
+      tipeInsidenName: incidentTypeName,
       deskripsiInsiden: incidentDescription ?? '',
+      fotoInsiden: incidentImage ?? evidence, // Prioritize IncidentImage, fallback to Evidence
       pic: pic is UserModel ? pic.fullname : (pic is String ? pic : null),
       picId: picId,
       createDate: createDate,
-      createBy: createBy,
+      createBy: actualCreateBy, // Use corrected CreateBy
       notesAction: notesAction,
       solvedAction: solvedAction,
       solvedDate: solvedDate,
@@ -358,10 +387,13 @@ class IncidentApiModel {
         final List<Map<String, dynamic>> incidentDetailList = [];
         
         // Collect IncidentDetail data first (for merging with Teams only)
+        // IncidentDetail can now be a single Map (object) or List
         if (incidentDetail != null) {
           if (incidentDetail is Map<String, dynamic>) {
+            // Handle single object - convert to list for consistency
             incidentDetailList.add(Map<String, dynamic>.from(incidentDetail));
           } else if (incidentDetail is List) {
+            // Handle list (backward compatibility)
             for (var item in incidentDetail as List) {
               if (item is Map) {
                 incidentDetailList.add(Map<String, dynamic>.from(item));

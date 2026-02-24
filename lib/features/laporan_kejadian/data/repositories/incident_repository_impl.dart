@@ -17,6 +17,11 @@ class IncidentRepositoryImpl implements IncidentRepository {
     int length = 10,
     String? searchQuery,
     IncidentStatus? status,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? picId,
+    String? incidentTypeId,
+    String? locationId,
   }) async {
     try {
       final models = await remoteDataSource.getIncidentList(
@@ -24,6 +29,11 @@ class IncidentRepositoryImpl implements IncidentRepository {
         length: length,
         searchQuery: searchQuery,
         status: status != null ? _statusToString(status) : null,
+        startDate: startDate,
+        endDate: endDate,
+        picId: picId,
+        incidentTypeId: incidentTypeId,
+        locationId: locationId,
       );
       return models.map((model) => model.toEntity()).toList();
     } catch (e) {
@@ -200,6 +210,7 @@ class IncidentRepositoryImpl implements IncidentRepository {
     String? evidence,
     required String status,
     Map<String, dynamic>? incidentImage,
+    String? supervisorFeedback,
   }) async {
     try {
       return await remoteDataSource.updateAllIncident(
@@ -221,6 +232,7 @@ class IncidentRepositoryImpl implements IncidentRepository {
         evidence: evidence,
         status: status,
         incidentImage: incidentImage,
+        supervisorFeedback: supervisorFeedback,
       );
     } catch (e) {
       throw Exception('Failed to update incident: $e');
@@ -228,23 +240,24 @@ class IncidentRepositoryImpl implements IncidentRepository {
   }
 
   String _statusToString(IncidentStatus status) {
+    // Convert IncidentStatus enum to API format string
     switch (status) {
       case IncidentStatus.menunggu:
-        return 'menunggu';
+        return 'OPEN';
       case IncidentStatus.diterima:
-        return 'diterima';
+        return 'ACKNOWLEDGE';
       case IncidentStatus.ditugaskan:
-        return 'ditugaskan';
+        return 'ASSIGNED';
       case IncidentStatus.proses:
-        return 'proses';
+        return 'PROGRESS';
       case IncidentStatus.eskalasi:
-        return 'eskalasi';
+        return 'ESCALATED';
       case IncidentStatus.selesai:
-        return 'selesai';
+        return 'COMPLETED';
       case IncidentStatus.terverifikasi:
-        return 'terverifikasi';
+        return 'VERIFIED';
       case IncidentStatus.tidakValid:
-        return 'tidak valid';
+        return 'INVALID';
     }
   }
 }

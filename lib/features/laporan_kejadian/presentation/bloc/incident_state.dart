@@ -13,6 +13,12 @@ class IncidentState extends Equatable {
   final List<IncidentTypeEntity> types;
   final String? errorMessage;
   final String? searchQuery;
+  final IncidentStatus? filterStatus;
+  final DateTime? filterStartDate;
+  final DateTime? filterEndDate;
+  final String? filterPicId;
+  final String? filterIncidentTypeId;
+  final String? filterLocationId;
   final int currentPage;
   final bool hasReachedMax;
   final bool hasReachedMaxMyTasks;
@@ -28,6 +34,12 @@ class IncidentState extends Equatable {
     this.types = const [],
     this.errorMessage,
     this.searchQuery,
+    this.filterStatus,
+    this.filterStartDate,
+    this.filterEndDate,
+    this.filterPicId,
+    this.filterIncidentTypeId,
+    this.filterLocationId,
     this.currentPage = 0,
     this.hasReachedMax = false,
     this.hasReachedMaxMyTasks = false,
@@ -47,6 +59,12 @@ class IncidentState extends Equatable {
     String? errorMessage,
     bool clearError = false,
     String? searchQuery,
+    IncidentStatus? filterStatus,
+    DateTime? filterStartDate,
+    DateTime? filterEndDate,
+    String? filterPicId,
+    String? filterIncidentTypeId,
+    String? filterLocationId,
     int? currentPage,
     bool? hasReachedMax,
     bool? hasReachedMaxMyTasks,
@@ -66,6 +84,12 @@ class IncidentState extends Equatable {
       types: types ?? this.types,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       searchQuery: searchQuery ?? this.searchQuery,
+      filterStatus: filterStatus ?? this.filterStatus,
+      filterStartDate: filterStartDate ?? this.filterStartDate,
+      filterEndDate: filterEndDate ?? this.filterEndDate,
+      filterPicId: filterPicId ?? this.filterPicId,
+      filterIncidentTypeId: filterIncidentTypeId ?? this.filterIncidentTypeId,
+      filterLocationId: filterLocationId ?? this.filterLocationId,
       currentPage: currentPage ?? this.currentPage,
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       hasReachedMaxMyTasks: hasReachedMaxMyTasks ?? this.hasReachedMaxMyTasks,
@@ -84,6 +108,12 @@ class IncidentState extends Equatable {
         types,
         errorMessage,
         searchQuery,
+        filterStatus,
+        filterStartDate,
+        filterEndDate,
+        filterPicId,
+        filterIncidentTypeId,
+        filterLocationId,
         currentPage,
         hasReachedMax,
         hasReachedMaxMyTasks,

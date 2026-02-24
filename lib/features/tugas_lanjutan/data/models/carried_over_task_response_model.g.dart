@@ -51,6 +51,25 @@ Map<String, dynamic> _$CarriedOverTaskResponseModelToJson(
       'Description': instance.description,
     };
 
+SolverModel _$SolverModelFromJson(Map<String, dynamic> json) => $checkedCreate(
+      'SolverModel',
+      json,
+      ($checkedConvert) {
+        final val = SolverModel(
+          id: $checkedConvert('Id', (v) => v as String?),
+          fullname: $checkedConvert('Fullname', (v) => v as String?),
+        );
+        return val;
+      },
+      fieldKeyMap: const {'id': 'Id', 'fullname': 'Fullname'},
+    );
+
+Map<String, dynamic> _$SolverModelToJson(SolverModel instance) =>
+    <String, dynamic>{
+      'Id': instance.id,
+      'Fullname': instance.fullname,
+    };
+
 CarriedOverTaskItemModel _$CarriedOverTaskItemModelFromJson(
         Map<String, dynamic> json) =>
     $checkedCreate(
@@ -162,23 +181,4 @@ Map<String, dynamic> _$ReportNameModelToJson(ReportNameModel instance) =>
       'Username': instance.username,
       'Email': instance.email,
       'NoNrp': instance.noNrp,
-    };
-
-SolverModel _$SolverModelFromJson(Map<String, dynamic> json) => $checkedCreate(
-      'SolverModel',
-      json,
-      ($checkedConvert) {
-        final val = SolverModel(
-          id: $checkedConvert('Id', (v) => v as String?),
-          fullname: $checkedConvert('Fullname', (v) => v as String?),
-        );
-        return val;
-      },
-      fieldKeyMap: const {'id': 'Id', 'fullname': 'Fullname'},
-    );
-
-Map<String, dynamic> _$SolverModelToJson(SolverModel instance) =>
-    <String, dynamic>{
-      'Id': instance.id,
-      'Fullname': instance.fullname,
     };

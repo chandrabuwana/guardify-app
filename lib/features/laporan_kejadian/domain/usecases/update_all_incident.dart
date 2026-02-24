@@ -26,6 +26,7 @@ class UpdateAllIncident {
     String? evidence,
     required String status,
     Map<String, dynamic>? incidentImage,
+    String? supervisorFeedback,
   }) {
     return repository.updateAllIncident(
       incidentId: incidentId,
@@ -46,6 +47,7 @@ class UpdateAllIncident {
       evidence: evidence,
       status: status,
       incidentImage: incidentImage,
+      supervisorFeedback: supervisorFeedback,
     );
   }
 }

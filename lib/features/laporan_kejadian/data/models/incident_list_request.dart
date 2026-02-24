@@ -66,6 +66,11 @@ class IncidentListRequest {
     String? searchQuery,
     String? status,
     String? picId,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? incidentTypeId,
+    String? locationId,
+    String? teamId, // Filter by team (userId)
   }) {
     final filters = <IncidentFilterItem>[];
     
@@ -79,6 +84,41 @@ class IncidentListRequest {
     
     if (searchQuery != null && searchQuery.isNotEmpty) {
       filters.add(IncidentFilterItem(field: 'IncidentDescription', search: searchQuery));
+    }
+    
+    // Date range filter - API might need separate fields or combined
+    // For now, we'll use IncidentDate field with date range
+    // If API supports range, we might need to adjust this
+    if (startDate != null && endDate != null) {
+      // If both dates provided, use start date as filter
+      // API might need separate handling for date range
+      filters.add(IncidentFilterItem(
+        field: 'IncidentDate',
+        search: '${startDate.toIso8601String().split('T')[0]}|${endDate.toIso8601String().split('T')[0]}',
+      ));
+    } else if (startDate != null) {
+      filters.add(IncidentFilterItem(
+        field: 'IncidentDate',
+        search: startDate.toIso8601String().split('T')[0], // Format: YYYY-MM-DD
+      ));
+    } else if (endDate != null) {
+      filters.add(IncidentFilterItem(
+        field: 'IncidentDate',
+        search: endDate.toIso8601String().split('T')[0], // Format: YYYY-MM-DD
+      ));
+    }
+    
+    if (incidentTypeId != null && incidentTypeId.isNotEmpty) {
+      filters.add(IncidentFilterItem(field: 'IdIncidentType', search: incidentTypeId));
+    }
+    
+    if (locationId != null && locationId.isNotEmpty) {
+      filters.add(IncidentFilterItem(field: 'AreasId', search: locationId));
+    }
+    
+    // Filter by team (userId) - for "Tugas Saya" tab
+    if (teamId != null && teamId.isNotEmpty) {
+      filters.add(IncidentFilterItem(field: 'team', search: teamId));
     }
 
     return IncidentListRequest(

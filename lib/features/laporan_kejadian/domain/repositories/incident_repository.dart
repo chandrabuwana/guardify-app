@@ -9,6 +9,11 @@ abstract class IncidentRepository {
     int length = 10,
     String? searchQuery,
     IncidentStatus? status,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? picId,
+    String? incidentTypeId,
+    String? locationId,
   });
 
   /// Get list of my tasks (incidents assigned to current user)
@@ -91,6 +96,7 @@ abstract class IncidentRepository {
     String? evidence,
     required String status,
     Map<String, dynamic>? incidentImage,
+    String? supervisorFeedback,
   });
 }
 

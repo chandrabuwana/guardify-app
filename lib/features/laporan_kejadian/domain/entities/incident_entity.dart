@@ -31,6 +31,7 @@ class IncidentEntity extends Equatable {
   final String? lokasiInsiden; // Incident location
   final String? detailLokasiInsiden; // Detailed location
   final IncidentType? tipeInsiden; // Incident type
+  final String? tipeInsidenName; // Incident type name from API (IncidentType.Name)
   final String? deskripsiInsiden; // Description
   final String? fotoInsiden; // Photo URL or filename
   final List<IncidentFile> files; // List of files
@@ -56,6 +57,7 @@ class IncidentEntity extends Equatable {
     this.lokasiInsiden,
     this.detailLokasiInsiden,
     this.tipeInsiden,
+    this.tipeInsidenName,
     this.deskripsiInsiden,
     this.fotoInsiden,
     this.files = const [],
@@ -101,6 +103,11 @@ class IncidentEntity extends Equatable {
   }
 
   String get tipeInsidenDisplayName {
+    // Prioritaskan nama dari API (IncidentType.Name)
+    if (tipeInsidenName != null && tipeInsidenName!.isNotEmpty) {
+      return tipeInsidenName!;
+    }
+    // Fallback ke enum display name
     switch (tipeInsiden) {
       case IncidentType.keamanan:
         return 'Keamanan';
@@ -148,6 +155,7 @@ class IncidentEntity extends Equatable {
     String? lokasiInsiden,
     String? detailLokasiInsiden,
     IncidentType? tipeInsiden,
+    String? tipeInsidenName,
     String? deskripsiInsiden,
     String? fotoInsiden,
     List<IncidentFile>? files,
@@ -172,6 +180,7 @@ class IncidentEntity extends Equatable {
       lokasiInsiden: lokasiInsiden ?? this.lokasiInsiden,
       detailLokasiInsiden: detailLokasiInsiden ?? this.detailLokasiInsiden,
       tipeInsiden: tipeInsiden ?? this.tipeInsiden,
+      tipeInsidenName: tipeInsidenName ?? this.tipeInsidenName,
       deskripsiInsiden: deskripsiInsiden ?? this.deskripsiInsiden,
       fotoInsiden: fotoInsiden ?? this.fotoInsiden,
       files: files ?? this.files,
@@ -200,6 +209,7 @@ class IncidentEntity extends Equatable {
         lokasiInsiden,
         detailLokasiInsiden,
         tipeInsiden,
+        tipeInsidenName,
         deskripsiInsiden,
         fotoInsiden,
         files,

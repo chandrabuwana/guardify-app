@@ -130,8 +130,9 @@ class UpdateAllIncidentRequest {
       'CompletedBy': (completedBy != null && completedBy!.isNotEmpty) ? completedBy : null,
       'VerifiedBy': (verifiedBy != null && verifiedBy!.isNotEmpty) ? verifiedBy : null,
       'VerifiedDate': verifiedDate?.toIso8601String(),
-      // ReviewedBy menggunakan default GUID jika null atau kosong
-      'ReviewedBy': (reviewedBy != null && reviewedBy!.isNotEmpty) ? reviewedBy : defaultGuid,
+      // ReviewedBy: kirim null jika null atau empty (bukan default GUID)
+      // Default GUID hanya untuk PicId, bukan untuk ReviewedBy
+      'ReviewedBy': (reviewedBy != null && reviewedBy!.isNotEmpty && reviewedBy != defaultGuid) ? reviewedBy : null,
       'ReviewedDate': reviewedDate?.toIso8601String(),
       'SupervisorFeedback': supervisorFeedback ?? '',
       'CreateBy': createBy ?? '',

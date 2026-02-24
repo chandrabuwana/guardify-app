@@ -61,52 +61,17 @@ class IncidentPermissionHelper {
       return false;
     }
     
-    // Fallback: Jika reporter role tidak diketahui, check berdasarkan current user role
-    // PERHATIAN: Fallback ini kurang akurat karena tidak tahu role pelapor
+    // Fallback: Jika reporter role tidak diketahui, kita tidak bisa menentukan permission dengan pasti
+    // Untuk safety, kita reject review jika tidak tahu role pelapor
+    // Ini mencegah Danton review laporan dari Danton lain jika role tidak tersedia
+    // 
+    // PERHATIAN: Fallback ini lebih ketat untuk mencegah security issue
     // Sebaiknya selalu pass reporterRole jika memungkinkan
     
-    // Jika current user adalah Danton, hanya bisa review jika pelapor adalah Anggota
-    // Karena kita tidak tahu role pelapor, kita asumsikan bisa review
-    // TAPI: Jika current user adalah Danton dan reporterId diketahui, 
-    // kita perlu check apakah reporter juga Danton (tidak bisa review)
-    if (currentUserRole == UserRole.danton) {
-      // Jika kita tahu reporterId dan currentUserId, check apakah sama (self-review)
-      if (currentUserId != null && reporterId != null && 
-          currentUserId.isNotEmpty && reporterId.isNotEmpty) {
-        if (currentUserId == reporterId) {
-          return false; // Tidak bisa review sendiri
-        }
-        // Jika reporterId berbeda, kita tidak tahu role reporter
-        // Untuk safety, kita allow (asumsi pelapor adalah anggota)
-        // Tapi ini bisa jadi masalah jika reporter adalah Danton
-        // Idealnya, kita perlu tahu role reporter
-        return true;
-      }
-      // Jika tidak ada info reporterId, allow (asumsi pelapor adalah anggota)
-      return true;
-    }
-    
-    // Jika current user adalah PJO/Deputy, bisa review jika pelapor adalah Danton
-    // Karena kita tidak tahu role pelapor, kita asumsikan bisa review
-    // TAPI: Jika current user adalah PJO/Deputy dan reporterId diketahui,
-    // kita perlu check apakah reporter adalah Danton
-    if (currentUserRole == UserRole.pjo || currentUserRole == UserRole.deputy) {
-      // Jika kita tahu reporterId dan currentUserId, check apakah sama (self-review)
-      if (currentUserId != null && reporterId != null && 
-          currentUserId.isNotEmpty && reporterId.isNotEmpty) {
-        if (currentUserId == reporterId) {
-          return false; // Tidak bisa review sendiri
-        }
-        // Jika reporterId berbeda, kita tidak tahu role reporter
-        // Untuk safety, kita allow (asumsi pelapor adalah Danton)
-        // Tapi ini bisa jadi masalah jika reporter bukan Danton
-        // Idealnya, kita perlu tahu role reporter
-        return true;
-      }
-      // Jika tidak ada info reporterId, allow (asumsi pelapor adalah Danton)
-      return true;
-    }
-    
+    // Jika reporter role tidak diketahui, reject untuk safety
+    // Ini mencegah:
+    // - Danton review laporan dari Danton lain
+    // - PJO/Deputy review laporan yang bukan dari Danton
     return false;
   }
   
@@ -152,7 +117,74 @@ class IncidentPermissionHelper {
     return false;
   }
   
-  /// Check apakah user dapat verify incident
+  /// Check apakah incident sebelumnya pernah di-escalate
+  /// 
+  /// Detection methods:
+  /// 1. Jika PIC adalah PJO/Deputy -> kemungkinan besar di-assign oleh pengawas setelah escalated
+  /// 2. Jika status saat ini adalah selesai dan pernah ada status escalated
+  /// 3. Check dari incident detail untuk melihat siapa yang assign (decision maker = pengawas)
+  static Future<bool> wasPreviouslyEscalated({
+    required IncidentEntity incident,
+    dynamic apiModel, // Optional: API model untuk akses data lengkap
+  }) async {
+    // Method 1: Check jika PIC adalah PJO/Deputy
+    // Jika PIC adalah PJO/Deputy, kemungkinan besar ini di-assign oleh pengawas setelah escalated
+    // Karena normalnya PJO/Deputy tidak akan menjadi PIC kecuali di-assign oleh pengawas setelah escalated
+    if (incident.picId != null && incident.picId!.isNotEmpty) {
+      // Kita perlu check role dari PIC
+      // Untuk sekarang, kita bisa check dari nama PIC atau dari API model
+      // Jika PIC name mengandung "PJO" atau "Deputy", kemungkinan besar ini escalated
+      final picName = incident.pic?.toUpperCase() ?? '';
+      if (picName.contains('PJO') || picName.contains('DEPUTY')) {
+        return true;
+      }
+    }
+    
+    // Method 2: Check dari API model jika tersedia
+    if (apiModel != null) {
+      // Check jika ada indikasi bahwa ini di-assign oleh pengawas
+      // Bisa dilihat dari incident detail atau status history
+      // Untuk sekarang, kita check jika PIC adalah PJO/Deputy dari API model
+      try {
+        // Access pic from API model
+        final pic = apiModel.pic;
+        if (pic != null) {
+          // Check if pic is UserModel (from incident_api_model.dart)
+          if (pic is Map) {
+            final picJabatan = pic['Jabatan']?.toString().toUpperCase() ?? '';
+            if (picJabatan.contains('PJO') || picJabatan.contains('DEPUTY')) {
+              return true;
+            }
+          } else if (pic is String) {
+            final picUpper = pic.toUpperCase();
+            if (picUpper.contains('PJO') || picUpper.contains('DEPUTY')) {
+              return true;
+            }
+          } else {
+            // Check if pic has jabatan property (UserModel object)
+            try {
+              final picJabatan = pic.jabatan?.toString().toUpperCase() ?? '';
+              if (picJabatan.contains('PJO') || picJabatan.contains('DEPUTY')) {
+                return true;
+              }
+            } catch (e) {
+              // Ignore if jabatan property doesn't exist
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore error, continue with other checks
+      }
+    }
+    
+    // Method 3: Check dari incident detail untuk melihat siapa yang assign
+    // Jika ada reviewedBy atau assignedBy yang adalah pengawas, kemungkinan besar ini escalated
+    // Tapi ini memerlukan data tambahan yang mungkin tidak tersedia
+    
+    return false;
+  }
+  
+  /// Check apakah user dapat verify incident (sync version)
   /// 
   /// Rules:
   /// - Status = Selesai -> PJO/Deputy/Pengawas dapat verify
@@ -177,7 +209,7 @@ class IncidentPermissionHelper {
            currentUserRole == UserRole.pengawas;
   }
   
-  /// Check apakah user dapat revise incident
+  /// Check apakah user dapat revise incident (sync version)
   /// 
   /// Rules:
   /// - Status = Selesai -> PJO/Deputy/Pengawas dapat revise

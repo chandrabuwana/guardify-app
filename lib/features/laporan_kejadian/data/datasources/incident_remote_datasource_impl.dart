@@ -33,6 +33,11 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     int length = 50, // Increased from 10 to 50
     String? searchQuery,
     String? status,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? picId,
+    String? incidentTypeId,
+    String? locationId,
   }) async {
     try {
       // Create request
@@ -41,6 +46,11 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         length: length,
         searchQuery: searchQuery,
         status: status,
+        startDate: startDate,
+        endDate: endDate,
+        picId: picId,
+        incidentTypeId: incidentTypeId,
+        locationId: locationId,
       );
 
       // Call API
@@ -111,14 +121,14 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         throw Exception('User ID not found');
       }
 
-      // Create request WITHOUT PicId filter - we'll filter in client side
-      // to include both PIC and team members
+      // Create request with team filter using userId
+      // API will filter incidents where the user is in the team
       final request = IncidentListRequest.initial(
         start: start,
-        length: length * 2, // Get more data to account for filtering
+        length: length,
         searchQuery: searchQuery,
         status: status,
-        // Don't filter by picId here - filter in client side instead
+        teamId: userId, // Filter by team using logged-in user's ID
       );
 
       // Call API
@@ -141,67 +151,13 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
             : 'Failed to load my tasks');
       }
 
-      // Filter: Include incidents where:
-      // 1. Status = Ditugaskan (ASSIGNED) OR Proses (PROGRESS)
-      // 2. User is PIC OR is in Teams
-      // IMPORTANT: Check Teams directly from API model before converting to IncidentModel
-      // because incidentDetail might be empty if Teams is empty (after our recent changes)
-      final filteredApiModels = responseData.list.where((apiModel) {
-        // Check status: hanya tampilkan jika status ditugaskan atau proses
-        final apiStatus = apiModel.status?.toUpperCase().trim() ?? '';
-        final isAssignedOrInProgress = apiStatus == 'ASSIGNED' || apiStatus == 'PROGRESS';
-        if (!isAssignedOrInProgress) {
-          return false;
-        }
-        
-        // Check if user is PIC
-        if (apiModel.picId == userId) {
-          return true;
-        }
-        
-        // Check if user is in Teams (from API model directly)
-        if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
-          for (var team in apiModel.teams!) {
-            if (team is Map<String, dynamic>) {
-              final teamUserId = team['UserId']?.toString() ?? '';
-              if (teamUserId == userId) {
-                return true;
-              }
-            }
-          }
-        }
-        
-        // Also check from IncidentDetail (for backward compatibility)
-        // This handles cases where Teams might be empty but IncidentDetail has team info
-        if (apiModel.incidentDetail != null) {
-          List<Map<String, dynamic>> incidentDetailList = [];
-          if (apiModel.incidentDetail is Map<String, dynamic>) {
-            incidentDetailList.add(Map<String, dynamic>.from(apiModel.incidentDetail as Map));
-          } else if (apiModel.incidentDetail is List) {
-            for (var item in apiModel.incidentDetail as List) {
-              if (item is Map) {
-                incidentDetailList.add(Map<String, dynamic>.from(item));
-              }
-            }
-          }
-          
-          for (var detail in incidentDetailList) {
-            final teamUserId = detail['UserId']?.toString() ?? '';
-            if (teamUserId == userId) {
-              return true;
-            }
-          }
-        }
-        
-        return false;
-      }).toList();
-
-      // Convert filtered API models to IncidentModel
-      final filteredModels = filteredApiModels
+      // Convert API models to IncidentModel
+      // API already filtered by team, so we just need to convert
+      final models = responseData.list
           .map((apiModel) => apiModel.toIncidentModel())
           .toList();
 
-      return filteredModels;
+      return models;
     } on DioException catch (e) {
       if (e.response != null) {
         throw Exception(
@@ -784,6 +740,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     String? evidence,
     required String status,
     Map<String, dynamic>? incidentImage,
+    String? supervisorFeedback,
   }) async {
     try {
       // Get current user data for Token
@@ -843,43 +800,71 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
       DateTime? createDateFromResponse;
       
       // Get fields from response if available
+      const defaultGuid = '00000000-0000-0000-0000-000000000000';
+      
       if (apiModel != null) {
         createDateFromResponse = apiModel.createDate;
         handlingTaskFromResponse = apiModel.handlingTask;
         feedBackFromResponse = apiModel.feedBack;
         supervisorFeedbackFromResponse = apiModel.supervisorFeedback;
         
-        // For PJO/Deputy assign (status ASSIGNED), take ReviewedBy and ReviewedDate from response
-        if (status == 'ASSIGNED') {
-          reviewedBy = apiModel.reviewedBy;
-          reviewedDate = apiModel.reviewedDate;
-          verifiedBy = apiModel.verifiedBy;
-          verifiedDate = apiModel.verifiedDate;
-          completedBy = apiModel.completedBy;
-          incidentCompletionDate = apiModel.incidentCompletionDate;
+        // Always get all fields from response first (untuk semua status)
+        // Jika reviewedBy dari response adalah default GUID, anggap sebagai null (belum diisi)
+        final reviewedByFromResponse = apiModel.reviewedBy;
+        if (reviewedByFromResponse != null && 
+            reviewedByFromResponse.isNotEmpty && 
+            reviewedByFromResponse != defaultGuid) {
+          reviewedBy = reviewedByFromResponse;
         } else {
-          // For other statuses, use response values as fallback but allow override
-          reviewedBy = apiModel.reviewedBy;
-          reviewedDate = apiModel.reviewedDate;
-          verifiedBy = apiModel.verifiedBy;
-          verifiedDate = apiModel.verifiedDate;
-          completedBy = apiModel.completedBy;
-          incidentCompletionDate = apiModel.incidentCompletionDate;
+          reviewedBy = null;
         }
+        reviewedDate = apiModel.reviewedDate;
+        verifiedBy = apiModel.verifiedBy;
+        verifiedDate = apiModel.verifiedDate;
+        completedBy = apiModel.completedBy;
+        incidentCompletionDate = apiModel.incidentCompletionDate;
       }
       
-      // Override with new values based on status
+      // Override with new values based on status (hanya field yang perlu di-update)
+      // Semua field lain tetap dari response getall
       if (status == 'COMPLETED') {
-        completedBy = userId;
+        // Saat "Tandai Sebagai Selesai" (status COMPLETED):
+        // - CompletedBy diisi dengan userId (user yang login)
+        // - IncidentCompletionDate diisi dengan DateTime.now()
+        // Field lain (reviewedBy, reviewedDate, verifiedBy, verifiedDate, dll) tetap dari response
+        completedBy = userId.isNotEmpty ? userId : null;
         incidentCompletionDate = DateTime.now();
       } else if (status == 'VERIFIED') {
+        // Hanya update verifiedBy dan verifiedDate
+        // Field lain (reviewedBy, reviewedDate, completedBy, dll) tetap dari response
         verifiedBy = userId;
         verifiedDate = DateTime.now();
+      } else if (status == 'REVISED') {
+        // Hanya update supervisorFeedback (jika ada)
+        // Field lain (reviewedBy, reviewedDate, verifiedBy, verifiedDate, completedBy, dll) tetap dari response
+        // Tidak ada field khusus yang di-update untuk REVISED
       } else if (status == 'ACKNOWLEDGE' || status == 'INVALID') {
-        // ReviewedBy harus menggunakan user ID yang login (GUID), bukan nama
+        // Hanya update reviewedBy dan reviewedDate
+        // Field lain (verifiedBy, verifiedDate, completedBy, dll) tetap dari response
         reviewedBy = userId.isNotEmpty ? userId : null;
         reviewedDate = DateTime.now();
+      } else if (status == 'ASSIGNED') {
+        // Jika pelapor adalah PJO/Deputy dan status ASSIGNED, set ReviewedBy dan ReviewedDate
+        // karena status skip dari "menunggu" ke "diterima" (ACKNOWLEDGE)
+        // Field lain (verifiedBy, verifiedDate, completedBy, dll) tetap dari response
+        if (apiModel != null && apiModel.roles != null && apiModel.roles!.isNotEmpty) {
+          // Check jika reporter role adalah PJO atau Deputy
+          final reporterRole = apiModel.roles!.first.nama.toUpperCase();
+          if (reporterRole == 'PJO' || reporterRole == 'DPT' || reporterRole == 'PJO-PJO' || reporterRole == 'DEPUTY') {
+            // Jika ReviewedBy belum diisi, set dengan reportId (user yang pelapor)
+            if (reviewedBy == null || reviewedBy.isEmpty) {
+              reviewedBy = reportId.isNotEmpty ? reportId : null;
+              reviewedDate = DateTime.now();
+            }
+          }
+        }
       }
+      // Untuk status lain (PROGRESS, ESCALATED, dll), semua field tetap dari response
 
       // Create request using UpdateAllIncidentRequest model
       final request = UpdateAllIncidentRequest(
@@ -906,7 +891,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         verifiedDate: verifiedDate,
         reviewedBy: reviewedBy,
         reviewedDate: reviewedDate,
-        supervisorFeedback: supervisorFeedbackFromResponse ?? '',
+        supervisorFeedback: supervisorFeedback ?? supervisorFeedbackFromResponse ?? '',
         createDate: createDateFromResponse, // Ambil dari response /incident/getall
         token: token,
       );
