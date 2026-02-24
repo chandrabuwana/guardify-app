@@ -73,23 +73,25 @@ UserApiDataModel _$UserApiDataModelFromJson(Map<String, dynamic> json) =>
           alamatDomisili:
               $checkedConvert('AlamatDomisili', (v) => v as String?),
           feedback: $checkedConvert('Feedback', (v) => v as String?),
-          status: $checkedConvert('Status', (v) => v as String),
-          token: $checkedConvert('Token', (v) => v as String),
-          isLockout: $checkedConvert('IsLockout', (v) => v as bool),
-          accessFailedCount:
-              $checkedConvert('AccessFailedCount', (v) => (v as num).toInt()),
-          active: $checkedConvert('Active', (v) => v as bool),
-          createBy: $checkedConvert('CreateBy', (v) => v as String),
-          createDate: $checkedConvert('CreateDate', (v) => v as String),
+          status: $checkedConvert('Status', (v) => v as String?),
+          token: $checkedConvert('Token', (v) => v as String?),
+          isLockout: $checkedConvert('IsLockout', (v) => v as bool?),
+          accessFailedCount: $checkedConvert(
+              'AccessFailedCount', (v) => (v as num?)?.toInt()),
+          active: $checkedConvert('Active', (v) => v as bool?),
+          createBy: $checkedConvert('CreateBy', (v) => v as String?),
+          createDate: $checkedConvert('CreateDate', (v) => v as String?),
           updateBy: $checkedConvert('UpdateBy', (v) => v as String?),
           updateDate: $checkedConvert('UpdateDate', (v) => v as String?),
           nrk: $checkedConvert('Nrk', (v) => v as String?),
           personnelNo: $checkedConvert('PersonnelNo', (v) => v as String?),
           roles: $checkedConvert(
               'Roles',
-              (v) => (v as List<dynamic>)
-                  .map((e) => RoleApiModel.fromJson(e as Map<String, dynamic>))
-                  .toList()),
+              (v) => (v as List<dynamic>?)
+                      ?.map((e) =>
+                          RoleApiModel.fromJson(e as Map<String, dynamic>))
+                      .toList() ??
+                  const <RoleApiModel>[]),
         );
         return val;
       },

@@ -174,30 +174,6 @@ class _AttendanceRekapKehadiranDetailScreenContentState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoFieldInCard(
-                    'Status Laporan123',
-                    _formatStatusLaporan(detail.statusLaporan),
-                  ),
-                  16.verticalSpace,
-                  _buildInfoFieldInCard(
-                    'Diverifikasi Oleh',
-                    (detail.updateBy != null && detail.updateBy!.isNotEmpty)
-                        ? detail.updateBy!
-                        : '-',
-                  ),
-                  16.verticalSpace,
-                  _buildInfoFieldInCard(
-                    'Tanggal Verifikasi',
-                    detail.updateDate != null ? _formatTime(detail.updateDate!) : '-',
-                  ),
-                  16.verticalSpace,
-                  _buildTextAreaFieldInCard(
-                    'Feedback',
-                    (detail.feedback != null && detail.feedback!.isNotEmpty)
-                        ? detail.feedback!
-                        : '-',
-                  ),
-                  16.verticalSpace,
                   _buildInfoFieldInCard('Tanggal', _formatDate(detail.shiftDate)),
                   16.verticalSpace,
                   _buildInfoFieldInCard('Nama Shift', detail.shiftName),
@@ -207,6 +183,32 @@ class _AttendanceRekapKehadiranDetailScreenContentState
                   _stepIndex == 0
                       ? _buildMulaiBekerjaSection(detail)
                       : _buildSelesaiBekerjaSection(detail),
+                  if (_stepIndex == 1) ...[
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Status Laporan',
+                      _formatStatusLaporan(detail.statusLaporan),
+                    ),
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Diverifikasi Oleh',
+                      (detail.updateBy != null && detail.updateBy!.isNotEmpty)
+                          ? detail.updateBy!
+                          : '-',
+                    ),
+                    16.verticalSpace,
+                    _buildInfoFieldInCard(
+                      'Tanggal Verifikasi',
+                      detail.updateDate != null ? _formatTime(detail.updateDate!) : '-',
+                    ),
+                    16.verticalSpace,
+                    _buildTextAreaFieldInCard(
+                      'Feedback',
+                      (detail.feedback != null && detail.feedback!.isNotEmpty)
+                          ? detail.feedback!
+                          : '-',
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -385,7 +387,7 @@ class _AttendanceRekapKehadiranDetailScreenContentState
         16.verticalSpace,
         canEdit
             ? _buildEditablePhotoPickerCard(
-                label: 'Pakaian Personil',
+                label: 'Pakaian Personil Checkout',
                 existingUrl: detail.photoCheckoutPakaian?.url,
                 pickedFile: _photoAbsenCheckOutFile,
                 onPick: (file) {
@@ -394,7 +396,7 @@ class _AttendanceRekapKehadiranDetailScreenContentState
                   });
                 },
               )
-            : _buildImageCard('Pakaian Personil', detail.photoCheckoutPakaian?.url),
+            : _buildImageCard('Pakaian Personil Checkout', detail.photoCheckoutPakaian?.url),
         16.verticalSpace,
         _buildInfoFieldInCard('Lokasi Pengamanan', detail.location ?? '-'),
         
@@ -406,10 +408,10 @@ class _AttendanceRekapKehadiranDetailScreenContentState
           _buildPatrolSectionInCard(detail.route!, detail.listRoute, detail.listCarryOver),
         ],
         16.verticalSpace,
-        if (detail.photoCheckoutPengamanan?.hasPhoto == true)
+        if (detail.photoOvertime?.url != null)
           _buildImageCard(
             'Bukti Penyelesaian Tugas Lanjutan',
-            detail.photoCheckoutPengamanan?.url,
+            detail.photoOvertime?.url,
           )
         else
           _buildInfoFieldInCard(
