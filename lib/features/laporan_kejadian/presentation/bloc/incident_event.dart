@@ -94,16 +94,20 @@ class LoadMyTasksEvent extends IncidentEvent {
   final int length;
   final String? searchQuery;
   final IncidentStatus? status;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   const LoadMyTasksEvent({
     this.start = 0,
-    this.length = 50, // Increased from 10 to 50 for better pagination
+    this.length = 50,
     this.searchQuery,
     this.status,
+    this.startDate,
+    this.endDate,
   });
 
   @override
-  List<Object?> get props => [start, length, searchQuery, status];
+  List<Object?> get props => [start, length, searchQuery, status, startDate, endDate];
 }
 
 // Load more my tasks (pagination)
@@ -126,7 +130,7 @@ class SearchMyTasksEvent extends IncidentEvent {
   List<Object> get props => [query];
 }
 
-// Get incident detail
+// Get incident detail (hit API)
 class GetIncidentDetailEvent extends IncidentEvent {
   final String incidentId;
 
@@ -134,6 +138,16 @@ class GetIncidentDetailEvent extends IncidentEvent {
 
   @override
   List<Object> get props => [incidentId];
+}
+
+// Set incident detail from API model (no API call - used after single getIncidentDetailApiModel)
+class SetIncidentDetailEvent extends IncidentEvent {
+  final IncidentEntity incidentDetail;
+
+  const SetIncidentDetailEvent(this.incidentDetail);
+
+  @override
+  List<Object> get props => [incidentDetail];
 }
 
 // Create incident report

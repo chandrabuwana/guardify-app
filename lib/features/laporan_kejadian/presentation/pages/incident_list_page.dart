@@ -140,7 +140,17 @@ class _IncidentListPageState extends State<IncidentListPage>
           );
         } else {
           if (mounted) {
-            context.read<IncidentBloc>().add(const LoadMyTasksEvent());
+            final state = context.read<IncidentBloc>().state;
+            context.read<IncidentBloc>().add(
+              LoadMyTasksEvent(
+                startDate: _filterStartDate ?? state.filterStartDate,
+                endDate: _filterEndDate ?? state.filterEndDate,
+                searchQuery: _searchController.text.trim().isEmpty
+                    ? null
+                    : _searchController.text.trim(),
+                status: _filterStatus ?? state.filterStatus,
+              ),
+            );
           }
         }
       } catch (e) {
@@ -1256,19 +1266,32 @@ class _IncidentListPageState extends State<IncidentListPage>
       if (mounted) {
         try {
           final bloc = context.read<IncidentBloc>();
-          bloc.add(
-            LoadIncidentListEvent(
-              searchQuery: _searchController.text.trim().isEmpty
-                  ? null
-                  : _searchController.text.trim(),
-              startDate: _filterStartDate,
-              endDate: _filterEndDate,
-              status: _filterStatus,
-              picId: _filterPicId,
-              incidentTypeId: _filterIncidentTypeId,
-              locationId: _filterLocationId,
-            ),
-          );
+          if (_isPengawas || _tabController.index == 0) {
+            bloc.add(
+              LoadIncidentListEvent(
+                searchQuery: _searchController.text.trim().isEmpty
+                    ? null
+                    : _searchController.text.trim(),
+                startDate: _filterStartDate,
+                endDate: _filterEndDate,
+                status: _filterStatus,
+                picId: _filterPicId,
+                incidentTypeId: _filterIncidentTypeId,
+                locationId: _filterLocationId,
+              ),
+            );
+          } else {
+            bloc.add(
+              LoadMyTasksEvent(
+                startDate: _filterStartDate,
+                endDate: _filterEndDate,
+                searchQuery: _searchController.text.trim().isEmpty
+                    ? null
+                    : _searchController.text.trim(),
+                status: _filterStatus,
+              ),
+            );
+          }
         } catch (e) {
           debugPrint('Error applying filter: $e');
         }
@@ -1296,6 +1319,8 @@ class _IncidentListPageState extends State<IncidentListPage>
     switch (status) {
       case IncidentStatus.menunggu:
         return 'Menunggu';
+      case IncidentStatus.revisi:
+        return 'Revisi';
       case IncidentStatus.diterima:
         return 'Diterima';
       case IncidentStatus.ditugaskan:

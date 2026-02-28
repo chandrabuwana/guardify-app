@@ -40,7 +40,6 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     String? locationId,
   }) async {
     try {
-      // Create request
       final request = IncidentListRequest.initial(
         start: start,
         length: length,
@@ -88,8 +87,26 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
           continue;
         }
       }
-      
-      print('📋 DataSource: Successfully parsed ${models.length}/${responseData.list.length} incidents');
+
+      // Filter by IncidentDate di client (list punya IncidentDate per item)
+      if (startDate != null || endDate != null) {
+        final filtered = models.where((m) {
+          final dt = m.tanggalInsiden;
+          if (dt == null) return false;
+          final dateOnly = DateTime(dt.year, dt.month, dt.day);
+          if (startDate != null) {
+            final startOnly = DateTime(startDate.year, startDate.month, startDate.day);
+            if (dateOnly.isBefore(startOnly)) return false;
+          }
+          if (endDate != null) {
+            final endOnly = DateTime(endDate.year, endDate.month, endDate.day);
+            if (dateOnly.isAfter(endOnly)) return false;
+          }
+          return true;
+        }).toList();
+        return filtered;
+      }
+
       return models;
     } on DioException catch (e) {
       print('❌ DataSource: DioException - ${e.message}');
@@ -110,52 +127,64 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
   @override
   Future<List<IncidentModel>> getMyTasks({
     int start = 0,
-    int length = 50, // Increased from 10 to 50
+    int length = 50,
     String? searchQuery,
     String? status,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     try {
-      // Get current user ID
       final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
       if (userId == null || userId.isEmpty) {
         throw Exception('User ID not found');
       }
 
-      // Create request with team filter using userId
-      // API will filter incidents where the user is in the team
       final request = IncidentListRequest.initial(
         start: start,
         length: length,
         searchQuery: searchQuery,
         status: status,
-        teamId: userId, // Filter by team using logged-in user's ID
+        teamId: userId,
       );
 
-      // Call API
       final response = await _dio.post(
         '/Incident/list',
         data: request.toJson(),
       );
 
-      // Check response
       if (response.statusCode != 200) {
         throw Exception('Failed to load my tasks: ${response.statusMessage}');
       }
 
-      // Parse response
       final responseData = IncidentListResponse.fromJson(response.data);
-      
+
       if (!responseData.succeeded) {
-        throw Exception(responseData.message.isNotEmpty 
-            ? responseData.message 
+        throw Exception(responseData.message.isNotEmpty
+            ? responseData.message
             : 'Failed to load my tasks');
       }
 
-      // Convert API models to IncidentModel
-      // API already filtered by team, so we just need to convert
       final models = responseData.list
           .map((apiModel) => apiModel.toIncidentModel())
           .toList();
+
+      // Filter by IncidentDate di client (sama seperti incident list)
+      if (startDate != null || endDate != null) {
+        return models.where((m) {
+          final dt = m.tanggalInsiden;
+          if (dt == null) return false;
+          final dateOnly = DateTime(dt.year, dt.month, dt.day);
+          if (startDate != null) {
+            final startOnly = DateTime(startDate.year, startDate.month, startDate.day);
+            if (dateOnly.isBefore(startOnly)) return false;
+          }
+          if (endDate != null) {
+            final endOnly = DateTime(endDate.year, endDate.month, endDate.day);
+            if (dateOnly.isAfter(endOnly)) return false;
+          }
+          return true;
+        }).toList();
+      }
 
       return models;
     } on DioException catch (e) {
@@ -786,77 +815,141 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         // If error getting incident detail, continue with provided values
       }
 
-      // Determine fields based on status and action
-      // For PJO/Deputy assign (ASSIGNED), all fields should be taken from response
+      // Base: semua field dari detail incident/getAll, override hanya jika diisi dari form/action
+      String? areasDescriptionFinal;
+      String? areasIdFinal;
+      int? idIncidentTypeFinal;
+      DateTime? incidentDateFinal;
+      String? incidentTimeFinal;
+      String? incidentDescriptionFinal;
+      String? reportIdFinal;
+      String? picIdFinal;
+      List<String> teamFinal = [];
+      String? handlingTaskFinal;
+      String? notesFinal;
+      String? actionTakenNoteFinal;
+      String? feedBackFinal;
+      String? solvedActionFinal;
+      DateTime? solvedDateFinal;
       String? completedBy;
       DateTime? incidentCompletionDate;
       String? verifiedBy;
       DateTime? verifiedDate;
       String? reviewedBy;
       DateTime? reviewedDate;
-      String? handlingTaskFromResponse;
-      String? feedBackFromResponse;
-      String? supervisorFeedbackFromResponse;
-      DateTime? createDateFromResponse;
+      String? supervisorFeedbackFinal;
+      String? createByFinal;
+      DateTime? createDateFinal;
+      String? updateByFinal;
+      DateTime? updateDateFinal;
       
-      // Get fields from response if available
       const defaultGuid = '00000000-0000-0000-0000-000000000000';
       
       if (apiModel != null) {
-        createDateFromResponse = apiModel.createDate;
-        handlingTaskFromResponse = apiModel.handlingTask;
-        feedBackFromResponse = apiModel.feedBack;
-        supervisorFeedbackFromResponse = apiModel.supervisorFeedback;
-        
-        // Always get all fields from response first (untuk semua status)
-        // Jika reviewedBy dari response adalah default GUID, anggap sebagai null (belum diisi)
-        final reviewedByFromResponse = apiModel.reviewedBy;
-        if (reviewedByFromResponse != null && 
-            reviewedByFromResponse.isNotEmpty && 
-            reviewedByFromResponse != defaultGuid) {
-          reviewedBy = reviewedByFromResponse;
-        } else {
-          reviewedBy = null;
+        areasDescriptionFinal = apiModel.areasDescription ?? (apiModel.areas != null && apiModel.areas is AreasModel ? (apiModel.areas as AreasModel).name : null) ?? '';
+        areasIdFinal = apiModel.areasId ?? '';
+        idIncidentTypeFinal = apiModel.idIncidentType ?? 0;
+        incidentDateFinal = apiModel.incidentDate ?? DateTime.now();
+        incidentTimeFinal = apiModel.incidentTime ?? '00:00:00';
+        incidentDescriptionFinal = apiModel.incidentDescription ?? '';
+        reportIdFinal = apiModel.reportId ?? '';
+        picIdFinal = apiModel.picId;
+        if (apiModel.teams != null && apiModel.teams!.isNotEmpty) {
+          teamFinal = apiModel.teams!
+              .map((t) {
+                if (t is Map<String, dynamic>) return t['UserId']?.toString() ?? '';
+                return '';
+              })
+              .where((id) => id.isNotEmpty)
+              .toList();
         }
-        reviewedDate = apiModel.reviewedDate;
-        verifiedBy = apiModel.verifiedBy;
-        verifiedDate = apiModel.verifiedDate;
+        // HandlingTask: dari root, fallback dari IncidentDetail (saat Tandai Selesai tanpa input)
+        var ht = apiModel.handlingTask ?? '';
+        if (ht.isEmpty) {
+          ht = _extractHandlingTaskFromIncidentDetail(apiModel.incidentDetail) ?? apiModel.notesAction ?? '';
+        }
+        handlingTaskFinal = ht;
+        notesFinal = apiModel.notesAction ?? '';
+        actionTakenNoteFinal = _extractActionTakenNoteFromIncidentDetail(apiModel.incidentDetail);
+        feedBackFinal = apiModel.feedBack ?? '';
+        solvedActionFinal = apiModel.solvedAction ?? '';
+        solvedDateFinal = apiModel.solvedDate;
         completedBy = apiModel.completedBy;
         incidentCompletionDate = apiModel.incidentCompletionDate;
+        verifiedBy = apiModel.verifiedBy;
+        verifiedDate = apiModel.verifiedDate;
+        // ReviewedBy/ReviewedDate: dari root, fallback dari IncidentDetail (saat PJO assign, harus ada dari detail)
+        var rb = apiModel.reviewedBy;
+        var rd = apiModel.reviewedDate;
+        if ((rb == null || rb.isEmpty || rb == defaultGuid) || rd == null) {
+          final fromDetail = _extractReviewedFromIncidentDetail(apiModel.incidentDetail);
+          if ((rb == null || rb.isEmpty || rb == defaultGuid) && fromDetail.$1 != null) rb = fromDetail.$1;
+          if (rd == null && fromDetail.$2 != null) rd = fromDetail.$2;
+        }
+        reviewedBy = (rb != null && rb.isNotEmpty && rb != defaultGuid) ? rb : null;
+        reviewedDate = rd;
+        supervisorFeedbackFinal = apiModel.supervisorFeedback ?? '';
+        createByFinal = apiModel.createBy ?? '';
+        createDateFinal = apiModel.createDate;
+        updateByFinal = apiModel.updateBy ?? '';
+        updateDateFinal = apiModel.updateDate;
+      } else {
+        // apiModel null: gunakan nilai dari param (caller)
+        areasDescriptionFinal = areasDescription;
+        areasIdFinal = areasId;
+        idIncidentTypeFinal = idIncidentType;
+        incidentDateFinal = incidentDate;
+        incidentTimeFinal = incidentTime;
+        incidentDescriptionFinal = incidentDescription;
+        reportIdFinal = reportId;
+        picIdFinal = picId;
+        teamFinal = team;
+        handlingTaskFinal = handlingTask ?? '';
+        notesFinal = notesAction ?? '';
+        actionTakenNoteFinal = actionTakenNote;
+        feedBackFinal = '';
+        solvedActionFinal = solvedAction ?? '';
+        solvedDateFinal = solvedDate;
+        supervisorFeedbackFinal = supervisorFeedback ?? '';
+        createByFinal = '';
+        updateByFinal = '';
       }
       
-      // Override with new values based on status (hanya field yang perlu di-update)
-      // Semua field lain tetap dari response getall
+      // Override: nilai dari form/action mengalahkan nilai dari detail
+      if (areasDescription.isNotEmpty) areasDescriptionFinal = areasDescription;
+      if (areasId.isNotEmpty) areasIdFinal = areasId;
+      if (idIncidentType > 0) idIncidentTypeFinal = idIncidentType;
+      incidentDateFinal = incidentDate;
+      if (incidentTime.isNotEmpty) incidentTimeFinal = incidentTime;
+      if (incidentDescription.isNotEmpty) incidentDescriptionFinal = incidentDescription;
+      if (reportId.isNotEmpty) reportIdFinal = reportId;
+      if (picId != null && picId.isNotEmpty) picIdFinal = picId;
+      if (team.isNotEmpty) teamFinal = team;
+      if (handlingTask != null && handlingTask.isNotEmpty) handlingTaskFinal = handlingTask;
+      if (notesAction != null && notesAction.isNotEmpty) notesFinal = notesAction;
+      if (actionTakenNote != null && actionTakenNote.isNotEmpty) actionTakenNoteFinal = actionTakenNote;
+      if (solvedAction != null && solvedAction.isNotEmpty) solvedActionFinal = solvedAction;
+      if (solvedDate != null) solvedDateFinal = solvedDate;
+      if (supervisorFeedback != null && supervisorFeedback.isNotEmpty) supervisorFeedbackFinal = supervisorFeedback;
+
+      // Override khusus per status
       if (status == 'COMPLETED') {
-        // Saat "Tandai Sebagai Selesai" (status COMPLETED):
-        // - CompletedBy diisi dengan userId (user yang login)
-        // - IncidentCompletionDate diisi dengan DateTime.now()
-        // Field lain (reviewedBy, reviewedDate, verifiedBy, verifiedDate, dll) tetap dari response
         completedBy = userId.isNotEmpty ? userId : null;
         incidentCompletionDate = DateTime.now();
+        if (solvedAction != null && solvedAction.isNotEmpty) solvedActionFinal = solvedAction;
+        if (solvedDate != null) solvedDateFinal = solvedDate;
       } else if (status == 'VERIFIED') {
-        // Hanya update verifiedBy dan verifiedDate
-        // Field lain (reviewedBy, reviewedDate, completedBy, dll) tetap dari response
         verifiedBy = userId;
         verifiedDate = DateTime.now();
-      } else if (status == 'REVISED') {
-        // Hanya update supervisorFeedback (jika ada)
-        // Field lain (reviewedBy, reviewedDate, verifiedBy, verifiedDate, completedBy, dll) tetap dari response
-        // Tidak ada field khusus yang di-update untuk REVISED
+        completedBy = userId.isNotEmpty ? userId : null;
+        incidentCompletionDate = DateTime.now();
       } else if (status == 'ACKNOWLEDGE' || status == 'INVALID') {
-        // Hanya update reviewedBy dan reviewedDate
-        // Field lain (verifiedBy, verifiedDate, completedBy, dll) tetap dari response
         reviewedBy = userId.isNotEmpty ? userId : null;
         reviewedDate = DateTime.now();
       } else if (status == 'ASSIGNED') {
-        // Jika pelapor adalah PJO/Deputy dan status ASSIGNED, set ReviewedBy dan ReviewedDate
-        // karena status skip dari "menunggu" ke "diterima" (ACKNOWLEDGE)
-        // Field lain (verifiedBy, verifiedDate, completedBy, dll) tetap dari response
         if (apiModel != null && apiModel.roles != null && apiModel.roles!.isNotEmpty) {
-          // Check jika reporter role adalah PJO atau Deputy
           final reporterRole = apiModel.roles!.first.nama.toUpperCase();
           if (reporterRole == 'PJO' || reporterRole == 'DPT' || reporterRole == 'PJO-PJO' || reporterRole == 'DEPUTY') {
-            // Jika ReviewedBy belum diisi, set dengan reportId (user yang pelapor)
             if (reviewedBy == null || reviewedBy.isEmpty) {
               reviewedBy = reportId.isNotEmpty ? reportId : null;
               reviewedDate = DateTime.now();
@@ -864,35 +957,38 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
           }
         }
       }
-      // Untuk status lain (PROGRESS, ESCALATED, dll), semua field tetap dari response
 
-      // Create request using UpdateAllIncidentRequest model
+      // Build request: pakai nilai final (dari detail getAll + override dari form)
       final request = UpdateAllIncidentRequest(
         id: incidentId,
-        areasDescription: areasDescription,
-        areasId: areasId,
-        idIncidentType: idIncidentType,
-        incidentDate: incidentDate,
-        incidentTime: incidentTime,
-        incidentDescription: incidentDescription,
-        reportId: reportId,
-        picId: picId,
-        team: team,
-        handlingTask: handlingTask ?? handlingTaskFromResponse ?? '',
-        notes: notesAction ?? actionTakenNote,
-        feedBack: feedBackFromResponse ?? '',
+        areasDescription: areasDescriptionFinal,
+        areasId: areasIdFinal,
+        idIncidentType: idIncidentTypeFinal,
+        incidentDate: incidentDateFinal,
+        incidentTime: incidentTimeFinal,
+        incidentDescription: incidentDescriptionFinal,
+        reportId: reportIdFinal,
+        picId: picIdFinal,
+        team: teamFinal.isNotEmpty ? teamFinal : team,
+        handlingTask: handlingTaskFinal,
+        notes: notesFinal,
+        actionTakenNote: actionTakenNoteFinal,
+        feedBack: feedBackFinal,
         evidence: evidenceModel,
         status: status,
-        solvedAction: solvedAction,
-        solvedDate: solvedDate,
+        solvedAction: solvedActionFinal,
+        solvedDate: solvedDateFinal,
         incidentCompletionDate: incidentCompletionDate,
         completedBy: completedBy,
         verifiedBy: verifiedBy,
         verifiedDate: verifiedDate,
         reviewedBy: reviewedBy,
         reviewedDate: reviewedDate,
-        supervisorFeedback: supervisorFeedback ?? supervisorFeedbackFromResponse ?? '',
-        createDate: createDateFromResponse, // Ambil dari response /incident/getall
+        supervisorFeedback: supervisorFeedbackFinal,
+        createBy: createByFinal,
+        createDate: createDateFinal, // null when apiModel null
+        updateBy: updateByFinal,
+        updateDate: updateDateFinal, // null when apiModel null
         token: token,
       );
 
@@ -941,5 +1037,67 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     } catch (e) {
       throw Exception('Failed to update incident: $e');
     }
+  }
+
+  /// Extract ReviewedBy (UserId) and ReviewedDate dari IncidentDetail bila ada di nested.
+  (String?, DateTime?) _extractReviewedFromIncidentDetail(dynamic incidentDetail) {
+    const defaultGuid = '00000000-0000-0000-0000-000000000000';
+    String? reviewedBy;
+    DateTime? reviewedDate;
+    List<dynamic> list = [];
+    if (incidentDetail is Map<String, dynamic>) {
+      list = [incidentDetail];
+    } else if (incidentDetail is List) {
+      list = incidentDetail;
+    }
+    for (final item in list) {
+      if (item is! Map) continue;
+      final m = Map<String, dynamic>.from(item);
+      final rb = m['ReviewedBy']?.toString() ?? m['reviewedBy']?.toString();
+      final rdVal = m['ReviewedDate'] ?? m['reviewedDate'];
+      if (rb != null && rb.isNotEmpty && rb != defaultGuid) {
+        reviewedBy = rb;
+      }
+      if (rdVal != null) {
+        final dt = DateTime.tryParse(rdVal.toString());
+        if (dt != null) reviewedDate = dt;
+      }
+      if (reviewedBy != null && reviewedDate != null) break;
+    }
+    return (reviewedBy, reviewedDate);
+  }
+
+  /// Extract HandlingTask dari IncidentDetail.
+  String? _extractHandlingTaskFromIncidentDetail(dynamic incidentDetail) {
+    List<dynamic> list = [];
+    if (incidentDetail is Map<String, dynamic>) {
+      list = [incidentDetail];
+    } else if (incidentDetail is List) {
+      list = incidentDetail;
+    }
+    for (final item in list) {
+      if (item is! Map) continue;
+      final m = Map<String, dynamic>.from(item);
+      final v = m['HandlingTask']?.toString() ?? m['handlingTask']?.toString();
+      if (v != null && v.isNotEmpty) return v;
+    }
+    return null;
+  }
+
+  /// Extract ActionTakenNote dari IncidentDetail.
+  String? _extractActionTakenNoteFromIncidentDetail(dynamic incidentDetail) {
+    List<dynamic> list = [];
+    if (incidentDetail is Map<String, dynamic>) {
+      list = [incidentDetail];
+    } else if (incidentDetail is List) {
+      list = incidentDetail;
+    }
+    for (final item in list) {
+      if (item is! Map) continue;
+      final m = Map<String, dynamic>.from(item);
+      final v = m['ActionTakenNote']?.toString() ?? m['actionTakenNote']?.toString();
+      if (v != null && v.isNotEmpty) return v;
+    }
+    return null;
   }
 }

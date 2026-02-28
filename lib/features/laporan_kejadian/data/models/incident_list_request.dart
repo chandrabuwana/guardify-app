@@ -46,11 +46,8 @@ class IncidentListRequest {
   });
 
   Map<String, dynamic> toJson() {
-    // API uses 1-based indexing, so convert 0-based to 1-based
-    // Ensure start is at least 1 and length is positive
     final validStart = start < 0 ? 1 : start + 1;
-    final validLength = length <= 0 ? 50 : length; // Increased from 10 to 50
-    
+    final validLength = length <= 0 ? 50 : length;
     return {
       'Filter': filter.map((f) => f.toJson()).toList(),
       'Sort': sort.toJson(),
@@ -86,28 +83,9 @@ class IncidentListRequest {
       filters.add(IncidentFilterItem(field: 'IncidentDescription', search: searchQuery));
     }
     
-    // Date range filter - API might need separate fields or combined
-    // For now, we'll use IncidentDate field with date range
-    // If API supports range, we might need to adjust this
-    if (startDate != null && endDate != null) {
-      // If both dates provided, use start date as filter
-      // API might need separate handling for date range
-      filters.add(IncidentFilterItem(
-        field: 'IncidentDate',
-        search: '${startDate.toIso8601String().split('T')[0]}|${endDate.toIso8601String().split('T')[0]}',
-      ));
-    } else if (startDate != null) {
-      filters.add(IncidentFilterItem(
-        field: 'IncidentDate',
-        search: startDate.toIso8601String().split('T')[0], // Format: YYYY-MM-DD
-      ));
-    } else if (endDate != null) {
-      filters.add(IncidentFilterItem(
-        field: 'IncidentDate',
-        search: endDate.toIso8601String().split('T')[0], // Format: YYYY-MM-DD
-      ));
-    }
-    
+    // Filter tanggal: dilakukan di client berdasarkan IncidentDate tiap incident
+    // (tidak dikirim ke API - response list tidak punya date range)
+
     if (incidentTypeId != null && incidentTypeId.isNotEmpty) {
       filters.add(IncidentFilterItem(field: 'IdIncidentType', search: incidentTypeId));
     }
@@ -122,10 +100,10 @@ class IncidentListRequest {
     }
 
     return IncidentListRequest(
-      filter: filters.isEmpty 
+      filter: filters.isEmpty
           ? [const IncidentFilterItem(field: '', search: '')]
           : filters,
-      sort: const IncidentSortItem(field: 'CreateDate', type: 1), // Descending
+      sort: const IncidentSortItem(field: 'CreateDate', type: 1),
       start: start,
       length: length,
     );

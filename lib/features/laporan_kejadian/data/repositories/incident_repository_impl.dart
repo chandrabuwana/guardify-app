@@ -47,6 +47,8 @@ class IncidentRepositoryImpl implements IncidentRepository {
     int length = 10,
     String? searchQuery,
     IncidentStatus? status,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     try {
       final models = await remoteDataSource.getMyTasks(
@@ -54,6 +56,8 @@ class IncidentRepositoryImpl implements IncidentRepository {
         length: length,
         searchQuery: searchQuery,
         status: status != null ? _statusToString(status) : null,
+        startDate: startDate,
+        endDate: endDate,
       );
       return models.map((model) => model.toEntity()).toList();
     } catch (e) {
@@ -244,6 +248,8 @@ class IncidentRepositoryImpl implements IncidentRepository {
     switch (status) {
       case IncidentStatus.menunggu:
         return 'OPEN';
+      case IncidentStatus.revisi:
+        return 'REVISED';
       case IncidentStatus.diterima:
         return 'ACKNOWLEDGE';
       case IncidentStatus.ditugaskan:

@@ -13,12 +13,16 @@ class GetMyTasks {
     int length = 10,
     String? searchQuery,
     IncidentStatus? status,
+    DateTime? startDate,
+    DateTime? endDate,
   }) {
     return repository.getMyTasks(
       start: start,
       length: length,
       searchQuery: searchQuery,
       status: status,
+      startDate: startDate,
+      endDate: endDate,
     );
   }
 }

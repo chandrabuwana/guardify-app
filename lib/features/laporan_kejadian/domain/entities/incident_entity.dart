@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 enum IncidentStatus {
   menunggu,      // Menunggu
+  revisi,        // Revisi (display sama dengan Menunggu)
   diterima,      // Diterima
   ditugaskan,    // Ditugaskan
   proses,        // Proses
@@ -85,6 +86,8 @@ class IncidentEntity extends Equatable {
     switch (status) {
       case IncidentStatus.menunggu:
         return 'Menunggu';
+      case IncidentStatus.revisi:
+        return 'Revisi';
       case IncidentStatus.diterima:
         return 'Diterima';
       case IncidentStatus.ditugaskan:
@@ -125,6 +128,7 @@ class IncidentEntity extends Equatable {
   IncidentStatusColor get statusColor {
     switch (status) {
       case IncidentStatus.menunggu:
+      case IncidentStatus.revisi: // Revisi: styling sama dengan Menunggu
       case IncidentStatus.eskalasi:
         return IncidentStatusColor.red;
       case IncidentStatus.diterima:

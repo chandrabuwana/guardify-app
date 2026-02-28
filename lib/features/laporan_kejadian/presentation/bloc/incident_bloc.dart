@@ -46,6 +46,7 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
     on<RefreshMyTasksEvent>(_onRefreshMyTasks);
     on<SearchMyTasksEvent>(_onSearchMyTasks);
     on<GetIncidentDetailEvent>(_onGetIncidentDetail);
+    on<SetIncidentDetailEvent>(_onSetIncidentDetail);
     on<CreateIncidentReportEvent>(_onCreateIncidentReport);
     on<LoadIncidentLocationsEvent>(_onLoadIncidentLocations);
     on<LoadIncidentTypesEvent>(_onLoadIncidentTypes);
@@ -271,12 +272,17 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
     LoadMyTasksEvent event,
     Emitter<IncidentState> emit,
   ) async {
+    final startDate = event.startDate ?? state.filterStartDate;
+    final endDate = event.endDate ?? state.filterEndDate;
+
     emit(state.copyWith(
       isLoading: true,
       clearError: true,
       hasReachedMaxMyTasks: false,
       currentPageMyTasks: 0,
       clearMyTasks: true,
+      filterStartDate: event.startDate ?? state.filterStartDate,
+      filterEndDate: event.endDate ?? state.filterEndDate,
     ));
 
     try {
@@ -285,6 +291,8 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         length: event.length,
         searchQuery: event.searchQuery,
         status: event.status,
+        startDate: startDate,
+        endDate: endDate,
       );
 
       emit(state.copyWith(
@@ -315,6 +323,9 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         start: nextPage * pageSize,
         length: pageSize,
         searchQuery: state.searchQuery,
+        status: state.filterStatus,
+        startDate: state.filterStartDate,
+        endDate: state.filterEndDate,
       );
 
       emit(state.copyWith(
@@ -348,6 +359,9 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         start: 0,
         length: pageSize,
         searchQuery: state.searchQuery,
+        status: state.filterStatus,
+        startDate: state.filterStartDate,
+        endDate: state.filterEndDate,
       );
 
       emit(state.copyWith(
@@ -382,6 +396,9 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         start: 0,
         length: pageSize,
         searchQuery: event.query.isEmpty ? null : event.query,
+        status: state.filterStatus,
+        startDate: state.filterStartDate,
+        endDate: state.filterEndDate,
       );
 
       emit(state.copyWith(
@@ -416,6 +433,16 @@ class IncidentBloc extends Bloc<IncidentEvent, IncidentState> {
         errorMessage: 'Gagal memuat detail insiden: ${e.toString()}',
       ));
     }
+  }
+
+  void _onSetIncidentDetail(
+    SetIncidentDetailEvent event,
+    Emitter<IncidentState> emit,
+  ) {
+    emit(state.copyWith(
+      isLoading: false,
+      incidentDetail: event.incidentDetail,
+    ));
   }
 
   Future<void> _onCreateIncidentReport(

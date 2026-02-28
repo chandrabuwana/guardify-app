@@ -16,9 +16,10 @@ class IncidentDetailResponse {
   });
 
   factory IncidentDetailResponse.fromJson(Map<String, dynamic> json) {
+    final dataJson = json['Data'] ?? json['data'];
     return IncidentDetailResponse(
-      data: json['Data'] != null
-          ? IncidentApiModel.fromJson(json['Data'] as Map<String, dynamic>)
+      data: dataJson != null
+          ? IncidentApiModel.fromJson(dataJson as Map<String, dynamic>)
           : null,
       code: json['Code'] as int? ?? 200,
       succeeded: json['Succeeded'] as bool? ?? false,

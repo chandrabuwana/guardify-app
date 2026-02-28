@@ -47,6 +47,7 @@ class UpdateAllIncidentRequest {
   final List<String> team;
   final String? handlingTask;
   final String? notes;
+  final String? actionTakenNote; // Note penyelesaian dari Tandai Sebagai Selesai -> payload ActionTakenNote
   final String? feedBack;
   final EvidenceModel? evidence;
   final String status;
@@ -78,6 +79,7 @@ class UpdateAllIncidentRequest {
     required this.team,
     this.handlingTask,
     this.notes,
+    this.actionTakenNote,
     this.feedBack,
     this.evidence,
     required this.status,
@@ -121,6 +123,7 @@ class UpdateAllIncidentRequest {
       'PicId': (picId != null && picId!.isNotEmpty) ? picId : defaultGuid,
       'HandlingTask': handlingTask ?? '',
       'Notes': notes ?? '',
+      'ActionTakenNote': actionTakenNote ?? '',
       'FeedBack': feedBack ?? '',
       'Evidence': evidence?.toJson(),
       'SolvedAction': solvedAction ?? '',

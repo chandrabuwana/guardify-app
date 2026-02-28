@@ -22,6 +22,8 @@ abstract class IncidentRepository {
     int length = 10,
     String? searchQuery,
     IncidentStatus? status,
+    DateTime? startDate,
+    DateTime? endDate,
   });
 
   /// Get incident detail by ID

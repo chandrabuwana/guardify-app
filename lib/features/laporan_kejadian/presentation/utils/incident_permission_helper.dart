@@ -305,8 +305,6 @@ class IncidentPermissionHelper {
     required IncidentEntity incident,
   }) async {
     if (incident.status != IncidentStatus.proses) {
-      // Note: Revisi status tidak ada di enum, jadi kita check proses saja
-      // Jika ada status revisi di masa depan, tambahkan di sini
       return false;
     }
     
@@ -321,13 +319,6 @@ class IncidentPermissionHelper {
   static Future<bool> shouldEnableCompletionFields({
     required IncidentEntity incident,
   }) async {
-    // Note: Revisi status tidak ada di enum saat ini
-    // Jika status revisi ditambahkan, check di sini
-    // if (incident.status == IncidentStatus.revisi) {
-    //   return await isPICOrTeamMember(incident: incident);
-    // }
-    
-    // Enable jika user adalah PIC/Team Member dan status adalah proses
     if (incident.status == IncidentStatus.proses) {
       return await isPICOrTeamMember(incident: incident);
     }

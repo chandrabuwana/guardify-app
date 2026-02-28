@@ -41,9 +41,11 @@ class IncidentApiModel {
   final String? notesAction;
   final String? picId;
   final dynamic pic; // Can be String or UserModel
+  final String? picName; // String dari response incident/getAll untuk display (Pic/PicName)
   final String? picPhoto;
   final String? pjId;
   final dynamic pj; // Can be String or UserModel
+  final DateTime? pjDate;
   final String? reportId;
   final dynamic report; // Can be String or UserModel
   final String? solvedAction;
@@ -57,6 +59,7 @@ class IncidentApiModel {
   final List<dynamic>? teams;
   final List<RoleModel>? roles; // Roles dari pelapor (Reporter)
   final String? reviewedBy;
+  final String? reviewedName;
   final DateTime? reviewedDate;
   final String? handlingTask;
   final String? feedBack;
@@ -81,9 +84,11 @@ class IncidentApiModel {
     this.notesAction,
     this.picId,
     this.pic,
+    this.picName,
     this.picPhoto,
     this.pjId,
     this.pj,
+    this.pjDate,
     this.reportId,
     this.report,
     this.solvedAction,
@@ -97,6 +102,7 @@ class IncidentApiModel {
     this.teams,
     this.roles,
     this.reviewedBy,
+    this.reviewedName,
     this.reviewedDate,
     this.handlingTask,
     this.feedBack,
@@ -137,6 +143,17 @@ class IncidentApiModel {
         pic = UserModel.fromJson(json['Pic'] as Map<String, dynamic>);
       }
     }
+    // String PIC dari response incident/getAll - "Pic": "Danton B" (string) atau Pic object
+    String? picName;
+    if (json['Pic'] is String && (json['Pic'] as String).isNotEmpty) {
+      picName = json['Pic'] as String;
+    } else if (json['Pic'] is Map<String, dynamic>) {
+      final picMap = json['Pic'] as Map<String, dynamic>;
+      picName = picMap['FullName']?.toString() ??
+          picMap['fullname']?.toString() ??
+          picMap['Fullname']?.toString();
+    }
+    picName ??= json['PicName']?.toString() ?? json['picName']?.toString();
 
     // Handle pj - can be String or Map
     dynamic pj;
@@ -186,9 +203,13 @@ class IncidentApiModel {
       notesAction: json['NotesAction']?.toString(),
       picId: json['PicId']?.toString(),
       pic: pic,
+      picName: picName,
       picPhoto: json['PicPhoto']?.toString(),
       pjId: json['PjId']?.toString(),
       pj: pj,
+      pjDate: json['PjDate'] != null
+          ? DateTime.tryParse(json['PjDate'].toString())
+          : null,
       reportId: json['ReportId']?.toString(),
       report: report,
       solvedAction: json['SolvedAction']?.toString(),
@@ -207,10 +228,13 @@ class IncidentApiModel {
               .map((r) => RoleModel.fromJson(r as Map<String, dynamic>))
               .toList()
           : null,
-      reviewedBy: json['ReviewedBy']?.toString(),
-      reviewedDate: json['ReviewedDate'] != null
-          ? DateTime.tryParse(json['ReviewedDate'].toString())
-          : null,
+      reviewedBy: json['ReviewedBy']?.toString() ?? json['reviewedBy']?.toString(),
+      reviewedName: json['ReviewedName']?.toString() ?? json['reviewedName']?.toString(),
+      reviewedDate: () {
+        final val = json['ReviewedDate'] ?? json['reviewedDate'];
+        if (val == null) return null;
+        return DateTime.tryParse(val.toString());
+      }(),
       handlingTask: json['HandlingTask']?.toString(),
       feedBack: json['FeedBack']?.toString(),
       supervisorFeedback: json['SupervisorFeedback']?.toString(),
@@ -286,6 +310,9 @@ class IncidentApiModel {
           break;
         case 'VERIFIED':
           incidentStatus = IncidentStatus.terverifikasi;
+          break;
+        case 'REVISED':
+          incidentStatus = IncidentStatus.revisi;
           break;
         default:
           incidentStatus = IncidentStatus.menunggu;
@@ -372,7 +399,7 @@ class IncidentApiModel {
       tipeInsidenName: incidentTypeName,
       deskripsiInsiden: incidentDescription ?? '',
       fotoInsiden: incidentImage ?? evidence, // Prioritize IncidentImage, fallback to Evidence
-      pic: pic is UserModel ? pic.fullname : (pic is String ? pic : null),
+      pic: picName ?? (pic is UserModel ? pic.fullname : (pic is String ? pic : null)),
       picId: picId,
       createDate: createDate,
       createBy: actualCreateBy, // Use corrected CreateBy

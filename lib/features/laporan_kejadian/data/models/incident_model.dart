@@ -172,6 +172,8 @@ class IncidentModel extends IncidentEntity {
     switch (status.toLowerCase()) {
       case 'menunggu':
         return IncidentStatus.menunggu;
+      case 'revisi':
+        return IncidentStatus.revisi;
       case 'diterima':
         return IncidentStatus.diterima;
       case 'ditugaskan':
@@ -196,6 +198,8 @@ class IncidentModel extends IncidentEntity {
     switch (status) {
       case IncidentStatus.menunggu:
         return 'menunggu';
+      case IncidentStatus.revisi:
+        return 'revisi';
       case IncidentStatus.diterima:
         return 'diterima';
       case IncidentStatus.ditugaskan:

@@ -23,6 +23,8 @@ abstract class IncidentRemoteDataSource {
     int length = 10,
     String? searchQuery,
     String? status,
+    DateTime? startDate,
+    DateTime? endDate,
   });
 
   /// Get incident detail by ID
