@@ -366,17 +366,10 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
                   ),
                   20.verticalSpace,
 
-                  // Diverifikasi Oleh
+                  // Diverifikasi Oleh (VerifiedName - VerifiedDate)
                   _buildReadOnlyField(
                     label: 'Diverifikasi Oleh',
                     value: _getVerifiedBy(incident),
-                  ),
-                  20.verticalSpace,
-
-                  // Tanggal Verifikasi
-                  _buildReadOnlyField(
-                    label: 'Tanggal Verifikasi',
-                    value: _getVerifiedDate(incident),
                   ),
                   20.verticalSpace,
 
@@ -696,23 +689,42 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
   }
 
   String _getVerifiedBy(IncidentEntity incident) {
-    final verifiedName = _getFirstIncidentDetailValue(incident, 'VerifiedName');
-    if (verifiedName != null && verifiedName.isNotEmpty && verifiedName != '-') {
-      return verifiedName;
-    }
-    return '-';
-  }
-
-  String _getVerifiedDate(IncidentEntity incident) {
-    // Tanggal Verifikasi = VerifiedDate dari IncidentDetail
-    final verifiedDate = _getFirstIncidentDetailValue(incident, 'VerifiedDate');
-    if (verifiedDate != null && verifiedDate.isNotEmpty) {
-      try {
-        final dateTime = DateTime.parse(verifiedDate);
-        return DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(dateTime);
-      } catch (e) {
-        return verifiedDate;
+    // Diverifikasi Oleh = VerifiedName - VerifiedDate (format sama seperti Diselesaikan Oleh)
+    String? verifiedName;
+    String? verifiedDateStr;
+    if (_originalIncidentDetail != null) {
+      if (_originalIncidentDetail is Map<String, dynamic>) {
+        final m = _originalIncidentDetail as Map<String, dynamic>;
+        verifiedName = m['VerifiedName']?.toString();
+        verifiedDateStr = m['VerifiedDate']?.toString();
+      } else if (_originalIncidentDetail is List && (_originalIncidentDetail as List).isNotEmpty) {
+        final first = (_originalIncidentDetail as List).first;
+        if (first is Map<String, dynamic>) {
+          verifiedName = first['VerifiedName']?.toString();
+          verifiedDateStr = first['VerifiedDate']?.toString();
+        }
       }
+    }
+    if ((verifiedName == null || verifiedName.isEmpty) && incident.incidentDetail != null && incident.incidentDetail!.isNotEmpty) {
+      final first = incident.incidentDetail!.first;
+      verifiedName = first['VerifiedName']?.toString();
+      verifiedDateStr = first['VerifiedDate']?.toString();
+    }
+    if ((verifiedName == null || verifiedName.isEmpty) && _apiModel != null) {
+      verifiedName = _apiModel!.verifiedBy;
+      if (_apiModel!.verifiedDate != null) verifiedDateStr = _apiModel!.verifiedDate!.toIso8601String();
+    }
+    if (verifiedName != null && verifiedName.isNotEmpty && verifiedName != '-') {
+      String formattedDate = '-';
+      if (verifiedDateStr != null && verifiedDateStr.isNotEmpty && verifiedDateStr != '-') {
+        try {
+          final dt = DateTime.parse(verifiedDateStr);
+          formattedDate = DateFormat('dd/MM/yyyy HH:mm', 'id_ID').format(dt);
+        } catch (e) {
+          formattedDate = verifiedDateStr;
+        }
+      }
+      return '$verifiedName - $formattedDate';
     }
     return '-';
   }
@@ -1973,6 +1985,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     // Rules:
     // - PIC maupun Anggota Team dapat memproses (Klik Proses) -> status dari Ditugaskan ke Proses (PROGRESS)
     // - PIC maupun Anggota Team dapat menyelesaikan (Klik Tandai Sebagai Selesai) -> status dari Proses ke Selesai (COMPLETED)
+    // - Saat status Revisi: PIC/anggota team mengisi note penyelesaian + bukti, lalu Tandai Sebagai Selesai -> status ke Selesai (COMPLETED)
     
     return FutureBuilder<bool>(
       future: () async {
@@ -1984,7 +1997,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
         
         // Check status
         if (incident.status != IncidentStatus.ditugaskan && 
-            incident.status != IncidentStatus.proses) {
+            incident.status != IncidentStatus.proses &&
+            incident.status != IncidentStatus.revisi) {
           return false;
         }
         
@@ -2059,8 +2073,9 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           buttonText = 'Proses';
           nextStatus = 'PROGRESS';
           useUpdateAll = false; // Gunakan /Incident/update
-        } else if (incident.status == IncidentStatus.proses) {
-          // Status Proses -> tombol "Tandai Sebagai Selesai" -> update ke COMPLETED
+        } else if (incident.status == IncidentStatus.proses ||
+            incident.status == IncidentStatus.revisi) {
+          // Status Proses atau Revisi -> tombol "Tandai Sebagai Selesai" -> update ke COMPLETED
           buttonText = 'Tandai Sebagai Selesai';
           nextStatus = 'COMPLETED';
           useUpdateAll = true; // Gunakan /Incident/updateall
@@ -2622,7 +2637,8 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
       return;
     }
 
-    // Revisi menggunakan updateAllIncident
+    // Revisi menggunakan updateAllIncident - hanya ubah status ke REVISED,
+    // semua field payload lain diambil dari detail incident (getAll) di datasource
     try {
       context.read<IncidentBloc>().add(
         UpdateAllIncidentEvent(
@@ -2638,7 +2654,7 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
           picId: picId,
           team: team,
           handlingTask: handlingTask,
-          status: 'REVISED', // Status revisi dikirim sebagai REVISED ke backend
+          status: 'REVISED',
           supervisorFeedback: feedbackText.isNotEmpty ? feedbackText : null,
         ),
       );

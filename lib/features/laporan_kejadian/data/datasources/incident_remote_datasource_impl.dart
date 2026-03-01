@@ -413,7 +413,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         pjId: null,
         reportId: reporterId,
         solvedAction: null,
-        solvedDate: DateTime.now(), // Set to current date time
+        solvedDate: DateTime.now(), // Wajib diisi saat add incident (API requirement)
         status: initialStatus,
         evidence: null, // Evidence is typically empty for new incidents
         token: token,
@@ -876,6 +876,13 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         solvedDateFinal = apiModel.solvedDate;
         completedBy = apiModel.completedBy;
         incidentCompletionDate = apiModel.incidentCompletionDate;
+        // CompletedBy/IncidentCompletionDate bisa di IncidentDetail jika tidak di root
+        final needCompletedFromDetail = (completedBy == null || completedBy.isEmpty) || incidentCompletionDate == null;
+        if (needCompletedFromDetail) {
+          final fromDetail = _extractCompletedFromIncidentDetail(apiModel.incidentDetail);
+          if ((completedBy == null || completedBy.isEmpty) && fromDetail.$1 != null) completedBy = fromDetail.$1;
+          if (incidentCompletionDate == null && fromDetail.$2 != null) incidentCompletionDate = fromDetail.$2;
+        }
         verifiedBy = apiModel.verifiedBy;
         verifiedDate = apiModel.verifiedDate;
         // ReviewedBy/ReviewedDate: dari root, fallback dari IncidentDetail (saat PJO assign, harus ada dari detail)
@@ -916,21 +923,28 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
       }
       
       // Override: nilai dari form/action mengalahkan nilai dari detail
-      if (areasDescription.isNotEmpty) areasDescriptionFinal = areasDescription;
-      if (areasId.isNotEmpty) areasIdFinal = areasId;
-      if (idIncidentType > 0) idIncidentTypeFinal = idIncidentType;
-      incidentDateFinal = incidentDate;
-      if (incidentTime.isNotEmpty) incidentTimeFinal = incidentTime;
-      if (incidentDescription.isNotEmpty) incidentDescriptionFinal = incidentDescription;
-      if (reportId.isNotEmpty) reportIdFinal = reportId;
-      if (picId != null && picId.isNotEmpty) picIdFinal = picId;
-      if (team.isNotEmpty) teamFinal = team;
-      if (handlingTask != null && handlingTask.isNotEmpty) handlingTaskFinal = handlingTask;
-      if (notesAction != null && notesAction.isNotEmpty) notesFinal = notesAction;
-      if (actionTakenNote != null && actionTakenNote.isNotEmpty) actionTakenNoteFinal = actionTakenNote;
-      if (solvedAction != null && solvedAction.isNotEmpty) solvedActionFinal = solvedAction;
-      if (solvedDate != null) solvedDateFinal = solvedDate;
-      if (supervisorFeedback != null && supervisorFeedback.isNotEmpty) supervisorFeedbackFinal = supervisorFeedback;
+      // KECUALI status REVISED: hanya ubah status, semua field lain dari detail incident/getAll
+      if (status != 'REVISED') {
+        if (areasDescription.isNotEmpty) areasDescriptionFinal = areasDescription;
+        if (areasId.isNotEmpty) areasIdFinal = areasId;
+        if (idIncidentType > 0) idIncidentTypeFinal = idIncidentType;
+        incidentDateFinal = incidentDate;
+        if (incidentTime.isNotEmpty) incidentTimeFinal = incidentTime;
+        if (incidentDescription.isNotEmpty) incidentDescriptionFinal = incidentDescription;
+        if (reportId.isNotEmpty) reportIdFinal = reportId;
+        if (picId != null && picId.isNotEmpty) picIdFinal = picId;
+        if (team.isNotEmpty) teamFinal = team;
+        if (handlingTask != null && handlingTask.isNotEmpty) handlingTaskFinal = handlingTask;
+        if (notesAction != null && notesAction.isNotEmpty) notesFinal = notesAction;
+        if (actionTakenNote != null && actionTakenNote.isNotEmpty) actionTakenNoteFinal = actionTakenNote;
+        if (solvedAction != null && solvedAction.isNotEmpty) solvedActionFinal = solvedAction;
+        if (solvedDate != null) solvedDateFinal = solvedDate;
+      }
+      // SupervisorFeedback: dari form jika ada, kalo tidak dari response getAll
+      // KECUALI status COMPLETED (Tandai Sebagai Selesai): selalu dari detail getAll
+      if (status != 'COMPLETED' && supervisorFeedback != null && supervisorFeedback.isNotEmpty) {
+        supervisorFeedbackFinal = supervisorFeedback;
+      }
 
       // Override khusus per status
       if (status == 'COMPLETED') {
@@ -939,14 +953,14 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         if (solvedAction != null && solvedAction.isNotEmpty) solvedActionFinal = solvedAction;
         if (solvedDate != null) solvedDateFinal = solvedDate;
       } else if (status == 'VERIFIED') {
-        verifiedBy = userId;
+        verifiedBy = userId; // User yang verifikasi (login)
         verifiedDate = DateTime.now();
-        completedBy = userId.isNotEmpty ? userId : null;
-        incidentCompletionDate = DateTime.now();
+        // CompletedBy dan IncidentCompletionDate dari detail getAll (PIC yang tandai selesai), bukan dari verifier
       } else if (status == 'ACKNOWLEDGE' || status == 'INVALID') {
         reviewedBy = userId.isNotEmpty ? userId : null;
         reviewedDate = DateTime.now();
       } else if (status == 'ASSIGNED') {
+        solvedDateFinal = null; // SolvedDate jangan diisi saat assign, hanya saat Tandai Sebagai Selesai
         if (apiModel != null && apiModel.roles != null && apiModel.roles!.isNotEmpty) {
           final reporterRole = apiModel.roles!.first.nama.toUpperCase();
           if (reporterRole == 'PJO' || reporterRole == 'DPT' || reporterRole == 'PJO-PJO' || reporterRole == 'DEPUTY') {
@@ -1082,6 +1096,33 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
       if (v != null && v.isNotEmpty) return v;
     }
     return null;
+  }
+
+  /// Extract CompletedBy (UserId) dan IncidentCompletionDate dari IncidentDetail bila ada di nested.
+  (String?, DateTime?) _extractCompletedFromIncidentDetail(dynamic incidentDetail) {
+    String? completedBy;
+    DateTime? incidentCompletionDate;
+    List<dynamic> list = [];
+    if (incidentDetail is Map<String, dynamic>) {
+      list = [incidentDetail];
+    } else if (incidentDetail is List) {
+      list = incidentDetail;
+    }
+    for (final item in list) {
+      if (item is! Map) continue;
+      final m = Map<String, dynamic>.from(item);
+      final cb = m['CompletedBy']?.toString() ?? m['completedBy']?.toString();
+      final icdVal = m['IncidentCompletionDate'] ?? m['incidentCompletionDate'];
+      if (cb != null && cb.isNotEmpty) {
+        completedBy = cb;
+      }
+      if (icdVal != null) {
+        final dt = DateTime.tryParse(icdVal.toString());
+        if (dt != null) incidentCompletionDate = dt;
+      }
+      if (completedBy != null && incidentCompletionDate != null) break;
+    }
+    return (completedBy, incidentCompletionDate);
   }
 
   /// Extract ActionTakenNote dari IncidentDetail.

@@ -264,14 +264,15 @@ class IncidentPermissionHelper {
   /// Check apakah incident muncul di "Tugas Saya" tab
   /// 
   /// Rules:
-  /// - Status = Ditugaskan atau Proses
+  /// - Status = Ditugaskan, Proses, atau Revisi
   /// - User adalah PIC atau Team Member
   static Future<bool> shouldShowInMyTasks({
     required IncidentEntity incident,
   }) async {
     // Check status
     if (incident.status != IncidentStatus.ditugaskan && 
-        incident.status != IncidentStatus.proses) {
+        incident.status != IncidentStatus.proses &&
+        incident.status != IncidentStatus.revisi) {
       return false;
     }
     
@@ -298,13 +299,14 @@ class IncidentPermissionHelper {
   /// Check apakah user dapat menandai incident sebagai selesai
   /// 
   /// Rules:
-  /// - Status = Proses
+  /// - Status = Proses atau Revisi
   /// - User adalah PIC atau Team Member
-  /// - Aksi: Mengubah status dari Proses ke Selesai (COMPLETED)
+  /// - Aksi: Mengubah status ke Selesai (COMPLETED)
   static Future<bool> canMarkAsCompleted({
     required IncidentEntity incident,
   }) async {
-    if (incident.status != IncidentStatus.proses) {
+    if (incident.status != IncidentStatus.proses &&
+        incident.status != IncidentStatus.revisi) {
       return false;
     }
     
@@ -314,12 +316,13 @@ class IncidentPermissionHelper {
   /// Check apakah field solvedAction dan evidence harus di-enable
   /// 
   /// Rules:
-  /// - Status = Revisi -> Enable field Note penyelesaian dan Bukti Penyelesaian
+  /// - Status = Proses atau Revisi -> Enable field Note penyelesaian dan Bukti Penyelesaian
   /// - User adalah PIC atau Team Member yang sedang menyelesaikan task
   static Future<bool> shouldEnableCompletionFields({
     required IncidentEntity incident,
   }) async {
-    if (incident.status == IncidentStatus.proses) {
+    if (incident.status == IncidentStatus.proses ||
+        incident.status == IncidentStatus.revisi) {
       return await isPICOrTeamMember(incident: incident);
     }
     
