@@ -17,6 +17,8 @@ abstract class LaporanKegiatanRemoteDataSource {
     String? search,
     int start = 1,
     int length = 100,
+    String? startDate,
+    String? endDate,
   });
 
   Future<LaporanKegiatanModel> getLaporanDetail(String id);
@@ -195,6 +197,8 @@ class LaporanKegiatanRemoteDataSourceImpl
     String? search,
     int start = 1,
     int length = 10,
+    String? startDate,
+    String? endDate,
   }) async {
     try {
       // Always get userId from secure storage
@@ -206,27 +210,29 @@ class LaporanKegiatanRemoteDataSourceImpl
 
 
       // Map status to API format
-      // Tab "Menunggu Verifikasi" -> status = "WAITING" (huruf besar semua)
-      // Tab "Terverifikasi" -> status = "VERIFIKASI" (huruf besar semua)
+      // Backend expects: CHECKIN, WAITING, VERIFIED, REVISION
       String apiStatus = '';
       if (status == LaporanStatus.waiting) {
-        apiStatus = 'WAITING'; // Format API: huruf besar semua
+        apiStatus = 'WAITING';
       } else if (status == LaporanStatus.verified) {
-        apiStatus = 'VERIFIKASI'; // Format API: huruf besar semua
+        apiStatus = 'VERIFIED';
       } else if (status == LaporanStatus.revision) {
-        apiStatus = 'revision';
+        apiStatus = 'REVISION';
       } else if (status == LaporanStatus.checkIn) {
-        apiStatus = 'check_in';
+        apiStatus = 'CHECKIN';
       }
 
       // Create request
       final request = LaporanKegiatanRequestEntity(
         idUser: currentUserId,
         withSubordinate: true, // Selalu true karena akan ada bawahan
+        isAdmin: role == UserRole.admin,
         status: apiStatus,
         search: search ?? '',
         start: start,
         length: length,
+        startDate: startDate,
+        endDate: endDate,
       );
 
       // Call API

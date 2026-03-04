@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../data/models/panic_button_edit_request.dart';
 
 abstract class PanicButtonEvent extends Equatable {
   const PanicButtonEvent();
