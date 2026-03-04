@@ -16,6 +16,8 @@ class GetLaporanListEvent extends LaporanKegiatanEvent {
   final String? search;
   final int start;
   final int length;
+  final String? startDate;
+  final String? endDate;
   final bool isLoadMore;
 
   const GetLaporanListEvent({
@@ -25,11 +27,23 @@ class GetLaporanListEvent extends LaporanKegiatanEvent {
     this.search,
     this.start = 1,
     this.length = 10,
+    this.startDate,
+    this.endDate,
     this.isLoadMore = false,
   });
 
   @override
-  List<Object?> get props => [status, role, userId, search, start, length, isLoadMore];
+  List<Object?> get props => [
+        status,
+        role,
+        userId,
+        search,
+        start,
+        length,
+        startDate,
+        endDate,
+        isLoadMore,
+      ];
 }
 
 /// Get detail laporan kegiatan

@@ -19,6 +19,8 @@ class GetLaporanList {
     String? search,
     int start = 1,
     int length = 10,
+    String? startDate,
+    String? endDate,
   }) async {
     return await repository.getLaporanList(
       status: status,
@@ -27,6 +29,8 @@ class GetLaporanList {
       search: search,
       start: start,
       length: length,
+      startDate: startDate,
+      endDate: endDate,
     );
   }
 }

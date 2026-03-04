@@ -57,6 +57,8 @@ class LaporanKegiatanBloc
       search: event.search,
       start: event.start,
       length: event.length,
+      startDate: event.startDate,
+      endDate: event.endDate,
     );
 
     result.fold(
@@ -74,6 +76,8 @@ class LaporanKegiatanBloc
         }
       },
       (laporanList) {
+        final hasPagination = event.length > 0;
+
         if (event.isLoadMore) {
           // Append new data to existing list
           final currentState = state;
@@ -82,7 +86,7 @@ class LaporanKegiatanBloc
               ...currentState.laporanList,
               ...laporanList,
             ];
-            final hasMore = laporanList.length >= event.length;
+            final hasMore = hasPagination ? laporanList.length >= event.length : false;
             emit(currentState.copyWith(
               laporanList: updatedList,
               hasMore: hasMore,
@@ -92,13 +96,13 @@ class LaporanKegiatanBloc
           } else {
             emit(LaporanListLoaded(
               laporanList: laporanList,
-              hasMore: laporanList.length >= event.length,
+              hasMore: hasPagination ? laporanList.length >= event.length : false,
               currentPage: event.start,
             ));
           }
         } else {
           // Replace with new data
-          final hasMore = laporanList.length >= event.length;
+          final hasMore = hasPagination ? laporanList.length >= event.length : false;
           emit(LaporanListLoaded(
             laporanList: laporanList,
             hasMore: hasMore,
