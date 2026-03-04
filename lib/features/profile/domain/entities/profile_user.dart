@@ -5,6 +5,7 @@ class ProfileUser extends Equatable {
   final String id;
   final String name;
   final String nrp;
+  final String email;
   final String noKtp;
   final String tempatLahir;
   final DateTime? tanggalLahir;
@@ -32,6 +33,7 @@ class ProfileUser extends Equatable {
     required this.id,
     required this.name,
     required this.nrp,
+    required this.email,
     required this.noKtp,
     required this.tempatLahir,
     this.tanggalLahir,
@@ -62,6 +64,7 @@ class ProfileUser extends Equatable {
         nrp,
         noKtp,
         name,
+        email,
         tempatLahir,
         tanggalLahir,
         jenisKelamin,
@@ -90,6 +93,7 @@ class ProfileUser extends Equatable {
     String? id,
     String? name,
     String? nrp,
+    String? email,
     String? noKtp,
     String? tempatLahir,
     DateTime? tanggalLahir,
@@ -117,6 +121,7 @@ class ProfileUser extends Equatable {
       id: id ?? this.id,
       name: name ?? this.name,
       nrp: nrp ?? this.nrp,
+      email: email ?? this.email,
       noKtp: noKtp ?? this.noKtp,
       tempatLahir: tempatLahir ?? this.tempatLahir,
       tanggalLahir: tanggalLahir ?? this.tanggalLahir,

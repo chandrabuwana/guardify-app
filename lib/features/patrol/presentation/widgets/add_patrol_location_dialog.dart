@@ -30,7 +30,6 @@ class AddPatrolLocationDialog extends StatefulWidget {
 
 class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _proofController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
   String? _selectedLocation;
   String _currentLocationText = 'Menunggu...';
@@ -55,7 +54,6 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
 
   @override
   void dispose() {
-    _proofController.dispose();
     super.dispose();
   }
 
@@ -704,19 +702,7 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                           children: [
                             Row(
                               children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _proofController,
-                                    decoration: const InputDecoration(
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 12,
-                                      ),
-                                      hintText: 'Lokasi Kejadian ---',
-                                    ),
-                                  ),
-                                ),
+                                const Spacer(),
                                 IconButton(
                                   onPressed: _showImagePickerDialog,
                                   icon: const Icon(

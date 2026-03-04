@@ -9,6 +9,7 @@ class ProfileMockData {
         return ProfileUser(
           id: 'demo_user_1',
           nrp: '004271',
+          email: '-',
           noKtp: '3567182910092240',
           name: 'Aiman Hafiz',
           tempatLahir: 'Bogor',
@@ -44,6 +45,7 @@ class ProfileMockData {
         return ProfileUser(
           id: 'demo_user_2',
           nrp: '005432',
+          email: '-',
           noKtp: '3201234567891234',
           name: 'Budi Santoso',
           tempatLahir: 'Jakarta',
@@ -78,6 +80,7 @@ class ProfileMockData {
         return ProfileUser(
           id: userId,
           nrp: '000000',
+          email: '-',
           noKtp: '0000000000000000',
           name: 'User Default',
           tempatLahir: 'Jakarta',
