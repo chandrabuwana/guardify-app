@@ -5,7 +5,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/constants/enums.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/security/security_manager.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
+import '../../domain/entities/user_profile.dart';
 import '../bloc/bmi_bloc.dart';
 import 'bmi_detail_page.dart';
 
@@ -28,17 +31,51 @@ class _BMIListPageState extends State<BMIListPage> {
   bool _hasInitialLoad = false; // Flag untuk mencegah multiple initial loads
   Timer? _searchDebounce; // Debounce timer untuk search
   final ScrollController _scrollController = ScrollController();
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _loadCurrentUserId();
     // Delay load data untuk memastikan widget sudah fully mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadData();
       }
     });
+  }
+
+  Future<void> _loadCurrentUserId() async {
+    try {
+      final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      if (!mounted) return;
+      setState(() {
+        _currentUserId = userId;
+      });
+
+      if (userId != null && userId.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          bmiBloc.add(BMIGetUserProfile(userId));
+        });
+      }
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  List<UserProfile> _prioritizeCurrentUser(List<UserProfile> users) {
+    final currentUserId = _currentUserId;
+    if (currentUserId == null || currentUserId.isEmpty) return users;
+
+    final currentIndex = users.indexWhere((u) => u.id == currentUserId);
+    if (currentIndex <= 0) return users;
+
+    final reordered = List<UserProfile>.from(users);
+    final me = reordered.removeAt(currentIndex);
+    reordered.insert(0, me);
+    return reordered;
   }
   
   @override
@@ -206,6 +243,7 @@ class _BMIListPageState extends State<BMIListPage> {
           // Jangan rebuild jika hanya isLoading yang berubah dari false ke false (tidak ada perubahan)
           if (previous.isLoading == current.isLoading &&
               previous.isSearching == current.isSearching &&
+              previous.currentUserProfile?.id == current.currentUserProfile?.id &&
               previous.searchResults.length == current.searchResults.length &&
               previous.pinnedUsers.length == current.pinnedUsers.length &&
               previous.hasError == current.hasError &&
@@ -396,7 +434,38 @@ class _BMIListPageState extends State<BMIListPage> {
       );
     }
 
-    final combinedList = state.combinedUserList;
+    final combinedList = (() {
+      final list = List<UserProfile>.from(state.combinedUserList);
+
+      // Jika API list tidak menyertakan user yang sedang login (misal PJO/Danton),
+      // tetap tampilkan "me" di urutan paling atas untuk normal list.
+      final currentUserId = _currentUserId;
+      final me = state.currentUserProfile;
+      final isNormalList = _searchController.text.trim().isEmpty;
+      if (isNormalList && currentUserId != null && currentUserId.isNotEmpty) {
+        // If we already have the real profile, ensure it's the one shown at the top
+        // (replace any placeholder/older entry with the same id).
+        if (me != null && me.id == currentUserId) {
+          list.removeWhere((u) => u.id == currentUserId);
+          list.insert(0, me);
+        } else {
+          // Otherwise show a placeholder card so "me" is always first.
+          final hasMe = list.any((u) => u.id == currentUserId);
+          if (!hasMe) {
+            list.insert(
+              0,
+              UserProfile(
+                id: currentUserId,
+                name: 'Saya',
+                role: widget.currentUserRole,
+              ),
+            );
+          }
+        }
+      }
+
+      return isNormalList ? _prioritizeCurrentUser(list) : list;
+    })();
 
     // Show empty state if not loading and not searching
     // Differentiate between search empty and initial empty

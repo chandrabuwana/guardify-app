@@ -144,6 +144,7 @@ class _AttendanceRekapKehadiranDetailScreenContentState
 
   Widget _buildContent(BuildContext context, AttendanceRekapDetailEntity detail) {
     final canEdit = detail.statusLaporan.toUpperCase() == 'REVISI';
+    final isWaiting = detail.statusLaporan.toUpperCase() == 'WAITING';
 
     if (_initializedDetailId != detail.idAttendance) {
       _initializedDetailId = detail.idAttendance;
@@ -192,14 +193,20 @@ class _AttendanceRekapKehadiranDetailScreenContentState
                     16.verticalSpace,
                     _buildInfoFieldInCard(
                       'Diverifikasi Oleh',
-                      (detail.updateBy != null && detail.updateBy!.isNotEmpty)
-                          ? detail.updateBy!
-                          : '-',
+                      isWaiting
+                          ? '-'
+                          : (detail.updateBy != null && detail.updateBy!.isNotEmpty)
+                              ? detail.updateBy!
+                              : '-',
                     ),
                     16.verticalSpace,
                     _buildInfoFieldInCard(
                       'Tanggal Verifikasi',
-                      detail.updateDate != null ? _formatTime(detail.updateDate!) : '-',
+                      isWaiting
+                          ? '-'
+                          : (detail.updateDate != null)
+                              ? _formatTime(detail.updateDate!)
+                              : '-',
                     ),
                     16.verticalSpace,
                     _buildTextAreaFieldInCard(

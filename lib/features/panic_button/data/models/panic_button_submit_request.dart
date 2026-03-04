@@ -1,7 +1,9 @@
 import 'package:json_annotation/json_annotation.dart';
 
 part 'panic_button_submit_request.g.dart';
-
+// todo check bug fix about For pengawas resolving: Status = "COMPLETED" and may include Feedback
+// For PJO/Deputy resolving: Status = "VERIFIED" and Feedback = null
+// For revisi flow: Status = "OPEN" with Feedback filled
 @JsonSerializable()
 class PanicButtonSubmitRequest {
   @JsonKey(name: 'Id')

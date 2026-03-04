@@ -80,6 +80,9 @@ class UserApiDataModel {
   @JsonKey(name: 'IdAtasan')
   final String? idAtasan;
 
+  @JsonKey(name: 'NamaAtasan')
+  final String? namaAtasan;
+
   @JsonKey(name: 'TanggalPenerimaan')
   final String? tanggalPenerimaan;
 
@@ -183,6 +186,7 @@ class UserApiDataModel {
     this.site,
     this.jabatan,
     this.idAtasan,
+    this.namaAtasan,
     this.tanggalPenerimaan,
     this.masaBerlakuPermit,
     this.kompetensiPekerjaan,
@@ -244,6 +248,7 @@ class UserApiDataModel {
         site: json['Site']?.toString(),
         jabatan: json['Jabatan']?.toString(),
         idAtasan: json['IdAtasan']?.toString(),
+        namaAtasan: json['NamaAtasan']?.toString(),
         tanggalPenerimaan: json['TanggalPenerimaan']?.toString(),
         masaBerlakuPermit: json['MasaBerlakuPermit']?.toString(),
         kompetensiPekerjaan: json['KompetensiPekerjaan']?.toString(),
@@ -315,6 +320,7 @@ class UserApiDataModel {
       nrp: noNrp ?? username,
       noKtp: noKtp ?? '-',
       name: fullname,
+      email: (email ?? mail ?? '-'),
       tempatLahir: tempatLahir ?? '-',
       tanggalLahir: parsedTanggalLahir ?? DateTime.now(),
       jenisKelamin: jenisKelamin ?? '-',
@@ -324,6 +330,7 @@ class UserApiDataModel {
       site: site ?? '-',
       jabatan: jabatan ?? (roles.isNotEmpty ? roles.first.nama : '-'),
       atasan: idAtasan ?? '-',
+      namaAtasan: namaAtasan,
       tglPenerimaanKaryawan: parsedTanggalPenerimaan ?? DateTime.tryParse(createDate ?? '') ?? DateTime.now(),
       masaBerlakuPermit: parsedMasaBerlakuPermit ?? DateTime.now().add(const Duration(days: 365)),
       kompetensiPekerjaan: kompetensiPekerjaan ?? '-',

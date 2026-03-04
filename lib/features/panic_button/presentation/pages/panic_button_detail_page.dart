@@ -26,6 +26,7 @@ class PanicButtonDetailPage extends StatefulWidget {
 class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
   final TextEditingController _tindakanPenyelesaianController = TextEditingController();
   final TextEditingController _buktiPenyelesaianController = TextEditingController();
+  final TextEditingController _feedbackController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
   File? _proofImage;
   UserRole? _currentUserRole;
@@ -56,23 +57,54 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
   void dispose() {
     _tindakanPenyelesaianController.dispose();
     _buktiPenyelesaianController.dispose();
+    _feedbackController.dispose();
     super.dispose();
-  }
-
-  bool get _canVerify {
-    if (_currentUserRole == null) return false;
-    return _currentUserRole == UserRole.pjo ||
-        _currentUserRole == UserRole.deputy ||
-        _currentUserRole == UserRole.pengawas;
-  }
-
-  bool get _canRevisi {
-    return _currentUserRole == UserRole.pengawas;
   }
 
   bool get _isPengawas {
     return _currentUserRole == UserRole.pengawas;
   }
+
+  bool _isOpenStatus(String status) => status.toUpperCase() == 'OPEN';
+
+  bool _isRevisedStatus(String status) {
+    final s = status.toUpperCase();
+    return s == 'REVISI' || s == 'REVISION' || s == 'REVISED';
+  }
+
+  bool _isCompletedStatus(String status) {
+    final s = status.toUpperCase();
+    return s == 'COMPLETED' || s == 'DONE';
+  }
+
+  bool _isVerifiedStatus(String status) => status.toUpperCase() == 'VERIFIED';
+
+  bool _canEditCompletion(PanicButtonHistoryItem item) {
+    final role = _currentUserRole;
+    if (role == null) return false;
+    final status = item.status;
+
+    final eligibleRole =
+        role == UserRole.pjo || role == UserRole.deputy || role == UserRole.pengawas;
+    if (!eligibleRole) return false;
+
+    // Pengawas: OPEN only (REVISED is view-only per requirement)
+    if (role == UserRole.pengawas) {
+      return _isOpenStatus(status);
+    }
+
+    // PJO/Deputy: OPEN or REVISED
+    return _isOpenStatus(status) || _isRevisedStatus(status);
+  }
+
+  bool _canMarkCompleted(PanicButtonHistoryItem item) => _canEditCompletion(item);
+
+  bool _canSupervisorVerifyOrRevise(PanicButtonHistoryItem item) {
+    if (!_isPengawas) return false;
+    return _isCompletedStatus(item.status);
+  }
+
+  bool _canEditFeedback(PanicButtonHistoryItem item) => _canSupervisorVerifyOrRevise(item);
 
   @override
   Widget build(BuildContext context) {
@@ -101,10 +133,16 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
           if (state.detailItem != null) {
             // Pre-fill editable fields if they exist
             final item = state.detailItem!;
-            if (item.feedback != null &&
-                item.feedback!.trim().isNotEmpty &&
+            final resolveAction = item.resolveAction?.trim();
+            if (resolveAction != null &&
+                resolveAction.isNotEmpty &&
                 _tindakanPenyelesaianController.text.isEmpty) {
-              _tindakanPenyelesaianController.text = item.feedback!.trim();
+              _tindakanPenyelesaianController.text = resolveAction;
+            }
+
+            final feedback = item.feedback?.trim();
+            if (feedback != null && feedback.isNotEmpty && _feedbackController.text.isEmpty) {
+              _feedbackController.text = feedback;
             }
           }
 
@@ -171,6 +209,11 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
               );
             }
 
+            final canEditCompletion = _canEditCompletion(historyItem);
+            final canMarkCompleted = _canMarkCompleted(historyItem);
+            final canSupervisorVerifyOrRevise = _canSupervisorVerifyOrRevise(historyItem);
+            final canEditFeedback = _canEditFeedback(historyItem);
+
             return Column(
               children: [
                 Expanded(
@@ -229,13 +272,20 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
 
                               _buildFieldLabel('Tindakan Penyelesaian'),
                               8.verticalSpace,
-                              _buildGreyField(historyItem.resolveAction ?? 'xxxx', isMultiline: true),
+                              canEditCompletion
+                                  ? _buildEditableField(
+                                      'Tindakan Penyelesaian',
+                                      _tindakanPenyelesaianController,
+                                      maxLines: 4,
+                                      hintText: 'Masukkan tindakan penyelesaian...',
+                                    )
+                                  : _buildGreyField(historyItem.resolveAction?.trim().isNotEmpty == true
+                                      ? historyItem.resolveAction!.trim()
+                                      : '-', isMultiline: true),
                               12.verticalSpace,
 
-                              if (!_isPengawas) ...[
-                                _buildBuktiPenyelesaianField(),
-                                12.verticalSpace,
-                              ],
+                              _buildBuktiPenyelesaianField(canEdit: canEditCompletion),
+                              12.verticalSpace,
 
                               _buildFieldLabel('Diselesaikan Oleh'),
                               8.verticalSpace,
@@ -249,7 +299,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
 
                               _buildFieldLabel('Umpan Balik'),
                               8.verticalSpace,
-                              _buildFeedbackField(historyItem),
+                              _buildFeedbackField(historyItem, canEdit: canEditFeedback),
                             ],
                           ),
                         ),
@@ -259,7 +309,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                 ),
 
                 // Bottom Button
-                if (_canVerify || _canRevisi)
+                if (canMarkCompleted || canSupervisorVerifyOrRevise)
                   Container(
                     padding: REdgeInsets.fromLTRB(16, 12, 16, 16),
                     decoration: BoxDecoration(
@@ -294,7 +344,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                             ),
                           ),
                           12.horizontalSpace,
-                          if (_canRevisi) ...[
+                          if (canSupervisorVerifyOrRevise) ...[
                             Expanded(
                               child: BlocBuilder<PanicButtonBloc, PanicButtonState>(
                                 builder: (context, state) {
@@ -341,12 +391,12 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                             12.horizontalSpace,
                           ],
                           Expanded(
-                            flex: _canRevisi ? 1 : 1,
+                            flex: 1,
                             child: BlocBuilder<PanicButtonBloc, PanicButtonState>(
                               builder: (context, state) {
                                 final isSubmitting = state.isSubmittingVerification;
                                 return ElevatedButton(
-                                  onPressed: (_canVerify && !isSubmitting)
+                                  onPressed: (!isSubmitting && (canMarkCompleted || canSupervisorVerifyOrRevise))
                                       ? () => _showConfirmDialog(context, historyItem)
                                       : null,
                                   style: ElevatedButton.styleFrom(
@@ -368,7 +418,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                                           ),
                                         )
                                       : Text(
-                                          'Tandai Sebagai Selesai',
+                                          canSupervisorVerifyOrRevise ? 'Verifikasi' : 'Tandai Sebagai Selesai',
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 14.sp,
@@ -425,8 +475,8 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
     );
   }
 
-  Widget _buildFeedbackField(PanicButtonHistoryItem item) {
-    if (_isPengawas && _canVerify) {
+  Widget _buildFeedbackField(PanicButtonHistoryItem item, {required bool canEdit}) {
+    if (canEdit) {
       return Container(
         width: double.infinity,
         padding: REdgeInsets.all(12),
@@ -436,7 +486,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
           border: Border.all(color: Colors.grey[300]!),
         ),
         child: TextField(
-          controller: _tindakanPenyelesaianController,
+          controller: _feedbackController,
           maxLines: 4,
           decoration: InputDecoration(
             hintText: '....',
@@ -770,26 +820,24 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
         Container(
           padding: REdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _canVerify ? Colors.white : Colors.grey[50],
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
-              color: _canVerify ? Colors.blue[300]! : Colors.grey[300]!,
+              color: Colors.blue[300]!,
               width: 1.5,
             ),
-            boxShadow: _canVerify
-                ? [
-                    BoxShadow(
-                      color: Colors.blue.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: TextField(
             controller: controller,
             maxLines: maxLines,
-            enabled: _canVerify,
+            enabled: true,
             decoration: InputDecoration(
               hintText: hintText ?? '....',
               hintStyle: TextStyle(
@@ -809,7 +857,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
     );
   }
 
-  Widget _buildBuktiPenyelesaianField() {
+  Widget _buildBuktiPenyelesaianField({required bool canEdit}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -842,13 +890,13 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
         Container(
           padding: REdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _canVerify ? Colors.white : Colors.grey[50],
+            color: canEdit ? Colors.white : Colors.grey[50],
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
-              color: _canVerify ? Colors.green[300]! : Colors.grey[300]!,
+              color: canEdit ? Colors.green[300]! : Colors.grey[300]!,
               width: 1.5,
             ),
-            boxShadow: _canVerify
+            boxShadow: canEdit
                 ? [
                     BoxShadow(
                       color: Colors.green.withOpacity(0.1),
@@ -863,7 +911,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
               Expanded(
                 child: TextField(
                   controller: _buktiPenyelesaianController,
-                  enabled: _canVerify,
+                  enabled: canEdit,
                   decoration: InputDecoration(
                     hintText: 'Masukkan bukti penyelesaian...',
                     hintStyle: TextStyle(
@@ -879,7 +927,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                   ),
                 ),
               ),
-              if (_canVerify) ...[
+              if (canEdit) ...[
                 8.horizontalSpace,
                 Container(
                   decoration: BoxDecoration(
@@ -925,7 +973,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                   fit: BoxFit.cover,
                 ),
               ),
-              if (_canVerify)
+              if (canEdit)
                 Positioned(
                   top: 4,
                   right: 4,
@@ -1162,7 +1210,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      _submitResolution(item);
+                      _submitPrimaryAction(item);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red[700],
@@ -1186,43 +1234,74 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
     );
   }
 
-  void _submitResolution(PanicButtonHistoryItem item) {
-    // Determine status based on role
-    String status;
-    if (_currentUserRole == UserRole.pengawas) {
-      status = 'COMPLETED';
-    } else {
-      // PJO or Deputy
-      status = 'VERIFIED';
+  void _submitPrimaryAction(PanicButtonHistoryItem item) {
+    if (_canSupervisorVerifyOrRevise(item)) {
+      _submitVerify(item);
+      return;
     }
 
-    // Notes hanya untuk pengawas (dari field Feedback)
-    String? notes;
-    if (_isPengawas) {
-      notes = _tindakanPenyelesaianController.text.trim();
-      notes = notes.isNotEmpty ? notes : null;
-    } else {
-      // PJO/Deputy: tidak mengirim notes
-      notes = null;
+    if (_canMarkCompleted(item)) {
+      _submitMarkCompleted(item);
+      return;
+    }
+  }
+
+  void _submitMarkCompleted(PanicButtonHistoryItem item) {
+    final completionAction = _tindakanPenyelesaianController.text.trim();
+    if (completionAction.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tindakan penyelesaian wajib diisi')),
+      );
+      return;
+    }
+
+    if (_proofImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bukti penyelesaian (foto) wajib diisi')),
+      );
+      return;
     }
 
     context.read<PanicButtonBloc>().add(
           SubmitPanicButtonVerificationEvent(
             id: item.id,
-            status: status,
-            notes: notes,
+            status: 'COMPLETED',
+            notes: completionAction,
+          ),
+        );
+  }
+
+  void _submitVerify(PanicButtonHistoryItem item) {
+    final notes = _feedbackController.text.trim();
+    if (notes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Umpan balik wajib diisi')),
+      );
+      return;
+    }
+    context.read<PanicButtonBloc>().add(
+          SubmitPanicButtonVerificationEvent(
+            id: item.id,
+            status: 'VERIFIED',
+            notes: notes.isNotEmpty ? notes : null,
           ),
         );
   }
 
   void _submitRevisi(PanicButtonHistoryItem item) {
     // Pengawas: notes dari field Feedback
-    final notes = _tindakanPenyelesaianController.text.trim();
+    final notes = _feedbackController.text.trim();
+    if (notes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Umpan balik wajib diisi')),
+      );
+      return;
+    }
 
     context.read<PanicButtonBloc>().add(
           SubmitPanicButtonVerificationEvent(
             id: item.id,
-            status: 'OPEN',
+            status: 'REVISION',
             notes: notes.isNotEmpty ? notes : null,
           ),
         );
