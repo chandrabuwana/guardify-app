@@ -236,6 +236,7 @@ class CurrentTaskData {
 class RouteTask {
   final String idAreas;
   final String areasName;
+  final String? routeName;
   final String? checkIn;
   final String? filename;
   final String? fileUrl;
@@ -246,6 +247,7 @@ class RouteTask {
   const RouteTask({
     required this.idAreas,
     required this.areasName,
+    this.routeName,
     this.checkIn,
     this.filename,
     this.fileUrl,

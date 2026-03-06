@@ -24,7 +24,10 @@ enum LaporanStatus {
     switch (valueLower) {
       case 'checkin':
       case 'check_in':
+      case 'check in':
         return LaporanStatus.checkIn;
+      case 'verification':
+      case 'verify':
       case 'waiting':
       case 'menunggu':
       case 'menunggu_verifikasi':

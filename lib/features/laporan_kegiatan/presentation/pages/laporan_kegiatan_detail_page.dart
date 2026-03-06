@@ -175,7 +175,8 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
             child: UIButton(
               text: 'Selanjutnya →',
               fullWidth: true,
-              enable: laporan.status != LaporanStatus.checkIn,
+              enable: laporan.status != LaporanStatus.checkIn &&
+                  laporan.checkOut != null,
               onPressed: () {
                 _pageController.nextPage(
                   duration: const Duration(milliseconds: 300),

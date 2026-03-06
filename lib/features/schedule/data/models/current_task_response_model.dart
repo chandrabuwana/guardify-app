@@ -37,6 +37,9 @@ class CurrentTaskResponseModel {
 /// Data model for current task
 @JsonSerializable()
 class CurrentTaskDataModel {
+  @JsonKey(name: 'RouteName')
+  final String? routeName;
+
   @JsonKey(name: 'ListRoute')
   final List<RouteTaskModel> listRoute;
 
@@ -44,6 +47,7 @@ class CurrentTaskDataModel {
   final List<CarryOverTaskModel> listCarryOver;
 
   CurrentTaskDataModel({
+    this.routeName,
     required this.listRoute,
     required this.listCarryOver,
   });
