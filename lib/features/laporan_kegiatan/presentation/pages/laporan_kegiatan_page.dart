@@ -38,6 +38,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
   String? _selectedKehadiranFilter;
   LaporanStatus? _selectedStatusFilter;
   bool _isStatusFilterApplied = false;
+  bool _isFirstLoad = true;
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
 
@@ -94,7 +95,11 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
         ? LaporanStatus.waiting
         : LaporanStatus.verified;
 
-    final effectiveStatus = _isStatusFilterApplied ? _selectedStatusFilter : tabStatus;
+    // On first entry, treat as "no status filter" (send empty status)
+    // After first load, default back to tab status unless user explicitly applies a status filter
+    final effectiveStatus = (_isFirstLoad && !_isStatusFilterApplied)
+        ? null
+        : (_isStatusFilterApplied ? _selectedStatusFilter : tabStatus);
 
     final dateFormatter = DateFormat('yyyy-MM-dd');
     final startDateStr = _selectedStartDate != null
@@ -123,6 +128,8 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
       endDate: endDateStr,
       isLoadMore: !resetPagination,
     ));
+
+    _isFirstLoad = false;
   }
 
   void _loadMoreData() {
@@ -205,7 +212,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
                   children: [
                     _buildFilterChip(
                       'Semua',
-                      _isStatusFilterApplied && _selectedStatusFilter == null,
+                      _selectedStatusFilter == null,
                       () => updateModal(() {
                         _selectedStatusFilter = null;
                         _isStatusFilterApplied = true;
@@ -638,7 +645,10 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
           final shouldFilterByTabStatus = !_isStatusFilterApplied;
           var filteredList = shouldFilterByTabStatus
               ? state.laporanList
-                  .where((laporan) => laporan.status == status)
+                  .where((laporan) =>
+                      laporan.status == status ||
+                      (status == LaporanStatus.waiting &&
+                          laporan.status == LaporanStatus.checkIn))
                   .toList()
               : List<LaporanKegiatanEntity>.from(state.laporanList);
 
@@ -692,9 +702,21 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
                     statusColor: _getStatusColor(laporan.status),
                     onTap: () {
                       // Check if idAttendance, checkIn, and checkOut are not null
-                      if (laporan.idAttendance == null || 
-                          laporan.checkIn == null || 
-                          laporan.checkOut == null) {
+                      final canOpenWithoutCheckout =
+                          laporan.status == LaporanStatus.checkIn;
+
+                      if (laporan.idAttendance == null || laporan.checkIn == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Data absensi belum lengkap. Detail tidak dapat dibuka.'),
+                            backgroundColor: Colors.orange,
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (!canOpenWithoutCheckout && laporan.checkOut == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Data absensi belum lengkap. Detail tidak dapat dibuka.'),

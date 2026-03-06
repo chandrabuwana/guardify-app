@@ -47,14 +47,15 @@ class _AuthRemoteDataSource implements AuthRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> resetPassword(Map<String, dynamic> body) async {
+  Future<PasswordActionResponseModel> resetPassword(
+      Map<String, dynamic> body) async {
     const _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     final _data = <String, dynamic>{};
     _data.addAll(body);
     final _result = await _dio.fetch<Map<String, dynamic>>(
-        _setStreamType<Map<String, dynamic>>(Options(
+        _setStreamType<PasswordActionResponseModel>(Options(
       method: 'POST',
       headers: _headers,
       extra: _extra,
@@ -70,12 +71,12 @@ class _AuthRemoteDataSource implements AuthRemoteDataSource {
               _dio.options.baseUrl,
               baseUrl,
             ))));
-    // For Map<String, dynamic>, return data directly without fromJson
-    return _result.data!;
+    final value = PasswordActionResponseModel.fromJson(_result.data!);
+    return value;
   }
 
   @override
-  Future<Map<String, dynamic>> changePassword(
+  Future<PasswordActionResponseModel> changePassword(
     String password,
     String newPassword,
   ) async {
@@ -84,7 +85,7 @@ class _AuthRemoteDataSource implements AuthRemoteDataSource {
     final _headers = <String, dynamic>{};
     final Map<String, dynamic>? _data = null;
     final _result = await _dio.fetch<Map<String, dynamic>>(
-        _setStreamType<Map<String, dynamic>>(Options(
+        _setStreamType<PasswordActionResponseModel>(Options(
       method: 'PUT',
       headers: _headers,
       extra: _extra,
@@ -100,8 +101,8 @@ class _AuthRemoteDataSource implements AuthRemoteDataSource {
               _dio.options.baseUrl,
               baseUrl,
             ))));
-    // For Map<String, dynamic>, return data directly without fromJson
-    return _result.data!;
+    final value = PasswordActionResponseModel.fromJson(_result.data!);
+    return value;
   }
 
   @override

@@ -509,11 +509,13 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       }
 
       // Convert to entity
+      final routeName = response.data!.routeName;
       final currentTask = CurrentTaskData(
         listRoute: response.data!.listRoute.map((r) {
           return RouteTask(
             idAreas: r.idAreas,
             areasName: r.areasName,
+            routeName: routeName,
             checkIn: r.checkIn,
             filename: r.filename,
             fileUrl: r.fileUrl,

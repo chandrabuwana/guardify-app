@@ -51,6 +51,7 @@ CurrentTaskDataModel _$CurrentTaskDataModelFromJson(
       json,
       ($checkedConvert) {
         final val = CurrentTaskDataModel(
+          routeName: $checkedConvert('RouteName', (v) => v as String?),
           listRoute: $checkedConvert(
               'ListRoute',
               (v) => (v as List<dynamic>)
@@ -67,6 +68,7 @@ CurrentTaskDataModel _$CurrentTaskDataModelFromJson(
         return val;
       },
       fieldKeyMap: const {
+        'routeName': 'RouteName',
         'listRoute': 'ListRoute',
         'listCarryOver': 'ListCarryOver'
       },
@@ -75,6 +77,7 @@ CurrentTaskDataModel _$CurrentTaskDataModelFromJson(
 Map<String, dynamic> _$CurrentTaskDataModelToJson(
         CurrentTaskDataModel instance) =>
     <String, dynamic>{
+      'RouteName': instance.routeName,
       'ListRoute': instance.listRoute.map((e) => e.toJson()).toList(),
       'ListCarryOver': instance.listCarryOver.map((e) => e.toJson()).toList(),
     };

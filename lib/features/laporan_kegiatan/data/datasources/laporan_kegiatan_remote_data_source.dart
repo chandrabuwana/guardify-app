@@ -324,14 +324,15 @@ class LaporanKegiatanRemoteDataSourceImpl
       jamKerja = '$checkInStr - -';
     }
 
-    // Determine status based on requested status
-    // Jika requestedStatus adalah verified, berarti API sudah filter untuk verified
-    // Jika requestedStatus adalah waiting atau null, berarti waiting
-    LaporanStatus laporanStatus = requestedStatus ?? LaporanStatus.waiting;
-    
-    // Check if there's a revision indicator in the API response
-    // This might come from a different field or status indicator
-    // For now, we'll use the requested status as the primary indicator
+    // Determine status based on API response per item.
+    // Backend returns e.g. "Verification", "CheckIn".
+    // Fallback to requestedStatus only if API status is missing.
+    final apiStatusRaw = item['Status'] as String?;
+    final apiStatusTrimmed = apiStatusRaw?.trim();
+    final LaporanStatus laporanStatus = (apiStatusTrimmed != null &&
+            apiStatusTrimmed.isNotEmpty)
+        ? LaporanStatus.fromValue(apiStatusTrimmed)
+        : (requestedStatus ?? LaporanStatus.waiting);
 
     // Determine tugas tertunda
     final statusCarryOver = item['StatusCarryOver'] as String? ?? '';
