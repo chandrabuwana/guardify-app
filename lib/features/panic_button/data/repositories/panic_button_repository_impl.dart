@@ -5,6 +5,7 @@ import '../../domain/repositories/panic_button_repository.dart';
 import '../datasources/panic_button_datasource.dart';
 import '../models/incident_request_model.dart';
 import '../models/panic_button_list_request.dart';
+import '../models/panic_button_edit_request.dart';
 import '../models/panic_button_submit_request.dart';
 import '../models/panic_button_incident_type_model.dart';
 import '../mappers/panic_button_history_mapper.dart';
@@ -21,6 +22,47 @@ class PanicButtonRepositoryImpl implements PanicButtonRepository {
       await dataSource.sendPanicAlert(userId);
     } catch (e) {
       throw Exception('Failed to activate panic button: $e');
+    }
+  }
+
+  @override
+  Future<void> editPanicButton(String id, PanicButtonEditRequest request) async {
+    try {
+      print('');
+      print('📦 ========================================');
+      print('📦 [PanicButtonRepository] EDIT PANIC BUTTON');
+      print('📦 ========================================');
+      print('📦 Request Details:');
+      print('  - Id: $id');
+      print('  - Status: ${request.status}');
+
+      final startTime = DateTime.now();
+      final response = await dataSource.editPanicButton(id, request);
+      final endTime = DateTime.now();
+      final duration = endTime.difference(startTime);
+
+      print('📦 Response received in ${duration.inMilliseconds}ms');
+      print('📦 Response Details:');
+      print('  - Code: ${response.code}');
+      print('  - Succeeded: ${response.succeeded}');
+      print('  - Message: ${response.message}');
+      print('📦 ========================================');
+      print('');
+
+      if (!response.succeeded) {
+        throw Exception('API Error: ${response.message}');
+      }
+    } catch (e, stackTrace) {
+      print('');
+      print('❌ ========================================');
+      print('❌ [PanicButtonRepository] ERROR');
+      print('❌ ========================================');
+      print('❌ Error: $e');
+      print('❌ Stack Trace:');
+      print(stackTrace);
+      print('❌ ========================================');
+      print('');
+      throw Exception('Failed to edit panic button: $e');
     }
   }
 

@@ -71,6 +71,9 @@ class PanicButtonItemModel {
   @JsonKey(name: 'Files')
   final List<PanicButtonFileModel>? files;
 
+  @JsonKey(name: 'EvidenceFile')
+  final PanicButtonFileModel? evidenceFile;
+
   PanicButtonItemModel({
     required this.id,
     this.action,
@@ -93,6 +96,7 @@ class PanicButtonItemModel {
     this.updateBy,
     this.updateDate,
     this.files,
+    this.evidenceFile,
   });
 
   factory PanicButtonItemModel.fromJson(Map<String, dynamic> json) =>

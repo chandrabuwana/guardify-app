@@ -39,6 +39,56 @@ class PanicButtonBloc extends Bloc<PanicButtonEvent, PanicButtonState> {
     
     // Verification event
     on<SubmitPanicButtonVerificationEvent>(_onSubmitPanicButtonVerification);
+    on<SubmitPanicButtonCompletionEvent>(_onSubmitPanicButtonCompletion);
+  }
+
+  Future<void> _onSubmitPanicButtonCompletion(
+    SubmitPanicButtonCompletionEvent event,
+    Emitter<PanicButtonState> emit,
+  ) async {
+    emit(state.copyWith(
+      isSubmittingVerification: true,
+      submitVerificationError: null,
+      submitVerificationSuccess: false,
+    ));
+
+    try {
+      print('');
+      print('🎯 ========================================');
+      print('🎯 [PanicButtonBloc] SUBMIT PANIC BUTTON COMPLETION (EDIT)');
+      print('🎯 ========================================');
+      print('🎯 Event Details:');
+      print('  - Id: ${event.id}');
+      print('  - Status: ${event.request.status}');
+
+      await panicButtonRepository.editPanicButton(event.id, event.request);
+
+      print('🎯 Completion submitted successfully');
+      print('🎯 ========================================');
+      print('');
+
+      emit(state.copyWith(
+        isSubmittingVerification: false,
+        submitVerificationSuccess: true,
+        submitVerificationError: null,
+      ));
+    } catch (e, stackTrace) {
+      print('');
+      print('❌ ========================================');
+      print('❌ [PanicButtonBloc] ERROR SUBMITTING COMPLETION');
+      print('❌ ========================================');
+      print('❌ Error: $e');
+      print('❌ Stack Trace:');
+      print(stackTrace);
+      print('❌ ========================================');
+      print('');
+
+      emit(state.copyWith(
+        isSubmittingVerification: false,
+        submitVerificationSuccess: false,
+        submitVerificationError: 'Gagal menyelesaikan: ${e.toString()}',
+      ));
+    }
   }
 
   Future<void> _onApplyPanicButtonHistoryFilter(

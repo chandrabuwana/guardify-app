@@ -36,6 +36,12 @@ abstract class PanicButtonApiClient {
     @Body() PanicButtonSubmitRequest request,
   );
 
+  @PUT('/PanicButton/edit/{id}')
+  Future<PanicButtonSubmitResponse> editPanicButton(
+    @Path('id') String id,
+    @Body() Map<String, dynamic> body,
+  );
+
   @POST('/IncidentType/list')
   Future<IncidentTypeListResponse> getIncidentTypes(
     @Body() IncidentTypeListRequest request,

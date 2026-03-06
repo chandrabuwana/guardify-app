@@ -1,11 +1,16 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as path;
 import '../../../../core/constants/enums.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/security/security_manager.dart';
 import '../../../../core/utils/user_role_helper.dart';
+import '../../data/models/panic_button_edit_request.dart';
 import '../../domain/entities/panic_button_history_item.dart';
 import '../bloc/panic_button_bloc.dart';
 import '../bloc/panic_button_event.dart';
@@ -31,6 +36,30 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
   File? _proofImage;
   UserRole? _currentUserRole;
   bool _isLoadingRole = true;
+
+  Future<String> _convertImageToBase64(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    return base64Encode(bytes);
+  }
+
+  String _getMimeType(String fileName) {
+    final extension = path.extension(fileName).toLowerCase();
+    switch (extension) {
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      case '.png':
+        return 'image/png';
+      case '.gif':
+        return 'image/gif';
+      case '.bmp':
+        return 'image/bmp';
+      case '.webp':
+        return 'image/webp';
+      default:
+        return 'image/jpeg';
+    }
+  }
 
   @override
   void initState() {
@@ -858,6 +887,12 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
   }
 
   Widget _buildBuktiPenyelesaianField({required bool canEdit}) {
+    final detailItem = context.read<PanicButtonBloc>().state.detailItem;
+    final canViewEvidence =
+        _currentUserRole == UserRole.pjo || _currentUserRole == UserRole.pengawas;
+    final evidence = detailItem?.evidenceFile;
+    final isCompleted = detailItem != null && _isCompletedStatus(detailItem.status);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -960,6 +995,31 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
             ],
           ),
         ),
+        if (!canEdit && canViewEvidence && isCompleted && evidence != null) ...[
+          8.verticalSpace,
+          GestureDetector(
+            onTap: () => _showImagePreview(evidence.url),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8.r),
+              child: Image.network(
+                evidence.url,
+                width: 100.w,
+                height: 100.h,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 100.w,
+                    height: 100.h,
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: Icon(Icons.broken_image, color: Colors.grey[600]),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
         if (_proofImage != null) ...[
           8.verticalSpace,
           Stack(
@@ -1262,13 +1322,55 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
       return;
     }
 
-    context.read<PanicButtonBloc>().add(
-          SubmitPanicButtonVerificationEvent(
-            id: item.id,
-            status: 'COMPLETED',
-            notes: completionAction,
+    () async {
+      try {
+        final solverId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+        final now = DateTime.now().toUtc().toIso8601String();
+
+        final proofImage = _proofImage!;
+        final fileName = path.basename(proofImage.path);
+        final base64 = await _convertImageToBase64(proofImage);
+        final mimeType = _getMimeType(fileName);
+        final fileSize = await proofImage.length();
+
+        final request = PanicButtonEditRequest(
+          id: item.id,
+          action: item.action,
+          areasId: item.areasId,
+          description: item.description,
+          feedback: item.feedback,
+          idIncidentType: item.idIncidentType,
+          reporterDate: (item.reporterDate ?? item.createDate ?? DateTime.now())
+              .toUtc()
+              .toIso8601String(),
+          reporterId: item.reporterId,
+          resolveAction: completionAction,
+          solverDate: now,
+          solverId: (solverId != null && solverId.isNotEmpty) ? solverId : null,
+          status: 'COMPLETED',
+          files: const [],
+          evidenceFile: PanicButtonEditFile(
+            filename: fileName,
+            mimeType: mimeType,
+            base64: base64,
+            fileSize: fileSize,
           ),
         );
+
+        if (!mounted) return;
+        context.read<PanicButtonBloc>().add(
+              SubmitPanicButtonCompletionEvent(
+                id: item.id,
+                request: request,
+              ),
+            );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memproses bukti penyelesaian: $e')),
+        );
+      }
+    }();
   }
 
   void _submitVerify(PanicButtonHistoryItem item) {
