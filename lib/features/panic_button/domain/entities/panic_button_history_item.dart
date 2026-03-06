@@ -20,6 +20,7 @@ class PanicButtonHistoryItem {
   final String? solverNrp;
   final String status;
   final List<PanicButtonHistoryFile> files;
+  final PanicButtonHistoryFile? evidenceFile;
 
   PanicButtonHistoryItem({
     required this.id,
@@ -43,6 +44,7 @@ class PanicButtonHistoryItem {
     this.solverNrp,
     required this.status,
     this.files = const [],
+    this.evidenceFile,
   });
 
   // Get formatted ID (e.g., PNC09272)

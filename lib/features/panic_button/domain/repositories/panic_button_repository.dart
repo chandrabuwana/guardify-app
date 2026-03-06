@@ -2,6 +2,7 @@ import '../entities/panic_alert.dart';
 import '../entities/panic_button_history_item.dart';
 import '../../data/models/incident_request_model.dart';
 import '../../data/models/panic_button_list_request.dart';
+import '../../data/models/panic_button_edit_request.dart';
 import '../../data/models/panic_button_submit_request.dart';
 import '../../data/models/panic_button_incident_type_model.dart';
 
@@ -15,5 +16,6 @@ abstract class PanicButtonRepository {
   );
   Future<PanicButtonHistoryItem> getPanicButtonDetail(String id);
   Future<void> submitPanicButtonVerification(PanicButtonSubmitRequest request);
+  Future<void> editPanicButton(String id, PanicButtonEditRequest request);
   Future<List<PanicButtonIncidentTypeModel>> getIncidentTypes();
 }

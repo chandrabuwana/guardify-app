@@ -475,7 +475,7 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                       // Title
                       const Center(
                         child: Text(
-                          'Absensi Patroli222',
+                          'Absensi Patroli',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,

@@ -6,6 +6,7 @@ import '../models/panic_button_list_response.dart';
 import '../models/panic_button_detail_response.dart';
 import '../models/panic_button_submit_request.dart';
 import '../models/panic_button_submit_response.dart';
+import '../models/panic_button_edit_request.dart';
 import '../models/incident_type_list_request.dart';
 import '../models/incident_type_list_response.dart';
 import '../models/panic_button_incident_type_model.dart';
@@ -311,6 +312,56 @@ class PanicButtonRemoteDataSourceImpl implements PanicButtonDataSource {
       print('❌ ========================================');
       print('');
       throw Exception('Failed to submit panic button: $e');
+    }
+  }
+
+  @override
+  Future<PanicButtonSubmitResponse> editPanicButton(
+    String id,
+    PanicButtonEditRequest request,
+  ) async {
+    try {
+      print('');
+      print('🌐 ========================================');
+      print('🌐 [PanicButtonRemoteDataSource] EDIT PANIC BUTTON');
+      print('🌐 ========================================');
+      print('🌐 Request Details:');
+      print('  - Endpoint: /PanicButton/edit/$id');
+      print('  - Method: PUT');
+      print('  - Status: ${request.status}');
+      print('  - ResolveAction: ${request.resolveAction ?? "null"}');
+      print('  - EvidenceFile: ${request.evidenceFile != null ? "Available" : "Null"}');
+
+      final startTime = DateTime.now();
+      final response = await apiClient.editPanicButton(id, request.toJson());
+      final endTime = DateTime.now();
+      final duration = endTime.difference(startTime);
+
+      print('🌐 Response received in ${duration.inMilliseconds}ms');
+      print('🌐 Response Details:');
+      print('  - Code: ${response.code}');
+      print('  - Succeeded: ${response.succeeded}');
+      print('  - Message: ${response.message}');
+      print('  - Description: ${response.description}');
+      print('🌐 ========================================');
+      print('✅ [PanicButtonRemoteDataSource] SUCCESS');
+      print('🌐 ========================================');
+      print('');
+
+      if (!response.succeeded) {
+        throw Exception('API Error: ${response.message}');
+      }
+
+      return response;
+    } catch (e) {
+      print('');
+      print('❌ ========================================');
+      print('❌ [PanicButtonRemoteDataSource] ERROR');
+      print('❌ ========================================');
+      print('❌ Error: $e');
+      print('❌ ========================================');
+      print('');
+      throw Exception('Failed to edit panic button: $e');
     }
   }
 
