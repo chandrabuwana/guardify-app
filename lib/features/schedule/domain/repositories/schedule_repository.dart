@@ -268,12 +268,14 @@ class CarryOverTask {
   final String reportNote;
   final String? solverDate;
   final String? solverId;
+  final CarryOverTaskSolver? solver;
   final String? solverNote;
   final String status;
   final String? updateBy;
   final String? updateDate;
   final String? location;
   final String? file;
+  final String? evidenceUrl;
 
   const CarryOverTask({
     required this.id,
@@ -285,12 +287,24 @@ class CarryOverTask {
     required this.reportNote,
     this.solverDate,
     this.solverId,
+    this.solver,
     this.solverNote,
     required this.status,
     this.updateBy,
     this.updateDate,
     this.location,
     this.file,
+    this.evidenceUrl,
+  });
+}
+
+class CarryOverTaskSolver {
+  final String? id;
+  final String? fullname;
+
+  const CarryOverTaskSolver({
+    this.id,
+    this.fullname,
   });
 }
 

@@ -72,18 +72,24 @@ class ClearFilterEvent extends DocumentEvent {
 class ApplyCompanyRuleFilterEvent extends DocumentEvent {
   final String? name;
   final String? code;
+  final int? idCompanyCategory;
   final String sortField;
   final int sortType;
 
   const ApplyCompanyRuleFilterEvent({
     this.name,
     this.code,
+    this.idCompanyCategory,
     this.sortField = 'CreateDate',
     this.sortType = 1,
   });
 
   @override
-  List<Object?> get props => [name, code, sortField, sortType];
+  List<Object?> get props => [name, code, idCompanyCategory, sortField, sortType];
+}
+
+class LoadCompanyRuleCategoriesEvent extends DocumentEvent {
+  const LoadCompanyRuleCategoriesEvent();
 }
 
 /// Event untuk download dokumen

@@ -12,7 +12,8 @@ import '../bloc/laporan_kegiatan_bloc.dart';
 import '../../domain/entities/laporan_kegiatan_entity.dart';
 import '../widgets/patrol_timeline_widget.dart';
 import 'package:intl/intl.dart';
-
+// tugas tertunda = carryOver
+//tugas lanjutan =listCarryOver.note
 class LaporanKegiatanDetailPage extends StatefulWidget {
   final String laporanId;
   final UserRole userRole;

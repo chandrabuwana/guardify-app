@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
+import '../entities/company_rule_category_entity.dart';
 import '../entities/document_entity.dart';
 
 /// Interface repository untuk mengelola data dokumen perusahaan
@@ -97,6 +98,9 @@ abstract class DocumentRepository {
   /// - Left(Failure): Jika terjadi error saat mengambil kategori
   /// - Right(List<String>): List kategori yang tersedia
   Future<Either<Failure, List<String>>> getDocumentCategories();
+
+  Future<Either<Failure, List<CompanyRuleCategoryEntity>>>
+      getCompanyRuleCategories();
 
   /// Menandai dokumen sebagai sudah dibaca/dilihat
   ///

@@ -522,7 +522,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Cari',
+                          hintText: 'Cari Nama Personil',
                           hintStyle: TS.bodyMedium.copyWith(
                             color: Colors.grey[600],
                           ),

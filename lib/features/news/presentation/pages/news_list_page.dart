@@ -7,6 +7,8 @@ import '../bloc/news_event.dart';
 import '../bloc/news_state.dart';
 import '../../domain/entities/news.dart';
 import '../../../../core/design/colors.dart';
+import '../../../../core/constants/enums.dart';
+import '../../../../core/utils/user_role_helper.dart';
 import 'news_detail_page.dart';
 import 'add_news_page.dart';
 
@@ -21,11 +23,24 @@ class _NewsListPageState extends State<NewsListPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  UserRole? _userRole;
+  bool _isLoadingRole = true;
+
   @override
   void initState() {
     super.initState();
     context.read<NewsBloc>().add(const NewsLoadNews());
     _scrollController.addListener(_onScroll);
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    final role = await UserRoleHelper.getUserRole();
+    if (!mounted) return;
+    setState(() {
+      _userRole = role;
+      _isLoadingRole = false;
+    });
   }
 
   @override
@@ -66,22 +81,23 @@ class _NewsListPageState extends State<NewsListPage> {
         elevation: 0,
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () {
-              // Get NewsBloc before creating new route context
-              final newsBloc = context.read<NewsBloc>();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BlocProvider.value(
-                    value: newsBloc,
-                    child: const AddNewsPage(),
+          if (!_isLoadingRole && _userRole == UserRole.pengawas)
+            IconButton(
+              icon: const Icon(Icons.add, color: Colors.white),
+              onPressed: () {
+                // Get NewsBloc before creating new route context
+                final newsBloc = context.read<NewsBloc>();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BlocProvider.value(
+                      value: newsBloc,
+                      child: const AddNewsPage(),
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
         ],
       ),
       body: BlocConsumer<NewsBloc, NewsState>(

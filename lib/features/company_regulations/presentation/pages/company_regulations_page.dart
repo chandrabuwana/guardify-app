@@ -10,6 +10,7 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_search_bar.dart';
 import '../widgets/custom_filter_button.dart';
 import '../widgets/custom_document_card.dart';
+import '../../domain/entities/company_rule_category_entity.dart';
 import '../../domain/entities/document_entity.dart';
 import 'document_preview_page.dart';
 
@@ -392,6 +393,7 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
       count++;
     }
     if (state.currentCategoryFilter != null) count++;
+    if (state.currentIdCompanyCategory != null) count++;
     if (state.currentStartDate != null && state.currentEndDate != null) count++;
 
     return count;
@@ -534,12 +536,20 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
   }
 
   void _showFilterDialog() {
-    // TODO: Implement filter dialog
+    final currentState = context.read<DocumentBloc>().state;
+    if (currentState is DocumentLoaded) {
+      context.read<DocumentBloc>().add(const LoadCompanyRuleCategoriesEvent());
+    }
+
+    final documentBloc = context.read<DocumentBloc>();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildFilterBottomSheet(),
+      builder: (context) => BlocProvider.value(
+        value: documentBloc,
+        child: _buildFilterBottomSheet(),
+      ),
     );
   }
 
@@ -561,125 +571,17 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
 
   Widget _buildFilterBottomSheet() {
     final currentState = context.read<DocumentBloc>().state;
-    String initialName = '';
-    String initialCode = '';
-    String sortField = 'CreateDate';
-    int sortType = 1;
-    if (currentState is DocumentLoaded) {
-      initialName = currentState.currentNameFilter ?? '';
-      initialCode = currentState.currentCodeFilter ?? '';
-      sortField = currentState.sortField;
-      sortType = currentState.sortType;
-    }
-
-    final nameController = TextEditingController(text: initialName);
-    final codeController = TextEditingController(text: initialCode);
-
-    return Container(
-      padding: REdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Filter Dokumen',
-            style: TS.titleMedium.copyWith(fontWeight: FontWeight.bold),
-          ),
-          16.verticalSpace,
-          TextField(
-            controller: nameController,
-            decoration: const InputDecoration(
-              labelText: 'Nama Dokumen',
-              hintText: 'Cari berdasarkan Name',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          12.verticalSpace,
-          TextField(
-            controller: codeController,
-            decoration: const InputDecoration(
-              labelText: 'Kode Dokumen',
-              hintText: 'Cari berdasarkan Code',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          16.verticalSpace,
-          DropdownButtonFormField<String>(
-            value: sortField,
-            items: const [
-              DropdownMenuItem(value: 'CreateDate', child: Text('Tanggal Dibuat')),
-              DropdownMenuItem(value: 'Name', child: Text('Nama')),
-              DropdownMenuItem(value: 'Code', child: Text('Kode')),
-            ],
-            onChanged: (v) {
-              if (v == null) return;
-              sortField = v;
-            },
-            decoration: const InputDecoration(
-              labelText: 'Urutkan Berdasarkan',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          12.verticalSpace,
-          Row(
-            children: [
-              Expanded(
-                child: RadioListTile<int>(
-                  value: 0,
-                  groupValue: sortType,
-                  onChanged: (v) {
-                    if (v == null) return;
-                    sortType = v;
-                  },
-                  title: const Text('Ascending'),
-                ),
-              ),
-              Expanded(
-                child: RadioListTile<int>(
-                  value: 1,
-                  groupValue: sortType,
-                  onChanged: (v) {
-                    if (v == null) return;
-                    sortType = v;
-                  },
-                  title: const Text('Descending'),
-                ),
-              ),
-            ],
-          ),
-          24.verticalSpace,
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Batal'),
-                ),
-              ),
-              16.horizontalSpace,
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    context.read<DocumentBloc>().add(
-                          ApplyCompanyRuleFilterEvent(
-                            name: nameController.text,
-                            code: codeController.text,
-                            sortField: sortField,
-                            sortType: sortType,
-                          ),
-                        );
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Terapkan'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return _CompanyRegulationsFilterSheet(
+      initialName:
+          currentState is DocumentLoaded ? (currentState.currentNameFilter ?? '') : '',
+      initialCode:
+          currentState is DocumentLoaded ? (currentState.currentCodeFilter ?? '') : '',
+      initialSortField:
+          currentState is DocumentLoaded ? currentState.sortField : 'CreateDate',
+      initialSortType:
+          currentState is DocumentLoaded ? currentState.sortType : 1,
+      initialIdCompanyCategory:
+          currentState is DocumentLoaded ? currentState.currentIdCompanyCategory : null,
     );
   }
 
@@ -688,9 +590,8 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
       title: const Text('Urutkan Dokumen'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          // TODO: Add sort options
-          const Text('Sort options akan ditambahkan di sini'),
+        children: const [
+          Text('Sort options akan ditambahkan di sini'),
         ],
       ),
       actions: [
@@ -700,7 +601,6 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
         ),
         ElevatedButton(
           onPressed: () {
-            // TODO: Apply sort
             Navigator.pop(context);
           },
           child: const Text('Terapkan'),
@@ -733,6 +633,210 @@ class _CompanyRegulationsPageState extends State<CompanyRegulationsPage> {
           child: const Text('Download Semua'),
         ),
       ],
+    );
+  }
+}
+
+class _CompanyRegulationsFilterSheet extends StatefulWidget {
+  final String initialName;
+  final String initialCode;
+  final String initialSortField;
+  final int initialSortType;
+  final int? initialIdCompanyCategory;
+
+  const _CompanyRegulationsFilterSheet({
+    required this.initialName,
+    required this.initialCode,
+    required this.initialSortField,
+    required this.initialSortType,
+    required this.initialIdCompanyCategory,
+  });
+
+  @override
+  State<_CompanyRegulationsFilterSheet> createState() =>
+      _CompanyRegulationsFilterSheetState();
+}
+
+class _CompanyRegulationsFilterSheetState
+    extends State<_CompanyRegulationsFilterSheet> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _codeController;
+
+  late String _sortField;
+  late int _sortType;
+  int? _selectedIdCompanyCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+    _codeController = TextEditingController(text: widget.initialCode);
+    _sortField = widget.initialSortField;
+    _sortType = widget.initialSortType;
+    _selectedIdCompanyCategory = widget.initialIdCompanyCategory;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = context.read<DocumentBloc>().state;
+      if (state is DocumentLoaded) {
+        context.read<DocumentBloc>().add(const LoadCompanyRuleCategoriesEvent());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: REdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Filter Dokumen',
+            style: TS.titleMedium.copyWith(fontWeight: FontWeight.bold),
+          ),
+          16.verticalSpace,
+          TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+              labelText: 'Nama Dokumen',
+              hintText: 'Cari berdasarkan Name',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          12.verticalSpace,
+          TextField(
+            controller: _codeController,
+            decoration: const InputDecoration(
+              labelText: 'Kode Dokumen',
+              hintText: 'Cari berdasarkan Code',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          16.verticalSpace,
+          BlocBuilder<DocumentBloc, DocumentState>(
+            builder: (context, state) {
+              final categories = state is DocumentLoaded
+                  ? state.companyRuleCategories
+                  : const <CompanyRuleCategoryEntity>[];
+
+              return DropdownButtonFormField<int?>(
+                value: _selectedIdCompanyCategory,
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('Semua Kategori'),
+                  ),
+                  ...categories.map(
+                    (c) => DropdownMenuItem<int?>(
+                      value: c.id,
+                      child: Text(c.name),
+                    ),
+                  ),
+                ],
+                onChanged: (v) {
+                  setState(() {
+                    _selectedIdCompanyCategory = v;
+                  });
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Kategori',
+                  border: OutlineInputBorder(),
+                ),
+              );
+            },
+          ),
+          16.verticalSpace,
+          DropdownButtonFormField<String>(
+            value: _sortField,
+            items: const [
+              DropdownMenuItem(value: 'CreateDate', child: Text('Tanggal Dibuat')),
+              DropdownMenuItem(value: 'Name', child: Text('Nama')),
+              DropdownMenuItem(value: 'Code', child: Text('Kode')),
+            ],
+            onChanged: (v) {
+              if (v == null) return;
+              setState(() {
+                _sortField = v;
+              });
+            },
+            decoration: const InputDecoration(
+              labelText: 'Urutkan Berdasarkan',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          12.verticalSpace,
+          Row(
+            children: [
+              Expanded(
+                child: RadioListTile<int>(
+                  value: 0,
+                  groupValue: _sortType,
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setState(() {
+                      _sortType = v;
+                    });
+                  },
+                  title: const Text('Ascending'),
+                ),
+              ),
+              Expanded(
+                child: RadioListTile<int>(
+                  value: 1,
+                  groupValue: _sortType,
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setState(() {
+                      _sortType = v;
+                    });
+                  },
+                  title: const Text('Descending'),
+                ),
+              ),
+            ],
+          ),
+          24.verticalSpace,
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Batal'),
+                ),
+              ),
+              16.horizontalSpace,
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    context.read<DocumentBloc>().add(
+                          ApplyCompanyRuleFilterEvent(
+                            name: _nameController.text,
+                            code: _codeController.text,
+                            idCompanyCategory: _selectedIdCompanyCategory,
+                            sortField: _sortField,
+                            sortType: _sortType,
+                          ),
+                        );
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Terapkan'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

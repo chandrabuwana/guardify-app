@@ -210,12 +210,12 @@ class LaporanKegiatanRemoteDataSourceImpl
 
 
       // Map status to API format
-      // Backend expects: CHECKIN, WAITING, VERIFIED, REVISION
+      // Backend expects: CHECKIN, WAITING, VERIFIKASI, REVISION
       String apiStatus = '';
       if (status == LaporanStatus.waiting) {
         apiStatus = 'WAITING';
       } else if (status == LaporanStatus.verified) {
-        apiStatus = 'VERIFIED';
+        apiStatus = 'VERIFIKASI';
       } else if (status == LaporanStatus.revision) {
         apiStatus = 'REVISION';
       } else if (status == LaporanStatus.checkIn) {

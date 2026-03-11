@@ -1,3 +1,5 @@
+import '../../domain/entities/company_rule_category_entity.dart';
+
 class CompanyRuleCategoryModel {
   final int id;
   final bool active;
@@ -45,5 +47,12 @@ class CompanyRuleCategoryModel {
       'UpdateBy': updateBy,
       'UpdateDate': updateDate?.toIso8601String(),
     };
+  }
+
+  CompanyRuleCategoryEntity toEntity() {
+    return CompanyRuleCategoryEntity(
+      id: id,
+      name: name,
+    );
   }
 }
