@@ -1,12 +1,14 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/error/failures.dart';
+import '../../domain/entities/company_rule_category_entity.dart';
 import '../../domain/entities/document_entity.dart';
 import '../../domain/repositories/document_repository.dart';
 import '../datasources/document_local_datasource.dart';
 import '../datasources/document_remote_datasource.dart';
 import '../models/document_model.dart';
 import '../models/company_rule_list_request.dart';
+import '../models/company_rule_category_model.dart';
 
 /// Implementasi repository untuk mengelola data dokumen
 ///
@@ -73,6 +75,32 @@ class DocumentRepositoryImpl implements DocumentRepository {
       } catch (_) {}
 
       return Left(ServerFailure('Failed to get documents: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<CompanyRuleCategoryEntity>>>
+      getCompanyRuleCategories() async {
+    try {
+      final request = {
+        'Filter': const <Map<String, dynamic>>[],
+        'Sort': const {'Field': '', 'Type': 0},
+        'Start': 1,
+        'Length': 100,
+      };
+
+      final response = await remoteDataSource.getCompanyRuleCategoriesList(
+        request,
+      );
+
+      final entities = response.list
+          .where((c) => c.active)
+          .map((CompanyRuleCategoryModel model) => model.toEntity())
+          .toList();
+
+      return Right(entities);
+    } catch (e) {
+      return Left(ServerFailure('Failed to get company rule categories: $e'));
     }
   }
 

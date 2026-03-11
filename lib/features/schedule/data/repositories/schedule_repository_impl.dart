@@ -535,12 +535,19 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
             reportNote: c.reportNote,
             solverDate: c.solverDate,
             solverId: c.solverId,
+            solver: c.solver != null
+                ? CarryOverTaskSolver(
+                    id: c.solver!.id,
+                    fullname: c.solver!.fullname,
+                  )
+                : null,
             solverNote: c.solverNote,
             status: c.status,
             updateBy: c.updateBy,
             updateDate: c.updateDate,
             location: c.location,
             file: c.file,
+            evidenceUrl: c.evidenceUrl,
           );
         }).toList(),
       );

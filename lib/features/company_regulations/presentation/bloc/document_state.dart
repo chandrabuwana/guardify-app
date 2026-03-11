@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/company_rule_category_entity.dart';
 import '../../domain/entities/document_entity.dart';
 
 /// Abstract base class untuk semua document states
@@ -24,10 +25,12 @@ class DocumentLoaded extends DocumentState {
   final List<DocumentEntity> documents;
   final List<DocumentEntity> filteredDocuments;
   final List<String> categories;
+  final List<CompanyRuleCategoryEntity> companyRuleCategories;
   final String? currentQuery;
   final String? currentNameFilter;
   final String? currentCodeFilter;
   final String? currentCategoryFilter;
+  final int? currentIdCompanyCategory;
   final DateTime? currentStartDate;
   final DateTime? currentEndDate;
   final bool isSearchMode;
@@ -43,10 +46,12 @@ class DocumentLoaded extends DocumentState {
     required this.documents,
     required this.filteredDocuments,
     this.categories = const [],
+    this.companyRuleCategories = const [],
     this.currentQuery,
     this.currentNameFilter,
     this.currentCodeFilter,
     this.currentCategoryFilter,
+    this.currentIdCompanyCategory,
     this.currentStartDate,
     this.currentEndDate,
     this.isSearchMode = false,
@@ -63,10 +68,12 @@ class DocumentLoaded extends DocumentState {
         documents,
         filteredDocuments,
         categories,
+        companyRuleCategories,
         currentQuery,
         currentNameFilter,
         currentCodeFilter,
         currentCategoryFilter,
+        currentIdCompanyCategory,
         currentStartDate,
         currentEndDate,
         isSearchMode,
@@ -83,10 +90,12 @@ class DocumentLoaded extends DocumentState {
     List<DocumentEntity>? documents,
     List<DocumentEntity>? filteredDocuments,
     List<String>? categories,
+    List<CompanyRuleCategoryEntity>? companyRuleCategories,
     String? currentQuery,
     String? currentNameFilter,
     String? currentCodeFilter,
     String? currentCategoryFilter,
+    int? currentIdCompanyCategory,
     DateTime? currentStartDate,
     DateTime? currentEndDate,
     bool? isSearchMode,
@@ -101,11 +110,14 @@ class DocumentLoaded extends DocumentState {
       documents: documents ?? this.documents,
       filteredDocuments: filteredDocuments ?? this.filteredDocuments,
       categories: categories ?? this.categories,
+      companyRuleCategories: companyRuleCategories ?? this.companyRuleCategories,
       currentQuery: currentQuery ?? this.currentQuery,
       currentNameFilter: currentNameFilter ?? this.currentNameFilter,
       currentCodeFilter: currentCodeFilter ?? this.currentCodeFilter,
       currentCategoryFilter:
           currentCategoryFilter ?? this.currentCategoryFilter,
+      currentIdCompanyCategory:
+          currentIdCompanyCategory ?? this.currentIdCompanyCategory,
       currentStartDate: currentStartDate ?? this.currentStartDate,
       currentEndDate: currentEndDate ?? this.currentEndDate,
       isSearchMode: isSearchMode ?? this.isSearchMode,
@@ -124,10 +136,12 @@ class DocumentLoaded extends DocumentState {
       documents: documents,
       filteredDocuments: documents,
       categories: categories,
+      companyRuleCategories: companyRuleCategories,
       currentQuery: null,
       currentNameFilter: currentNameFilter,
       currentCodeFilter: currentCodeFilter,
       currentCategoryFilter: currentCategoryFilter,
+      currentIdCompanyCategory: currentIdCompanyCategory,
       currentStartDate: currentStartDate,
       currentEndDate: currentEndDate,
       isSearchMode: false,
@@ -145,10 +159,12 @@ class DocumentLoaded extends DocumentState {
       documents: documents,
       filteredDocuments: documents,
       categories: categories,
+      companyRuleCategories: companyRuleCategories,
       currentQuery: currentQuery,
       currentNameFilter: null,
       currentCodeFilter: null,
       currentCategoryFilter: null,
+      currentIdCompanyCategory: null,
       currentStartDate: null,
       currentEndDate: null,
       isSearchMode: isSearchMode,

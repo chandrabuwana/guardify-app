@@ -139,12 +139,18 @@ CarryOverTaskModel _$CarryOverTaskModelFromJson(Map<String, dynamic> json) =>
           reportNote: $checkedConvert('ReportNote', (v) => v as String),
           solverDate: $checkedConvert('SolverDate', (v) => v as String?),
           solverId: $checkedConvert('SolverId', (v) => v as String?),
+          solver: $checkedConvert(
+              'Solver',
+              (v) => v == null
+                  ? null
+                  : CarryOverSolverModel.fromJson(v as Map<String, dynamic>)),
           solverNote: $checkedConvert('SolverNote', (v) => v as String?),
           status: $checkedConvert('Status', (v) => v as String),
           updateBy: $checkedConvert('UpdateBy', (v) => v as String?),
           updateDate: $checkedConvert('UpdateDate', (v) => v as String?),
           location: $checkedConvert('Location', (v) => v as String?),
           file: $checkedConvert('File', (v) => v as String?),
+          evidenceUrl: $checkedConvert('EvidenceUrl', (v) => v as String?),
         );
         return val;
       },
@@ -158,12 +164,14 @@ CarryOverTaskModel _$CarryOverTaskModelFromJson(Map<String, dynamic> json) =>
         'reportNote': 'ReportNote',
         'solverDate': 'SolverDate',
         'solverId': 'SolverId',
+        'solver': 'Solver',
         'solverNote': 'SolverNote',
         'status': 'Status',
         'updateBy': 'UpdateBy',
         'updateDate': 'UpdateDate',
         'location': 'Location',
-        'file': 'File'
+        'file': 'File',
+        'evidenceUrl': 'EvidenceUrl'
       },
     );
 
@@ -178,10 +186,32 @@ Map<String, dynamic> _$CarryOverTaskModelToJson(CarryOverTaskModel instance) =>
       'ReportNote': instance.reportNote,
       'SolverDate': instance.solverDate,
       'SolverId': instance.solverId,
+      'Solver': instance.solver?.toJson(),
       'SolverNote': instance.solverNote,
       'Status': instance.status,
       'UpdateBy': instance.updateBy,
       'UpdateDate': instance.updateDate,
       'Location': instance.location,
       'File': instance.file,
+      'EvidenceUrl': instance.evidenceUrl,
+    };
+
+CarryOverSolverModel _$CarryOverSolverModelFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      'CarryOverSolverModel',
+      json,
+      ($checkedConvert) {
+        final val = CarryOverSolverModel(
+          id: $checkedConvert('Id', (v) => v as String?),
+          fullname: $checkedConvert('Fullname', (v) => v as String?),
+        );
+        return val;
+      },
+      fieldKeyMap: const {'id': 'Id', 'fullname': 'Fullname'},
+    );
+
+Map<String, dynamic> _$CarryOverSolverModelToJson(CarryOverSolverModel instance) =>
+    <String, dynamic>{
+      'Id': instance.id,
+      'Fullname': instance.fullname,
     };

@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import '../models/document_model.dart';
 import '../models/company_rule_list_request.dart';
 import '../models/company_rule_list_response.dart';
+import '../models/company_rule_category_list_response.dart';
 
 /// Abstract class untuk remote data source dokumen
 abstract class DocumentRemoteDataSource {
@@ -19,6 +20,9 @@ abstract class DocumentRemoteDataSource {
   );
   Future<DocumentModel> getDocumentById(String documentId);
   Future<List<String>> getDocumentCategories();
+
+  Future<CompanyRuleCategoryListResponse> getCompanyRuleCategoriesList(
+      Map<String, dynamic> request);
   Future<String> downloadDocument(DocumentModel document);
   Future<void> markDocumentAsRead(String documentId);
 }
@@ -60,6 +64,39 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
       throw Exception('Network error: ${e.message}');
     } catch (e) {
       throw Exception('Failed to load company rules: $e');
+    }
+  }
+
+  @override
+  Future<CompanyRuleCategoryListResponse> getCompanyRuleCategoriesList(
+      Map<String, dynamic> request) async {
+    try {
+      final response = await dio.post(
+        '/CompanyRuleCategory/list',
+        data: request,
+      );
+
+      if (response.statusCode == 200) {
+        final categoryResponse =
+            CompanyRuleCategoryListResponse.fromJson(response.data);
+
+        if (!categoryResponse.succeeded) {
+          throw Exception(categoryResponse.message);
+        }
+
+        return categoryResponse;
+      } else {
+        throw Exception(
+            'Failed to load company rule categories: ${response.statusMessage}');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception(
+            'API Error: ${e.response?.data['Message'] ?? e.message}');
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to load company rule categories: $e');
     }
   }
 
