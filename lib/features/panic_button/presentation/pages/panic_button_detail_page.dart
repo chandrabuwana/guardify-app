@@ -29,8 +29,10 @@ class PanicButtonDetailPage extends StatefulWidget {
 }
 
 class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
-  final TextEditingController _tindakanPenyelesaianController = TextEditingController();
-  final TextEditingController _buktiPenyelesaianController = TextEditingController();
+  final TextEditingController _tindakanPenyelesaianController =
+      TextEditingController();
+  final TextEditingController _buktiPenyelesaianController =
+      TextEditingController();
   final TextEditingController _feedbackController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
   File? _proofImage;
@@ -113,8 +115,9 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
     if (role == null) return false;
     final status = item.status;
 
-    final eligibleRole =
-        role == UserRole.pjo || role == UserRole.deputy || role == UserRole.pengawas;
+    final eligibleRole = role == UserRole.pjo ||
+        role == UserRole.deputy ||
+        role == UserRole.pengawas;
     if (!eligibleRole) return false;
 
     // Pengawas: OPEN only (REVISED is view-only per requirement)
@@ -126,14 +129,16 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
     return _isOpenStatus(status) || _isRevisedStatus(status);
   }
 
-  bool _canMarkCompleted(PanicButtonHistoryItem item) => _canEditCompletion(item);
+  bool _canMarkCompleted(PanicButtonHistoryItem item) =>
+      _canEditCompletion(item);
 
   bool _canSupervisorVerifyOrRevise(PanicButtonHistoryItem item) {
     if (!_isPengawas) return false;
     return _isCompletedStatus(item.status);
   }
 
-  bool _canEditFeedback(PanicButtonHistoryItem item) => _canSupervisorVerifyOrRevise(item);
+  bool _canEditFeedback(PanicButtonHistoryItem item) =>
+      _canSupervisorVerifyOrRevise(item);
 
   @override
   Widget build(BuildContext context) {
@@ -158,235 +163,315 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
       ),
       body: SafeArea(
         child: BlocListener<PanicButtonBloc, PanicButtonState>(
-        listener: (context, state) {
-          if (state.detailItem != null) {
-            // Pre-fill editable fields if they exist
-            final item = state.detailItem!;
-            final resolveAction = item.resolveAction?.trim();
-            if (resolveAction != null &&
-                resolveAction.isNotEmpty &&
-                _tindakanPenyelesaianController.text.isEmpty) {
-              _tindakanPenyelesaianController.text = resolveAction;
+          listener: (context, state) {
+            if (state.detailItem != null) {
+              // Pre-fill editable fields if they exist
+              final item = state.detailItem!;
+              final resolveAction = item.resolveAction?.trim();
+              if (resolveAction != null &&
+                  resolveAction.isNotEmpty &&
+                  _tindakanPenyelesaianController.text.isEmpty) {
+                _tindakanPenyelesaianController.text = resolveAction;
+              }
+
+              final feedback = item.feedback?.trim();
+              if (feedback != null &&
+                  feedback.isNotEmpty &&
+                  _feedbackController.text.isEmpty) {
+                _feedbackController.text = feedback;
+              }
             }
 
-            final feedback = item.feedback?.trim();
-            if (feedback != null && feedback.isNotEmpty && _feedbackController.text.isEmpty) {
-              _feedbackController.text = feedback;
+            // Handle verification submission
+            if (state.submitVerificationSuccess) {
+              // Navigate back to history page and reload
+              Navigator.pop(
+                  context, true); // Pass true to indicate refresh needed
             }
-          }
 
-          // Handle verification submission
-          if (state.submitVerificationSuccess) {
-            // Navigate back to history page and reload
-            Navigator.pop(context, true); // Pass true to indicate refresh needed
-          }
-
-          if (state.submitVerificationError != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.submitVerificationError!),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-        child: BlocBuilder<PanicButtonBloc, PanicButtonState>(
-          builder: (context, state) {
-            if (state.isLoadingDetail || _isLoadingRole) {
-              return const Center(
-                child: CircularProgressIndicator(),
+            if (state.submitVerificationError != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.submitVerificationError!),
+                  backgroundColor: Colors.red,
+                ),
               );
             }
+          },
+          child: BlocBuilder<PanicButtonBloc, PanicButtonState>(
+            builder: (context, state) {
+              if (state.isLoadingDetail || _isLoadingRole) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-            if (state.detailErrorMessage != null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 48.sp,
-                      color: Colors.red,
-                    ),
-                    16.verticalSpace,
-                    Text(
-                      state.detailErrorMessage!,
-                      style: TextStyle(
-                        fontSize: 14.sp,
+              if (state.detailErrorMessage != null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 48.sp,
                         color: Colors.red,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    16.verticalSpace,
-                    ElevatedButton(
-                      onPressed: () {
-                        context.read<PanicButtonBloc>().add(
-                              LoadPanicButtonDetailEvent(widget.incidentId),
-                            );
-                      },
-                      child: const Text('Coba Lagi'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            final historyItem = state.detailItem;
-            if (historyItem == null) {
-              return const Center(
-                child: Text('Data tidak ditemukan'),
-              );
-            }
-
-            final canEditCompletion = _canEditCompletion(historyItem);
-            final canMarkCompleted = _canMarkCompleted(historyItem);
-            final canSupervisorVerifyOrRevise = _canSupervisorVerifyOrRevise(historyItem);
-            final canEditFeedback = _canEditFeedback(historyItem);
-
-            return Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: REdgeInsets.fromLTRB(16, 16, 16, 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildFieldLabel('Status'),
-                              8.verticalSpace,
-                              _buildGreyField(historyItem.status),
-                              12.verticalSpace,
-
-                              _buildFieldLabel('Jenis Keadaan Darurat'),
-                              8.verticalSpace,
-                              _buildGreyField(historyItem.incidentTypeName ?? '-'),
-                              12.verticalSpace,
-
-                              _buildFieldLabel('Lokasi Kejadian'),
-                              8.verticalSpace,
-                              _buildGreyField(historyItem.areaName ?? '-'),
-                              12.verticalSpace,
-
-                              _buildFieldLabel('Kejadian'),
-                              8.verticalSpace,
-                              _buildGreyField(historyItem.description, isMultiline: true),
-                              12.verticalSpace,
-
-                              if (historyItem.files.isNotEmpty) ...[
-                                _buildFieldLabel('Foto Kejadian'),
-                                8.verticalSpace,
-                                _buildPhotoGrid(historyItem.files),
-                                12.verticalSpace,
-                              ],
-
-                              if (historyItem.feedback != null && historyItem.feedback!.trim().isNotEmpty) ...[
-                                _buildFieldLabel('Tindakan Yang Dibutuhkan'),
-                                8.verticalSpace,
-                                _buildGreyField(historyItem.feedback!, isMultiline: true),
-                                12.verticalSpace,
-                              ],
-
-                              _buildFieldLabel('Pelapor'),
-                              8.verticalSpace,
-                              _buildGreyField(_formatReporter(historyItem)),
-                              12.verticalSpace,
-
-                              _buildFieldLabel('Tanggal Kejadian'),
-                              8.verticalSpace,
-                              _buildGreyField(_formatIncidentDate(historyItem)),
-                              12.verticalSpace,
-
-                              _buildFieldLabel('Tindakan Penyelesaian'),
-                              8.verticalSpace,
-                              canEditCompletion
-                                  ? _buildEditableField(
-                                      'Tindakan Penyelesaian',
-                                      _tindakanPenyelesaianController,
-                                      maxLines: 4,
-                                      hintText: 'Masukkan tindakan penyelesaian...',
-                                    )
-                                  : _buildGreyField(historyItem.resolveAction?.trim().isNotEmpty == true
-                                      ? historyItem.resolveAction!.trim()
-                                      : '-', isMultiline: true),
-                              12.verticalSpace,
-
-                              _buildBuktiPenyelesaianField(canEdit: canEditCompletion),
-                              12.verticalSpace,
-
-                              _buildFieldLabel('Diselesaikan Oleh'),
-                              8.verticalSpace,
-                              _buildGreyField(_formatSolver(historyItem)),
-                              12.verticalSpace,
-
-                              _buildFieldLabel('Tanggal Penyelesaian'),
-                              8.verticalSpace,
-                              _buildGreyField(_formatSolverDate(historyItem)),
-                              12.verticalSpace,
-
-                              _buildFieldLabel('Umpan Balik'),
-                              8.verticalSpace,
-                              _buildFeedbackField(historyItem, canEdit: canEditFeedback),
-                            ],
-                          ),
+                      16.verticalSpace,
+                      Text(
+                        state.detailErrorMessage!,
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: Colors.red,
                         ),
-                      ],
+                        textAlign: TextAlign.center,
+                      ),
+                      16.verticalSpace,
+                      ElevatedButton(
+                        onPressed: () {
+                          context.read<PanicButtonBloc>().add(
+                                LoadPanicButtonDetailEvent(widget.incidentId),
+                              );
+                        },
+                        child: const Text('Coba Lagi'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final historyItem = state.detailItem;
+              if (historyItem == null) {
+                return const Center(
+                  child: Text('Data tidak ditemukan'),
+                );
+              }
+
+              final canEditCompletion = _canEditCompletion(historyItem);
+              final canMarkCompleted = _canMarkCompleted(historyItem);
+              final canSupervisorVerifyOrRevise =
+                  _canSupervisorVerifyOrRevise(historyItem);
+              final canEditFeedback = _canEditFeedback(historyItem);
+
+              return Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: REdgeInsets.fromLTRB(16, 16, 16, 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFieldLabel('Status'),
+                                8.verticalSpace,
+                                _buildGreyField(historyItem.status),
+                                12.verticalSpace,
+                                _buildFieldLabel('Jenis Keadaan Darurat'),
+                                8.verticalSpace,
+                                _buildGreyField(
+                                    historyItem.incidentTypeName ?? '-'),
+                                12.verticalSpace,
+                                _buildFieldLabel('Lokasi Kejadian'),
+                                8.verticalSpace,
+                                _buildGreyField(historyItem.areaName ?? '-'),
+                                12.verticalSpace,
+                                _buildFieldLabel('Kejadian'),
+                                8.verticalSpace,
+                                _buildGreyField(historyItem.description,
+                                    isMultiline: true),
+                                12.verticalSpace,
+                                if (historyItem.files.isNotEmpty) ...[
+                                  _buildFieldLabel('Foto Kejadian'),
+                                  8.verticalSpace,
+                                  _buildPhotoGrid(historyItem.files),
+                                  12.verticalSpace,
+                                ],
+                                if (historyItem.feedback != null &&
+                                    historyItem.feedback!
+                                        .trim()
+                                        .isNotEmpty) ...[
+                                  _buildFieldLabel('Tindakan Yang Dibutuhkan'),
+                                  8.verticalSpace,
+                                  _buildGreyField(historyItem.feedback!,
+                                      isMultiline: true),
+                                  12.verticalSpace,
+                                ],
+                                _buildFieldLabel('Pelapor'),
+                                8.verticalSpace,
+                                _buildGreyField(_formatReporter(historyItem)),
+                                12.verticalSpace,
+                                _buildFieldLabel('Tanggal Kejadian'),
+                                8.verticalSpace,
+                                _buildGreyField(
+                                    _formatIncidentDate(historyItem)),
+                                12.verticalSpace,
+                                _buildFieldLabel('Tindakan Penyelesaian'),
+                                8.verticalSpace,
+                                canEditCompletion
+                                    ? _buildEditableField(
+                                        'Tindakan Penyelesaian',
+                                        _tindakanPenyelesaianController,
+                                        maxLines: 4,
+                                        hintText:
+                                            'Masukkan tindakan penyelesaian...',
+                                      )
+                                    : _buildGreyField(
+                                        historyItem.resolveAction
+                                                    ?.trim()
+                                                    .isNotEmpty ==
+                                                true
+                                            ? historyItem.resolveAction!.trim()
+                                            : '-',
+                                        isMultiline: true),
+                                12.verticalSpace,
+                                _buildBuktiPenyelesaianField(
+                                    canEdit: canEditCompletion),
+                                12.verticalSpace,
+                                _buildFieldLabel('Diselesaikan Oleh'),
+                                8.verticalSpace,
+                                _buildGreyField(_formatSolver(historyItem)),
+                                12.verticalSpace,
+                                _buildFieldLabel('Tanggal Penyelesaian'),
+                                8.verticalSpace,
+                                _buildGreyField(_formatSolverDate(historyItem)),
+                                12.verticalSpace,
+                                _buildFieldLabel('Umpan Balik'),
+                                8.verticalSpace,
+                                _buildFeedbackField(historyItem,
+                                    canEdit: canEditFeedback),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                // Bottom Button
-                if (canMarkCompleted || canSupervisorVerifyOrRevise)
-                  Container(
-                    padding: REdgeInsets.fromLTRB(16, 12, 16, 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 10,
-                          offset: const Offset(0, -4),
-                        ),
-                      ],
-                    ),
-                    child: SafeArea(
-                      top: false,
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 52.w,
-                            height: 52.h,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14.r),
-                              border: Border.all(color: Colors.red[700]!, width: 1.5),
-                              color: Colors.white,
-                            ),
-                            child: IconButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Fitur panggilan akan segera tersedia')),
-                                );
-                              },
-                              icon: Icon(Icons.call, color: Colors.red[700], size: 22.sp),
-                            ),
+                  // Bottom Button
+                  if (canMarkCompleted || canSupervisorVerifyOrRevise)
+                    Container(
+                      padding: REdgeInsets.fromLTRB(16, 12, 16, 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 10,
+                            offset: const Offset(0, -4),
                           ),
-                          12.horizontalSpace,
-                          if (canSupervisorVerifyOrRevise) ...[
+                        ],
+                      ),
+                      child: SafeArea(
+                        top: false,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 52.w,
+                              height: 52.h,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14.r),
+                                border: Border.all(
+                                    color: Colors.red[700]!, width: 1.5),
+                                color: Colors.white,
+                              ),
+                              child: IconButton(
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'Fitur panggilan akan segera tersedia')),
+                                  );
+                                },
+                                icon: Icon(Icons.call,
+                                    color: Colors.red[700], size: 22.sp),
+                              ),
+                            ),
+                            12.horizontalSpace,
+                            if (canSupervisorVerifyOrRevise) ...[
+                              Expanded(
+                                child: BlocBuilder<PanicButtonBloc,
+                                    PanicButtonState>(
+                                  builder: (context, state) {
+                                    final isSubmitting =
+                                        state.isSubmittingVerification;
+                                    return OutlinedButton(
+                                      onPressed: (!isSubmitting)
+                                          ? () => _showRevisiConfirmDialog(
+                                              context, historyItem)
+                                          : null,
+                                      style: OutlinedButton.styleFrom(
+                                        padding:
+                                            REdgeInsets.symmetric(vertical: 16),
+                                        side: BorderSide(
+                                            color: Colors.orange[700]!,
+                                            width: 2),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12.r),
+                                        ),
+                                      ),
+                                      child: isSubmitting
+                                          ? SizedBox(
+                                              width: 20.w,
+                                              height: 20.h,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                            Color>(
+                                                        Colors.orange[700]!),
+                                              ),
+                                            )
+                                          : Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.edit,
+                                                    size: 18.sp,
+                                                    color: Colors.orange[700]),
+                                                8.horizontalSpace,
+                                                Text(
+                                                  'Revisi',
+                                                  style: TextStyle(
+                                                    color: Colors.orange[700],
+                                                    fontSize: 16.sp,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              12.horizontalSpace,
+                            ],
                             Expanded(
-                              child: BlocBuilder<PanicButtonBloc, PanicButtonState>(
+                              flex: 1,
+                              child: BlocBuilder<PanicButtonBloc,
+                                  PanicButtonState>(
                                 builder: (context, state) {
-                                  final isSubmitting = state.isSubmittingVerification;
-                                  return OutlinedButton(
-                                    onPressed: (!isSubmitting)
-                                        ? () => _showRevisiConfirmDialog(context, historyItem)
+                                  final isSubmitting =
+                                      state.isSubmittingVerification;
+                                  return ElevatedButton(
+                                    onPressed: (!isSubmitting &&
+                                            (canMarkCompleted ||
+                                                canSupervisorVerifyOrRevise))
+                                        ? () => _showConfirmDialog(
+                                            context, historyItem)
                                         : null,
-                                    style: OutlinedButton.styleFrom(
-                                      padding: REdgeInsets.symmetric(vertical: 16),
-                                      side: BorderSide(color: Colors.orange[700]!, width: 2),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red[700],
+                                      padding:
+                                          REdgeInsets.symmetric(vertical: 16),
+                                      elevation: 4,
+                                      shadowColor:
+                                          Colors.red[700]!.withOpacity(0.4),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12.r),
+                                        borderRadius:
+                                            BorderRadius.circular(12.r),
                                       ),
                                     ),
                                     child: isSubmitting
@@ -395,79 +480,35 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                                             height: 20.h,
                                             child: CircularProgressIndicator(
                                               strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.orange[700]!),
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      Colors.white),
                                             ),
                                           )
-                                        : Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.edit, size: 18.sp, color: Colors.orange[700]),
-                                              8.horizontalSpace,
-                                              Text(
-                                                'Revisi',
-                                                style: TextStyle(
-                                                  color: Colors.orange[700],
-                                                  fontSize: 16.sp,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                            ],
+                                        : Text(
+                                            canSupervisorVerifyOrRevise
+                                                ? 'Verifikasi'
+                                                : 'Tandai Sebagai Selesai',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.2,
+                                            ),
+                                            textAlign: TextAlign.center,
                                           ),
                                   );
                                 },
                               ),
                             ),
-                            12.horizontalSpace,
                           ],
-                          Expanded(
-                            flex: 1,
-                            child: BlocBuilder<PanicButtonBloc, PanicButtonState>(
-                              builder: (context, state) {
-                                final isSubmitting = state.isSubmittingVerification;
-                                return ElevatedButton(
-                                  onPressed: (!isSubmitting && (canMarkCompleted || canSupervisorVerifyOrRevise))
-                                      ? () => _showConfirmDialog(context, historyItem)
-                                      : null,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red[700],
-                                    padding: REdgeInsets.symmetric(vertical: 16),
-                                    elevation: 4,
-                                    shadowColor: Colors.red[700]!.withOpacity(0.4),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12.r),
-                                    ),
-                                  ),
-                                  child: isSubmitting
-                                      ? SizedBox(
-                                          width: 20.w,
-                                          height: 20.h,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                          ),
-                                        )
-                                      : Text(
-                                          canSupervisorVerifyOrRevise ? 'Verifikasi' : 'Tandai Sebagai Selesai',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 0.2,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            );
-          },
-        ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -504,7 +545,8 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
     );
   }
 
-  Widget _buildFeedbackField(PanicButtonHistoryItem item, {required bool canEdit}) {
+  Widget _buildFeedbackField(PanicButtonHistoryItem item,
+      {required bool canEdit}) {
     if (canEdit) {
       return Container(
         width: double.infinity,
@@ -536,9 +578,10 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
       );
     }
 
-    final feedbackValue = (item.feedback != null && item.feedback!.trim().isNotEmpty)
-        ? item.feedback!.trim()
-        : '-';
+    final feedbackValue =
+        (item.feedback != null && item.feedback!.trim().isNotEmpty)
+            ? item.feedback!.trim()
+            : '-';
     return _buildGreyField(feedbackValue, isMultiline: true);
   }
 
@@ -640,7 +683,8 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                       6.verticalSpace,
                       Row(
                         children: [
-                          Icon(Icons.location_on, size: 16.sp, color: Colors.grey[700]),
+                          Icon(Icons.location_on,
+                              size: 16.sp, color: Colors.grey[700]),
                           6.horizontalSpace,
                           Expanded(
                             child: Text(
@@ -786,11 +830,14 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: statusColor ?? Colors.black87,
-                    fontWeight: statusColor != null ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight:
+                        statusColor != null ? FontWeight.w600 : FontWeight.w500,
                     height: isMultiline ? 1.5 : 1.3,
                   ),
                   maxLines: isMultiline ? null : 2,
-                  overflow: isMultiline ? TextOverflow.visible : TextOverflow.ellipsis,
+                  overflow: isMultiline
+                      ? TextOverflow.visible
+                      : TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -892,6 +939,8 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
         _currentUserRole == UserRole.pjo || _currentUserRole == UserRole.pengawas;
     final evidence = detailItem?.evidenceFile;
     final isCompleted = detailItem != null && _isCompletedStatus(detailItem.status);
+    final hasEvidenceUrl = evidence != null && evidence.url.trim().isNotEmpty;
+    final isVerified = detailItem != null && detailItem.status.toUpperCase() == 'VERIFIED';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -944,18 +993,8 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _buktiPenyelesaianController,
-                  enabled: canEdit,
-                  decoration: InputDecoration(
-                    hintText: 'Masukkan bukti penyelesaian...',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 14.sp,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
+                child: Text(
+                  canEdit ? 'Tambahkan foto bukti penyelesaian' : '-',
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: Colors.black87,
@@ -970,7 +1009,8 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: IconButton(
-                    icon: Icon(Icons.camera_alt, color: Colors.green[700], size: 22.sp),
+                    icon: Icon(Icons.camera_alt,
+                        color: Colors.green[700], size: 22.sp),
                     onPressed: () => _showImagePickerDialog(),
                     tooltip: 'Ambil Foto',
                   ),
@@ -982,10 +1022,13 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: IconButton(
-                    icon: Icon(Icons.attach_file, color: Colors.green[700], size: 22.sp),
+                    icon: Icon(Icons.attach_file,
+                        color: Colors.green[700], size: 22.sp),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Fitur attachment akan segera tersedia')),
+                        const SnackBar(
+                            content:
+                                Text('Fitur attachment akan segera tersedia')),
                       );
                     },
                     tooltip: 'Lampirkan File',
@@ -995,7 +1038,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
             ],
           ),
         ),
-        if (!canEdit && canViewEvidence && isCompleted && evidence != null) ...[
+        if (canViewEvidence && hasEvidenceUrl) ...[
           8.verticalSpace,
           GestureDetector(
             onTap: () => _showImagePreview(evidence.url),
@@ -1017,6 +1060,16 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                   );
                 },
               ),
+            ),
+          ),
+        ],
+        if (canViewEvidence && isVerified && !hasEvidenceUrl) ...[
+          8.verticalSpace,
+          Text(
+            'Tidak terdapat photo.',
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: Colors.grey[600],
             ),
           ),
         ],
@@ -1111,8 +1164,8 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                                       loadingProgress.expectedTotalBytes!
                                   : null,
                               strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.red[700]!),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.red[700]!),
                             ),
                           ),
                         );
@@ -1324,7 +1377,8 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
 
     () async {
       try {
-        final solverId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+        final solverId =
+            await SecurityManager.readSecurely(AppConstants.userIdKey);
         final now = DateTime.now().toUtc().toIso8601String();
 
         final proofImage = _proofImage!;
@@ -1409,7 +1463,8 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
         );
   }
 
-  void _showRevisiConfirmDialog(BuildContext context, PanicButtonHistoryItem item) {
+  void _showRevisiConfirmDialog(
+      BuildContext context, PanicButtonHistoryItem item) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1490,7 +1545,6 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
     );
   }
 
-
   Color _getStatusColor(PanicButtonStatusColor statusColor) {
     switch (statusColor) {
       case PanicButtonStatusColor.red:
@@ -1528,19 +1582,19 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
 
   String _formatIncidentDate(PanicButtonHistoryItem item) {
     if (item.createDate == null) return '-';
-    
+
     final dateFormat = DateFormat('dd MMMM yyyy', 'id_ID');
     final timeFormat = DateFormat('HH.mm', 'id_ID');
-    
+
     final dateStr = dateFormat.format(item.createDate!);
     final timeStr = timeFormat.format(item.createDate!);
-    
+
     return '$dateStr - $timeStr WIB';
   }
 
   String _formatCreateDate(PanicButtonHistoryItem item) {
     if (item.createDate == null) return 'xxxx';
-    
+
     final dateFormat = DateFormat('dd MMMM yyyy', 'id_ID');
     return dateFormat.format(item.createDate!);
   }

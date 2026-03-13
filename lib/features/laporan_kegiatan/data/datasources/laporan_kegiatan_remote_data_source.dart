@@ -646,6 +646,14 @@ class LaporanKegiatanRemoteDataSourceImpl
       tugasLanjutan: data['Patrol'] as String? ?? '',
       tugasTertunda: tugasTertunda,
       carryOver: data['CarryOver'] as String?,
+      listCarryOver: listCarryOver.isNotEmpty
+          ? listCarryOver
+              .map((e) => CarryOverItemModel.fromJson(
+                    e as Map<String, dynamic>,
+                  ))
+              .toList()
+              .cast<LaporanCarryOverItem>()
+          : null,
       status: laporanStatus,
       kehadiran: kehadiran,
       lembur: data['IsOvertime'] as bool? ?? false,
