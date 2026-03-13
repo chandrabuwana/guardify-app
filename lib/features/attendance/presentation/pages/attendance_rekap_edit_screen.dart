@@ -1506,8 +1506,6 @@ import '../../../../shared/widgets/app_scaffold.dart';
 import '../../../../shared/widgets/Buttons/ui_button.dart';
 import '../../domain/entities/attendance_rekap_detail_entity.dart';
 import '../../domain/entities/attendance_update_request.dart';
-import '../../../laporan_kegiatan/domain/entities/laporan_kegiatan_entity.dart';
-import '../../../laporan_kegiatan/presentation/widgets/patrol_timeline_widget.dart';
 import '../bloc/attendance_rekap_detail_bloc.dart';
 import '../bloc/attendance_rekap_detail_event.dart';
 import '../bloc/attendance_rekap_detail_state.dart';

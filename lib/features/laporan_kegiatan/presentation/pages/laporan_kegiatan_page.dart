@@ -38,7 +38,6 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
   String? _selectedKehadiranFilter;
   LaporanStatus? _selectedStatusFilter;
   bool _isStatusFilterApplied = false;
-  bool _isFirstLoad = true;
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
 
@@ -89,17 +88,15 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
   }
 
   void _loadData({String? search, bool resetPagination = true}) {
-    // Tab 0: Menunggu Verifikasi -> hanya status waiting (filter dari API)
-    // Tab 1: Terverifikasi -> status verified
-    final tabStatus = _tabController.index == 0
-        ? LaporanStatus.waiting
-        : LaporanStatus.verified;
+    // Tab 0: Menunggu Verifikasi -> default tanpa filter status (Status: "")
+    // Tab 1: Terverifikasi -> default status verified
+    final LaporanStatus? tabDefaultStatus =
+        _tabController.index == 0 ? null : LaporanStatus.verified;
 
-    // On first entry, treat as "no status filter" (send empty status)
-    // After first load, default back to tab status unless user explicitly applies a status filter
-    final effectiveStatus = (_isFirstLoad && !_isStatusFilterApplied)
-        ? null
-        : (_isStatusFilterApplied ? _selectedStatusFilter : tabStatus);
+    // If user explicitly applies a status chip, use it (including "Semua" => null)
+    // Otherwise follow tab default behavior
+    final effectiveStatus =
+        _isStatusFilterApplied ? _selectedStatusFilter : tabDefaultStatus;
 
     final dateFormatter = DateFormat('yyyy-MM-dd');
     final startDateStr = _selectedStartDate != null
@@ -129,7 +126,6 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
       isLoadMore: !resetPagination,
     ));
 
-    _isFirstLoad = false;
   }
 
   void _loadMoreData() {
@@ -332,7 +328,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
                         ),
                         child: Text(
                           _selectedStartDate != null
-                              ? DateFormat('yyyy-MM-dd')
+                              ? DateFormat('dd-MM-yyyy')
                                   .format(_selectedStartDate!)
                               : 'Start Date',
                           style: TS.bodyMedium.copyWith(color: Colors.black87),
@@ -370,7 +366,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
                         ),
                         child: Text(
                           _selectedEndDate != null
-                              ? DateFormat('yyyy-MM-dd')
+                              ? DateFormat('dd-MM-yyyy')
                                   .format(_selectedEndDate!)
                               : 'End Date',
                           style: TS.bodyMedium.copyWith(color: Colors.black87),
@@ -408,6 +404,16 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
                             ? 'Terapkan ($activeFilterCount)'
                             : 'Terapkan',
                         onPressed: () {
+                          final hasStartDate = _selectedStartDate != null;
+                          final hasEndDate = _selectedEndDate != null;
+                          if (hasStartDate != hasEndDate) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Jika mengisi tanggal, Start Date dan End Date wajib diisi'),
+                              ),
+                            );
+                            return;
+                          }
                           Navigator.pop(context);
                           _applyFilters();
                         },
@@ -753,13 +759,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
                         // Refresh list after returning from detail page
                         if (mounted) {
                           final search = _searchController.text.trim();
-                          _laporanBloc.add(GetLaporanListEvent(
-                            status: status,
-                            search: search.isEmpty ? null : search,
-                            userId: widget.userId,
-                            start: 1,
-                            length: 10,
-                          ));
+                          _loadData(search: search.isEmpty ? null : search);
                         }
                       });
                     },
