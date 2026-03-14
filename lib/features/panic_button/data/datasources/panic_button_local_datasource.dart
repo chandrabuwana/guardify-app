@@ -2,6 +2,7 @@ import '../models/incident_request_model.dart';
 import '../models/panic_button_list_request.dart';
 import '../models/panic_button_list_response.dart';
 import '../models/panic_button_detail_response.dart';
+import '../models/panic_button_edit_request.dart';
 import '../models/panic_button_submit_request.dart';
 import '../models/panic_button_submit_response.dart';
 import '../models/panic_button_incident_type_model.dart';
@@ -68,6 +69,12 @@ class PanicButtonLocalDataSource implements PanicButtonDataSource {
   Future<PanicButtonSubmitResponse> submitPanicButton(PanicButtonSubmitRequest request) async {
     // This should not be used in production - use PanicButtonRemoteDataSourceImpl instead
     throw UnimplementedError('Use PanicButtonRemoteDataSourceImpl for submitPanicButton');
+  }
+
+  @override
+  Future<PanicButtonSubmitResponse> editPanicButton(String id, PanicButtonEditRequest request) async {
+    // This should not be used in production - use PanicButtonRemoteDataSourceImpl instead
+    throw UnimplementedError('Use PanicButtonRemoteDataSourceImpl for editPanicButton');
   }
 
   @override
