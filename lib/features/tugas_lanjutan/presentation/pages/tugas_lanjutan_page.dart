@@ -179,12 +179,140 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
   }
 
   void _onTabChanged() {
-    // Reset search when tab changes
+    // Reset search and filter when tab changes
     _searchController.clear();
-    _bloc.add(SearchTugasLanjutanEvent(''));
+    _bloc.add(const SearchTugasLanjutanEvent(''));
+    _bloc.add(const FilterTugasLanjutanEvent(null));
     _loadData();
     // Rebuild to update search hint text
     setState(() {});
+  }
+
+  void _showFilterSheet() {
+    // Get current selected status from bloc state
+    TugasLanjutanStatus? currentStatus;
+    final currentState = _bloc.state;
+    if (currentState is TugasLanjutanListLoaded) {
+      currentStatus = currentState.selectedStatus;
+    } else if (currentState is TugasLanjutanListAndProgressLoaded) {
+      currentStatus = currentState.selectedStatus;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            TugasLanjutanStatus? selected = currentStatus;
+            return Padding(
+              padding: REdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Filter Status',
+                        style: TS.titleLarge.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  12.verticalSpace,
+                  _buildFilterOption(
+                    context: context,
+                    label: 'Semua',
+                    isSelected: selected == null,
+                    onTap: () {
+                      setSheetState(() => selected = null);
+                      _bloc.add(const FilterTugasLanjutanEvent(null));
+                      Navigator.pop(context);
+                      setState(() {});
+                    },
+                  ),
+                  ...TugasLanjutanStatus.values.map((status) {
+                    return _buildFilterOption(
+                      context: context,
+                      label: status.displayName,
+                      isSelected: selected == status,
+                      statusColor: _statusColor(status),
+                      onTap: () {
+                        setSheetState(() => selected = status);
+                        _bloc.add(FilterTugasLanjutanEvent(status));
+                        Navigator.pop(context);
+                        setState(() {});
+                      },
+                    );
+                  }),
+                  16.verticalSpace,
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterOption({
+    required BuildContext context,
+    required String label,
+    required bool isSelected,
+    Color? statusColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8.r),
+      child: Container(
+        padding: REdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: Row(
+          children: [
+            if (statusColor != null)
+              Container(
+                width: 12.w,
+                height: 12.w,
+                margin: REdgeInsets.only(right: 10),
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  shape: BoxShape.circle,
+                ),
+              )
+            else
+              Container(
+                width: 12.w,
+                height: 12.w,
+                margin: REdgeInsets.only(right: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  shape: BoxShape.circle,
+                ),
+              ),
+            Expanded(child: Text(label, style: TS.bodyMedium)),
+            if (isSelected) Icon(Icons.check, color: primaryColor, size: 20.sp),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _statusColor(TugasLanjutanStatus status) {
+    switch (status) {
+      case TugasLanjutanStatus.belum:
+        return Colors.orange;
+      case TugasLanjutanStatus.selesai:
+        return Colors.blue;
+      case TugasLanjutanStatus.terverifikasi:
+        return Colors.green;
+    }
   }
 
   @override
@@ -364,10 +492,33 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
                         color: primaryColor,
                         borderRadius: BorderRadius.circular(8.r),
                       ),
-                      child: IconButton(
-                        icon: const Icon(Icons.filter_list, color: Colors.white),
-                        onPressed: () {
-                          // Show filter sheet
+                      child: BlocBuilder<TugasLanjutanBloc, TugasLanjutanState>(
+                        builder: (context, state) {
+                          TugasLanjutanStatus? activeFilter;
+                          if (state is TugasLanjutanListLoaded) activeFilter = state.selectedStatus;
+                          if (state is TugasLanjutanListAndProgressLoaded) activeFilter = state.selectedStatus;
+                          return Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.filter_list, color: Colors.white),
+                                onPressed: _showFilterSheet,
+                              ),
+                              if (activeFilter != null)
+                                Positioned(
+                                  top: 6.h,
+                                  right: 6.w,
+                                  child: Container(
+                                    width: 8.w,
+                                    height: 8.w,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.amber,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
                         },
                       ),
                     ),
@@ -430,8 +581,13 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
   }) {
     return BlocBuilder<TugasLanjutanBloc, TugasLanjutanState>(
       builder: (context, state) {
-        // For "Hari Ini" tab, always prioritize cached data if available
-        if (filterByToday && _cachedHariIniList != null && _cachedHariIniList!.isNotEmpty) {
+        // For "Hari Ini" tab, use cached data only when no search/filter is active
+        if (filterByToday &&
+            _cachedHariIniList != null &&
+            _cachedHariIniList!.isNotEmpty &&
+            _searchController.text.isEmpty &&
+            !(state is TugasLanjutanListLoaded && state.selectedStatus != null) &&
+            !(state is TugasLanjutanListAndProgressLoaded && state.selectedStatus != null)) {
           print('📋 _buildTugasList: Using cached data for "Hari Ini" tab: ${_cachedHariIniList!.length} tasks');
           return ListView.builder(
             padding: REdgeInsets.all(16),

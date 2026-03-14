@@ -150,13 +150,7 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
         // Use currentUserProfile from state if available (has BMI data), otherwise use widget.userProfile
         // If loading, show loading state
         if (state.isLoading && state.currentUserProfile == null) {
-          return Container(
-            width: double.infinity,
-            padding: REdgeInsets.all(32),
-            child: const Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
+          return const _BMIProfileSkeleton();
         }
         
         final userProfile = state.currentUserProfile ?? widget.userProfile;
@@ -410,272 +404,211 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
 
             24.verticalSpace,
           ] else ...[
-            // No Data State - Info Page
-            // Profile Photo
-            Container(
-              width: 120.w,
-              height: 120.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: neutral30, width: 4),
-                boxShadow: [
-                  BoxShadow(
-                    color: neutral50.withOpacity(0.15),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                    spreadRadius: 1,
+            // No Data State
+            // Profile photo with ring decoration
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 136.w,
+                  height: 136.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: neutral20.withOpacity(0.4),
                   ),
-                ],
-              ),
-              child: userProfile.profileImageUrl != null
-                  ? ClipOval(
-                      child: Image.network(
-                        userProfile.profileImageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: neutral20,
-                            child: Icon(
-                              Icons.person,
-                              size: 60.w,
-                              color: neutral50,
-                            ),
-                          );
-                        },
-                      ),
-                    )
-                  : Container(
-                      color: neutral20,
-                      child: Icon(
-                        Icons.person,
-                        size: 60.w,
-                        color: neutral50,
-                      ),
-                    ),
+                ),
+                Container(
+                  width: 116.w,
+                  height: 116.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: neutral20,
+                  ),
+                  child: userProfile.profileImageUrl != null
+                      ? ClipOval(
+                          child: Image.network(
+                            userProfile.profileImageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Icon(Icons.person, size: 55.w, color: neutral50),
+                          ),
+                        )
+                      : Icon(Icons.person, size: 55.w, color: neutral50),
+                ),
+              ],
             ),
 
-            32.verticalSpace,
+            20.verticalSpace,
 
-            // User Name
             Text(
               userProfile.name,
               style: TS.titleLarge.copyWith(
                 color: neutral90,
                 fontWeight: FontWeight.bold,
-                fontSize: 22.sp,
+                fontSize: 20.sp,
               ),
               textAlign: TextAlign.center,
             ),
 
-            40.verticalSpace,
+            10.verticalSpace,
 
-            // Icon and Message dengan desain lebih menarik
             Container(
+              padding: REdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              decoration: BoxDecoration(
+                color: neutral10,
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(color: neutral20, width: 1),
+              ),
+              child: Text(
+                'Belum ada data BMI',
+                style: TS.bodySmall.copyWith(
+                  color: neutral50,
+                  fontSize: 12.sp,
+                ),
+              ),
+            ),
+
+            36.verticalSpace,
+
+            // Triple ring scale illustration
+            SizedBox(
               width: 160.w,
               height: 160.w,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFFFFF5F5),
-                    const Color(0xFFFFF9F9),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFB71C1C).withOpacity(0.15),
-                    blurRadius: 25,
-                    offset: const Offset(0, 8),
-                    spreadRadius: 3,
-                  ),
-                  BoxShadow(
-                    color: const Color(0xFFB71C1C).withOpacity(0.05),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Outer circle decoration
                   Container(
-                    width: 140.w,
-                    height: 140.w,
+                    width: 160.w,
+                    height: 160.w,
                     decoration: BoxDecoration(
-                      color: white,
                       shape: BoxShape.circle,
+                      color: const Color(0xFFB71C1C).withOpacity(0.04),
+                    ),
+                  ),
+                  Container(
+                    width: 124.w,
+                    height: 124.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFB71C1C).withOpacity(0.07),
                       border: Border.all(
-                        color: const Color(0xFFB71C1C).withOpacity(0.2),
-                        width: 2.5,
+                        color: const Color(0xFFB71C1C).withOpacity(0.1),
+                        width: 1.5,
                       ),
                     ),
                   ),
-                  // Icon
-                  Icon(
-                    Icons.scale_outlined,
-                    size: 85.w,
-                    color: const Color(0xFFB71C1C).withOpacity(0.75),
+                  Container(
+                    width: 92.w,
+                    height: 92.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFF0F0), Color(0xFFFFF8F8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      border: Border.all(
+                        color: const Color(0xFFB71C1C).withOpacity(0.2),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFB71C1C).withOpacity(0.12),
+                          blurRadius: 20,
+                          spreadRadius: 3,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.monitor_weight_outlined,
+                      size: 44.w,
+                      color: const Color(0xFFB71C1C).withOpacity(0.65),
+                    ),
                   ),
                 ],
               ),
             ),
 
-            32.verticalSpace,
+            24.verticalSpace,
 
             Text(
-              'Belum ada data body mass index',
-              style: TS.headlineSmall.copyWith(
+              'Pengukuran BMI Belum Tersedia',
+              style: TS.titleLarge.copyWith(
                 color: neutral90,
                 fontWeight: FontWeight.bold,
-                fontSize: 26.sp,
-                letterSpacing: 0.5,
+                fontSize: 19.sp,
+                letterSpacing: 0.3,
               ),
               textAlign: TextAlign.center,
             ),
 
-            20.verticalSpace,
+            10.verticalSpace,
 
-            // Description dengan card style yang lebih menarik
-            Container(
-              margin: REdgeInsets.symmetric(horizontal: 24),
-              padding: REdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFFFFF5F5),
-                    const Color(0xFFFFF9F9),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(
-                  color: const Color(0xFFB71C1C).withOpacity(0.15),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFB71C1C).withOpacity(0.08),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                    spreadRadius: 0,
-                  ),
-                ],
+            Text(
+              'Lakukan pengukuran pertama untuk\nmelihat status kesehatan tubuh',
+              style: TS.bodyMedium.copyWith(
+                color: neutral50,
+                height: 1.6,
+                fontSize: 13.sp,
               ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.lightbulb_outline,
-                        size: 22.w,
-                        color: const Color(0xFFB71C1C).withOpacity(0.8),
-                      ),
-                      10.horizontalSpace,
-                      Text(
-                        'Panduan',
-                        style: TS.titleMedium.copyWith(
-                          color: const Color(0xFF2C5F7C),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16.sp,
-                        ),
-                      ),
-                    ],
-                  ),
-                  16.verticalSpace,
-                  Text(
-                    'Data Body Mass Index untuk user ini belum tersedia. Silakan hitung body mass index terlebih dahulu untuk melihat status kesehatan dan mendapatkan rekomendasi yang tepat.',
-                    style: TS.bodyLarge.copyWith(
-                      color: const Color(0xFFB71C1C),
-                      height: 1.7,
-                      fontSize: 14.sp,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+              textAlign: TextAlign.center,
             ),
 
-            40.verticalSpace,
+            28.verticalSpace,
 
-            // Info Card dengan desain lebih menarik
+            // BMI info card
             Container(
-              width: double.infinity,
-              margin: REdgeInsets.symmetric(horizontal: 24),
-              padding: REdgeInsets.all(24),
+              margin: REdgeInsets.symmetric(horizontal: 16),
+              padding: REdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFFFFF5F5),
-                    const Color(0xFFFFF9F9),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(18.r),
-                border: Border.all(
-                  color: const Color(0xFFB71C1C).withOpacity(0.2),
-                  width: 1.5,
-                ),
+                color: white,
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(color: neutral20, width: 1.5),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFB71C1C).withOpacity(0.08),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
+                    color: neutral50.withOpacity(0.07),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                     spreadRadius: 0,
                   ),
                 ],
               ),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: REdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFB71C1C).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFB71C1C).withOpacity(0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                              spreadRadius: 0,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.info_outline,
-                          color: const Color(0xFFB71C1C),
-                          size: 26.w,
-                        ),
-                      ),
-                      12.horizontalSpace,
-                      Text(
-                        'Informasi Body Mass Index',
-                        style: TS.titleMedium.copyWith(
-                          color: const Color(0xFF2C5F7C),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 17.sp,
-                        ),
-                      ),
-                    ],
-                  ),
-                  20.verticalSpace,
-                  Text(
-                    'Body Mass Index adalah indikator untuk menilai status gizi seseorang berdasarkan berat dan tinggi badan. Nilai Body Mass Index membantu menentukan apakah seseorang memiliki berat badan normal, kurang, berlebih, atau obesitas.',
-                    style: TS.bodyMedium.copyWith(
-                      color: const Color(0xFFB71C1C),
-                      height: 1.7,
-                      fontSize: 14.sp,
+                  // BMI formula
+                  Container(
+                    width: double.infinity,
+                    padding: REdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2C5F7C).withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
-                    textAlign: TextAlign.center,
+                    child: Text(
+                      'BMI  =  Berat (kg)  ÷  Tinggi² (m)',
+                      textAlign: TextAlign.center,
+                      style: TS.bodyMedium.copyWith(
+                        color: const Color(0xFF2C5F7C),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13.sp,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+
+                  16.verticalSpace,
+
+                  // Category chips
+                  Wrap(
+                    spacing: 6.w,
+                    runSpacing: 6.h,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      _buildBMIRangeChip('< 18.5', 'Kurus', const Color(0xFF42A5F5)),
+                      _buildBMIRangeChip('18.5–24.9', 'Normal', const Color(0xFF66BB6A)),
+                      _buildBMIRangeChip('25–29.9', 'Gemuk', const Color(0xFFFFA726)),
+                      _buildBMIRangeChip('≥ 30', 'Obesitas', const Color(0xFFEF5350)),
+                    ],
                   ),
                 ],
               ),
@@ -746,6 +679,36 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
       case BMIStatus.obese:
         return 'OBESE';
     }
+  }
+
+  Widget _buildBMIRangeChip(String range, String label, Color color) {
+    return Container(
+      padding: REdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6.w,
+            height: 6.w,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          5.horizontalSpace,
+          Text(
+            '$range  $label',
+            style: TextStyle(
+              color: color.withOpacity(0.85),
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildBMIHistorySection(List bmiHistory, dynamic currentUserProfile) {
@@ -976,6 +939,113 @@ class _BMIDetailPageState extends State<BMIDetailPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _BMIProfileSkeleton extends StatefulWidget {
+  const _BMIProfileSkeleton();
+
+  @override
+  State<_BMIProfileSkeleton> createState() => _BMIProfileSkeletonState();
+}
+
+class _BMIProfileSkeletonState extends State<_BMIProfileSkeleton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        final shimmer = Color.lerp(
+          const Color(0xFFECECEC),
+          const Color(0xFFF6F6F6),
+          _ctrl.value,
+        )!;
+        return Container(
+          width: double.infinity,
+          padding: REdgeInsets.symmetric(horizontal: 24, vertical: 36),
+          child: Column(
+            children: [
+              // Avatar circle
+              Container(
+                width: 116.w,
+                height: 116.w,
+                decoration: BoxDecoration(
+                  color: shimmer,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              24.verticalSpace,
+              // Name line
+              Container(
+                width: 160.w,
+                height: 14.h,
+                decoration: BoxDecoration(
+                  color: shimmer,
+                  borderRadius: BorderRadius.circular(7.r),
+                ),
+              ),
+              10.verticalSpace,
+              Container(
+                width: 100.w,
+                height: 10.h,
+                decoration: BoxDecoration(
+                  color: shimmer,
+                  borderRadius: BorderRadius.circular(5.r),
+                ),
+              ),
+              32.verticalSpace,
+              // BMI value box
+              Container(
+                width: 200.w,
+                height: 40.h,
+                decoration: BoxDecoration(
+                  color: shimmer,
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+              ),
+              24.verticalSpace,
+              // Stats row
+              Container(
+                width: double.infinity,
+                height: 72.h,
+                decoration: BoxDecoration(
+                  color: shimmer,
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+              ),
+              24.verticalSpace,
+              // Recommendation box
+              Container(
+                width: double.infinity,
+                height: 100.h,
+                decoration: BoxDecoration(
+                  color: shimmer,
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

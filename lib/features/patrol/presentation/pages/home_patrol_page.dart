@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/security/security_manager.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/design/colors.dart';
 import '../bloc/patrol_bloc.dart';
 import '../widgets/patrol_route_card.dart';
@@ -146,15 +148,38 @@ class _HomePatrolPageState extends State<HomePatrolPage> {
                                 padding: const EdgeInsets.only(bottom: 16),
                                 child: PatrolRouteCard(
                                   route: route,
-                                  onTap: () {
+                                  onTap: () async {
+                                    // Validasi: tidak bisa absen patroli jika belum check in
+                                    final shiftDetailId =
+                                        await SecurityManager.readSecurely(
+                                      AppConstants.shiftDetailIdKey,
+                                    );
+                                    if (shiftDetailId == null ||
+                                        shiftDetailId.isEmpty) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Silakan check in terlebih dahulu sebelum melakukan absen patroli',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                      return;
+                                    }
+
                                     final patrolBloc =
                                         context.read<PatrolBloc>();
+                                    if (!context.mounted) return;
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) => PatrolDetailPage(
                                           route: route,
                                           bloc: patrolBloc,
+                                          isCheckedIn: true,
                                         ),
                                       ),
                                     );

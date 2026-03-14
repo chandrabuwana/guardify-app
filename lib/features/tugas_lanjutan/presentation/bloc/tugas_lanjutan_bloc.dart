@@ -29,6 +29,7 @@ class TugasLanjutanBloc
     on<SelesaikanTugasEvent>(_onSelesaikanTugas);
     on<GetProgressSummaryEvent>(_onGetProgressSummary);
     on<SearchTugasLanjutanEvent>(_onSearchTugasLanjutan);
+    on<FilterTugasLanjutanEvent>(_onFilterTugasLanjutan);
   }
 
   Future<void> _onGetTugasLanjutanList(
@@ -165,48 +166,67 @@ class TugasLanjutanBloc
     final query = event.query.trim().toLowerCase();
 
     if (currentState is TugasLanjutanListLoaded) {
-      if (query.isEmpty) {
-        // Reset search
-        emit(currentState.copyWith(
-          filteredList: currentState.tugasList,
-          searchQuery: null,
-        ));
-      } else {
-        // Filter tasks
-        final filtered = currentState.tugasList.where((tugas) {
-          return tugas.title.toLowerCase().contains(query) ||
-              tugas.lokasi.toLowerCase().contains(query) ||
-              tugas.pelapor.toLowerCase().contains(query) ||
-              tugas.deskripsi.toLowerCase().contains(query);
-        }).toList();
+      final filtered = _applyFilters(
+        all: currentState.tugasList,
+        query: query,
+        status: currentState.selectedStatus,
+      );
+      emit(currentState.copyWith(filteredList: filtered, searchQuery: query));
+    } else if (currentState is TugasLanjutanListAndProgressLoaded) {
+      final filtered = _applyFilters(
+        all: currentState.tugasList,
+        query: query,
+        status: currentState.selectedStatus,
+      );
+      emit(currentState.copyWith(filteredList: filtered, searchQuery: query));
+    }
+  }
 
-        emit(currentState.copyWith(
-          filteredList: filtered,
-          searchQuery: query,
-        ));
+  void _onFilterTugasLanjutan(
+    FilterTugasLanjutanEvent event,
+    Emitter<TugasLanjutanState> emit,
+  ) {
+    final currentState = state;
+
+    if (currentState is TugasLanjutanListLoaded) {
+      final filtered = _applyFilters(
+        all: currentState.tugasList,
+        query: currentState.searchQuery,
+        status: event.status,
+      );
+      if (event.status == null) {
+        emit(currentState.copyWith(filteredList: filtered, clearSelectedStatus: true));
+      } else {
+        emit(currentState.copyWith(filteredList: filtered, selectedStatus: event.status));
       }
     } else if (currentState is TugasLanjutanListAndProgressLoaded) {
-      if (query.isEmpty) {
-        // Reset search
-        emit(currentState.copyWith(
-          filteredList: currentState.tugasList,
-          searchQuery: null,
-        ));
+      final filtered = _applyFilters(
+        all: currentState.tugasList,
+        query: currentState.searchQuery,
+        status: event.status,
+      );
+      if (event.status == null) {
+        emit(currentState.copyWith(filteredList: filtered, clearSelectedStatus: true));
       } else {
-        // Filter tasks
-        final filtered = currentState.tugasList.where((tugas) {
-          return tugas.title.toLowerCase().contains(query) ||
-              tugas.lokasi.toLowerCase().contains(query) ||
-              tugas.pelapor.toLowerCase().contains(query) ||
-              tugas.deskripsi.toLowerCase().contains(query);
-        }).toList();
-
-        emit(currentState.copyWith(
-          filteredList: filtered,
-          searchQuery: query,
-        ));
+        emit(currentState.copyWith(filteredList: filtered, selectedStatus: event.status));
       }
     }
+  }
+
+  List<TugasLanjutanEntity> _applyFilters({
+    required List<TugasLanjutanEntity> all,
+    required String query,
+    required TugasLanjutanStatus? status,
+  }) {
+    return all.where((tugas) {
+      final matchesText = query.isEmpty ||
+          tugas.title.toLowerCase().contains(query) ||
+          tugas.lokasi.toLowerCase().contains(query) ||
+          tugas.pelapor.toLowerCase().contains(query) ||
+          tugas.deskripsi.toLowerCase().contains(query);
+      final matchesStatus = status == null || tugas.status == status;
+      return matchesText && matchesStatus;
+    }).toList();
   }
 }
 

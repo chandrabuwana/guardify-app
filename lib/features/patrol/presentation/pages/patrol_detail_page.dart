@@ -396,6 +396,7 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                       child: _LocationCard(
                         location: location,
                         locationNumber: currentRoute.locations.length + entry.key + 1,
+                        isCheckedIn: widget.isCheckedIn,
                         onAbsenTap: () async {
                           final result = await showDialog<bool>(
                             context: context,
@@ -757,16 +758,16 @@ class _LocationCard extends StatelessWidget {
 
               const SizedBox(width: 12),
 
-              // Absen Button
+              // Absen Button - disabled jika belum check in
               ElevatedButton(
                 onPressed: (location.status == PatrolLocationStatus.completed || 
-                           (isCheckedIn != null && isCheckedIn == false))
+                           isCheckedIn != true)
                     ? null
                     : onAbsenTap,
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                       (location.status == PatrolLocationStatus.completed || 
-                       (isCheckedIn != null && isCheckedIn == false))
+                       isCheckedIn != true)
                           ? Colors.grey[400]
                           : primaryColor,
                   disabledBackgroundColor: Colors.grey[400],

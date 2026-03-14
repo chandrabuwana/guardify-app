@@ -646,6 +646,8 @@ import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/enums.dart';
+import '../../../../core/utils/user_role_helper.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
 import '../../domain/entities/attendance_rekap_entity.dart';
 import '../../domain/entities/attendance_rekap_request_entity.dart';
@@ -708,13 +710,25 @@ class _AttendanceRekapScreenContentState
   Future<void> _loadAttendanceRekap() async {
     final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
     if (userId != null && mounted) {
+      final userRole = await UserRoleHelper.getUserRole();
+      final isPengawas = userRole == UserRole.pengawas;
+      final now = DateTime.now();
+      final startOfToday = DateTime(now.year, now.month, now.day, 0, 0, 0, 0);
+      final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+
       final request = AttendanceRekapRequestEntity(
         idUser: userId,
-        withSubordinate: false,
+        withSubordinate: isPengawas,
+        isAdmin: false,
         status: '',
         search: '',
+        startDate: startOfToday,
+        endDate: endOfToday,
         start: 0,
         length: 0,
+        shiftName: '',
+        jabatan: '',
+        isOvertime: false,
       );
       context.read<AttendanceRekapBloc>().add(LoadAttendanceRekapEvent(request));
     }

@@ -42,9 +42,11 @@ class RevisePersonnelEvent extends PersonnelEvent {
   const RevisePersonnelEvent(this.personnelId, this.feedback);
 }
 
-/// Load more personnel (pagination)
+/// Load more personnel (pagination) - API dipanggil saat scroll
 class LoadMorePersonnelEvent extends PersonnelEvent {
-  const LoadMorePersonnelEvent();
+  final String status;
+
+  const LoadMorePersonnelEvent(this.status);
 }
 
 /// Clear personnel detail

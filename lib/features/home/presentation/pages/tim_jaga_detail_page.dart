@@ -1,153 +1,157 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
+import '../../../../core/constants/enums.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/utils/user_role_helper.dart';
+import '../../../laporan_kegiatan/domain/entities/laporan_kegiatan_entity.dart';
+import '../../../laporan_kegiatan/domain/repositories/laporan_kegiatan_repository.dart';
+import '../../../laporan_kegiatan/presentation/bloc/laporan_kegiatan_bloc.dart';
+import '../../../laporan_kegiatan/presentation/pages/laporan_kegiatan_detail_page.dart';
+import '../../../schedule/domain/entities/shift_schedule.dart';
 import '../../../schedule/domain/repositories/schedule_repository.dart';
 
+/// Halaman Tim Jaga Hari Ini dengan 2 tab per shift (Shift Pagi, Shift Malam)
 class TimJagaDetailPage extends StatefulWidget {
-  final ShiftNowData shiftNow;
-
-  const TimJagaDetailPage({
-    super.key,
-    required this.shiftNow,
-  });
+  const TimJagaDetailPage({super.key});
 
   @override
   State<TimJagaDetailPage> createState() => _TimJagaDetailPageState();
 }
 
-class _TimJagaDetailPageState extends State<TimJagaDetailPage> {
+class _TimJagaDetailPageState extends State<TimJagaDetailPage>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   String? _selectedAreaFilter;
-  Map<String, String> _userIdToAreaMap = {};
-  bool _isLoadingAreaMap = true;
+  ShiftSchedule? _shiftDetail;
+  bool _isLoading = true;
+  String? _errorMessage;
+  late TabController _tabController;
+  Map<String, String> _namaToLaporanId = {};
+  UserRole _userRole = UserRole.pengawas;
 
   @override
   void initState() {
     super.initState();
-    _loadAreaMapping();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging && mounted) {
+        setState(() => _selectedAreaFilter = null);
+      }
+    });
+    _loadSchedule();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
-  /// Memanggil get_schedule_pengawas untuk mendapatkan mapping userId -> areaName
-  Future<void> _loadAreaMapping() async {
+  Future<void> _loadSchedule() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
+      _userRole = await UserRoleHelper.getUserRole();
+
       final scheduleRepository = getIt<ScheduleRepository>();
+      final laporanRepository = getIt<LaporanKegiatanRepository>();
       final today = DateTime.now();
-      
-      // Panggil get_schedule_pengawas untuk mendapatkan informasi area
-      final result = await scheduleRepository.getSchedulePengawas(date: today);
-      
-      if (result.isSuccess && result.shiftDetail != null) {
-        final shiftDetail = result.shiftDetail!;
-        
-        // Loop melalui team members untuk mendapatkan mapping userId -> position (area)
-        for (final member in shiftDetail.teamMembers) {
-          // Position field contains "AreaName|ShiftName" format for pengawas schedule
-          // Extract area name (before |)
-          final areaName = member.position.contains('|') 
-              ? member.position.split('|')[0] 
-              : member.position;
-          
-          // Jika sudah ada mapping untuk userId ini, gabungkan area names
-          if (_userIdToAreaMap.containsKey(member.id)) {
-            final existingAreas = _userIdToAreaMap[member.id]!.split(', ');
-            if (!existingAreas.contains(areaName)) {
-              _userIdToAreaMap[member.id] = '${_userIdToAreaMap[member.id]}, $areaName';
+
+      final scheduleResult =
+          await scheduleRepository.getSchedulePengawas(date: today);
+
+      final laporanMap = <String, String>{};
+      // Tim Jaga Hari Ini hanya menampilkan laporan dengan status WAITING (Menunggu Verifikasi)
+      final laporanResult = await laporanRepository.getLaporanList(
+        status: LaporanStatus.waiting,
+        start: 1,
+        length: 100,
+      );
+      laporanResult.fold(
+        (_) => {},
+        (list) {
+          for (final l in list) {
+            if (l.id.isNotEmpty && l.namaPersonil.isNotEmpty) {
+              laporanMap[l.namaPersonil.trim()] = l.id;
             }
-          } else {
-            _userIdToAreaMap[member.id] = areaName;
           }
+        },
+      );
+
+      if (mounted) {
+        if (scheduleResult.isSuccess && scheduleResult.shiftDetail != null) {
+          setState(() {
+            _shiftDetail = scheduleResult.shiftDetail;
+            _namaToLaporanId = laporanMap;
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _shiftDetail = null;
+            _namaToLaporanId = laporanMap;
+            _isLoading = false;
+            _errorMessage = 'Tidak ada jadwal tersedia';
+          });
         }
       }
     } catch (e) {
-      print('⚠️ Error getting schedule pengawas for area mapping: $e');
-    } finally {
       if (mounted) {
         setState(() {
-          _isLoadingAreaMap = false;
+          _isLoading = false;
+          _errorMessage = 'Gagal memuat data';
         });
       }
     }
   }
 
-  /// Format tanggal untuk ditampilkan
-  String _formatShiftDate() {
-    try {
-      final date = DateTime.parse(widget.shiftNow.shiftDate);
-      final dayName = DateFormat('EEEE', 'id_ID').format(date);
-      final dateStr = DateFormat('d MMMM yyyy', 'id_ID').format(date);
-      return '$dayName, $dateStr';
-    } catch (e) {
-      return widget.shiftNow.shiftDate;
-    }
+  /// Filter team members by shift (position contains "|Shift Pagi" or "|Shift Malam")
+  List<TeamMember> _getTeamMembersForShift(String shiftName) {
+    if (_shiftDetail == null) return [];
+    return _shiftDetail!.teamMembers
+        .where((m) => m.position.endsWith('|$shiftName'))
+        .toList();
   }
 
-  /// Get all unique areas from personnel
-  List<String> _getAllAreas() {
+  /// Get area name from position (format: "AreaName|ShiftName")
+  String _getAreaName(TeamMember member) {
+    return member.position.contains('|')
+        ? member.position.split('|')[0]
+        : member.position;
+  }
+
+  /// Get all unique areas for a shift
+  List<String> _getAllAreasForShift(String shiftName) {
+    final members = _getTeamMembersForShift(shiftName);
     final areas = <String>{};
-    for (final personnel in widget.shiftNow.listPersonel) {
-      final area = _userIdToAreaMap[personnel.userId] ?? 'Pos';
-      // Handle multiple areas (comma-separated)
-      final areaList = area.split(', ');
-      areas.addAll(areaList);
+    for (final m in members) {
+      areas.add(_getAreaName(m));
     }
     return areas.toList()..sort();
   }
 
-  /// Filter personnel by search and area
-  List<PersonnelWithArea> _getFilteredPersonnel() {
+  /// Filter and group personnel by area for a shift
+  Map<String, List<TeamMember>> _getFilteredGroupedPersonnel(String shiftName) {
+    final members = _getTeamMembersForShift(shiftName);
     final query = _searchController.text.toLowerCase().trim();
-    final List<PersonnelWithArea> result = [];
+    final grouped = <String, List<TeamMember>>{};
 
-    for (final personnel in widget.shiftNow.listPersonel) {
-      final area = _userIdToAreaMap[personnel.userId] ?? 'Pos';
-      final areaList = area.split(', ');
-
-      // Filter by search query
+    for (final member in members) {
+      final area = _getAreaName(member);
       final matchesSearch = query.isEmpty ||
-          personnel.fullname.toLowerCase().contains(query) ||
-          areaList.any((a) => a.toLowerCase().contains(query));
-
-      // Filter by area
+          member.name.toLowerCase().contains(query) ||
+          area.toLowerCase().contains(query);
       final matchesArea = _selectedAreaFilter == null ||
           _selectedAreaFilter!.isEmpty ||
-          areaList.contains(_selectedAreaFilter);
+          area == _selectedAreaFilter;
 
       if (matchesSearch && matchesArea) {
-        // Add personnel for each area they're assigned to
-        for (final areaName in areaList) {
-          result.add(PersonnelWithArea(
-            userId: personnel.userId,
-            fullname: personnel.fullname,
-            images: personnel.images,
-            area: areaName,
-          ));
-        }
-      }
-    }
-
-    return result;
-  }
-
-  /// Group personnel by area
-  Map<String, List<PersonnelWithArea>> _groupByArea(List<PersonnelWithArea> personnelList) {
-    final grouped = <String, List<PersonnelWithArea>>{};
-    
-    for (final personnel in personnelList) {
-      if (!grouped.containsKey(personnel.area)) {
-        grouped[personnel.area] = [];
-      }
-      // Avoid duplicates (same person in same area)
-      if (!grouped[personnel.area]!.any((p) => p.userId == personnel.userId)) {
-        grouped[personnel.area]!.add(personnel);
+        grouped.putIfAbsent(area, () => []).add(member);
       }
     }
 
@@ -156,44 +160,55 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredPersonnel = _getFilteredPersonnel();
-    final groupedPersonnel = _groupByArea(filteredPersonnel);
-    final allAreas = _getAllAreas();
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Hari Ini',
+          'Tim Jaga Hari Ini',
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontSize: 18.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
+        centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(48.h),
+          child: _shiftDetail != null
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 3,
+                    labelStyle: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    unselectedLabelStyle: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    tabs: const [
+                      Tab(text: 'Shift Pagi'),
+                      Tab(text: 'Shift Malam'),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
       ),
       body: Column(
         children: [
-          // Shift Information
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            color: Colors.white,
-            child: Text(
-              'Tim ${widget.shiftNow.shiftName} - ${_formatShiftDate()}',
-              style: TS.bodyMedium.copyWith(
-                color: neutral70,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-
           // Search and Filter
           Container(
             color: Colors.white,
@@ -232,7 +247,6 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage> {
                   ),
                 ),
                 12.horizontalSpace,
-                // Filter button
                 Container(
                   width: 48.w,
                   height: 48.h,
@@ -241,33 +255,51 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage> {
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: PopupMenuButton<String>(
-                    icon: Icon(Icons.filter_list, color: Colors.white, size: 20.sp),
+                    icon: Icon(Icons.filter_list,
+                        color: Colors.white, size: 20.sp),
                     color: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r),
                     ),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: null,
-                        child: Text(
-                          'Semua',
-                          style: TS.bodyMedium.copyWith(
-                            color: _selectedAreaFilter == null ? primaryColor : neutral90,
-                            fontWeight: _selectedAreaFilter == null ? FontWeight.w600 : FontWeight.normal,
+                    onOpened: () {
+                      setState(() {});
+                    },
+                    itemBuilder: (context) {
+                      final shiftName = _tabController.index == 0
+                          ? 'Shift Pagi'
+                          : 'Shift Malam';
+                      final allAreas = _getAllAreasForShift(shiftName);
+                      return [
+                        PopupMenuItem(
+                          value: null,
+                          child: Text(
+                            'Semua',
+                            style: TS.bodyMedium.copyWith(
+                              color: _selectedAreaFilter == null
+                                  ? primaryColor
+                                  : neutral90,
+                              fontWeight: _selectedAreaFilter == null
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
                           ),
                         ),
-                      ),
-                      ...allAreas.map((area) => PopupMenuItem(
-                        value: area,
-                        child: Text(
-                          area,
-                          style: TS.bodyMedium.copyWith(
-                            color: _selectedAreaFilter == area ? primaryColor : neutral90,
-                            fontWeight: _selectedAreaFilter == area ? FontWeight.w600 : FontWeight.normal,
-                          ),
-                        ),
-                      )),
-                    ],
+                        ...allAreas.map((area) => PopupMenuItem(
+                              value: area,
+                              child: Text(
+                                area,
+                                style: TS.bodyMedium.copyWith(
+                                  color: _selectedAreaFilter == area
+                                      ? primaryColor
+                                      : neutral90,
+                                  fontWeight: _selectedAreaFilter == area
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            )),
+                      ];
+                    },
                     onSelected: (value) {
                       setState(() {
                         _selectedAreaFilter = value;
@@ -279,73 +311,33 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage> {
             ),
           ),
 
-          // Personnel List
+          // Content
           Expanded(
-            child: _isLoadingAreaMap
+            child: _isLoading
                 ? Center(
                     child: CircularProgressIndicator(color: primaryColor),
                   )
-                : groupedPersonnel.isEmpty
+                : _errorMessage != null
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.people_outline,
-                              size: 64.sp,
-                              color: neutral50,
-                            ),
+                            Icon(Icons.people_outline,
+                                size: 64.sp, color: neutral50),
                             16.verticalSpace,
                             Text(
-                              'Tidak ada personil ditemukan',
-                              style: TS.bodyMedium.copyWith(
-                                color: neutral70,
-                              ),
+                              _errorMessage!,
+                              style: TS.bodyMedium.copyWith(color: neutral70),
                             ),
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                        itemCount: groupedPersonnel.length,
-                        itemBuilder: (context, index) {
-                          final area = groupedPersonnel.keys.toList()[index];
-                          final personnelList = groupedPersonnel[area]!;
-
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Area Title
-                              Padding(
-                                padding: EdgeInsets.only(top: index > 0 ? 16.h : 0, bottom: 8.h),
-                                child: Text(
-                                  area,
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: neutral90,
-                                  ),
-                                ),
-                              ),
-                              // Personnel Grid
-                              GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  crossAxisSpacing: 8.w,
-                                  mainAxisSpacing: 8.h,
-                                  childAspectRatio: 0.7,
-                                ),
-                                itemCount: personnelList.length,
-                                itemBuilder: (context, idx) {
-                                  final personnel = personnelList[idx];
-                                  return _buildPersonnelCard(personnel);
-                                },
-                              ),
-                            ],
-                          );
-                        },
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildShiftContent('Shift Pagi'),
+                          _buildShiftContent('Shift Malam'),
+                        ],
                       ),
           ),
         ],
@@ -353,14 +345,113 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage> {
     );
   }
 
-  Widget _buildPersonnelCard(PersonnelWithArea personnel) {
-    return Container(
+  Widget _buildShiftContent(String shiftName) {
+    final grouped = _getFilteredGroupedPersonnel(shiftName);
+
+    if (grouped.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline, size: 64.sp, color: neutral50),
+            16.verticalSpace,
+            Text(
+              'Tidak ada personil di $shiftName',
+              style: TS.bodyMedium.copyWith(color: neutral70),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      itemCount: grouped.length,
+      itemBuilder: (context, index) {
+        final area = grouped.keys.toList()[index];
+        final personnelList = grouped[area]!;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(
+                  top: index > 0 ? 16.h : 0, bottom: 8.h),
+              child: Text(
+                area,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: neutral90,
+                ),
+              ),
+            ),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 8.w,
+                mainAxisSpacing: 8.h,
+                childAspectRatio: 0.7,
+              ),
+              itemCount: personnelList.length,
+              itemBuilder: (context, idx) {
+                final member = personnelList[idx];
+                return _buildPersonnelCard(member, area);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _onPersonnelCardTap(TeamMember member) {
+    final nameKey = member.name.trim();
+    String? laporanId = _namaToLaporanId[nameKey];
+    if (laporanId == null) {
+      for (final e in _namaToLaporanId.entries) {
+        if (e.key.toLowerCase() == nameKey.toLowerCase()) {
+          laporanId = e.value;
+          break;
+        }
+      }
+    }
+    final id = laporanId;
+    if (id != null && id.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BlocProvider(
+            create: (context) => getIt<LaporanKegiatanBloc>(),
+            child: LaporanKegiatanDetailPage(
+              laporanId: id,
+              userRole: _userRole,
+            ),
+          ),
+        ),
+      ).then((_) => _loadSchedule());
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Detail laporan kegiatan untuk ${member.name} belum tersedia'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+  Widget _buildPersonnelCard(TeamMember member, String area) {
+    return GestureDetector(
+      onTap: () => _onPersonnelCardTap(member),
+      child: Container(
       decoration: BoxDecoration(
         color: babyBlueColor,
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -371,27 +462,20 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Avatar
           CircleAvatar(
             radius: 28.r,
             backgroundColor: neutral30,
-            backgroundImage: personnel.images != null && personnel.images!.isNotEmpty
-                ? NetworkImage(personnel.images!)
+            backgroundImage: member.photoUrl != null && member.photoUrl!.isNotEmpty
+                ? NetworkImage(member.photoUrl!)
                 : null,
-            child: personnel.images == null || personnel.images!.isEmpty
-                ? Icon(
-                    Icons.person,
-                    size: 28.sp,
-                    color: neutral50,
-                  )
+            child: member.photoUrl == null || member.photoUrl!.isEmpty
+                ? Icon(Icons.person, size: 28.sp, color: neutral50)
                 : null,
           ),
           6.verticalSpace,
-
-          // Nama
           Flexible(
             child: Text(
-              personnel.fullname,
+              member.name,
               style: TextStyle(
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w600,
@@ -403,35 +487,18 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage> {
             ),
           ),
           4.verticalSpace,
-
-          // Status Badge
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: double.infinity,
+          Text(
+            '$area Masuk',
+            style: TextStyle(
+              fontSize: 10.sp,
+              color: neutral70,
+              fontWeight: FontWeight.w500,
             ),
-            padding: EdgeInsets.symmetric(
-              horizontal: 6.w,
-              vertical: 3.h,
-            ),
-            decoration: BoxDecoration(
-              color: primaryColor,
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              personnel.area,
-              style: TextStyle(
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           6.verticalSpace,
-
-          // Kirim Pesan button
           SizedBox(
             width: double.infinity,
             height: 28.h,
@@ -439,7 +506,7 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage> {
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Kirim pesan ke ${personnel.fullname}'),
+                    content: Text('Kirim pesan ke ${member.name}'),
                     duration: const Duration(seconds: 2),
                   ),
                 );
@@ -467,21 +534,7 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage> {
           ),
         ],
       ),
+    ),
     );
   }
-}
-
-/// Model untuk personil dengan area
-class PersonnelWithArea {
-  final String userId;
-  final String fullname;
-  final String? images;
-  final String area;
-
-  PersonnelWithArea({
-    required this.userId,
-    required this.fullname,
-    this.images,
-    required this.area,
-  });
 }

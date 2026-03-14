@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import '../../domain/entities/personnel.dart';
 import '../../domain/usecases/get_personnel_by_status_use_case.dart';
 import '../../domain/usecases/get_personnel_detail_use_case.dart';
 import '../../domain/usecases/approve_personnel_use_case.dart';
@@ -33,22 +34,38 @@ class PersonnelBloc extends Bloc<PersonnelEvent, PersonnelState> {
     LoadPersonnelByStatusEvent event,
     Emitter<PersonnelState> emit,
   ) async {
-    emit(PersonnelLoading());
+    const pageSize = 50;
+    final currentState = state;
 
     try {
+      if (currentState is PersonnelListLoaded) {
+        emit(currentState.copyWith(isLoadingForTab: event.status));
+      } else {
+        emit(PersonnelLoading());
+      }
+
       final personnelList = await getPersonnelByStatusUseCase(
         event.status,
-        page: 1, // Always start from page 1
-        pageSize: event.pageSize,
+        page: 1,
+        pageSize: pageSize,
       );
 
-      emit(PersonnelListLoaded(
+      final tabData = TabPersonnelData(
         personnelList: personnelList,
-        currentStatus: event.status,
         currentPage: 1,
-        hasReachedMax: personnelList.length < event.pageSize, // If less than pageSize, reached max
-      ));
+        hasReachedMax:
+            personnelList.isEmpty || personnelList.length < pageSize,
+      );
+
+      final newTabData = Map<String, TabPersonnelData>.from(
+        currentState is PersonnelListLoaded ? currentState.tabData : {},
+      )..[event.status] = tabData;
+
+      emit(PersonnelListLoaded(tabData: newTabData));
     } catch (e) {
+      if (currentState is PersonnelListLoaded) {
+        emit(currentState.copyWith(clearLoadingForTab: true));
+      }
       emit(PersonnelError('Gagal memuat data personil: ${e.toString()}'));
     }
   }
@@ -59,31 +76,43 @@ class PersonnelBloc extends Bloc<PersonnelEvent, PersonnelState> {
   ) async {
     final currentState = state;
     if (currentState is! PersonnelListLoaded) return;
-    if (currentState.hasReachedMax) return; // Don't load if reached max
-    if (currentState.isLoadingMore) return; // Prevent duplicate loads
+
+    final tab = currentState.getTabData(event.status);
+    if (tab == null || tab.hasReachedMax || tab.isLoadingMore) return;
+
+    const pageSize = 50;
 
     try {
-      // Emit loading more state
-      emit(currentState.copyWith(isLoadingMore: true));
+      final updatedTab = tab.copyWith(isLoadingMore: true);
+      final newTabData = Map<String, TabPersonnelData>.from(currentState.tabData)
+        ..[event.status] = updatedTab;
+      emit(currentState.copyWith(tabData: newTabData));
 
-      final nextPage = currentState.currentPage + 1;
+      final nextPage = tab.currentPage + 1;
       final newPersonnelList = await getPersonnelByStatusUseCase(
-        currentState.currentStatus,
+        event.status,
         page: nextPage,
-        pageSize: 20,
+        pageSize: pageSize,
       );
 
-      // If no more data, mark as reached max
-      final hasReachedMax = newPersonnelList.isEmpty || newPersonnelList.length < 20;
-
-      emit(currentState.copyWith(
-        personnelList: [...currentState.personnelList, ...newPersonnelList],
+      final hasReachedMax =
+          newPersonnelList.isEmpty || newPersonnelList.length < pageSize;
+      final mergedTab = TabPersonnelData(
+        personnelList: [...tab.personnelList, ...newPersonnelList],
         currentPage: nextPage,
         hasReachedMax: hasReachedMax,
         isLoadingMore: false,
-      ));
-    } catch (e) {
-      emit(PersonnelError('Gagal memuat data personil: ${e.toString()}'));
+      );
+      final finalTabData =
+          Map<String, TabPersonnelData>.from(currentState.tabData)
+            ..[event.status] = mergedTab;
+
+      emit(currentState.copyWith(tabData: finalTabData));
+    } catch (_) {
+      final revertedTab = tab.copyWith(isLoadingMore: false);
+      final newTabData = Map<String, TabPersonnelData>.from(currentState.tabData)
+        ..[event.status] = revertedTab;
+      emit(currentState.copyWith(tabData: newTabData));
     }
   }
 
@@ -110,29 +139,31 @@ class PersonnelBloc extends Bloc<PersonnelEvent, PersonnelState> {
     SearchPersonnelEvent event,
     Emitter<PersonnelState> emit,
   ) async {
-    // Keep current state while searching
     final currentState = state;
-    if (currentState is PersonnelListLoaded) {
-      emit(PersonnelLoading());
+    if (currentState is! PersonnelListLoaded) return;
 
-      try {
-        // For now, just filter from current list (in production, call API)
-        final filteredList = currentState.personnelList
-            .where((p) =>
-                p.name.toLowerCase().contains(event.query.toLowerCase()) ||
-                p.nrp.toLowerCase().contains(event.query.toLowerCase()))
-            .toList();
+    final tab = currentState.getTabData(event.status);
+    if (tab == null) return;
 
-        emit(PersonnelListLoaded(
-          personnelList: filteredList,
-          currentStatus: event.status,
-          isSearching: event.query.isNotEmpty,
-          searchQuery: event.query,
-        ));
-      } catch (e) {
-        emit(PersonnelError('Gagal mencari personil: ${e.toString()}'));
-      }
+    final q = event.query.toLowerCase();
+    final filteredList = tab.personnelList
+        .where((p) =>
+            p.name.toLowerCase().contains(q) ||
+            p.nrp.toLowerCase().contains(q))
+        .toList();
+
+    final newFilteredMap = Map<String, List<Personnel>>.from(currentState.searchFilteredMap);
+    if (event.query.isEmpty) {
+      newFilteredMap.remove(event.status);
+    } else {
+      newFilteredMap[event.status] = filteredList;
     }
+
+    emit(currentState.copyWith(
+      isSearching: event.query.isNotEmpty,
+      searchQuery: event.query,
+      searchFilteredMap: newFilteredMap,
+    ));
   }
 
   Future<void> _onApprovePersonnel(

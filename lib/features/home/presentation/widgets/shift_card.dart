@@ -43,7 +43,7 @@ class ShiftCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -88,14 +88,21 @@ class ShiftCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Status Badge atau Hadir Count (untuk pengawas)
+              // Status Badge atau Hadir Count (untuk pengawas) - pill-shaped light blue
               userRole == UserRole.pengawas && hadirCount != null
-                  ? Text(
-                      '$hadirCount Hadir',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: neutral90,
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: babyBlueColor,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '$hadirCount Hadir',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: neutral90,
+                        ),
                       ),
                     )
                   : Container(
@@ -123,12 +130,14 @@ class ShiftCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Untuk pengawas, tampilkan Tim Jaga saja
-          // Untuk role lain, tampilkan Jam Absen dan Tim Jaga
+          // Untuk pengawas: Tim Jaga di sebelah kanan (label di atas, avatars di bawah)
           if (userRole == UserRole.pengawas)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 const Text(
                   'Tim Jaga',
                   style: TextStyle(
@@ -140,6 +149,7 @@ class ShiftCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 _buildTeamAvatars(),
               ],
+              ),
             )
           else
             // Attendance Time Row untuk role lain
@@ -268,32 +278,37 @@ class ShiftCard extends StatelessWidget {
 
   Widget _buildTeamAvatars() {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Show up to 3 avatars
+        // Show up to 3 avatars (overlapping via Transform.translate)
         ...List.generate(
           teamMembersImages.length > 3 ? 3 : teamMembersImages.length,
-          (index) => Container(
-            margin: EdgeInsets.only(left: index == 0 ? 0 : 8),
+          (index) => Transform.translate(
+            offset: Offset(-8.0 * index, 0),
             child: CircleAvatar(
               radius: 16,
-              backgroundColor: primary30,
-              backgroundImage: teamMembersImages[index].isNotEmpty
-                  ? NetworkImage(teamMembersImages[index])
-                  : null,
-              child: teamMembersImages[index].isEmpty
-                  ? const Icon(
-                      Icons.person,
-                      size: 16,
-                      color: Colors.white,
-                    )
-                  : null,
+              backgroundColor: Colors.white,
+              child: CircleAvatar(
+                radius: 14,
+                backgroundColor: primary30,
+                backgroundImage: teamMembersImages[index].isNotEmpty
+                    ? NetworkImage(teamMembersImages[index])
+                    : null,
+                child: teamMembersImages[index].isEmpty
+                    ? const Icon(
+                        Icons.person,
+                        size: 14,
+                        color: Colors.white,
+                      )
+                    : null,
+              ),
             ),
           ),
         ),
         // Show +X if more than 3 members
         if (teamMembersImages.length > 3)
           Container(
-            margin: const EdgeInsets.only(left: 8),
+            margin: const EdgeInsets.only(left: 4),
             child: CircleAvatar(
               radius: 16,
               backgroundColor: primaryColor,

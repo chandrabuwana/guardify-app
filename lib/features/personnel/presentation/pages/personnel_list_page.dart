@@ -15,7 +15,7 @@ class PersonnelListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => getIt<PersonnelBloc>()
-        ..add(const LoadPersonnelByStatusEvent('Pending')),
+        ..add(const LoadPersonnelByStatusEvent('Pending', pageSize: 50)),
       child: const _PersonnelListView(),
     );
   }
@@ -28,10 +28,21 @@ class _PersonnelListView extends StatefulWidget {
   State<_PersonnelListView> createState() => _PersonnelListViewState();
 }
 
+/// Mapping display label ke status API
+const Map<String, String> _displayToApiStatus = {
+  'Aktif': 'Active',
+  'Pending': 'Pending',
+  'Non Aktif': 'Non Active', // API expects 'Non Active' not 'Inactive'
+};
+
 class _PersonnelListViewState extends State<_PersonnelListView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
+  final List<ScrollController> _scrollControllers = [
+    ScrollController(),
+    ScrollController(),
+    ScrollController(),
+  ];
   String _currentTab = 'Pending'; // Default tab
 
   @override
@@ -39,49 +50,53 @@ class _PersonnelListViewState extends State<_PersonnelListView> with SingleTicke
     super.initState();
     _tabController = TabController(length: 3, vsync: this, initialIndex: 1); // Start at Pending
     _tabController.addListener(_onTabChanged);
-    _scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    if (_isBottom) {
-      context.read<PersonnelBloc>().add(const LoadMorePersonnelEvent());
+    for (final c in _scrollControllers) {
+      c.addListener(_onScroll);
     }
   }
 
-  bool get _isBottom {
-    if (!_scrollController.hasClients) return false;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.offset;
-    return currentScroll >= (maxScroll * 0.9); // Load when 90% scrolled
+  void _onScroll() {
+    if (!mounted) return;
+    final idx = _tabController.index;
+    if (idx < 0 || idx >= _scrollControllers.length) return;
+    final c = _scrollControllers[idx];
+    if (!c.hasClients) return;
+    final maxScroll = c.position.maxScrollExtent;
+    if (maxScroll <= 0) return;
+    final currentScroll = c.offset;
+    if (currentScroll >= (maxScroll * 0.9)) {
+      context.read<PersonnelBloc>().add(LoadMorePersonnelEvent(_currentTab));
+    }
   }
+
+  String _getApiStatusForDisplay(String displayStatus) =>
+      _displayToApiStatus[displayStatus] ?? displayStatus;
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
-    
-    setState(() {
-      switch (_tabController.index) {
-        case 0:
-          _currentTab = 'Active'; // API uses 'Active'
-          break;
-        case 1:
-          _currentTab = 'Pending';
-          break;
-        case 2:
-          _currentTab = 'Inactive'; // API uses 'Inactive'
-          break;
-      }
-    });
-    
-    // Load personnel for selected tab
-    context.read<PersonnelBloc>().add(LoadPersonnelByStatusEvent(_currentTab));
-    _searchController.clear(); // Clear search when changing tabs
+
+    const tabApiStatus = ['Active', 'Pending', 'Non Active'];
+    final idx = _tabController.index;
+    if (idx < 0 || idx >= tabApiStatus.length) return;
+
+    final newTab = tabApiStatus[idx];
+    setState(() => _currentTab = newTab);
+    _searchController.clear();
+
+    // Hanya hit API jika tab belum punya cache
+    final state = context.read<PersonnelBloc>().state;
+    if (state is PersonnelListLoaded && state.getTabData(newTab) == null) {
+      context.read<PersonnelBloc>().add(LoadPersonnelByStatusEvent(newTab, pageSize: 50));
+    }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
-    _scrollController.dispose();
+    for (final c in _scrollControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 // TODO
@@ -230,7 +245,15 @@ class _PersonnelListViewState extends State<_PersonnelListView> with SingleTicke
     );
   }
 
-  Widget _buildPersonnelList(String status) {
+  Widget _buildPersonnelList(String displayStatus) {
+    final apiStatus = _getApiStatusForDisplay(displayStatus);
+    final tabIndex = displayStatus == 'Aktif'
+        ? 0
+        : displayStatus == 'Pending'
+            ? 1
+            : 2;
+    final scrollController = _scrollControllers[tabIndex];
+
     return BlocBuilder<PersonnelBloc, PersonnelState>(
       builder: (context, state) {
         if (state is PersonnelLoading) {
@@ -246,25 +269,18 @@ class _PersonnelListViewState extends State<_PersonnelListView> with SingleTicke
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64.sp,
-                    color: neutral50,
-                  ),
+                  Icon(Icons.error_outline, size: 64.sp, color: neutral50),
                   16.verticalSpace,
                   Text(
                     state.message,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: neutral70,
-                    ),
+                    style: TextStyle(fontSize: 14.sp, color: neutral70),
                   ),
                   24.verticalSpace,
                   ElevatedButton(
                     onPressed: () {
                       context.read<PersonnelBloc>().add(
-                            LoadPersonnelByStatusEvent(status),
+                            LoadPersonnelByStatusEvent(apiStatus, pageSize: 50),
                           );
                     },
                     style: ElevatedButton.styleFrom(
@@ -280,28 +296,60 @@ class _PersonnelListViewState extends State<_PersonnelListView> with SingleTicke
         }
 
         if (state is PersonnelListLoaded) {
-          if (state.personnelList.isEmpty) {
+          if (state.isLoadingForTab == apiStatus) {
+            return const Center(
+              child: CircularProgressIndicator(color: primaryColor),
+            );
+          }
+
+          final tab = state.getTabData(apiStatus);
+          if (tab == null) {
             return Center(
               child: Padding(
                 padding: EdgeInsets.all(24.w),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.people_outline,
-                      size: 64.sp,
-                      color: neutral50,
+                    Icon(Icons.people_outline, size: 64.sp, color: neutral50),
+                    16.verticalSpace,
+                    Text(
+                      'Geser ke tab ini untuk memuat data',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14.sp, color: neutral70),
                     ),
+                    if (apiStatus == _currentTab) ...[
+                      16.verticalSpace,
+                      TextButton(
+                        onPressed: () {
+                          context.read<PersonnelBloc>().add(
+                                LoadPersonnelByStatusEvent(apiStatus, pageSize: 50),
+                              );
+                        },
+                        child: const Text('Muat data'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final displayList = state.getDisplayList(apiStatus);
+          if (displayList.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.w),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.people_outline, size: 64.sp, color: neutral50),
                     16.verticalSpace,
                     Text(
                       state.isSearching
                           ? 'Tidak ada hasil untuk "${state.searchQuery}"'
-                          : 'Belum ada personil dengan status $status',
+                          : 'Belum ada personil dengan status $displayStatus',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: neutral70,
-                      ),
+                      style: TextStyle(fontSize: 14.sp, color: neutral70),
                     ),
                   ],
                 ),
@@ -310,20 +358,20 @@ class _PersonnelListViewState extends State<_PersonnelListView> with SingleTicke
           }
 
           return ListView.builder(
-            controller: _scrollController,
+            controller: scrollController,
             padding: EdgeInsets.all(16.w),
-            itemCount: state.personnelList.length + (state.hasReachedMax ? 0 : 1),
+            itemCount: displayList.length + (tab.hasReachedMax ? 0 : 1),
             itemBuilder: (context, index) {
-              if (index >= state.personnelList.length) {
-                // Show loading indicator at bottom
+              if (index >= displayList.length) {
                 return Container(
                   padding: EdgeInsets.symmetric(vertical: 16.h),
                   alignment: Alignment.center,
-                  child: const CircularProgressIndicator(color: primaryColor),
+                  child: tab.isLoadingMore
+                      ? const CircularProgressIndicator(color: primaryColor)
+                      : const SizedBox.shrink(),
                 );
               }
-              
-              final personnel = state.personnelList[index];
+              final personnel = displayList[index];
               return _buildPersonnelCard(personnel);
             },
           );
@@ -408,7 +456,7 @@ class _PersonnelListViewState extends State<_PersonnelListView> with SingleTicke
                 ).then((_) {
                   // Refresh list after returning from detail page
                   context.read<PersonnelBloc>().add(
-                        LoadPersonnelByStatusEvent(_currentTab),
+                        LoadPersonnelByStatusEvent(_currentTab, pageSize: 50),
                       );
                 });
               },

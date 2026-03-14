@@ -901,7 +901,95 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
                             // Silently handle tile errors - this is expected behavior when offline
                           },
                         ),
-                        // Marker untuk employee jika ada
+                        // Marker untuk titik lokasi area (pin lokasi - beda dari employee)
+                        if (_selectedAreaId != null && _areas.isNotEmpty) ...[
+                          Builder(
+                            builder: (context) {
+                              try {
+                                final selectedArea = _areas.firstWhere(
+                                  (area) => area.id == _selectedAreaId,
+                                );
+                                if (selectedArea.latitude == null ||
+                                    selectedArea.longitude == null) {
+                                  return const SizedBox.shrink();
+                                }
+                                var lat = selectedArea.latitude!;
+                                var lng = selectedArea.longitude!;
+                                if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                                  return const SizedBox.shrink();
+                                }
+                                if (lng > 180) lng = lng - 360;
+                                lng = ((lng + 180) % 360) - 180;
+                                if (lng < -180 || lng > 180) {
+                                  return const SizedBox.shrink();
+                                }
+                                return MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      point: LatLng(lat, lng),
+                                      width: 80,
+                                      height: 85,
+                                      alignment: Alignment.topCenter,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          _zoomToSelectedArea();
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Titik Lokasi: ${selectedArea.name ?? "Area"}'),
+                                              duration: const Duration(seconds: 2),
+                                            ),
+                                          );
+                                        },
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment: MainAxisAlignment.start,
+                                          children: [
+                                            Icon(
+                                              Icons.place,
+                                              size: 42,
+                                              color: successColor,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: successColor.withOpacity(0.9),
+                                                borderRadius: BorderRadius.circular(8),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black.withOpacity(0.2),
+                                                    blurRadius: 4,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Text(
+                                                selectedArea.name ?? 'Lokasi',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              } catch (_) {
+                                return const SizedBox.shrink();
+                              }
+                            },
+                          ),
+                        ],
+                        // Marker untuk employee (pin orang - beda dari titik lokasi)
                         if (_filteredLocations.isNotEmpty)
                           MarkerLayer(
                             markers: _filteredLocations.map((employee) {

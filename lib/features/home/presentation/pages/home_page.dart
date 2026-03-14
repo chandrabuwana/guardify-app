@@ -457,11 +457,11 @@ class __HomePageViewState extends State<_HomePageView> {
                                   : null,
                           onCardTap: state.userRole == UserRole.pengawas
                               ? () {
-                                  // Navigasi ke halaman attendance rekap untuk pengawas
+                                  // Navigasi ke halaman Tim Jaga Hari Ini dengan 2 tab per shift
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => const AttendanceRekapScreen(),
+                                      builder: (context) => const TimJagaDetailPage(),
                                     ),
                                   );
                                 }
@@ -973,21 +973,12 @@ class __HomePageViewState extends State<_HomePageView> {
               ),
               TextButton(
                 onPressed: () {
-                  if (state.shiftNow != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TimJagaDetailPage(
-                          shiftNow: state.shiftNow!,
-                        ),
-                      ),
-                    );
-                  } else {
-                    context.read<HomeBloc>().add(
-                          const ShowSnackbarEvent(
-                              'Tidak ada data shift tersedia'),
-                        );
-                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TimJagaDetailPage(),
+                    ),
+                  );
                 },
                 child: Text(
                   'Lihat Detail',
@@ -1208,6 +1199,25 @@ class __HomePageViewState extends State<_HomePageView> {
                           task: task,
                           onTap: () async {
                             print('🖱️ Task card tapped! Task ID: ${task.id}, Title: ${task.title}');
+
+                            // Validasi: tidak bisa absen patroli/patroli tambahan jika belum check in
+                            final homeState = context.read<HomeBloc>().state;
+                            if (homeState is HomeLoaded &&
+                                (task.id == 'patrol_continue' ||
+                                    task.id == 'patrol_summary' ||
+                                    task.id.startsWith('patrol_')) &&
+                                !homeState.attendanceInfo.isCheckedIn) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Silakan check in terlebih dahulu sebelum melakukan absen patroli',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
                             // Navigate to Tugas Lanjutan page first (before patrol check)
                             if (task.id == 'patrol_continue') {
                               final userId = await SecurityManager.readSecurely(

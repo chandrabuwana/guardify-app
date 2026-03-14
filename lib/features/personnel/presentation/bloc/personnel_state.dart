@@ -4,51 +4,84 @@ abstract class PersonnelState {
   const PersonnelState();
 }
 
-/// Initial state
-class PersonnelInitial extends PersonnelState {}
-
-/// Loading state
-class PersonnelLoading extends PersonnelState {}
-
-/// Loaded personnel list
-class PersonnelListLoaded extends PersonnelState {
+/// Data per tab (cache per status)
+class TabPersonnelData {
   final List<Personnel> personnelList;
-  final String currentStatus;
-  final bool isSearching;
-  final String searchQuery;
-  final bool hasReachedMax;
   final int currentPage;
+  final bool hasReachedMax;
   final bool isLoadingMore;
 
-  const PersonnelListLoaded({
+  const TabPersonnelData({
     required this.personnelList,
-    required this.currentStatus,
-    this.isSearching = false,
-    this.searchQuery = '',
-    this.hasReachedMax = false,
     this.currentPage = 1,
+    this.hasReachedMax = false,
     this.isLoadingMore = false,
   });
 
-  PersonnelListLoaded copyWith({
+  TabPersonnelData copyWith({
     List<Personnel>? personnelList,
-    String? currentStatus,
+    int? currentPage,
+    bool? hasReachedMax,
+    bool? isLoadingMore,
+  }) =>
+      TabPersonnelData(
+        personnelList: personnelList ?? this.personnelList,
+        currentPage: currentPage ?? this.currentPage,
+        hasReachedMax: hasReachedMax ?? this.hasReachedMax,
+        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      );
+}
+
+/// Initial state
+class PersonnelInitial extends PersonnelState {}
+
+/// Loading state (initial page load)
+class PersonnelLoading extends PersonnelState {}
+
+/// Loaded personnel list - cache per tab, API hanya di scroll / first load tab
+class PersonnelListLoaded extends PersonnelState {
+  /// Cache per status: 'Active', 'Pending', 'Non Active'
+  final Map<String, TabPersonnelData> tabData;
+  /// Tab yang sedang loading initial (null = tidak ada)
+  final String? isLoadingForTab;
+  final bool isSearching;
+  final String searchQuery;
+  /// Hasil filter search per tab (jangan timpa cache)
+  final Map<String, List<Personnel>> searchFilteredMap;
+
+  const PersonnelListLoaded({
+    required this.tabData,
+    this.isLoadingForTab,
+    this.isSearching = false,
+    this.searchQuery = '',
+    this.searchFilteredMap = const {},
+  });
+
+  TabPersonnelData? getTabData(String status) => tabData[status];
+
+  /// List yang ditampilkan: hasil search atau cache
+  List<Personnel> getDisplayList(String status) {
+    if (isSearching && searchQuery.isNotEmpty && searchFilteredMap.containsKey(status)) {
+      return searchFilteredMap[status]!;
+    }
+    return tabData[status]?.personnelList ?? [];
+  }
+
+  PersonnelListLoaded copyWith({
+    Map<String, TabPersonnelData>? tabData,
+    String? isLoadingForTab,
+    bool clearLoadingForTab = false,
     bool? isSearching,
     String? searchQuery,
-    bool? hasReachedMax,
-    int? currentPage,
-    bool? isLoadingMore,
-  }) {
-    return PersonnelListLoaded(
-      personnelList: personnelList ?? this.personnelList,
-      currentStatus: currentStatus ?? this.currentStatus,
-      isSearching: isSearching ?? this.isSearching,
-      searchQuery: searchQuery ?? this.searchQuery,
-      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
-      currentPage: currentPage ?? this.currentPage,
-      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-    );
-  }
+    Map<String, List<Personnel>>? searchFilteredMap,
+  }) =>
+      PersonnelListLoaded(
+        tabData: tabData ?? this.tabData,
+        isLoadingForTab: clearLoadingForTab ? null : (isLoadingForTab ?? this.isLoadingForTab),
+        isSearching: isSearching ?? this.isSearching,
+        searchQuery: searchQuery ?? this.searchQuery,
+        searchFilteredMap: searchFilteredMap ?? this.searchFilteredMap,
+      );
 }
 
 /// Personnel detail loaded

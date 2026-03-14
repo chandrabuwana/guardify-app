@@ -80,3 +80,13 @@ class SearchTugasLanjutanEvent extends TugasLanjutanEvent {
   List<Object?> get props => [query];
 }
 
+/// Filter tugas lanjutan by status (null = all)
+class FilterTugasLanjutanEvent extends TugasLanjutanEvent {
+  final TugasLanjutanStatus? status;
+
+  const FilterTugasLanjutanEvent(this.status);
+
+  @override
+  List<Object?> get props => [status];
+}
+

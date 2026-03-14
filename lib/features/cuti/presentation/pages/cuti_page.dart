@@ -72,6 +72,13 @@ class _CutiPageState extends State<CutiPage>
       vsync: this,
     );
 
+    // Listen for tab changes (handles both tap AND swipe)
+    _tabController!.addListener(() {
+      if (!_tabController!.indexIsChanging) {
+        _onTabChanged(_tabController!.index);
+      }
+    });
+
     // Load initial data
     _loadInitialData();
 
@@ -196,9 +203,6 @@ class _CutiPageState extends State<CutiPage>
                   fontWeight: FontWeight.normal,
                 ),
                 tabs: _getTabs(),
-                onTap: (index) {
-                  _onTabChanged(index);
-                },
               ),
             ),
 

@@ -219,11 +219,17 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 4.verticalSpace,
                 Text(
                   '${laporan.role.displayName} - ${laporan.nrp}',
                   style: TS.bodySmall.copyWith(color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 4.verticalSpace,
                 Text(
@@ -524,6 +530,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
@@ -536,6 +543,8 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           Text(
             value,
             style: TS.bodyMedium.copyWith(color: Colors.black87),
+            maxLines: 20,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -788,10 +797,13 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
                     color: Colors.grey.shade600,
                   ),
                   8.horizontalSpace,
-                  Text(
-                    'Tidak ada gambar',
-                    style: TS.bodyMedium.copyWith(
-                      color: Colors.grey.shade600,
+                  Expanded(
+                    child: Text(
+                      'Tidak ada gambar',
+                      style: TS.bodyMedium.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -1088,6 +1100,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Tugas Lanjutan',
@@ -1100,6 +1113,8 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
                 Text(
                   laporan.tugasLanjutan ?? 'Selesai (5/5 Selesai Dikerjakan)',
                   style: TS.bodyMedium.copyWith(color: Colors.black87),
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
