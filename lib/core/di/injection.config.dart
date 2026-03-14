@@ -94,6 +94,8 @@ import '../../features/company_regulations/domain/usecases/filter_documents_usec
     as _i641;
 import '../../features/company_regulations/domain/usecases/get_documents_usecase.dart'
     as _i368;
+import '../../features/company_regulations/domain/usecases/get_company_rule_categories_usecase.dart'
+    as _i1200;
 import '../../features/company_regulations/domain/usecases/search_documents_usecase.dart'
     as _i463;
 import '../../features/company_regulations/presentation/bloc/document_bloc.dart'
@@ -396,26 +398,26 @@ Future<_i174.GetIt> init(
       () => injectionModule.chatRepository(gh<_i980.ChatRemoteDataSource>()));
   gh.factory<_i504.ChatRepositoryImpl>(
       () => _i504.ChatRepositoryImpl(gh<_i980.ChatRemoteDataSource>()));
-  gh.factory<_i589.CreateIncidentReport>(
-      () => _i589.CreateIncidentReport(gh<_i110.IncidentRepository>()));
-  gh.factory<_i609.EditIncident>(
-      () => _i609.EditIncident(gh<_i110.IncidentRepository>()));
-  gh.factory<_i328.GetIncidentDetail>(
-      () => _i328.GetIncidentDetail(gh<_i110.IncidentRepository>()));
-  gh.factory<_i507.GetIncidentList>(
-      () => _i507.GetIncidentList(gh<_i110.IncidentRepository>()));
   gh.factory<_i156.GetIncidentLocations>(
       () => _i156.GetIncidentLocations(gh<_i110.IncidentRepository>()));
-  gh.factory<_i893.GetIncidentTypes>(
-      () => _i893.GetIncidentTypes(gh<_i110.IncidentRepository>()));
-  gh.factory<_i667.GetMyTasks>(
-      () => _i667.GetMyTasks(gh<_i110.IncidentRepository>()));
-  gh.factory<_i558.GetUserList>(
-      () => _i558.GetUserList(gh<_i110.IncidentRepository>()));
-  gh.factory<_i455.UpdateAllIncident>(
-      () => _i455.UpdateAllIncident(gh<_i110.IncidentRepository>()));
   gh.factory<_i109.UpdateIncidentStatus>(
       () => _i109.UpdateIncidentStatus(gh<_i110.IncidentRepository>()));
+  gh.factory<_i507.GetIncidentList>(
+      () => _i507.GetIncidentList(gh<_i110.IncidentRepository>()));
+  gh.factory<_i455.UpdateAllIncident>(
+      () => _i455.UpdateAllIncident(gh<_i110.IncidentRepository>()));
+  gh.factory<_i667.GetMyTasks>(
+      () => _i667.GetMyTasks(gh<_i110.IncidentRepository>()));
+  gh.factory<_i589.CreateIncidentReport>(
+      () => _i589.CreateIncidentReport(gh<_i110.IncidentRepository>()));
+  gh.factory<_i893.GetIncidentTypes>(
+      () => _i893.GetIncidentTypes(gh<_i110.IncidentRepository>()));
+  gh.factory<_i328.GetIncidentDetail>(
+      () => _i328.GetIncidentDetail(gh<_i110.IncidentRepository>()));
+  gh.factory<_i609.EditIncident>(
+      () => _i609.EditIncident(gh<_i110.IncidentRepository>()));
+  gh.factory<_i558.GetUserList>(
+      () => _i558.GetUserList(gh<_i110.IncidentRepository>()));
   gh.factory<_i65.ChatBloc>(() => _i65.ChatBloc(
         gh<_i420.ChatRepository>(),
         gh<_i374.SignalRChatService>(),
@@ -437,18 +439,18 @@ Future<_i174.GetIt> init(
   gh.lazySingleton<_i87.TestResultRepository>(() =>
       _i128.TestResultRepositoryImpl(
           remoteDataSource: gh<_i268.TestResultRemoteDataSource>()));
-  gh.factory<_i206.GetCurrentShift>(
-      () => _i206.GetCurrentShift(gh<_i736.ScheduleRepository>()));
-  gh.factory<_i420.GetCurrentTask>(
-      () => _i420.GetCurrentTask(gh<_i736.ScheduleRepository>()));
-  gh.factory<_i123.GetDailyAgenda>(
-      () => _i123.GetDailyAgenda(gh<_i736.ScheduleRepository>()));
   gh.factory<_i401.GetMonthlySchedule>(
       () => _i401.GetMonthlySchedule(gh<_i736.ScheduleRepository>()));
   gh.factory<_i310.GetScheduleDetail>(
       () => _i310.GetScheduleDetail(gh<_i736.ScheduleRepository>()));
+  gh.factory<_i420.GetCurrentTask>(
+      () => _i420.GetCurrentTask(gh<_i736.ScheduleRepository>()));
   gh.factory<_i969.GetSchedulePengawas>(
       () => _i969.GetSchedulePengawas(gh<_i736.ScheduleRepository>()));
+  gh.factory<_i123.GetDailyAgenda>(
+      () => _i123.GetDailyAgenda(gh<_i736.ScheduleRepository>()));
+  gh.factory<_i206.GetCurrentShift>(
+      () => _i206.GetCurrentShift(gh<_i736.ScheduleRepository>()));
   gh.factory<_i143.GetShiftDetail>(
       () => _i143.GetShiftDetail(gh<_i736.ScheduleRepository>()));
   gh.factory<_i666.GetShiftNow>(
@@ -462,14 +464,14 @@ Future<_i174.GetIt> init(
         remoteDataSource: gh<_i950.DocumentRemoteDataSource>(),
         localDataSource: gh<_i995.DocumentLocalDataSource>(),
       ));
-  gh.factory<_i313.GetLaporanDetail>(
-      () => _i313.GetLaporanDetail(gh<_i198.LaporanKegiatanRepository>()));
+  gh.factory<_i956.VerifLaporan>(
+      () => _i956.VerifLaporan(gh<_i198.LaporanKegiatanRepository>()));
   gh.factory<_i830.GetLaporanList>(
       () => _i830.GetLaporanList(gh<_i198.LaporanKegiatanRepository>()));
   gh.factory<_i96.UpdateStatusLaporan>(
       () => _i96.UpdateStatusLaporan(gh<_i198.LaporanKegiatanRepository>()));
-  gh.factory<_i956.VerifLaporan>(
-      () => _i956.VerifLaporan(gh<_i198.LaporanKegiatanRepository>()));
+  gh.factory<_i313.GetLaporanDetail>(
+      () => _i313.GetLaporanDetail(gh<_i198.LaporanKegiatanRepository>()));
   gh.factory<_i117.AttendanceRekapRepository>(() =>
       _i195.AttendanceRekapRepositoryImpl(
           remoteDataSource: gh<_i832.AttendanceRekapRemoteDataSource>()));
@@ -478,27 +480,27 @@ Future<_i174.GetIt> init(
         getVerificationItemsUseCase: gh<_i248.GetVerificationItemsUseCase>(),
         panicButtonRepository: gh<_i67.PanicButtonRepository>(),
       ));
-  gh.factory<_i114.BuatAjuanCuti>(
-      () => _i114.BuatAjuanCuti(gh<_i326.CutiRepository>()));
-  gh.factory<_i106.DeleteCuti>(
-      () => _i106.DeleteCuti(gh<_i326.CutiRepository>()));
-  gh.factory<_i98.EditCuti>(() => _i98.EditCuti(gh<_i326.CutiRepository>()));
-  gh.factory<_i248.FilterCuti>(
-      () => _i248.FilterCuti(gh<_i326.CutiRepository>()));
-  gh.factory<_i875.GetCutiKuota>(
-      () => _i875.GetCutiKuota(gh<_i326.CutiRepository>()));
-  gh.factory<_i51.GetDaftarCutiAnggota>(
-      () => _i51.GetDaftarCutiAnggota(gh<_i326.CutiRepository>()));
   gh.factory<_i592.GetDaftarCutiSaya>(
       () => _i592.GetDaftarCutiSaya(gh<_i326.CutiRepository>()));
   gh.factory<_i241.GetDetailCuti>(
       () => _i241.GetDetailCuti(gh<_i326.CutiRepository>()));
-  gh.factory<_i540.GetLeaveRequestTypeList>(
-      () => _i540.GetLeaveRequestTypeList(gh<_i326.CutiRepository>()));
+  gh.factory<_i98.EditCuti>(() => _i98.EditCuti(gh<_i326.CutiRepository>()));
+  gh.factory<_i106.DeleteCuti>(
+      () => _i106.DeleteCuti(gh<_i326.CutiRepository>()));
+  gh.factory<_i248.FilterCuti>(
+      () => _i248.FilterCuti(gh<_i326.CutiRepository>()));
   gh.factory<_i850.GetRekapCuti>(
       () => _i850.GetRekapCuti(gh<_i326.CutiRepository>()));
   gh.factory<_i231.UpdateStatusCuti>(
       () => _i231.UpdateStatusCuti(gh<_i326.CutiRepository>()));
+  gh.factory<_i540.GetLeaveRequestTypeList>(
+      () => _i540.GetLeaveRequestTypeList(gh<_i326.CutiRepository>()));
+  gh.factory<_i51.GetDaftarCutiAnggota>(
+      () => _i51.GetDaftarCutiAnggota(gh<_i326.CutiRepository>()));
+  gh.factory<_i114.BuatAjuanCuti>(
+      () => _i114.BuatAjuanCuti(gh<_i326.CutiRepository>()));
+  gh.factory<_i875.GetCutiKuota>(
+      () => _i875.GetCutiKuota(gh<_i326.CutiRepository>()));
   gh.lazySingleton<_i506.TugasLanjutanRepository>(
       () => _i890.TugasLanjutanRepositoryImpl(
             gh<_i745.TugasLanjutanRemoteDataSource>(),
@@ -529,36 +531,38 @@ Future<_i174.GetIt> init(
         getScheduleDetail: gh<_i310.GetScheduleDetail>(),
         getSchedulePengawas: gh<_i969.GetSchedulePengawas>(),
       ));
-  gh.factory<_i482.ApprovePersonnelUseCase>(
-      () => _i482.ApprovePersonnelUseCase(gh<_i7.PersonnelRepository>()));
-  gh.factory<_i410.GetPersonnelByStatusUseCase>(
-      () => _i410.GetPersonnelByStatusUseCase(gh<_i7.PersonnelRepository>()));
   gh.factory<_i462.GetPersonnelDetailUseCase>(
       () => _i462.GetPersonnelDetailUseCase(gh<_i7.PersonnelRepository>()));
   gh.factory<_i1005.RevisePersonnelUseCase>(
       () => _i1005.RevisePersonnelUseCase(gh<_i7.PersonnelRepository>()));
+  gh.factory<_i410.GetPersonnelByStatusUseCase>(
+      () => _i410.GetPersonnelByStatusUseCase(gh<_i7.PersonnelRepository>()));
+  gh.factory<_i482.ApprovePersonnelUseCase>(
+      () => _i482.ApprovePersonnelUseCase(gh<_i7.PersonnelRepository>()));
+  gh.factory<_i865.GetPatrolRoutesPaginated>(
+      () => _i865.GetPatrolRoutesPaginated(gh<_i498.PatrolRepository>()));
   gh.factory<_i964.AddPatrolLocation>(
       () => _i964.AddPatrolLocation(gh<_i498.PatrolRepository>()));
   gh.factory<_i959.GetPatrolProgress>(
       () => _i959.GetPatrolProgress(gh<_i498.PatrolRepository>()));
-  gh.factory<_i835.GetPatrolRoutes>(
-      () => _i835.GetPatrolRoutes(gh<_i498.PatrolRepository>()));
-  gh.factory<_i865.GetPatrolRoutesPaginated>(
-      () => _i865.GetPatrolRoutesPaginated(gh<_i498.PatrolRepository>()));
-  gh.factory<_i971.SubmitAttendance>(
-      () => _i971.SubmitAttendance(gh<_i498.PatrolRepository>()));
   gh.factory<_i791.VerifyLocation>(
       () => _i791.VerifyLocation(gh<_i498.PatrolRepository>()));
+  gh.factory<_i971.SubmitAttendance>(
+      () => _i971.SubmitAttendance(gh<_i498.PatrolRepository>()));
+  gh.factory<_i835.GetPatrolRoutes>(
+      () => _i835.GetPatrolRoutes(gh<_i498.PatrolRepository>()));
   gh.factory<_i37.LoginUseCase>(
       () => _i37.LoginUseCase(gh<_i37.LoginRepository>()));
-  gh.factory<_i347.DownloadDocumentUseCase>(
-      () => _i347.DownloadDocumentUseCase(gh<_i875.DocumentRepository>()));
+  gh.factory<_i463.SearchDocumentsUseCase>(
+      () => _i463.SearchDocumentsUseCase(gh<_i875.DocumentRepository>()));
   gh.factory<_i641.FilterDocumentsUseCase>(
       () => _i641.FilterDocumentsUseCase(gh<_i875.DocumentRepository>()));
   gh.factory<_i368.GetDocumentsUseCase>(
       () => _i368.GetDocumentsUseCase(gh<_i875.DocumentRepository>()));
-  gh.factory<_i463.SearchDocumentsUseCase>(
-      () => _i463.SearchDocumentsUseCase(gh<_i875.DocumentRepository>()));
+  gh.factory<_i1200.GetCompanyRuleCategoriesUseCase>(
+      () => _i1200.GetCompanyRuleCategoriesUseCase(gh<_i875.DocumentRepository>()));
+  gh.factory<_i347.DownloadDocumentUseCase>(
+      () => _i347.DownloadDocumentUseCase(gh<_i875.DocumentRepository>()));
   gh.factory<_i804.BMIRepository>(() => _i10.BMIRepositoryImpl(
         gh<_i341.BMILocalDataSource>(),
         gh<_i394.BmiRemoteDataSource>(),
@@ -583,14 +587,14 @@ Future<_i174.GetIt> init(
         addPatrolLocation: gh<_i964.AddPatrolLocation>(),
         patrolRepository: gh<_i498.PatrolRepository>(),
       ));
-  gh.factory<_i609.GetMemberTestsByPicUseCase>(
-      () => _i609.GetMemberTestsByPicUseCase(gh<_i87.TestResultRepository>()));
   gh.factory<_i727.GetMemberTestResultsUseCase>(
       () => _i727.GetMemberTestResultsUseCase(gh<_i87.TestResultRepository>()));
-  gh.factory<_i247.GetMyTestResultsUseCase>(
-      () => _i247.GetMyTestResultsUseCase(gh<_i87.TestResultRepository>()));
+  gh.factory<_i609.GetMemberTestsByPicUseCase>(
+      () => _i609.GetMemberTestsByPicUseCase(gh<_i87.TestResultRepository>()));
   gh.factory<_i888.GetTestSummaryUseCase>(
       () => _i888.GetTestSummaryUseCase(gh<_i87.TestResultRepository>()));
+  gh.factory<_i247.GetMyTestResultsUseCase>(
+      () => _i247.GetMyTestResultsUseCase(gh<_i87.TestResultRepository>()));
   gh.lazySingleton<_i894.ProfileRepository>(() => _i334.ProfileRepositoryImpl(
         remoteDataSource: gh<_i327.ProfileRemoteDataSource>(),
         localDataSource: gh<_i1046.ProfileLocalDataSource>(),
@@ -602,6 +606,8 @@ Future<_i174.GetIt> init(
       ));
   gh.factory<_i1030.DocumentBloc>(() => _i1030.DocumentBloc(
         getDocumentsUseCase: gh<_i368.GetDocumentsUseCase>(),
+        getCompanyRuleCategoriesUseCase:
+            gh<_i1200.GetCompanyRuleCategoriesUseCase>(),
         searchDocumentsUseCase: gh<_i463.SearchDocumentsUseCase>(),
         filterDocumentsUseCase: gh<_i641.FilterDocumentsUseCase>(),
         downloadDocumentUseCase: gh<_i347.DownloadDocumentUseCase>(),
@@ -612,47 +618,47 @@ Future<_i174.GetIt> init(
         gh<_i420.GetCurrentTask>(),
         gh<_i666.GetShiftNow>(),
       ));
-  gh.factory<_i815.CalculateBMI>(
-      () => _i815.CalculateBMI(gh<_i804.BMIRepository>()));
-  gh.factory<_i931.GetBMIHistory>(
-      () => _i931.GetBMIHistory(gh<_i804.BMIRepository>()));
-  gh.factory<_i547.GetUserProfile>(
-      () => _i547.GetUserProfile(gh<_i804.BMIRepository>()));
   gh.factory<_i301.GetUserProfilesPaginated>(
       () => _i301.GetUserProfilesPaginated(gh<_i804.BMIRepository>()));
-  gh.factory<_i724.ManagePinnedProfiles>(
-      () => _i724.ManagePinnedProfiles(gh<_i804.BMIRepository>()));
+  gh.factory<_i547.GetUserProfile>(
+      () => _i547.GetUserProfile(gh<_i804.BMIRepository>()));
+  gh.factory<_i815.CalculateBMI>(
+      () => _i815.CalculateBMI(gh<_i804.BMIRepository>()));
   gh.factory<_i263.SearchUserProfiles>(
       () => _i263.SearchUserProfiles(gh<_i804.BMIRepository>()));
-  gh.factory<_i85.CheckAttendanceStatusUseCase>(() =>
-      _i85.CheckAttendanceStatusUseCase(gh<_i477.AttendanceRepository>()));
-  gh.factory<_i895.CheckInUseCase>(
-      () => _i895.CheckInUseCase(gh<_i477.AttendanceRepository>()));
-  gh.factory<_i751.CheckOutUseCase>(
-      () => _i751.CheckOutUseCase(gh<_i477.AttendanceRepository>()));
-  gh.factory<_i1041.GetAttendanceHistoryUseCase>(() =>
-      _i1041.GetAttendanceHistoryUseCase(gh<_i477.AttendanceRepository>()));
+  gh.factory<_i931.GetBMIHistory>(
+      () => _i931.GetBMIHistory(gh<_i804.BMIRepository>()));
+  gh.factory<_i724.ManagePinnedProfiles>(
+      () => _i724.ManagePinnedProfiles(gh<_i804.BMIRepository>()));
   gh.factory<_i566.GetAttendanceStatusUseCase>(
       () => _i566.GetAttendanceStatusUseCase(gh<_i477.AttendanceRepository>()));
   gh.factory<_i1041.SubmitAttendanceUseCase>(
       () => _i1041.SubmitAttendanceUseCase(gh<_i477.AttendanceRepository>()));
+  gh.factory<_i1041.GetAttendanceHistoryUseCase>(() =>
+      _i1041.GetAttendanceHistoryUseCase(gh<_i477.AttendanceRepository>()));
+  gh.factory<_i895.CheckInUseCase>(
+      () => _i895.CheckInUseCase(gh<_i477.AttendanceRepository>()));
+  gh.factory<_i751.CheckOutUseCase>(
+      () => _i751.CheckOutUseCase(gh<_i477.AttendanceRepository>()));
+  gh.factory<_i85.CheckAttendanceStatusUseCase>(() =>
+      _i85.CheckAttendanceStatusUseCase(gh<_i477.AttendanceRepository>()));
   gh.factory<_i1023.ValidateAttendanceUseCase>(
       () => _i1023.ValidateAttendanceUseCase(gh<_i477.AttendanceRepository>()));
-  gh.factory<_i303.GetProgressSummary>(
-      () => _i303.GetProgressSummary(gh<_i506.TugasLanjutanRepository>()));
-  gh.factory<_i268.GetTugasLanjutanDetail>(
-      () => _i268.GetTugasLanjutanDetail(gh<_i506.TugasLanjutanRepository>()));
-  gh.factory<_i648.GetTugasLanjutanList>(
-      () => _i648.GetTugasLanjutanList(gh<_i506.TugasLanjutanRepository>()));
   gh.factory<_i729.SelesaikanTugas>(
       () => _i729.SelesaikanTugas(gh<_i506.TugasLanjutanRepository>()));
-  gh.factory<_i737.GetAttendanceRekapDetailUseCase>(() =>
-      _i737.GetAttendanceRekapDetailUseCase(
+  gh.factory<_i268.GetTugasLanjutanDetail>(
+      () => _i268.GetTugasLanjutanDetail(gh<_i506.TugasLanjutanRepository>()));
+  gh.factory<_i303.GetProgressSummary>(
+      () => _i303.GetProgressSummary(gh<_i506.TugasLanjutanRepository>()));
+  gh.factory<_i648.GetTugasLanjutanList>(
+      () => _i648.GetTugasLanjutanList(gh<_i506.TugasLanjutanRepository>()));
+  gh.factory<_i926.UpdateAttendanceRekapUseCase>(() =>
+      _i926.UpdateAttendanceRekapUseCase(
           gh<_i117.AttendanceRekapRepository>()));
   gh.factory<_i665.GetAttendanceRekapUseCase>(() =>
       _i665.GetAttendanceRekapUseCase(gh<_i117.AttendanceRekapRepository>()));
-  gh.factory<_i926.UpdateAttendanceRekapUseCase>(() =>
-      _i926.UpdateAttendanceRekapUseCase(
+  gh.factory<_i737.GetAttendanceRekapDetailUseCase>(() =>
+      _i737.GetAttendanceRekapDetailUseCase(
           gh<_i117.AttendanceRekapRepository>()));
   gh.factory<_i699.PatrolAttendanceBloc>(() => _i699.PatrolAttendanceBloc(
         submitAttendance: gh<_i971.SubmitAttendance>(),
@@ -665,10 +671,10 @@ Future<_i174.GetIt> init(
       ));
   gh.factory<_i888.GetProfileDetailsUseCase>(
       () => _i888.GetProfileDetailsUseCase(gh<_i894.ProfileRepository>()));
-  gh.factory<_i17.LogoutUseCase>(
-      () => _i17.LogoutUseCase(gh<_i894.ProfileRepository>()));
   gh.factory<_i253.UpdateNameUseCase>(
       () => _i253.UpdateNameUseCase(gh<_i894.ProfileRepository>()));
+  gh.factory<_i17.LogoutUseCase>(
+      () => _i17.LogoutUseCase(gh<_i894.ProfileRepository>()));
   gh.factory<_i42.UpdateProfileDetailsUseCase>(
       () => _i42.UpdateProfileDetailsUseCase(gh<_i894.ProfileRepository>()));
   gh.factory<_i669.UpdateProfilePhotoUseCase>(

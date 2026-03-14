@@ -25,6 +25,7 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
     super.tugasLanjutan,
     required super.tugasTertunda,
     super.carryOver,
+    super.listCarryOver,
     required super.status,
     required super.kehadiran,
     required super.lembur,
@@ -71,6 +72,14 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       tugasLanjutan: json['tugas_lanjutan'] as String?,
       tugasTertunda: json['tugas_tertunda'] as bool? ?? false,
       carryOver: json['carry_over'] as String?,
+      listCarryOver: json['list_carry_over'] != null
+          ? (json['list_carry_over'] as List)
+              .map((e) => CarryOverItemModel.fromJson(
+                    e as Map<String, dynamic>,
+                  ))
+              .toList()
+              .cast<LaporanCarryOverItem>()
+          : null,
       status: LaporanStatus.fromValue(
         json['status'] as String? ?? 'menunggu_verifikasi',
       ),
@@ -128,6 +137,9 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       'tugas_lanjutan': tugasLanjutan,
       'tugas_tertunda': tugasTertunda,
       'carry_over': carryOver,
+      'list_carry_over': listCarryOver
+          ?.map((e) => (e as CarryOverItemModel).toJson())
+          .toList(),
       'status': status.value,
       'kehadiran': kehadiran,
       'lembur': lembur,
@@ -173,6 +185,10 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       tugasLanjutan: entity.tugasLanjutan,
       tugasTertunda: entity.tugasTertunda,
       carryOver: entity.carryOver,
+      listCarryOver: entity.listCarryOver
+          ?.map((e) => CarryOverItemModel.fromEntity(e))
+          .toList()
+          .cast<LaporanCarryOverItem>(),
       status: entity.status,
       kehadiran: entity.kehadiran,
       lembur: entity.lembur,
@@ -216,6 +232,7 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       tugasLanjutan: tugasLanjutan,
       tugasTertunda: tugasTertunda,
       carryOver: carryOver,
+      listCarryOver: listCarryOver,
       status: status,
       kehadiran: kehadiran,
       lembur: lembur,
@@ -233,6 +250,34 @@ class LaporanKegiatanModel extends LaporanKegiatanEntity {
       idAttendance: idAttendance,
       checkIn: checkIn,
       checkOut: checkOut,
+    );
+  }
+}
+
+class CarryOverItemModel extends LaporanCarryOverItem {
+  const CarryOverItemModel({
+    required super.note,
+    required super.status,
+  });
+
+  factory CarryOverItemModel.fromJson(Map<String, dynamic> json) {
+    return CarryOverItemModel(
+      note: (json['note'] as String?) ?? (json['Note'] as String?) ?? '',
+      status: (json['status'] as String?) ?? (json['Status'] as String?) ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'note': note,
+      'status': status,
+    };
+  }
+
+  factory CarryOverItemModel.fromEntity(LaporanCarryOverItem entity) {
+    return CarryOverItemModel(
+      note: entity.note,
+      status: entity.status,
     );
   }
 }

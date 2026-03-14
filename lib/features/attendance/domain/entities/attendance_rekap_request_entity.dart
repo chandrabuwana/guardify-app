@@ -29,6 +29,14 @@ class AttendanceRekapRequestEntity {
   });
 
   Map<String, dynamic> toJson() {
+    final filters = <Map<String, dynamic>>[];
+    if (status.trim().isNotEmpty) {
+      filters.add({'Field': 'status', 'Search': status.trim()});
+    }
+    if (search.trim().isNotEmpty) {
+      filters.add({'Field': 'search', 'Search': search.trim()});
+    }
+
     return {
       'IdUser': idUser,
       'WithSubordinate': withSubordinate,

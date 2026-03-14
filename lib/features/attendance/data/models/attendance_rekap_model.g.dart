@@ -13,8 +13,9 @@ AttendanceRekapResponseModel _$AttendanceRekapResponseModelFromJson(
       json,
       ($checkedConvert) {
         final val = AttendanceRekapResponseModel(
-          count: $checkedConvert('Count', (v) => (v as num).toInt()),
-          filtered: $checkedConvert('Filtered', (v) => (v as num).toInt()),
+          count: $checkedConvert('Count', (v) => (v as num?)?.toInt() ?? 0),
+          filtered:
+              $checkedConvert('Filtered', (v) => (v as num?)?.toInt() ?? 0),
           list: $checkedConvert(
               'List',
               (v) => (v as List<dynamic>)

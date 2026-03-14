@@ -81,12 +81,15 @@ class TugasLanjutanRepositoryImpl implements TugasLanjutanRepository {
                 ? task.reportNote
                 : 'Tugas lanjutan',
             status: status,
-            diselesaikanOleh: task.solverId != null
-                ? '${task.updateBy ?? task.solverId}'
-                : null,
+            diselesaikanOleh: (task.solver?.fullname != null &&
+                    task.solver!.fullname!.trim().isNotEmpty)
+                ? task.solver!.fullname!.trim()
+                : (task.solverId != null
+                    ? '${task.updateBy ?? task.solverId}'
+                    : null),
             diselesaikanOlehId: task.solverId,
             tanggalSelesai: solverDate,
-            buktiUrl: task.file,
+            buktiUrl: task.evidenceUrl ?? task.file,
             catatan: task.solverNote,
           );
         }).toList();

@@ -209,6 +209,27 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
               .length;
           final totalCount = currentRoute.locations.length;
 
+          // Prefer RouteName from get_current_task API if available
+          final effectiveListRoute = (state is PatrolLoaded && state.listRoute != null)
+              ? state.listRoute
+              : widget.listRoute;
+
+          RouteTask? matchedRoute;
+          final listRoute = effectiveListRoute;
+          if (listRoute != null && listRoute.isNotEmpty) {
+            for (final r in listRoute) {
+              if (r.idAreas == currentRoute.id) {
+                matchedRoute = r;
+                break;
+              }
+            }
+            matchedRoute ??= listRoute.first;
+          }
+
+          final routeNameFromApi = matchedRoute?.routeName;
+          final routeDisplayName =
+              routeNameFromApi != null ? routeNameFromApi : currentRoute.name;
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -256,7 +277,7 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    '${currentRoute.name} (${currentRoute.locations.length} Lokasi)*',
+                    '$routeDisplayName (${currentRoute.locations.length} Lokasi)*',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,

@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import '../../domain/usecases/get_company_rule_categories_usecase.dart';
 import '../../domain/usecases/download_document_usecase.dart';
 import '../../domain/usecases/filter_documents_usecase.dart';
 import '../../domain/usecases/get_documents_usecase.dart';
@@ -15,6 +16,7 @@ import 'document_state.dart';
 @injectable
 class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
   final GetDocumentsUseCase getDocumentsUseCase;
+  final GetCompanyRuleCategoriesUseCase getCompanyRuleCategoriesUseCase;
   final SearchDocumentsUseCase searchDocumentsUseCase;
   final FilterDocumentsUseCase filterDocumentsUseCase;
   final DownloadDocumentUseCase downloadDocumentUseCase;
@@ -23,6 +25,7 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
 
   DocumentBloc({
     required this.getDocumentsUseCase,
+    required this.getCompanyRuleCategoriesUseCase,
     required this.searchDocumentsUseCase,
     required this.filterDocumentsUseCase,
     required this.downloadDocumentUseCase,
@@ -36,8 +39,27 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
     on<FilterDocumentsByDateEvent>(_onFilterDocumentsByDate);
     on<ClearFilterEvent>(_onClearFilter);
     on<ApplyCompanyRuleFilterEvent>(_onApplyCompanyRuleFilter);
+    on<LoadCompanyRuleCategoriesEvent>(_onLoadCompanyRuleCategories);
     on<DownloadDocumentEvent>(_onDownloadDocument);
     on<ShowSnackbarEvent>(_onShowSnackbar);
+  }
+
+  Future<void> _onLoadCompanyRuleCategories(
+    LoadCompanyRuleCategoriesEvent event,
+    Emitter<DocumentState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! DocumentLoaded) return;
+
+    if (currentState.companyRuleCategories.isNotEmpty) return;
+
+    final result = await getCompanyRuleCategoriesUseCase.call();
+    result.fold(
+      (_) {},
+      (categories) {
+        emit(currentState.copyWith(companyRuleCategories: categories));
+      },
+    );
   }
 
   /// Handler untuk load documents event
@@ -174,6 +196,9 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
     final code = event.code?.trim() ?? '';
     if (name.isNotEmpty) filters['Name'] = name;
     if (code.isNotEmpty) filters['Code'] = code;
+    if (event.idCompanyCategory != null) {
+      filters['IdCompanyRuleCategory'] = event.idCompanyCategory.toString();
+    }
 
     final result = await getDocumentsUseCase.call(
       start: 0,
@@ -189,8 +214,11 @@ class DocumentBloc extends Bloc<DocumentEvent, DocumentState> {
         documents: documents,
         filteredDocuments: documents,
         categories: _extractCategories(documents),
+        companyRuleCategories:
+            currentState is DocumentLoaded ? currentState.companyRuleCategories : const [],
         currentNameFilter: filters['Name'],
         currentCodeFilter: filters['Code'],
+        currentIdCompanyCategory: event.idCompanyCategory,
         isFilterMode: filters.isNotEmpty,
         sortField: event.sortField,
         sortType: event.sortType,

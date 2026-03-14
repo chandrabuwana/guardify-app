@@ -9,6 +9,7 @@ import '../../../../core/design/colors.dart';
 import '../../domain/entities/shift_schedule.dart';
 import '../bloc/schedule_bloc.dart';
 import 'shift_detail_page.dart';
+import '../../../home/presentation/widgets/custom_bottom_nav.dart';
 
 /// Schedule Page - Jadwal Kerja (Untuk Anggota & Danton)
 ///
@@ -136,6 +137,32 @@ class _SchedulePageState extends State<SchedulePage> {
               );
             },
           );
+        },
+      ),
+      bottomNavigationBar: CustomBottomNav(
+        currentIndex: 1,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+              break;
+            case 1:
+              // Already on schedule
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/chat');
+              break;
+            case 3:
+              // Notifikasi page is not wired as a named route yet
+              break;
+          }
+        },
+        onEmergencyPressed: () {
+          Navigator.pushNamed(context, '/panic-verification');
         },
       ),
     );

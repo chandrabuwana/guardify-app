@@ -370,7 +370,7 @@ class _AttendanceFormPageState extends State<AttendanceFormPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'Absensi Patroli1111',
+                              'Absensi Patroli',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,

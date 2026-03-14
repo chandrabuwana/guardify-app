@@ -1,6 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../../core/constants/enums.dart';
+import '../../../../core/utils/user_role_helper.dart';
 import '../bloc/news_bloc.dart';
 import '../bloc/news_event.dart';
 import '../bloc/news_state.dart';
@@ -20,8 +26,28 @@ class _AddNewsPageState extends State<AddNewsPage> {
   final _contentController = TextEditingController();
   final _sourceController = TextEditingController();
   final _photoController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
 
   NewsCategory _selectedCategory = NewsCategory.cuaca;
+  UserRole? _userRole;
+  bool _isLoadingRole = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    final role = await UserRoleHelper.getUserRole();
+    if (!mounted) return;
+    setState(() {
+      _userRole = role;
+      _isLoadingRole = false;
+    });
+  }
+
+  bool get _canCreateNews => _userRole == UserRole.pengawas;
 
   @override
   void dispose() {
@@ -30,6 +56,74 @@ class _AddNewsPageState extends State<AddNewsPage> {
     _sourceController.dispose();
     _photoController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    if (!_canCreateNews) return;
+    try {
+      final XFile? xFile = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+      if (xFile == null) return;
+
+      final file = File(xFile.path);
+      setState(() {
+        _photoController.text = file.path;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal memilih foto'),
+          backgroundColor: errorColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showPickPhotoSheet() async {
+    if (!_canCreateNews) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Hanya role Pengawas yang dapat menambahkan berita'),
+          backgroundColor: errorColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    HardwareKeyboard.instance.clearState();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Kamera'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galeri'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (source == null || !mounted) return;
+    await _pickPhoto(source);
   }
 
   @override
@@ -77,6 +171,27 @@ class _AddNewsPageState extends State<AddNewsPage> {
           }
         },
         builder: (context, state) {
+          if (_isLoadingRole) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!_canCreateNews) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.w),
+                child: Text(
+                  'Hanya role Pengawas yang dapat menambahkan berita',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: neutral90,
+                  ),
+                ),
+              ),
+            );
+          }
+
           return Form(
             key: _formKey,
             child: SingleChildScrollView(
@@ -332,7 +447,7 @@ class _AddNewsPageState extends State<AddNewsPage> {
                             size: 20.sp,
                           ),
                           onPressed: () {
-                            // Handle camera
+                            _showPickPhotoSheet();
                           },
                         ),
                       ),
@@ -352,12 +467,56 @@ class _AddNewsPageState extends State<AddNewsPage> {
                             size: 20.sp,
                           ),
                           onPressed: () {
-                            // Handle dropdown
+                            _showPickPhotoSheet();
                           },
                         ),
                       ),
                     ],
                   ),
+
+                  if (_photoController.text.trim().isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 8.h),
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 10.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: neutral10,
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(color: neutral30),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _photoController.text.trim(),
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: neutral90,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.close,
+                                size: 18.sp,
+                                color: neutral70,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _photoController.clear();
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
 
                   32.verticalSpace,
 
@@ -366,7 +525,9 @@ class _AddNewsPageState extends State<AddNewsPage> {
                     width: double.infinity,
                     height: 48.h,
                     child: ElevatedButton(
-                      onPressed: state.isLoading ? null : _saveNews,
+                      onPressed: (state.isLoading || !_canCreateNews)
+                          ? null
+                          : _saveNews,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
                         foregroundColor: Colors.white,

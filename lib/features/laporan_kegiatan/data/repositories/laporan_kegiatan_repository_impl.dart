@@ -22,6 +22,8 @@ class LaporanKegiatanRepositoryImpl implements LaporanKegiatanRepository {
     String? search,
     int start = 1,
     int length = 10,
+    String? startDate,
+    String? endDate,
   }) async {
     try {
       final result = await remoteDataSource.getLaporanList(
@@ -31,6 +33,8 @@ class LaporanKegiatanRepositoryImpl implements LaporanKegiatanRepository {
         search: search,
         start: start,
         length: length,
+        startDate: startDate,
+        endDate: endDate,
       );
       return Right(result.map((model) => model.toEntity()).toList());
     } catch (e) {

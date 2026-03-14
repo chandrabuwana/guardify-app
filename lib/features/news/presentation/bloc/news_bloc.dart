@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/news.dart';
 import '../../domain/repositories/news_repository.dart';
+import '../../../../core/constants/enums.dart';
+import '../../../../core/utils/user_role_helper.dart';
 import 'news_event.dart';
 import 'news_state.dart';
 
@@ -293,6 +295,16 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
     emit(state.copyWith(isLoading: true, errorMessage: null, createSuccess: false));
 
     try {
+      final userRole = await UserRoleHelper.getUserRole();
+      if (userRole != UserRole.pengawas) {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: 'Hanya role Pengawas yang dapat menambahkan berita',
+          createSuccess: false,
+        ));
+        return;
+      }
+
       final newNews = await newsRepository.createNews(event.news);
       final updatedNews = List<News>.from(state.news)..add(newNews);
 

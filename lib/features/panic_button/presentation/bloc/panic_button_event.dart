@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../data/models/panic_button_edit_request.dart';
 
 abstract class PanicButtonEvent extends Equatable {
   const PanicButtonEvent();
@@ -110,4 +111,17 @@ class SubmitPanicButtonVerificationEvent extends PanicButtonEvent {
 
   @override
   List<Object?> get props => [id, status, notes];
+}
+
+class SubmitPanicButtonCompletionEvent extends PanicButtonEvent {
+  final String id;
+  final PanicButtonEditRequest request;
+
+  const SubmitPanicButtonCompletionEvent({
+    required this.id,
+    required this.request,
+  });
+
+  @override
+  List<Object?> get props => [id, request];
 }

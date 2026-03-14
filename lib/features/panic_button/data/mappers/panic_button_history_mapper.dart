@@ -42,6 +42,12 @@ class PanicButtonHistoryMapper {
                   ))
               .toList()
           : [],
+      evidenceFile: model.evidenceFile != null
+          ? PanicButtonHistoryFile(
+              filename: model.evidenceFile!.filename,
+              url: model.evidenceFile!.url,
+            )
+          : null,
     );
   }
 

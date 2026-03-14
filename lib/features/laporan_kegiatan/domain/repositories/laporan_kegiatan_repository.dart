@@ -13,6 +13,8 @@ abstract class LaporanKegiatanRepository {
     String? search,
     int start = 1,
     int length = 10,
+    String? startDate,
+    String? endDate,
   });
 
   /// Get detail laporan kegiatan by ID

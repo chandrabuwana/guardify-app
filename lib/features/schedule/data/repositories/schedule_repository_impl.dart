@@ -509,11 +509,13 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       }
 
       // Convert to entity
+      final routeName = response.data!.routeName;
       final currentTask = CurrentTaskData(
         listRoute: response.data!.listRoute.map((r) {
           return RouteTask(
             idAreas: r.idAreas,
             areasName: r.areasName,
+            routeName: routeName,
             checkIn: r.checkIn,
             filename: r.filename,
             fileUrl: r.fileUrl,
@@ -533,12 +535,19 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
             reportNote: c.reportNote,
             solverDate: c.solverDate,
             solverId: c.solverId,
+            solver: c.solver != null
+                ? CarryOverTaskSolver(
+                    id: c.solver!.id,
+                    fullname: c.solver!.fullname,
+                  )
+                : null,
             solverNote: c.solverNote,
             status: c.status,
             updateBy: c.updateBy,
             updateDate: c.updateDate,
             location: c.location,
             file: c.file,
+            evidenceUrl: c.evidenceUrl,
           );
         }).toList(),
       );

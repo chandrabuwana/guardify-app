@@ -1234,10 +1234,18 @@ class __HomePageViewState extends State<_HomePageView> {
                                     ),
                                   ),
                                 ),
-                              ).then((_) {
-                                context
-                                    .read<HomeBloc>()
-                                    .add(const BottomNavigationTappedEvent(0));
+                              ).then((_) async {
+                                final homeBloc = context.read<HomeBloc>();
+                                final shiftId = await SecurityManager.readSecurely(
+                                  AppConstants.shiftDetailIdKey,
+                                );
+                                if (shiftId != null && shiftId.isNotEmpty) {
+                                  homeBloc.add(LoadCurrentTaskEvent(idShiftDetail: shiftId));
+                                } else {
+                                  homeBloc.add(const HomeInitialEvent());
+                                }
+
+                                homeBloc.add(const BottomNavigationTappedEvent(0));
                               });
                             } else if (task.id == 'patrol_summary') {
                               // Navigate directly to patrol detail page using data from get_current_task

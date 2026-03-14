@@ -98,6 +98,7 @@ class NewsRemoteDataSourceImpl implements NewsRemoteDataSource {
     required int idCategory,
     required String source,
     required String title,
+    Map<String, dynamic>? files,
   }) async {
     try {
       final response = await _dio.post(
@@ -108,6 +109,7 @@ class NewsRemoteDataSourceImpl implements NewsRemoteDataSource {
           'IdCategory': idCategory,
           'Source': source,
           'Title': title,
+          'Files': files,
         },
       );
 

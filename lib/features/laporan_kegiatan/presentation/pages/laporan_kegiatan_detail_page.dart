@@ -12,7 +12,8 @@ import '../bloc/laporan_kegiatan_bloc.dart';
 import '../../domain/entities/laporan_kegiatan_entity.dart';
 import '../widgets/patrol_timeline_widget.dart';
 import 'package:intl/intl.dart';
-
+// tugas tertunda = carryOver
+//tugas lanjutan =listCarryOver.note
 class LaporanKegiatanDetailPage extends StatefulWidget {
   final String laporanId;
   final UserRole userRole;
@@ -175,7 +176,8 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
             child: UIButton(
               text: 'Selanjutnya →',
               fullWidth: true,
-              enable: laporan.status != LaporanStatus.checkIn,
+              enable: laporan.status != LaporanStatus.checkIn &&
+                  laporan.checkOut != null,
               onPressed: () {
                 _pageController.nextPage(
                   duration: const Duration(milliseconds: 300),
@@ -303,6 +305,11 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
 
           // Tugas Lanjutan
           _buildTugasLanjutanCard(laporan),
+
+          if ((laporan.carryOver ?? '').trim().isNotEmpty) ...[
+            16.verticalSpace,
+            _buildTugasTertundaCard(laporan.carryOver!.trim()),
+          ],
         ],
       ),
     );
@@ -355,6 +362,12 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
             16.verticalSpace,
           ],
 
+          if (laporan.listCarryOver != null &&
+              laporan.listCarryOver!.isNotEmpty) ...[
+            _buildDaftarTugasTertundaCard(laporan.listCarryOver!),
+            16.verticalSpace,
+          ],
+
           // Laporan Pengamanan
           _buildInfoCard(
             'Laporan Pengamanan Checkout',
@@ -368,13 +381,6 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
             _buildFotoPengamananCard(laporan.fotoPengamananCheckout!)
           else
             _buildFileCard('Foto Pengamanan', null),
-          16.verticalSpace,
-
-          // Tugas Tertunda
-          _buildInfoCard(
-            'Tugas Tertunda',
-            laporan.carryOver ?? '-',
-          ),
           16.verticalSpace,
 
           // Jam Selesai Bekerja
@@ -1124,6 +1130,89 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
             size: 16.sp,
             color: Colors.grey[600],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTugasTertundaCard(String value) {
+    return Container(
+      width: double.infinity,
+      padding: REdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tugas Tertunda',
+                  style: TS.bodySmall.copyWith(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                4.verticalSpace,
+                Text(
+                  value,
+                  style: TS.bodyMedium.copyWith(color: Colors.black87),
+                ),
+              ],
+            ),
+          ),         
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDaftarTugasTertundaCard(List<LaporanCarryOverItem> items) {
+    return Container(
+      width: double.infinity,
+      padding: REdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Daftar Tugas Lanjutan',
+            style: TS.bodySmall.copyWith(
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          12.verticalSpace,
+          ...items.map((e) {
+            return Padding(
+              padding: REdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      e.note.trim().isNotEmpty ? e.note.trim() : '-',
+                      style: TS.bodyMedium.copyWith(color: Colors.black87),
+                    ),
+                  ),
+                  12.horizontalSpace,
+                  Text(
+                    e.status,
+                    style: TS.bodySmall.copyWith(
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );

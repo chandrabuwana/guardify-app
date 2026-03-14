@@ -185,6 +185,16 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
       return;
     }
 
+    if (_imageFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bukti patroli (foto) wajib diisi'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (!_isLocationVerified) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -400,7 +410,7 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Absensi Patroli3333',
+                      'Absensi Patroli',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -485,7 +495,7 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
 
                         // Bukti Patroli (Proof input with camera)
                         const Text(
-                          'Bukti Patroli',
+                          'Bukti Patroli (Foto)',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -535,9 +545,6 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Bukti patroli harus diisi';
-                            }
                             return null;
                           },
                         ),

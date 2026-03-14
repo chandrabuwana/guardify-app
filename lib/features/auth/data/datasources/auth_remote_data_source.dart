@@ -3,6 +3,7 @@ import 'package:retrofit/retrofit.dart';
 import '../models/login_response_model.dart';
 import '../models/current_location_request_model.dart';
 import '../models/current_location_response_model.dart';
+import '../models/password_action_response_model.dart';
 import '../../../patrol/data/models/area_list_api_response.dart';
 import '../../../patrol/data/models/route_detail_api_response.dart';
 
@@ -19,12 +20,12 @@ abstract class AuthRemoteDataSource {
   );
 
   @POST('/User/reset_password')
-  Future<Map<String, dynamic>> resetPassword(
+  Future<PasswordActionResponseModel> resetPassword(
     @Body() Map<String, dynamic> body,
   );
 
   @PUT('/User/change_password/{password}/{new_password}')
-  Future<Map<String, dynamic>> changePassword(
+  Future<PasswordActionResponseModel> changePassword(
     @Path('password') String password,
     @Path('new_password') String newPassword,
   );

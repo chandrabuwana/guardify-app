@@ -66,161 +66,165 @@ class TugasLanjutanCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          // Header with title and "Selesai" button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  tugas.title,
-                  style: TS.titleMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              if (tugas.status == TugasLanjutanStatus.selesai ||
-                  tugas.status == TugasLanjutanStatus.terverifikasi)
-                Container(
-                  padding: REdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E3A8A),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Text(
-                    'Selesai',
-                    style: TS.labelSmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+              // Header with title and "Selesai" button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      tugas.title,
+                      style: TS.titleMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-            ],
-          ),
+                  if (tugas.status == TugasLanjutanStatus.selesai ||
+                      tugas.status == TugasLanjutanStatus.terverifikasi)
+                    Container(
+                      padding:
+                          REdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E3A8A),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(
+                        'Selesai',
+                        style: TS.labelSmall.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
 
-          12.verticalSpace,
+              12.verticalSpace,
 
-          // Details
-          _buildDetailRow('Lokasi', ': ${tugas.lokasi.isEmpty ? '' : tugas.lokasi}'),
-          4.verticalSpace,
-          _buildDetailRow('Pelapor', ': ${tugas.pelapor}'),
-          4.verticalSpace,
-          _buildDetailRow(
-            'Tanggal',
-            ': ${dateFormat.format(tugas.tanggal)} WIB',
-          ),
+              // Details
+              _buildDetailRow(
+                  'Lokasi', ': ${tugas.lokasi.isEmpty ? '' : tugas.lokasi}'),
+              4.verticalSpace,
+              _buildDetailRow('Pelapor', ': ${tugas.pelapor}'),
+              4.verticalSpace,
+              _buildDetailRow(
+                'Tanggal',
+                ': ${dateFormat.format(tugas.tanggal)} WIB',
+              ),
 
-          12.verticalSpace,
+              12.verticalSpace,
 
-          // Description
-          if (tugas.deskripsi.isNotEmpty)
-            Text(
-              tugas.deskripsi,
-              style: TS.bodySmall.copyWith(color: Colors.grey[700]),
-            ),
-
-          if (tugas.deskripsi.isNotEmpty) 12.verticalSpace,
-
-          // Completion info (if completed)
-          if (tugas.status == TugasLanjutanStatus.selesai ||
-              tugas.status == TugasLanjutanStatus.terverifikasi)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              // Description
+              if (tugas.deskripsi.isNotEmpty)
                 Text(
-                  'Diselesaikan Oleh',
-                  style: TS.bodySmall.copyWith(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
+                  tugas.deskripsi,
+                  style: TS.bodySmall.copyWith(color: Colors.grey[700]),
                 ),
-                4.verticalSpace,
-                Text(
-                  tugas.diselesaikanOleh ?? '-',
-                  style: TS.bodySmall.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                4.verticalSpace,
-                if (tugas.tanggalSelesai != null)
-                  Text(
-                    dateFormat.format(tugas.tanggalSelesai!) + ' WIB',
-                    style: TS.bodySmall.copyWith(color: Colors.grey[600]),
-                  ),
-                8.verticalSpace,
-                Row(
+
+              if (tugas.deskripsi.isNotEmpty) 12.verticalSpace,
+
+              // Completion info (if completed)
+              if (tugas.status == TugasLanjutanStatus.selesai ||
+                  tugas.status == TugasLanjutanStatus.terverifikasi)
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Bukti',
+                      'Diselesaikan Oleh',
                       style: TS.bodySmall.copyWith(
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    if (tugas.buktiUrl != null && tugas.buktiUrl!.isNotEmpty) ...[
-                      Text(
-                        ' ',
-                        style: TS.bodySmall,
+                    4.verticalSpace,
+                    Text(
+                      tugas.diselesaikanOleh ?? '-',
+                      style: TS.bodySmall.copyWith(
+                        fontWeight: FontWeight.w500,
                       ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            // Show proof image
-                          },
-                          child: Text(
-                            tugas.buktiUrl!,
-                            style: TS.bodySmall.copyWith(
-                              color: primaryColor,
-                              decoration: TextDecoration.underline,
-                            ),
+                    ),
+                    4.verticalSpace,
+                    if (tugas.tanggalSelesai != null)
+                      Text(
+                        dateFormat.format(tugas.tanggalSelesai!) + ' WIB',
+                        style: TS.bodySmall.copyWith(color: Colors.grey[600]),
+                      ),
+                    8.verticalSpace,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Bukti',
+                          style: TS.bodySmall.copyWith(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ),
-                    ] else ...[
-                      Text(
-                        ' -',
-                        style: TS.bodySmall,
-                      ),
-                    ],
+                        if (tugas.buktiUrl != null &&
+                            tugas.buktiUrl!.isNotEmpty) ...[
+                          Text(
+                            ' ',
+                            style: TS.bodySmall,
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                // Show proof image
+                              },
+                              child: Text(
+                                tugas.buktiUrl!,
+                                style: TS.bodySmall.copyWith(
+                                  color: primaryColor,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          Text(
+                            ' -',
+                            style: TS.bodySmall,
+                          ),
+                        ],
+                      ],
+                    ),
+                    16.verticalSpace,
                   ],
-                ),
+                )
+              else
                 16.verticalSpace,
-              ],
-            )
-          else
-            16.verticalSpace,
 
-          // Action Button (always visible, but disabled if completed or not checked in)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: (tugas.status == TugasLanjutanStatus.belum &&
+              // Action Button (always visible, but disabled if completed or not checked in)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: (tugas.status == TugasLanjutanStatus.belum &&
                           (isCheckedIn == null || isCheckedIn == true))
-                  ? onTap
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: (tugas.status == TugasLanjutanStatus.belum &&
-                                  (isCheckedIn == null || isCheckedIn == true))
-                    ? primaryColor
-                    : Colors.grey[400],
-                disabledBackgroundColor: Colors.grey[400],
-                padding: REdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r),
+                      ? onTap
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        (tugas.status == TugasLanjutanStatus.belum &&
+                                (isCheckedIn == null || isCheckedIn == true))
+                            ? primaryColor
+                            : Colors.grey[400],
+                    disabledBackgroundColor: Colors.grey[400],
+                    padding: REdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Tandai Sebagai Selesai',
+                    style: TS.labelLarge.copyWith(
+                      color: (tugas.status == TugasLanjutanStatus.belum &&
+                              (isCheckedIn == null || isCheckedIn == true))
+                          ? Colors.white
+                          : Colors.grey[600],
+                    ),
+                  ),
                 ),
-                elevation: 0,
               ),
-              child: Text(
-                'Tandai Sebagai Selesai',
-                style: TS.labelLarge.copyWith(
-                  color: (tugas.status == TugasLanjutanStatus.belum &&
-                          (isCheckedIn == null || isCheckedIn == true))
-                      ? Colors.white
-                      : Colors.grey[600],
-                ),
-              ),
-            ),
-          ),
             ],
           ),
         ),
@@ -271,23 +275,61 @@ class TugasLanjutanCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildDetailRow('Status', ': ${_getStatusText(tugas.status)}'),
+                          _buildDetailRow(
+                              'Status', ': ${_getStatusText(tugas.status)}'),
                           8.verticalSpace,
                           _buildDetailRow('Lokasi', ': ${tugas.lokasi}'),
                           8.verticalSpace,
                           _buildDetailRow(
                             'Tugas',
-                            ': ${tugas.catatan?.isNotEmpty == true ? tugas.catatan! : '-'}',
+                            ': ${tugas.deskripsi?.isNotEmpty == true ? tugas.deskripsi! : '-'}',
                           ),
                           8.verticalSpace,
-                          _buildDetailRow(
+                          Text(
                             'Bukti Penyelesaian',
-                            ': ${tugas.buktiUrl?.isNotEmpty == true ? tugas.buktiUrl! : '-'}',
+                            style: TS.titleSmall
+                                .copyWith(fontWeight: FontWeight.w600),
                           ),
+                          8.verticalSpace,
+                          if (tugas.buktiUrl?.isNotEmpty == true)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12.r),
+                              child: Image.network(
+                                tugas.buktiUrl!,
+                                width: double.infinity,
+                                height: 180.h,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: double.infinity,
+                                    padding: REdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(12.r),
+                                    ),
+                                    child: Text(
+                                      tugas.buktiUrl!,
+                                      style: TS.bodySmall
+                                          .copyWith(color: Colors.black54),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          else
+                            Container(
+                              width: double.infinity,
+                              padding: REdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Text('-', style: TS.bodyMedium),
+                            ),
                           8.verticalSpace,
                           _buildDetailRow(
                             'Catatan',
-                            ': ${tugas.deskripsi.isNotEmpty ? tugas.deskripsi : '-'}',
+                            ': ${tugas.catatan?.isNotEmpty == true ? tugas.catatan! : '-'}',
                           ),
                           8.verticalSpace,
                           _buildDetailRow(
@@ -314,7 +356,8 @@ class TugasLanjutanCard extends StatelessWidget {
                               ),
                               child: Text(
                                 'Tutup',
-                                style: TS.labelLarge.copyWith(color: Colors.black87),
+                                style: TS.labelLarge
+                                    .copyWith(color: Colors.black87),
                               ),
                             ),
                           ),
@@ -349,4 +392,3 @@ class TugasLanjutanCard extends StatelessWidget {
     );
   }
 }
-

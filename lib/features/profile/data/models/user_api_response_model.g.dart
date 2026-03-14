@@ -52,6 +52,7 @@ UserApiDataModel _$UserApiDataModelFromJson(Map<String, dynamic> json) =>
           site: $checkedConvert('Site', (v) => v as String?),
           jabatan: $checkedConvert('Jabatan', (v) => v as String?),
           idAtasan: $checkedConvert('IdAtasan', (v) => v as String?),
+          namaAtasan: $checkedConvert('NamaAtasan', (v) => v as String?),
           tanggalPenerimaan:
               $checkedConvert('TanggalPenerimaan', (v) => v as String?),
           masaBerlakuPermit:
@@ -76,8 +77,8 @@ UserApiDataModel _$UserApiDataModelFromJson(Map<String, dynamic> json) =>
           status: $checkedConvert('Status', (v) => v as String?),
           token: $checkedConvert('Token', (v) => v as String?),
           isLockout: $checkedConvert('IsLockout', (v) => v as bool?),
-          accessFailedCount: $checkedConvert(
-              'AccessFailedCount', (v) => (v as num?)?.toInt()),
+          accessFailedCount:
+              $checkedConvert('AccessFailedCount', (v) => (v as num?)?.toInt()),
           active: $checkedConvert('Active', (v) => v as bool?),
           createBy: $checkedConvert('CreateBy', (v) => v as String?),
           createDate: $checkedConvert('CreateDate', (v) => v as String?),
@@ -87,7 +88,8 @@ UserApiDataModel _$UserApiDataModelFromJson(Map<String, dynamic> json) =>
           personnelNo: $checkedConvert('PersonnelNo', (v) => v as String?),
           roles: $checkedConvert(
               'Roles',
-              (v) => (v as List<dynamic>?)
+              (v) =>
+                  (v as List<dynamic>?)
                       ?.map((e) =>
                           RoleApiModel.fromJson(e as Map<String, dynamic>))
                       .toList() ??
@@ -114,6 +116,7 @@ UserApiDataModel _$UserApiDataModelFromJson(Map<String, dynamic> json) =>
         'site': 'Site',
         'jabatan': 'Jabatan',
         'idAtasan': 'IdAtasan',
+        'namaAtasan': 'NamaAtasan',
         'tanggalPenerimaan': 'TanggalPenerimaan',
         'masaBerlakuPermit': 'MasaBerlakuPermit',
         'kompetensiPekerjaan': 'KompetensiPekerjaan',
@@ -165,6 +168,7 @@ Map<String, dynamic> _$UserApiDataModelToJson(UserApiDataModel instance) =>
       'Site': instance.site,
       'Jabatan': instance.jabatan,
       'IdAtasan': instance.idAtasan,
+      'NamaAtasan': instance.namaAtasan,
       'TanggalPenerimaan': instance.tanggalPenerimaan,
       'MasaBerlakuPermit': instance.masaBerlakuPermit,
       'KompetensiPekerjaan': instance.kompetensiPekerjaan,

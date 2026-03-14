@@ -226,9 +226,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         'Email': event.email.trim(),
       });
 
-      final succeeded = response['Succeeded'] == true;
-      final message = (response['Message'] as String?)?.trim();
-      final description = (response['Description'] as String?)?.trim();
+      final succeeded = response.succeeded == true;
+      final message = response.message?.trim();
+      final description = response.description?.trim();
       final errorMessage =
           (message != null && message.isNotEmpty) ? message : (description ?? 'Reset password gagal');
 
@@ -297,9 +297,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.newPassword.trim(),
       );
 
-      final succeeded = response['Succeeded'] == true;
-      final message = (response['Message'] as String?)?.trim();
-      final description = (response['Description'] as String?)?.trim();
+      final succeeded = response.succeeded == true;
+      final message = response.message?.trim();
+      final description = response.description?.trim();
       final errorMessage =
           (message != null && message.isNotEmpty) ? message : (description ?? 'Ubah password gagal');
 

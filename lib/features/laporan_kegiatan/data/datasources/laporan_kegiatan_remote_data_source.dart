@@ -17,6 +17,8 @@ abstract class LaporanKegiatanRemoteDataSource {
     String? search,
     int start = 1,
     int length = 100,
+    String? startDate,
+    String? endDate,
   });
 
   Future<LaporanKegiatanModel> getLaporanDetail(String id);
@@ -195,6 +197,8 @@ class LaporanKegiatanRemoteDataSourceImpl
     String? search,
     int start = 1,
     int length = 10,
+    String? startDate,
+    String? endDate,
   }) async {
     try {
       // Always get userId from secure storage
@@ -206,27 +210,29 @@ class LaporanKegiatanRemoteDataSourceImpl
 
 
       // Map status to API format
-      // Tab "Menunggu Verifikasi" -> status = "WAITING" (huruf besar semua)
-      // Tab "Terverifikasi" -> status = "VERIFIKASI" (huruf besar semua)
+      // Backend expects: CHECKIN, WAITING, VERIFIKASI, REVISION
       String apiStatus = '';
       if (status == LaporanStatus.waiting) {
-        apiStatus = 'WAITING'; // Format API: huruf besar semua
+        apiStatus = 'WAITING';
       } else if (status == LaporanStatus.verified) {
-        apiStatus = 'VERIFIKASI'; // Format API: huruf besar semua
+        apiStatus = 'VERIFIKASI';
       } else if (status == LaporanStatus.revision) {
-        apiStatus = 'revision';
+        apiStatus = 'REVISION';
       } else if (status == LaporanStatus.checkIn) {
-        apiStatus = 'check_in';
+        apiStatus = 'CHECKIN';
       }
 
       // Create request
       final request = LaporanKegiatanRequestEntity(
         idUser: currentUserId,
         withSubordinate: true, // Selalu true karena akan ada bawahan
+        isAdmin: role == UserRole.admin,
         status: apiStatus,
         search: search ?? '',
         start: start,
         length: length,
+        startDate: startDate,
+        endDate: endDate,
       );
 
       // Call API
@@ -318,14 +324,15 @@ class LaporanKegiatanRemoteDataSourceImpl
       jamKerja = '$checkInStr - -';
     }
 
-    // Determine status based on requested status
-    // Jika requestedStatus adalah verified, berarti API sudah filter untuk verified
-    // Jika requestedStatus adalah waiting atau null, berarti waiting
-    LaporanStatus laporanStatus = requestedStatus ?? LaporanStatus.waiting;
-    
-    // Check if there's a revision indicator in the API response
-    // This might come from a different field or status indicator
-    // For now, we'll use the requested status as the primary indicator
+    // Determine status based on API response per item.
+    // Backend returns e.g. "Verification", "CheckIn".
+    // Fallback to requestedStatus only if API status is missing.
+    final apiStatusRaw = item['Status'] as String?;
+    final apiStatusTrimmed = apiStatusRaw?.trim();
+    final LaporanStatus laporanStatus = (apiStatusTrimmed != null &&
+            apiStatusTrimmed.isNotEmpty)
+        ? LaporanStatus.fromValue(apiStatusTrimmed)
+        : (requestedStatus ?? LaporanStatus.waiting);
 
     // Determine tugas tertunda
     final statusCarryOver = item['StatusCarryOver'] as String? ?? '';
@@ -639,6 +646,14 @@ class LaporanKegiatanRemoteDataSourceImpl
       tugasLanjutan: data['Patrol'] as String? ?? '',
       tugasTertunda: tugasTertunda,
       carryOver: data['CarryOver'] as String?,
+      listCarryOver: listCarryOver.isNotEmpty
+          ? listCarryOver
+              .map((e) => CarryOverItemModel.fromJson(
+                    e as Map<String, dynamic>,
+                  ))
+              .toList()
+              .cast<LaporanCarryOverItem>()
+          : null,
       status: laporanStatus,
       kehadiran: kehadiran,
       lembur: data['IsOvertime'] as bool? ?? false,

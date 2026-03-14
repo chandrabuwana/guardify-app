@@ -170,7 +170,9 @@ class _KuotaCutiCard extends StatelessWidget {
                 ),
                 4.verticalSpace,
                 Text(
-                  'Cuti Tahunan',
+                  (kuota.leaveRequestName != null && kuota.leaveRequestName!.isNotEmpty)
+                      ? kuota.leaveRequestName!
+                      : '-',
                   style: TS.bodySmall.copyWith(
                     color: _textColor,
                     fontWeight: FontWeight.w600,

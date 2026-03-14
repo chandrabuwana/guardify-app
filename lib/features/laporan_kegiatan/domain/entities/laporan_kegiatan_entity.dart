@@ -24,7 +24,10 @@ enum LaporanStatus {
     switch (valueLower) {
       case 'checkin':
       case 'check_in':
+      case 'check in':
         return LaporanStatus.checkIn;
+      case 'verification':
+      case 'verify':
       case 'waiting':
       case 'menunggu':
       case 'menunggu_verifikasi':
@@ -65,6 +68,7 @@ class LaporanKegiatanEntity extends Equatable {
   final String? tugasLanjutan;
   final bool tugasTertunda;
   final String? carryOver;
+  final List<LaporanCarryOverItem>? listCarryOver;
   final LaporanStatus status;
   final String kehadiran; // "Masuk", "Tidak Masuk", "Cuti"
   final bool lembur;
@@ -113,6 +117,7 @@ class LaporanKegiatanEntity extends Equatable {
     this.tugasLanjutan,
     required this.tugasTertunda,
     this.carryOver,
+    this.listCarryOver,
     required this.status,
     required this.kehadiran,
     required this.lembur,
@@ -155,6 +160,7 @@ class LaporanKegiatanEntity extends Equatable {
         tugasLanjutan,
         tugasTertunda,
         carryOver,
+        listCarryOver,
         status,
         kehadiran,
         lembur,
@@ -196,6 +202,7 @@ class LaporanKegiatanEntity extends Equatable {
     String? tugasLanjutan,
     bool? tugasTertunda,
     String? carryOver,
+    List<LaporanCarryOverItem>? listCarryOver,
     LaporanStatus? status,
     String? kehadiran,
     bool? lembur,
@@ -238,6 +245,7 @@ class LaporanKegiatanEntity extends Equatable {
       tugasLanjutan: tugasLanjutan ?? this.tugasLanjutan,
       tugasTertunda: tugasTertunda ?? this.tugasTertunda,
       carryOver: carryOver ?? this.carryOver,
+      listCarryOver: listCarryOver ?? this.listCarryOver,
       status: status ?? this.status,
       kehadiran: kehadiran ?? this.kehadiran,
       lembur: lembur ?? this.lembur,
@@ -257,6 +265,19 @@ class LaporanKegiatanEntity extends Equatable {
       checkOut: checkOut ?? this.checkOut,
     );
   }
+}
+
+class LaporanCarryOverItem extends Equatable {
+  final String note;
+  final String status;
+
+  const LaporanCarryOverItem({
+    required this.note,
+    required this.status,
+  });
+
+  @override
+  List<Object?> get props => [note, status];
 }
 
 /// Entity untuk checkpoint patrol dalam laporan

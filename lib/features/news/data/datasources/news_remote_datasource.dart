@@ -15,5 +15,6 @@ abstract class NewsRemoteDataSource {
     required int idCategory,
     required String source,
     required String title,
+    Map<String, dynamic>? files,
   });
 }

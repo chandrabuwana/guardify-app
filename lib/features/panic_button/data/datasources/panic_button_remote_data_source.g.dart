@@ -132,6 +132,37 @@ class _PanicButtonApiClient implements PanicButtonApiClient {
   }
 
   @override
+  Future<PanicButtonSubmitResponse> editPanicButton(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
+    const _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
+    final _result = await _dio.fetch<Map<String, dynamic>>(
+        _setStreamType<PanicButtonSubmitResponse>(Options(
+      method: 'PUT',
+      headers: _headers,
+      extra: _extra,
+    )
+            .compose(
+              _dio.options,
+              '/PanicButton/edit/${id}',
+              queryParameters: queryParameters,
+              data: _data,
+            )
+            .copyWith(
+                baseUrl: _combineBaseUrls(
+              _dio.options.baseUrl,
+              baseUrl,
+            ))));
+    final value = PanicButtonSubmitResponse.fromJson(_result.data!);
+    return value;
+  }
+
+  @override
   Future<IncidentTypeListResponse> getIncidentTypes(
       IncidentTypeListRequest request) async {
     const _extra = <String, dynamic>{};

@@ -13,6 +13,7 @@ class NewsModel {
   final String title;
   final String? updateBy;
   final DateTime? updateDate;
+  final NewsFileModel? files;
 
   const NewsModel({
     required this.id,
@@ -26,6 +27,7 @@ class NewsModel {
     required this.title,
     this.updateBy,
     this.updateDate,
+    this.files,
   });
 
   factory NewsModel.fromJson(Map<String, dynamic> json) {
@@ -45,6 +47,9 @@ class NewsModel {
       updateDate: json['UpdateDate'] != null
           ? DateTime.parse(json['UpdateDate'] as String)
           : null,
+      files: json['Files'] != null
+          ? NewsFileModel.fromJson(json['Files'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -61,6 +66,7 @@ class NewsModel {
       'Title': title,
       'UpdateBy': updateBy,
       'UpdateDate': updateDate?.toIso8601String(),
+      'Files': files?.toJson(),
     };
   }
 
@@ -72,7 +78,7 @@ class NewsModel {
       content: content,
       category: category?.name ?? 'Lainnya',
       source: source,
-      imageUrl: null, // API doesn't provide image URL
+      imageUrl: files?.url,
       publishedAt: createDate,
       createdAt: createDate,
       updatedAt: updateDate ?? createDate,
@@ -92,6 +98,31 @@ class NewsModel {
       title: news.title,
       updateBy: null,
       updateDate: news.updatedAt,
+      files: null,
     );
+  }
+}
+
+class NewsFileModel {
+  final String filename;
+  final String url;
+
+  const NewsFileModel({
+    required this.filename,
+    required this.url,
+  });
+
+  factory NewsFileModel.fromJson(Map<String, dynamic> json) {
+    return NewsFileModel(
+      filename: json['Filename'] as String,
+      url: json['Url'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'Filename': filename,
+      'Url': url,
+    };
   }
 }

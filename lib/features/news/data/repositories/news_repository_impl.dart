@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:injectable/injectable.dart';
+import 'package:path/path.dart' as path;
 import '../../domain/entities/news.dart';
 import '../../domain/repositories/news_repository.dart';
 import '../datasources/news_remote_datasource.dart';
@@ -122,12 +126,19 @@ class NewsRepositoryImpl implements NewsRepository {
       final idCategory = _mapCategoryToId(news.category);
       final code = now.millisecondsSinceEpoch.toString();
 
+      Map<String, dynamic>? files;
+      final photoPath = news.imageUrl;
+      if (photoPath != null && photoPath.trim().isNotEmpty) {
+        files = await _tryBuildFilesPayload(photoPath.trim());
+      }
+
       await remoteDataSource.createNews(
         code: code,
         content: news.content,
         idCategory: idCategory,
         source: news.source,
         title: news.title,
+        files: files,
       );
 
       return news.copyWith(
@@ -146,6 +157,42 @@ class NewsRepositoryImpl implements NewsRepository {
     if (normalized == 'bencana') return 1;
     if (normalized == 'cuaca') return 2;
     return 3;
+  }
+
+  Future<Map<String, dynamic>?> _tryBuildFilesPayload(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        return null;
+      }
+
+      final bytes = await file.readAsBytes();
+      final base64Data = base64Encode(bytes);
+      final fileName = path.basename(file.path);
+      final extension = path.extension(fileName).toLowerCase();
+
+      String mimeType = 'application/octet-stream';
+      if (extension == '.png') {
+        mimeType = 'image/png';
+      } else if (extension == '.jpg' || extension == '.jpeg') {
+        mimeType = 'image/jpeg';
+      } else if (extension == '.gif') {
+        mimeType = 'image/gif';
+      } else if (extension == '.webp') {
+        mimeType = 'image/webp';
+      } else if (extension == '.bmp') {
+        mimeType = 'image/bmp';
+      }
+
+      return {
+        'Filename': fileName,
+        'MimeType': mimeType,
+        'Base64': base64Data,
+        'FileSize': bytes.length,
+      };
+    } catch (_) {
+      return null;
+    }
   }
 
   @override

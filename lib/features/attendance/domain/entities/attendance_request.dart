@@ -66,6 +66,8 @@ class CheckInRequest extends Equatable {
         shiftDetailId,
       ];
 }
+// anggotab
+// ab@gmail.com
 
 class CheckOutRequest extends Equatable {
   final String userId;

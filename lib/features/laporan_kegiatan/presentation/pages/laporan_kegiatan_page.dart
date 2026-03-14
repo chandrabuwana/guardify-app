@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
@@ -35,6 +36,10 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   String? _selectedKehadiranFilter;
+  LaporanStatus? _selectedStatusFilter;
+  bool _isStatusFilterApplied = false;
+  DateTime? _selectedStartDate;
+  DateTime? _selectedEndDate;
 
   @override
   void initState() {
@@ -83,11 +88,23 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
   }
 
   void _loadData({String? search, bool resetPagination = true}) {
-    // Tab 0: Menunggu Verifikasi -> hanya status waiting (filter dari API)
-    // Tab 1: Terverifikasi -> status verified
-    final currentStatus = _tabController.index == 0
-        ? LaporanStatus.waiting
-        : LaporanStatus.verified;
+    // Tab 0: Menunggu Verifikasi -> default tanpa filter status (Status: "")
+    // Tab 1: Terverifikasi -> default status verified
+    final LaporanStatus? tabDefaultStatus =
+        _tabController.index == 0 ? null : LaporanStatus.verified;
+
+    // If user explicitly applies a status chip, use it (including "Semua" => null)
+    // Otherwise follow tab default behavior
+    final effectiveStatus =
+        _isStatusFilterApplied ? _selectedStatusFilter : tabDefaultStatus;
+
+    final dateFormatter = DateFormat('yyyy-MM-dd');
+    final startDateStr = _selectedStartDate != null
+        ? dateFormatter.format(_selectedStartDate!)
+        : null;
+    final endDateStr = _selectedEndDate != null
+        ? dateFormatter.format(_selectedEndDate!)
+        : null;
     
     // Get current state to determine next page
     final currentState = _laporanBloc.state;
@@ -98,13 +115,17 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
     }
     
     _laporanBloc.add(GetLaporanListEvent(
-      status: currentStatus,
+      status: effectiveStatus,
+      role: _currentUserRole,
       search: search,
       userId: widget.userId,
       start: start,
       length: 10,
+      startDate: startDateStr,
+      endDate: endDateStr,
       isLoadMore: !resetPagination,
     ));
+
   }
 
   void _loadMoreData() {
@@ -123,135 +144,289 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
       final search = _searchController.text.trim();
-      if (_tabController.index == 0) {
-        // Tab "Menunggu Verifikasi" -> hanya status waiting (filter dari API)
-        _laporanBloc.add(GetLaporanListEvent(
-          status: LaporanStatus.waiting,
-          search: search.isEmpty ? null : search,
-          userId: widget.userId,
-          start: 1,
-          length: 10,
-        ));
-      } else {
-        // Tab "Terverifikasi" -> status verified
-        _laporanBloc.add(GetLaporanListEvent(
-          status: LaporanStatus.verified,
-          search: search.isEmpty ? null : search,
-          userId: widget.userId,
-          start: 1,
-          length: 10,
-        ));
-      }
+      _loadData(search: search.isEmpty ? null : search);
     }
   }
 
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      builder: (context) => Container(
-        padding: REdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Filter',
-              style: TS.titleLarge.copyWith(
-                fontWeight: FontWeight.bold,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          void updateModal(VoidCallback fn) {
+            fn();
+            if (mounted) {
+              setModalState(() {});
+              setState(() {});
+            }
+          }
+
+          final selectedStatusLabel = _selectedStatusFilter?.displayName;
+          final selectedStartDateLabel = _selectedStartDate != null
+              ? DateFormat('yyyy-MM-dd').format(_selectedStartDate!)
+              : null;
+          final selectedEndDateLabel = _selectedEndDate != null
+              ? DateFormat('yyyy-MM-dd').format(_selectedEndDate!)
+              : null;
+          final selectedKehadiranLabel = _selectedKehadiranFilter;
+
+          final activeFilterCount = (_isStatusFilterApplied ? 1 : 0) +
+              ((_selectedStartDate != null || _selectedEndDate != null) ? 1 : 0) +
+              (_selectedKehadiranFilter != null ? 1 : 0);
+
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-            ),
-            24.verticalSpace,
-            Text(
-              'Status Kehadiran',
-              style: TS.titleMedium.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            12.verticalSpace,
-            Wrap(
-              spacing: 8,
-              children: [
-                _buildFilterChip(
-                  'Semua',
-                  _selectedKehadiranFilter == null,
-                  () {
-                    setState(() {
-                      _selectedKehadiranFilter = null;
-                    });
-                    Navigator.pop(context);
-                    _applyFilters();
-                  },
+              child: Container(
+                padding: REdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(
+                  'Filter',
+                  style: TS.titleLarge.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                _buildFilterChip(
-                  'Masuk',
-                  _selectedKehadiranFilter == 'Masuk',
-                  () {
-                    setState(() {
-                      _selectedKehadiranFilter = 'Masuk';
-                    });
-                    Navigator.pop(context);
-                    _applyFilters();
-                  },
+                24.verticalSpace,
+                Text(
+                  'Status Laporan',
+                  style: TS.titleMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                _buildFilterChip(
-                  'Tidak Masuk',
-                  _selectedKehadiranFilter == 'Tidak Masuk',
-                  () {
-                    setState(() {
-                      _selectedKehadiranFilter = 'Tidak Masuk';
-                    });
-                    Navigator.pop(context);
-                    _applyFilters();
-                  },
+                12.verticalSpace,
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildFilterChip(
+                      'Semua',
+                      _selectedStatusFilter == null,
+                      () => updateModal(() {
+                        _selectedStatusFilter = null;
+                        _isStatusFilterApplied = true;
+                      }),
+                    ),
+                    _buildFilterChip(
+                      'Check In',
+                      _selectedStatusFilter == LaporanStatus.checkIn,
+                      () => updateModal(() {
+                        _selectedStatusFilter = LaporanStatus.checkIn;
+                        _isStatusFilterApplied = true;
+                      }),
+                    ),
+                    _buildFilterChip(
+                      'Waiting',
+                      _selectedStatusFilter == LaporanStatus.waiting,
+                      () => updateModal(() {
+                        _selectedStatusFilter = LaporanStatus.waiting;
+                        _isStatusFilterApplied = true;
+                      }),
+                    ),
+                    _buildFilterChip(
+                      'Verified',
+                      _selectedStatusFilter == LaporanStatus.verified,
+                      () => updateModal(() {
+                        _selectedStatusFilter = LaporanStatus.verified;
+                        _isStatusFilterApplied = true;
+                      }),
+                    ),
+                    _buildFilterChip(
+                      'Revision',
+                      _selectedStatusFilter == LaporanStatus.revision,
+                      () => updateModal(() {
+                        _selectedStatusFilter = LaporanStatus.revision;
+                        _isStatusFilterApplied = true;
+                      }),
+                    ),
+                  ],
                 ),
-                _buildFilterChip(
-                  'Cuti',
-                  _selectedKehadiranFilter == 'Cuti',
-                  () {
-                    setState(() {
-                      _selectedKehadiranFilter = 'Cuti';
-                    });
-                    Navigator.pop(context);
-                    _applyFilters();
-                  },
+                
+                24.verticalSpace,
+                Text(
+                  'Status Kehadiran',
+                  style: TS.titleMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ],
-            ),
-            24.verticalSpace,
-            Row(
-              children: [
-                Expanded(
-                  child: UIButton(
-                    text: 'Reset',
-                    onPressed: () {
-                      setState(() {
+                12.verticalSpace,
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildFilterChip(
+                      'Semua',
+                      _selectedKehadiranFilter == null,
+                      () => updateModal(() {
                         _selectedKehadiranFilter = null;
-                      });
-                      Navigator.pop(context);
-                      _applyFilters();
-                    },
-                    buttonType: UIButtonType.outline,
-                    color: Colors.grey,
-                    textColor: Colors.black87,
+                      }),
+                    ),
+                    _buildFilterChip(
+                      'Masuk',
+                      _selectedKehadiranFilter == 'Masuk',
+                      () => updateModal(() {
+                        _selectedKehadiranFilter = 'Masuk';
+                      }),
+                    ),
+                    _buildFilterChip(
+                      'Tidak Masuk',
+                      _selectedKehadiranFilter == 'Tidak Masuk',
+                      () => updateModal(() {
+                        _selectedKehadiranFilter = 'Tidak Masuk';
+                      }),
+                    ),
+                    _buildFilterChip(
+                      'Cuti',
+                      _selectedKehadiranFilter == 'Cuti',
+                      () => updateModal(() {
+                        _selectedKehadiranFilter = 'Cuti';
+                      }),
+                    ),
+                  ],
+                ),
+                24.verticalSpace,
+                Text(
+                  'Periode Shift',
+                  style: TS.titleMedium.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                12.horizontalSpace,
-                Expanded(
-                  child: UIButton(
-                    text: 'Terapkan',
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _applyFilters();
-                    },
-                  ),
+                12.verticalSpace,
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedStartDate ?? DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null && mounted) {
+                            updateModal(() {
+                              _selectedStartDate = picked;
+                              if (_selectedEndDate != null &&
+                                  _selectedEndDate!.isBefore(picked)) {
+                                _selectedEndDate = picked;
+                              }
+                            });
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: REdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: Colors.grey[400]!),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                        ),
+                        child: Text(
+                          _selectedStartDate != null
+                              ? DateFormat('dd-MM-yyyy')
+                                  .format(_selectedStartDate!)
+                              : 'Start Date',
+                          style: TS.bodyMedium.copyWith(color: Colors.black87),
+                        ),
+                      ),
+                    ),
+                    12.horizontalSpace,
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedEndDate ??
+                                _selectedStartDate ??
+                                DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null && mounted) {
+                            updateModal(() {
+                              _selectedEndDate = picked;
+                              if (_selectedStartDate != null &&
+                                  picked.isBefore(_selectedStartDate!)) {
+                                _selectedStartDate = picked;
+                              }
+                            });
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: REdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: Colors.grey[400]!),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                        ),
+                        child: Text(
+                          _selectedEndDate != null
+                              ? DateFormat('dd-MM-yyyy')
+                                  .format(_selectedEndDate!)
+                              : 'End Date',
+                          style: TS.bodyMedium.copyWith(color: Colors.black87),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),                                
+                24.verticalSpace,
+                Row(
+                  children: [
+                    Expanded(
+                      child: UIButton(
+                        text: 'Reset',
+                        onPressed: () {
+                          setState(() {
+                            _selectedKehadiranFilter = null;
+                            _selectedStatusFilter = null;
+                            _isStatusFilterApplied = false;
+                            _selectedStartDate = null;
+                            _selectedEndDate = null;
+                          });
+                          Navigator.pop(context);
+                          _applyFilters();
+                        },
+                        buttonType: UIButtonType.outline,
+                        color: Colors.grey,
+                        textColor: Colors.black87,
+                      ),
+                    ),
+                    12.horizontalSpace,
+                    Expanded(
+                      child: UIButton(
+                        text: activeFilterCount > 0
+                            ? 'Terapkan ($activeFilterCount)'
+                            : 'Terapkan',
+                        onPressed: () {
+                          final hasStartDate = _selectedStartDate != null;
+                          final hasEndDate = _selectedEndDate != null;
+                          if (hasStartDate != hasEndDate) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Jika mengisi tanggal, Start Date dan End Date wajib diisi'),
+                              ),
+                            );
+                            return;
+                          }
+                          Navigator.pop(context);
+                          _applyFilters();
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -353,7 +528,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Cari',
+                          hintText: 'Cari Nama Personil',
                           hintStyle: TS.bodyMedium.copyWith(
                             color: Colors.grey[600],
                           ),
@@ -473,9 +648,15 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
         if (state is LaporanListLoaded) {
           // Filter by status (as fallback, API should already filter)
           // and kehadiran filter
-          var filteredList = state.laporanList
-              .where((laporan) => laporan.status == status)
-              .toList();
+          final shouldFilterByTabStatus = !_isStatusFilterApplied;
+          var filteredList = shouldFilterByTabStatus
+              ? state.laporanList
+                  .where((laporan) =>
+                      laporan.status == status ||
+                      (status == LaporanStatus.waiting &&
+                          laporan.status == LaporanStatus.checkIn))
+                  .toList()
+              : List<LaporanKegiatanEntity>.from(state.laporanList);
 
           // Apply kehadiran filter if selected
           if (_selectedKehadiranFilter != null) {
@@ -527,9 +708,21 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
                     statusColor: _getStatusColor(laporan.status),
                     onTap: () {
                       // Check if idAttendance, checkIn, and checkOut are not null
-                      if (laporan.idAttendance == null || 
-                          laporan.checkIn == null || 
-                          laporan.checkOut == null) {
+                      final canOpenWithoutCheckout =
+                          laporan.status == LaporanStatus.checkIn;
+
+                      if (laporan.idAttendance == null || laporan.checkIn == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Data absensi belum lengkap. Detail tidak dapat dibuka.'),
+                            backgroundColor: Colors.orange,
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (!canOpenWithoutCheckout && laporan.checkOut == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Data absensi belum lengkap. Detail tidak dapat dibuka.'),
@@ -566,13 +759,7 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
                         // Refresh list after returning from detail page
                         if (mounted) {
                           final search = _searchController.text.trim();
-                          _laporanBloc.add(GetLaporanListEvent(
-                            status: status,
-                            search: search.isEmpty ? null : search,
-                            userId: widget.userId,
-                            start: 1,
-                            length: 10,
-                          ));
+                          _loadData(search: search.isEmpty ? null : search);
                         }
                       });
                     },

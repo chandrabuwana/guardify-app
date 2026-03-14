@@ -37,14 +37,29 @@ class AttendanceRekapRemoteDataSourceImpl
       if (response.data is Map<String, dynamic>) {
         final responseData = response.data as Map<String, dynamic>;
         
-        // Check if response has the expected structure
-        if (responseData.containsKey('Succeeded') &&
-            responseData['Succeeded'] == true) {
+        final succeeded = responseData['Succeeded'] == true;
+        if (succeeded) {
           return AttendanceRekapResponseModel.fromJson(responseData);
-        } else {
-          throw Exception(
-              responseData['Message'] ?? 'Failed to get attendance recap');
         }
+
+        // Backend may return 404 Not Found as a valid "empty" result
+        final code = responseData['Code'];
+        final message = (responseData['Message'] ?? '').toString();
+        final isNotFound = code == 404 || message.toLowerCase() == 'not found';
+        if (isNotFound) {
+          return const AttendanceRekapResponseModel(
+            count: 0,
+            filtered: 0,
+            list: <AttendanceRekapItemModel>[],
+            code: 404,
+            succeeded: false,
+            message: 'Not Found',
+            description: null,
+          );
+        }
+
+        throw Exception(
+            responseData['Message'] ?? 'Failed to get attendance recap');
       }
 
       throw Exception('Invalid response format');

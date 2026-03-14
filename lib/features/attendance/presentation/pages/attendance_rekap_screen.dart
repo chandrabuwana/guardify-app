@@ -707,7 +707,7 @@ class _AttendanceRekapScreenContentState
     super.dispose();
   }
 
-  Future<void> _loadAttendanceRekap() async {
+  Future<void> _loadAttendanceRekap({String? status}) async {
     final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
     if (userId != null && mounted) {
       final userRole = await UserRoleHelper.getUserRole();
@@ -846,7 +846,10 @@ class _AttendanceRekapScreenContentState
 
                   if (state is AttendanceRekapLoaded) {
                     if (state.filteredItems.isEmpty) {
-                      return _buildEmptyState();
+                      return _buildEmptyState(
+                        showTryAnotherFilterHint:
+                            _selectedStatusFilter?.trim().isNotEmpty == true,
+                      );
                     }
 
                     return RefreshIndicator(
@@ -1056,7 +1059,7 @@ class _AttendanceRekapScreenContentState
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState({required bool showTryAnotherFilterHint}) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1073,6 +1076,19 @@ class _AttendanceRekapScreenContentState
               color: neutral50,
             ),
           ),
+          if (showTryAnotherFilterHint) ...[
+            8.verticalSpace,
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32.w),
+              child: Text(
+                'Silakan coba gunakan filter lain',
+                style: TS.bodyMedium.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1130,8 +1146,34 @@ class _AttendanceRekapScreenContentState
           setState(() {
             _selectedStatusFilter = selectedValue;
           });
-          // Apply filter using parent context that has access to BLoC
-          final filterValue = selectedValue ?? '';
+          final filterValue = (selectedValue ?? '').trim();
+
+          const serverStatuses = {
+            'CHECKIN',
+            'CHECKOUT',
+            'WAITING',
+            'REVISI',
+            'VERIFIKASI',
+          };
+
+          if (filterValue.isEmpty) {
+            parentContext.read<AttendanceRekapBloc>().add(
+                  FilterAttendanceRekapEvent(''),
+                );
+            _loadAttendanceRekap(status: '');
+            return;
+          }
+
+          if (serverStatuses.contains(filterValue)) {
+            // Clear local filter to avoid double-filtering UI
+            parentContext.read<AttendanceRekapBloc>().add(
+                  FilterAttendanceRekapEvent(''),
+                );
+            _loadAttendanceRekap(status: filterValue);
+            return;
+          }
+
+          // Client-side filtering (Masuk/Terlambat/Tidak Masuk)
           parentContext.read<AttendanceRekapBloc>().add(
                 FilterAttendanceRekapEvent(filterValue),
               );
@@ -1270,6 +1312,56 @@ class _FilterDialogState extends State<_FilterDialog> {
           RadioListTile<String>(
             title: const Text('Tidak Masuk'),
             value: 'Tidak Masuk',
+            groupValue: _selectedFilter ?? '',
+            onChanged: (value) {
+              setState(() {
+                _selectedFilter = value;
+              });
+            },
+          ),
+          RadioListTile<String>(
+            title: const Text('Check In'),
+            value: 'CHECKIN',
+            groupValue: _selectedFilter ?? '',
+            onChanged: (value) {
+              setState(() {
+                _selectedFilter = value;
+              });
+            },
+          ),
+          RadioListTile<String>(
+            title: const Text('Check Out'),
+            value: 'CHECKOUT',
+            groupValue: _selectedFilter ?? '',
+            onChanged: (value) {
+              setState(() {
+                _selectedFilter = value;
+              });
+            },
+          ),
+          RadioListTile<String>(
+            title: const Text('Waiting'),
+            value: 'WAITING',
+            groupValue: _selectedFilter ?? '',
+            onChanged: (value) {
+              setState(() {
+                _selectedFilter = value;
+              });
+            },
+          ),
+          RadioListTile<String>(
+            title: const Text('Revisi'),
+            value: 'REVISI',
+            groupValue: _selectedFilter ?? '',
+            onChanged: (value) {
+              setState(() {
+                _selectedFilter = value;
+              });
+            },
+          ),
+          RadioListTile<String>(
+            title: const Text('Verifikasi'),
+            value: 'VERIFIKASI',
             groupValue: _selectedFilter ?? '',
             onChanged: (value) {
               setState(() {

@@ -54,6 +54,11 @@ PanicButtonItemModel _$PanicButtonItemModelFromJson(
                   ?.map((e) =>
                       PanicButtonFileModel.fromJson(e as Map<String, dynamic>))
                   .toList()),
+          evidenceFile: $checkedConvert(
+              'EvidenceFile',
+              (v) => v == null
+                  ? null
+                  : PanicButtonFileModel.fromJson(v as Map<String, dynamic>)),
         );
         return val;
       },
@@ -78,7 +83,8 @@ PanicButtonItemModel _$PanicButtonItemModelFromJson(
         'status': 'Status',
         'updateBy': 'UpdateBy',
         'updateDate': 'UpdateDate',
-        'files': 'Files'
+        'files': 'Files',
+        'evidenceFile': 'EvidenceFile'
       },
     );
 
@@ -106,4 +112,5 @@ Map<String, dynamic> _$PanicButtonItemModelToJson(
       'UpdateBy': instance.updateBy,
       'UpdateDate': instance.updateDate,
       'Files': instance.files?.map((e) => e.toJson()).toList(),
+      'EvidenceFile': instance.evidenceFile?.toJson(),
     };

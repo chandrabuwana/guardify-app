@@ -37,6 +37,9 @@ class CurrentTaskResponseModel {
 /// Data model for current task
 @JsonSerializable()
 class CurrentTaskDataModel {
+  @JsonKey(name: 'RouteName')
+  final String? routeName;
+
   @JsonKey(name: 'ListRoute')
   final List<RouteTaskModel> listRoute;
 
@@ -44,6 +47,7 @@ class CurrentTaskDataModel {
   final List<CarryOverTaskModel> listCarryOver;
 
   CurrentTaskDataModel({
+    this.routeName,
     required this.listRoute,
     required this.listCarryOver,
   });
@@ -128,6 +132,9 @@ class CarryOverTaskModel {
   @JsonKey(name: 'SolverId')
   final String? solverId;
 
+  @JsonKey(name: 'Solver')
+  final CarryOverSolverModel? solver;
+
   @JsonKey(name: 'SolverNote')
   final String? solverNote;
 
@@ -146,6 +153,9 @@ class CarryOverTaskModel {
   @JsonKey(name: 'File')
   final String? file;
 
+  @JsonKey(name: 'EvidenceUrl')
+  final String? evidenceUrl;
+
   CarryOverTaskModel({
     required this.id,
     required this.createBy,
@@ -156,17 +166,38 @@ class CarryOverTaskModel {
     required this.reportNote,
     this.solverDate,
     this.solverId,
+    this.solver,
     this.solverNote,
     required this.status,
     this.updateBy,
     this.updateDate,
     this.location,
     this.file,
+    this.evidenceUrl,
   });
 
   factory CarryOverTaskModel.fromJson(Map<String, dynamic> json) =>
       _$CarryOverTaskModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$CarryOverTaskModelToJson(this);
+}
+
+@JsonSerializable()
+class CarryOverSolverModel {
+  @JsonKey(name: 'Id')
+  final String? id;
+
+  @JsonKey(name: 'Fullname')
+  final String? fullname;
+
+  const CarryOverSolverModel({
+    this.id,
+    this.fullname,
+  });
+
+  factory CarryOverSolverModel.fromJson(Map<String, dynamic> json) =>
+      _$CarryOverSolverModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CarryOverSolverModelToJson(this);
 }
 

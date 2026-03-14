@@ -32,6 +32,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     return BlocBuilder<NewsBloc, NewsState>(
       builder: (context, state) {
         final news = state.selectedNews ?? widget.news;
+        final imageUrl = news.imageUrl;
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -69,14 +70,14 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           bottomRight: Radius.circular(16.r),
                         ),
                       ),
-                      child: news.imageUrl != null
+                      child: imageUrl != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.only(
                                 bottomLeft: Radius.circular(16.r),
                                 bottomRight: Radius.circular(16.r),
                               ),
                               child: Image.network(
-                                news.imageUrl!,
+                                imageUrl,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(

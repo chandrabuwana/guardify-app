@@ -340,6 +340,10 @@ class _ProfileDetailsScreenViewState extends State<ProfileDetailsScreenView>
             label: 'No NRP',
             value: profile.nrp,
           ),
+          ProfileDetailItem(
+            label: 'Email',
+            value: profile.email,
+          ),
 
           ProfileDetailItem(
             label: 'No KTP',
