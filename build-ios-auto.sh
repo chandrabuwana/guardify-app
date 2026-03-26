@@ -17,14 +17,15 @@ patch=$(echo $version_name | cut -d'.' -f3)
 new_patch=$((patch + 1))
 new_version_name="${major}.${minor}.${new_patch}"
 
-# Reset build number to 1 for new version
-new_version="${new_version_name}+1"
+# Increment build number
+new_build_number=$((build_number + 1))
+new_version="${new_version_name}+${new_build_number}"
 
 sed -i '' "s/^version: .*/version: ${new_version}/" $PUBSPEC_FILE
 
 echo "✅ Version updated: $current_version → $new_version"
 echo "   Version Name: $version_name → $new_version_name"
-echo "   Build Number: Reset to 1"
+echo "   Build Number: $build_number → $new_build_number"
 
 echo ""
 echo "🧹 Cleaning project..."
@@ -44,13 +45,15 @@ xcodebuild -workspace Runner.xcworkspace \
   -sdk iphoneos \
   -destination 'generic/platform=iOS' \
   -archivePath build/Runner.xcarchive \
+  -allowProvisioningUpdates \
   archive
 
 echo "📦 Exporting IPA..."
 xcodebuild -exportArchive \
   -archivePath build/Runner.xcarchive \
   -exportPath build/ipa \
-  -exportOptionsPlist exportOptions.plist
+  -exportOptionsPlist exportOptions.plist \
+  -allowProvisioningUpdates
 
 cd ..
 echo ""
