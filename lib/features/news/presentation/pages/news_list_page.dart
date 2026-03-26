@@ -69,153 +69,158 @@ class _NewsListPageState extends State<NewsListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: neutral10,
-      appBar: AppBar(
-        title: const Text(
-          'Berita',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: primaryColor,
-        elevation: 0,
-        centerTitle: true,
-        actions: [
-          if (!_isLoadingRole && _userRole == UserRole.pengawas)
-            IconButton(
-              icon: const Icon(Icons.add, color: Colors.white),
-              onPressed: () {
-                // Get NewsBloc before creating new route context
-                final newsBloc = context.read<NewsBloc>();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BlocProvider.value(
-                      value: newsBloc,
-                      child: const AddNewsPage(),
-                    ),
-                  ),
-                );
-              },
-            ),
-        ],
-      ),
-      body: BlocConsumer<NewsBloc, NewsState>(
-        listener: (context, state) {
-          if (state.errorMessage != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage!),
-                backgroundColor: errorColor,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: primaryColor),
-            );
-          }
-
-          return Column(
-            children: [
-              // Search and Filter Bar
-              Container(
-                padding: EdgeInsets.all(16.w),
-                color: Colors.white,
-                child: Row(
-                  children: [
-                    // Search Bar
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: neutral10,
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Q Cari',
-                            hintStyle: TextStyle(
-                              color: neutral50,
-                              fontSize: 14.sp,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color: neutral50,
-                              size: 20.sp,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 12.h,
-                            ),
-                          ),
-                          onChanged: (value) {
-                            context.read<NewsBloc>().add(NewsSearchNews(value));
-                          },
-                        ),
-                      ),
-                    ),
-
-                    12.horizontalSpace,
-
-                    // Filter Button
-                    Container(
-                      width: 48.w,
-                      height: 48.h,
-                      decoration: BoxDecoration(
-                        color: primaryColor,
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.filter_list,
-                          color: Colors.white,
-                          size: 20.sp,
-                        ),
-                        onPressed: () {
-                          _showFilterDialog();
-                        },
-                      ),
-                    ),
-                  ],
+      body: SafeArea(
+        child: BlocConsumer<NewsBloc, NewsState>(
+          listener: (context, state) {
+            if (state.errorMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.errorMessage!),
+                  backgroundColor: errorColor,
+                  behavior: SnackBarBehavior.floating,
                 ),
-              ),
-
-              // News List
-              Expanded(
-                child: state.filteredNews.isEmpty && !state.isLoading
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          context.read<NewsBloc>().add(const NewsRefreshNews());
-                          // Wait for refresh to complete
-                          await Future.delayed(
-                              const Duration(milliseconds: 500));
-                        },
-                        color: primaryColor,
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          padding: EdgeInsets.all(16.w),
-                          itemCount: state.filteredNews.length +
-                              (state.hasReachedMax ? 0 : 1),
-                          itemBuilder: (context, index) {
-                            if (index >= state.filteredNews.length) {
-                              // Show loading indicator at bottom
-                              return _buildBottomLoader();
-                            }
-                            final news = state.filteredNews[index];
-                            return _buildNewsCard(news);
-                          },
+              );
+            }
+          },
+          builder: (context, state) {
+            return Column(
+              children: [
+                // Header
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Icon(Icons.arrow_back, color: primaryColor, size: 24.sp),
+                      ),
+                      12.horizontalSpace,
+                      Expanded(
+                        child: Text(
+                          'Berita',
+                          style: TextStyle(
+                            fontSize: 24.sp,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
                         ),
                       ),
-              ),
-            ],
-          );
-        },
+                      if (!_isLoadingRole && _userRole == UserRole.pengawas)
+                        IconButton(
+                          icon: Icon(Icons.add, color: primaryColor, size: 28.sp),
+                          onPressed: () {
+                            final newsBloc = context.read<NewsBloc>();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BlocProvider.value(
+                                  value: newsBloc,
+                                  child: const AddNewsPage(),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+
+                // Search and Filter Bar
+                Padding(
+                  padding: EdgeInsets.all(16.w),
+                  child: Row(
+                    children: [
+                      // Search Bar
+                      Expanded(
+                        child: Container(
+                          height: 48.h,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24.r),
+                            border: Border.all(color: primaryColor, width: 1.5),
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Cari',
+                              hintStyle: TextStyle(
+                                color: neutral50,
+                                fontSize: 14.sp,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: primaryColor,
+                                size: 20.sp,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16.w,
+                                vertical: 12.h,
+                              ),
+                            ),
+                            onChanged: (value) {
+                              context.read<NewsBloc>().add(NewsSearchNews(value));
+                            },
+                          ),
+                        ),
+                      ),
+
+                      12.horizontalSpace,
+
+                      // Filter Button
+                      GestureDetector(
+                        onTap: _showFilterDialog,
+                        child: Container(
+                          width: 48.w,
+                          height: 48.h,
+                          decoration: BoxDecoration(
+                            color: primaryColor,
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Icon(
+                            Icons.filter_alt,
+                            color: Colors.white,
+                            size: 22.sp,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // News List
+                Expanded(
+                  child: state.isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(color: primaryColor),
+                        )
+                      : state.filteredNews.isEmpty
+                          ? _buildEmptyState()
+                          : RefreshIndicator(
+                              onRefresh: () async {
+                                context.read<NewsBloc>().add(const NewsRefreshNews());
+                                await Future.delayed(const Duration(milliseconds: 500));
+                              },
+                              color: primaryColor,
+                              child: ListView.builder(
+                                controller: _scrollController,
+                                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                                itemCount: state.filteredNews.length +
+                                    (state.hasReachedMax ? 0 : 1),
+                                itemBuilder: (context, index) {
+                                  if (index >= state.filteredNews.length) {
+                                    return _buildBottomLoader();
+                                  }
+                                  final news = state.filteredNews[index];
+                                  return _buildNewsCard(news);
+                                },
+                              ),
+                            ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -225,26 +230,16 @@ class _NewsListPageState extends State<NewsListPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.article_outlined,
-            size: 64.sp,
-            color: neutral50,
-          ),
+          Icon(Icons.article_outlined, size: 64.sp, color: neutral50),
           16.verticalSpace,
           Text(
             'Tidak ada berita',
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: neutral70,
-            ),
+            style: TextStyle(fontSize: 16.sp, color: neutral70),
           ),
           8.verticalSpace,
           Text(
             'Belum ada berita yang tersedia',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: neutral50,
-            ),
+            style: TextStyle(fontSize: 14.sp, color: neutral50),
           ),
         ],
       ),
@@ -255,23 +250,20 @@ class _NewsListPageState extends State<NewsListPage> {
     return Container(
       alignment: Alignment.center,
       padding: EdgeInsets.symmetric(vertical: 16.h),
-      child: const CircularProgressIndicator(
-        color: primaryColor,
-        strokeWidth: 2,
-      ),
+      child: const CircularProgressIndicator(color: primaryColor, strokeWidth: 2),
     );
   }
 
   Widget _buildNewsCard(News news) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
+      margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
-        color: primaryColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -293,25 +285,26 @@ class _NewsListPageState extends State<NewsListPage> {
           },
           borderRadius: BorderRadius.circular(12.r),
           child: Padding(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(12.w),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Weather Icon
-                Container(
-                  width: 48.w,
-                  height: 48.h,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Icon(
-                    Icons.wb_cloudy,
-                    color: Colors.white,
-                    size: 24.sp,
-                  ),
+                // Thumbnail
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8.r),
+                  child: news.imageUrl != null
+                      ? Image.network(
+                          news.imageUrl!,
+                          width: 80.w,
+                          height: 80.w,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildThumbnailPlaceholder(),
+                        )
+                      : _buildThumbnailPlaceholder(),
                 ),
 
-                16.horizontalSpace,
+                12.horizontalSpace,
 
                 // News Content
                 Expanded(
@@ -322,8 +315,8 @@ class _NewsListPageState extends State<NewsListPage> {
                       Text(
                         news.category,
                         style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 11.sp,
+                          color: neutral50,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -333,22 +326,22 @@ class _NewsListPageState extends State<NewsListPage> {
                       Text(
                         news.title,
                         style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 13.sp,
+                          color: neutral90,
+                          fontWeight: FontWeight.w700,
                           height: 1.3,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      8.verticalSpace,
+                      6.verticalSpace,
 
                       // Description
                       Text(
                         news.content,
                         style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 11.sp,
+                          color: neutral50,
                           height: 1.4,
                         ),
                         maxLines: 2,
@@ -364,14 +357,14 @@ class _NewsListPageState extends State<NewsListPage> {
                             DateFormat('dd/MM/yyyy').format(news.publishedAt),
                             style: TextStyle(
                               fontSize: 11.sp,
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: neutral50,
                             ),
                           ),
                           Text(
                             'Baca →',
                             style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Colors.white,
+                              fontSize: 11.sp,
+                              color: neutral70,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -385,6 +378,15 @@ class _NewsListPageState extends State<NewsListPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildThumbnailPlaceholder() {
+    return Container(
+      width: 80.w,
+      height: 80.w,
+      color: primaryColor,
+      child: Icon(Icons.wb_cloudy, color: Colors.white, size: 36.sp),
     );
   }
 
@@ -417,9 +419,7 @@ class _NewsListPageState extends State<NewsListPage> {
               decoration: BoxDecoration(
                 color: selected ? Colors.white : neutral10,
                 borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                  color: selected ? primaryColor : neutral30,
-                ),
+                border: Border.all(color: selected ? primaryColor : neutral30),
               ),
               child: Text(
                 label,
@@ -482,21 +482,13 @@ class _NewsListPageState extends State<NewsListPage> {
                       buildChip(
                         label: 'Semua',
                         selected: selectedCategory == null,
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = null;
-                          });
-                        },
+                        onTap: () => setState(() => selectedCategory = null),
                       ),
                       ...NewsCategory.values.map((category) {
                         return buildChip(
                           label: category.displayName,
                           selected: selectedCategory == category,
-                          onTap: () {
-                            setState(() {
-                              selectedCategory = category;
-                            });
-                          },
+                          onTap: () => setState(() => selectedCategory = category),
                         );
                       }),
                     ],
@@ -520,20 +512,12 @@ class _NewsListPageState extends State<NewsListPage> {
                       buildChip(
                         label: 'Terbaru',
                         selected: newestFirst,
-                        onTap: () {
-                          setState(() {
-                            newestFirst = true;
-                          });
-                        },
+                        onTap: () => setState(() => newestFirst = true),
                       ),
                       buildChip(
                         label: 'Terlama',
                         selected: !newestFirst,
-                        onTap: () {
-                          setState(() {
-                            newestFirst = false;
-                          });
-                        },
+                        onTap: () => setState(() => newestFirst = false),
                       ),
                     ],
                   ),
@@ -562,10 +546,7 @@ class _NewsListPageState extends State<NewsListPage> {
                       ),
                       child: Text(
                         'Terapkan',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
