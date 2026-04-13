@@ -7,6 +7,7 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/domain/entities/paginated_response.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../../core/utils/image_compress_util.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/services/location_service.dart';
 import '../../domain/entities/patrol_route.dart';
@@ -372,11 +373,10 @@ class PatrolRepositoryImpl implements PatrolRepository {
   Future<Map<String, dynamic>?> _encodePhoto(String path) async {
     if (path.isEmpty) return null;
     try {
-      final file = File(path);
-      if (!await file.exists()) return null;
+      final file = await ImageCompressUtil.ensureMax1MbIfImage(path);
       final bytes = await file.readAsBytes();
       final base64Str = base64Encode(bytes);
-      final filename = path.split(RegExp(r'[\/\\]')).last;
+      final filename = file.path.split(RegExp(r'[\/\\]')).last;
       final ext = filename.contains('.') ? filename.split('.').last.toLowerCase() : '';
       final mime = _guessMimeType(ext);
       return {

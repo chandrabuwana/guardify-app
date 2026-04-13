@@ -239,6 +239,14 @@ class ShiftCheckoutDetailData {
     return null;
   }
 
+  String? get statusCarryOverLabel => _stringFromKeys(
+        [
+          'StatusCarryOver',
+          'StatusCarryOverLabel',
+          'CarryOverStatus',
+        ],
+      );
+
   // Patrol summary
   String? get patrolStatusLabel => _stringFromKeys(
         [

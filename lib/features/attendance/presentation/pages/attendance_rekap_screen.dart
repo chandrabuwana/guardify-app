@@ -712,18 +712,18 @@ class _AttendanceRekapScreenContentState
     if (userId != null && mounted) {
       final userRole = await UserRoleHelper.getUserRole();
       final isPengawas = userRole == UserRole.pengawas;
-      final now = DateTime.now();
-      final startOfToday = DateTime(now.year, now.month, now.day, 0, 0, 0, 0);
-      final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+
+      final searchQuery = _searchController.text.trim();
+      final statusValue = (status ?? '').trim();
 
       final request = AttendanceRekapRequestEntity(
         idUser: userId,
         withSubordinate: isPengawas,
         isAdmin: false,
-        status: '',
-        search: '',
-        startDate: startOfToday,
-        endDate: endOfToday,
+        status: statusValue,
+        search: searchQuery,
+        startDate: null,
+        endDate: null,
         start: 0,
         length: 0,
         shiftName: '',

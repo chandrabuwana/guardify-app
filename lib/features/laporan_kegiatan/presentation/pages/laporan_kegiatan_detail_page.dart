@@ -306,10 +306,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           // Tugas Lanjutan
           _buildTugasLanjutanCard(laporan),
 
-          if ((laporan.carryOver ?? '').trim().isNotEmpty) ...[
-            16.verticalSpace,
-            _buildTugasTertundaCard(laporan.carryOver!.trim()),
-          ],
+          16.verticalSpace,
         ],
       ),
     );
@@ -362,11 +359,10 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
             16.verticalSpace,
           ],
 
-          if (laporan.listCarryOver != null &&
-              laporan.listCarryOver!.isNotEmpty) ...[
-            _buildDaftarTugasTertundaCard(laporan.listCarryOver!),
-            16.verticalSpace,
-          ],
+          _buildDaftarTugasTertundaCard(laporan.listCarryOver ?? const []),
+          16.verticalSpace,
+          _buildTugasTertundaCard((laporan.carryOver ?? '').trim()),
+          16.verticalSpace,
 
           // Laporan Pengamanan
           _buildInfoCard(
@@ -1093,6 +1089,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
   }
 
   Widget _buildTugasLanjutanCard(LaporanKegiatanEntity laporan) {
+    final value = (laporan.tugasLanjutan ?? '').trim();
     return Container(
       width: double.infinity,
       padding: REdgeInsets.all(16),
@@ -1117,7 +1114,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
                 ),
                 4.verticalSpace,
                 Text(
-                  laporan.tugasLanjutan ?? 'Selesai (5/5 Selesai Dikerjakan)',
+                  value.isNotEmpty ? value : '-',
                   style: TS.bodyMedium.copyWith(color: Colors.black87),
                   maxLines: 5,
                   overflow: TextOverflow.ellipsis,
@@ -1136,6 +1133,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
   }
 
   Widget _buildTugasTertundaCard(String value) {
+    final cleaned = value.trim();
     return Container(
       width: double.infinity,
       padding: REdgeInsets.all(16),
@@ -1159,7 +1157,7 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
                 ),
                 4.verticalSpace,
                 Text(
-                  value,
+                  cleaned.isNotEmpty ? cleaned : '-',
                   style: TS.bodyMedium.copyWith(color: Colors.black87),
                 ),
               ],
@@ -1171,48 +1169,118 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
   }
 
   Widget _buildDaftarTugasTertundaCard(List<LaporanCarryOverItem> items) {
-    return Container(
-      width: double.infinity,
-      padding: REdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Column(
+    if (items.isEmpty) {
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Daftar Tugas Lanjutan',
-            style: TS.bodySmall.copyWith(
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+            'Tugas Lanjutan',
+            style: TS.titleMedium.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
             ),
           ),
           12.verticalSpace,
-          ...items.map((e) {
-            return Padding(
-              padding: REdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      e.note.trim().isNotEmpty ? e.note.trim() : '-',
-                      style: TS.bodyMedium.copyWith(color: Colors.black87),
-                    ),
-                  ),
-                  12.horizontalSpace,
-                  Text(
-                    e.status,
-                    style: TS.bodySmall.copyWith(
-                      color: Colors.grey[700],
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+          _buildInfoCard('Daftar Tugas Lanjutan', '-'),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tugas Lanjutan',
+          style: TS.titleMedium.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        12.verticalSpace,
+        ...items.map((e) {
+          final note = e.note.trim().isNotEmpty ? e.note.trim() : '-';
+          final rawStatus = e.status.trim();
+          final upperStatus = rawStatus.toUpperCase();
+
+          final isCompleted = upperStatus.contains('SELESAI') ||
+              upperStatus.contains('DONE') ||
+              upperStatus.contains('CLOSED') ||
+              (upperStatus.isNotEmpty && upperStatus != 'OPEN');
+
+          final statusText = rawStatus.isNotEmpty
+              ? rawStatus
+              : (isCompleted ? 'Selesai' : 'Belum');
+
+          return Padding(
+            padding: REdgeInsets.only(bottom: 12),
+            child: _buildCarryOverBubbleRow(
+              note: note,
+              statusText: statusText,
+              isCompleted: isCompleted,
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildCarryOverBubbleRow({
+    required String note,
+    required String statusText,
+    required bool isCompleted,
+  }) {
+    final borderColor =
+        isCompleted ? const Color(0xFF2563EB) : const Color(0xFFD4A72C);
+    final dotColor = borderColor;
+    final tagBgColor =
+        isCompleted ? const Color(0xFFE8F0FF) : const Color(0xFFFFF3C4);
+    final tagTextColor =
+        isCompleted ? const Color(0xFF1D4ED8) : const Color(0xFFB8860B);
+
+    return Container(
+      padding: REdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 14.w,
+            height: 14.w,
+            decoration: BoxDecoration(
+              color: dotColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+          14.horizontalSpace,
+          Expanded(
+            child: Text(
+              note,
+              style: TS.bodyMedium.copyWith(
+                color: Colors.black87,
+                fontWeight: FontWeight.w600,
               ),
-            );
-          }),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          12.horizontalSpace,
+          Container(
+            padding: REdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: tagBgColor,
+              borderRadius: BorderRadius.circular(14.r),
+            ),
+            child: Text(
+              statusText,
+              style: TS.bodySmall.copyWith(
+                color: tagTextColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ],
       ),
     );

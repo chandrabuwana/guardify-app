@@ -38,8 +38,27 @@ class LeaveRequestResponseModel {
     this.description,
   });
 
-  factory LeaveRequestResponseModel.fromJson(Map<String, dynamic> json) =>
-      _$LeaveRequestResponseModelFromJson(json);
+  factory LeaveRequestResponseModel.fromJson(Map<String, dynamic> json) {
+    final rawList = json['List'];
+    final list = (rawList is List)
+        ? rawList
+            .whereType<Map>()
+            .map((e) => LeaveRequestItemModel.fromJson(
+                  Map<String, dynamic>.from(e),
+                ))
+            .toList()
+        : <LeaveRequestItemModel>[];
+
+    return LeaveRequestResponseModel(
+      count: (json['Count'] as num?)?.toInt() ?? 0,
+      filtered: (json['Filtered'] as num?)?.toInt() ?? 0,
+      list: list,
+      code: (json['Code'] as num?)?.toInt() ?? 0,
+      succeeded: json['Succeeded'] as bool? ?? false,
+      message: json['Message'] as String? ?? '',
+      description: json['Description'] as String?,
+    );
+  }
 
   Map<String, dynamic> toJson() => _$LeaveRequestResponseModelToJson(this);
 }
@@ -122,8 +141,49 @@ class LeaveRequestItemModel {
     this.approveDate,
   });
 
-  factory LeaveRequestItemModel.fromJson(Map<String, dynamic> json) =>
-      _$LeaveRequestItemModelFromJson(json);
+  factory LeaveRequestItemModel.fromJson(Map<String, dynamic> json) {
+    final rawId = json['Id'];
+    final parsedId = rawId is String
+        ? rawId
+        : (rawId is Map
+            ? (rawId['id']?.toString() ?? rawId['Id']?.toString() ?? '')
+            : (rawId?.toString() ?? ''));
+
+    return LeaveRequestItemModel(
+      id: parsedId,
+      createBy: json['CreateBy'] as String?,
+      createDate: json['CreateDate'] as String?,
+      endDate: json['EndDate'] as String? ?? '',
+      fullname: json['Fullname'] as String?,
+      idLeaveRequestType: (json['IdLeaveRequestType'] as num?)?.toInt() ?? 0,
+      leaveRequestType: json['LeaveRequestType'] is Map<String, dynamic>
+          ? LeaveRequestTypeModel.fromJson(
+              json['LeaveRequestType'] as Map<String, dynamic>,
+            )
+          : (json['LeaveRequestType'] is Map
+              ? LeaveRequestTypeModel.fromJson(
+                  Map<String, dynamic>.from(json['LeaveRequestType'] as Map),
+                )
+              : null),
+      nip: json['Nip'] as String?,
+      notes: json['Notes'] as String?,
+      notesApproval: json['NotesApproval'] as String?,
+      startDate: json['StartDate'] as String? ?? '',
+      updateBy: json['UpdateBy'] as String?,
+      updateDate: json['UpdateDate'] as String?,
+      userId: (json['UserId'] as String?) ?? '',
+      user: json['User'] is Map<String, dynamic>
+          ? UserLeaveModel.fromJson(json['User'] as Map<String, dynamic>)
+          : (json['User'] is Map
+              ? UserLeaveModel.fromJson(
+                  Map<String, dynamic>.from(json['User'] as Map),
+                )
+              : null),
+      status: json['Status'] as String?,
+      approveBy: json['ApproveBy'] as String?,
+      approveDate: json['ApproveDate'] as String?,
+    );
+  }
 
   Map<String, dynamic> toJson() => _$LeaveRequestItemModelToJson(this);
 

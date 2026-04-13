@@ -77,22 +77,22 @@ class _AuthRemoteDataSource implements AuthRemoteDataSource {
 
   @override
   Future<PasswordActionResponseModel> changePassword(
-    String password,
-    String newPassword,
+    Map<String, dynamic> body,
   ) async {
     const _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
-    final Map<String, dynamic>? _data = null;
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
     final _result = await _dio.fetch<Map<String, dynamic>>(
         _setStreamType<PasswordActionResponseModel>(Options(
-      method: 'PUT',
+      method: 'POST',
       headers: _headers,
       extra: _extra,
     )
             .compose(
               _dio.options,
-              '/User/change_password/${password}/${newPassword}',
+              '/User/change_password',
               queryParameters: queryParameters,
               data: _data,
             )

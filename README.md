@@ -166,3 +166,4 @@ flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
 
+./build-ios-auto.sh prod

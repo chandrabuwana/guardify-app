@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import '../models/profile_user_model.dart';
 import '../models/user_api_response_model.dart';
 import 'profile_remote_datasource.dart';
+import '../../../../core/utils/image_compress_util.dart';
 
 /// Implementation remote data source untuk Profile menggunakan Dio
 @LazySingleton(as: ProfileRemoteDataSource)
@@ -80,8 +81,10 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<String> uploadProfilePhoto(String userId, String imagePath) async {
     try {
+      final compressedFile =
+          await ImageCompressUtil.ensureMax1MbIfImage(imagePath);
       final formData = FormData.fromMap({
-        'photo': await MultipartFile.fromFile(imagePath),
+        'photo': await MultipartFile.fromFile(compressedFile.path),
       });
 
       final response = await _dio.post(

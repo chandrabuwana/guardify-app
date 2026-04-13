@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:retrofit/retrofit.dart';
@@ -8,6 +7,7 @@ import '../models/carried_over_task_response_model.dart';
 import '../models/submit_carried_over_task_request_model.dart';
 import '../../domain/entities/tugas_lanjutan_entity.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../../core/utils/image_compress_util.dart';
 
 part 'tugas_lanjutan_remote_data_source.g.dart';
 
@@ -303,11 +303,11 @@ class TugasLanjutanRemoteDataSourceImpl
       if (buktiUrl.isNotEmpty && buktiUrl != 'bukti.jpg') {
         try {
           // If buktiUrl is a file path, read and encode it
-          final file = File(buktiUrl);
+          final file = await ImageCompressUtil.ensureMax1MbIfImage(buktiUrl);
           if (await file.exists()) {
             final fileBytes = await file.readAsBytes();
             final base64String = base64Encode(fileBytes);
-            final fileName = buktiUrl.split('/').last;
+            final fileName = file.path.split('/').last;
             final mimeType = _getMimeType(fileName);
 
             fileModel = FileModel(

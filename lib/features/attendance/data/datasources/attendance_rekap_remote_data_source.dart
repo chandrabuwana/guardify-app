@@ -1,7 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
+
+import '../../../../core/utils/image_compress_util.dart';
 import '../models/attendance_rekap_model.dart';
 import '../../domain/entities/attendance_rekap_request_entity.dart';
 import '../../domain/entities/attendance_update_request.dart';
@@ -366,7 +368,7 @@ class AttendanceRekapRemoteDataSourceImpl
     
     try {
       print('📁 _encodePhoto: Starting encoding for path=$path');
-      final file = File(path);
+      final file = await ImageCompressUtil.ensureMax1MbIfImage(path);
       
       // Check if file exists
       final exists = await file.exists();

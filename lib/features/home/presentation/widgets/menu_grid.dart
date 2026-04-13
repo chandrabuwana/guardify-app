@@ -46,7 +46,7 @@ class MenuGrid extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              childAspectRatio: 1,
+              childAspectRatio: 0.82,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
@@ -80,7 +80,7 @@ class MenuGrid extends StatelessWidget {
           onTap: item.onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -114,9 +114,10 @@ class MenuGrid extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 // Menu title
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
                   child: Text(
                     item.title,
                     textAlign: TextAlign.center,
