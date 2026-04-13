@@ -10,6 +10,7 @@ import '../models/chat_api_response_model.dart';
 import '../../../../features/bmi/data/models/bmi_api_response_model.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/image_compress_util.dart';
 
 @injectable
 class ChatRepositoryImpl implements ChatRepository {
@@ -461,14 +462,16 @@ class ChatRepositoryImpl implements ChatRepository {
       List<AttachmentModel>? attachments;
       if (attachmentFile != null && await attachmentFile.exists()) {
         try {
+          final compressedFile =
+              await ImageCompressUtil.ensureMax1MbIfImage(attachmentFile.path);
           // Read file as bytes
-          final fileBytes = await attachmentFile.readAsBytes();
+          final fileBytes = await compressedFile.readAsBytes();
           
           // Convert to base64
           final base64String = base64Encode(fileBytes);
           
           // Get file name and extension
-          final fileName = attachmentFile.path.split(RegExp(r'[\/\\]')).last;
+          final fileName = compressedFile.path.split(RegExp(r'[\/\\]')).last;
           final fileExtension = fileName.contains('.') 
               ? fileName.split('.').last.toLowerCase() 
               : 'jpg';

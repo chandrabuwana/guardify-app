@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as path;
+
+import '../../../../core/utils/image_compress_util.dart';
 import '../../domain/entities/news.dart';
 import '../../domain/repositories/news_repository.dart';
 import '../datasources/news_remote_datasource.dart';
@@ -161,7 +162,7 @@ class NewsRepositoryImpl implements NewsRepository {
 
   Future<Map<String, dynamic>?> _tryBuildFilesPayload(String filePath) async {
     try {
-      final file = File(filePath);
+      final file = await ImageCompressUtil.ensureMax1MbIfImage(filePath);
       if (!await file.exists()) {
         return null;
       }

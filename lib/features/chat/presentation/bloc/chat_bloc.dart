@@ -22,6 +22,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   Map<String, String> _userNameCache = {};
   bool _isLoadingUserNames = false;
 
+  bool _isJoiningConversation = false;
+  String? _joinedConversationId;
+  String? _joinedUserId;
+
   ChatBloc(
     this.chatRepository,
     this.signalRService,
@@ -521,6 +525,17 @@ ChatCreateConversation event,
     ChatJoinConversation event,
     Emitter<ChatState> emit,
   ) async {
+    if (_isJoiningConversation) {
+      return;
+    }
+
+    if (signalRService.isConnected &&
+        _joinedConversationId == event.conversationId &&
+        _joinedUserId == event.userId) {
+      return;
+    }
+
+    _isJoiningConversation = true;
     try {
       // Ensure SignalR is connected before joining
       if (!signalRService.isConnected) {
@@ -532,12 +547,17 @@ ChatCreateConversation event,
         event.conversationId,
         event.userId,
       );
+
+      _joinedConversationId = event.conversationId;
+      _joinedUserId = event.userId;
       print('✅ Joined conversation via SignalR: ${event.conversationId}');
     } catch (e) {
       print('❌ Error joining conversation: $e');
       emit(state.copyWith(
         errorMessage: 'Gagal join conversation: ${e.toString()}',
       ));
+    } finally {
+      _isJoiningConversation = false;
     }
   }
 

@@ -24,10 +24,9 @@ abstract class AuthRemoteDataSource {
     @Body() Map<String, dynamic> body,
   );
 
-  @PUT('/User/change_password/{password}/{new_password}')
+  @POST('/User/change_password')
   Future<PasswordActionResponseModel> changePassword(
-    @Path('password') String password,
-    @Path('new_password') String newPassword,
+    @Body() Map<String, dynamic> body,
   );
 
   @POST('/CurrentLocation/employee')

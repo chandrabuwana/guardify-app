@@ -52,7 +52,7 @@ class SignalRChatService {
       // Build HubConnection dengan WebSockets transport
       _hubConnection = HubConnectionBuilder()
           .withUrl(
-            'https://api-guardify.abb-apps.com/hubs/chat',
+            AppConstants.signalRHubUrl,
             options: HttpConnectionOptions(
               accessTokenFactory: () async {
                 // Ambil JWT token fresh dari secure storage

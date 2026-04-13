@@ -182,9 +182,13 @@ class _CheckOutPageState extends State<CheckOutPage> {
                         // Tugas Lanjutan Section (Read-only status)
                         _buildReadOnlyStatusField(
                           label: 'Tugas Lanjutan',
-                          value: _checkoutDetail?.followUpStatusLabel ??
-                              _checkoutDetail?.followUpDescription ??
-                              'Selesai (5/5 Selesai Dikerjakan)',
+                          value: (_checkoutDetail?.statusCarryOverLabel ?? '').trim().isNotEmpty
+                              ? _checkoutDetail!.statusCarryOverLabel!.trim()
+                              : (_checkoutDetail?.followUpStatusLabel ?? '').trim().isNotEmpty
+                                  ? _checkoutDetail!.followUpStatusLabel!.trim()
+                                  : (_checkoutDetail?.followUpDescription ?? '').trim().isNotEmpty
+                                      ? _checkoutDetail!.followUpDescription!.trim()
+                                      : '-',
                         ),
                         16.verticalSpace,
 

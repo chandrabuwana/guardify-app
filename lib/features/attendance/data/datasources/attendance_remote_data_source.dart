@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/image_compress_util.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../../schedule/data/datasources/schedule_remote_data_source.dart';
 
@@ -146,37 +147,7 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   @override
   Future<AttendanceModel> checkIn(CheckInRequest request) async {
     try {
-      // ========== LOGGING START ==========
-      print('═══════════════════════════════════════════════════════════');
-      print('🚀 [Attendance/check_in] REQUEST START');
-      print('═══════════════════════════════════════════════════════════');
-      
-      // Log request details
-      print('📋 Request Details:');
-      print('  Endpoint: /Attendance/check_in');
-      print('  Method: POST');
-      print('  userId: ${request.userId}');
-      print('  shift: ${request.shift}');
-      print('  shiftDetailId: ${request.shiftDetailId ?? "null"}');
-      print('  lokasiPenugasan: ${request.lokasiPenugasan}');
-      print('  lokasiTerkini: ${request.lokasiTerkini}');
-      print('  ratePatrol: ${request.ratePatrol}');
-      print('  laporanPengamanan: ${request.laporanPengamanan}');
-      print('  latitude: ${request.latitude ?? "null"}');
-      print('  longitude: ${request.longitude ?? "null"}');
-      
-      // Log photo paths
-      print('📸 Photo Paths:');
-      print('  fotoWajah: ${request.fotoWajah ?? "null"}');
-      print('  pakaianPersonil: ${request.pakaianPersonil}');
-      print('  fotoPengamanan count: ${request.fotoPengamanan.length}');
-      for (int i = 0; i < request.fotoPengamanan.length; i++) {
-        print('    fotoPengamanan[$i]: ${request.fotoPengamanan[i]}');
-      }
-      
       final deviceName = await _resolveDeviceName();
-      print('📱 Device Info:');
-      print('  DeviceName: $deviceName');
       
       final photoAbsen = await _encodePhoto(request.fotoWajah);
       final photoPakaian = await _encodePhoto(request.pakaianPersonil);
@@ -184,38 +155,9 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
           ? await _encodePhoto(request.fotoPengamanan.first)
           : null;
       final tokenPayload = await _buildTokenPayload();
-
-      // Log encoded photos summary
-      print('📸 Encoded Photos Summary:');
-      print('  photoAbsen: ${photoAbsen != null ? "✅ encoded (${photoAbsen['Filename']}, ${photoAbsen['MimeType']}, base64Length: ${(photoAbsen['Base64'] as String).length})" : "❌ null"}');
-      print('  photoPakaian: ${photoPakaian != null ? "✅ encoded (${photoPakaian['Filename']}, ${photoPakaian['MimeType']}, base64Length: ${(photoPakaian['Base64'] as String).length})" : "❌ null"}');
-      print('  photoPengamanan: ${firstSecurityPhoto != null ? "✅ encoded (${firstSecurityPhoto['Filename']}, ${firstSecurityPhoto['MimeType']}, base64Length: ${(firstSecurityPhoto['Base64'] as String).length})" : "❌ null"}');
-      
-      // Log token payload
-      if (tokenPayload != null) {
-        print('🔑 Token Payload:');
-        final jsonEncoder = JsonEncoder.withIndent('  ');
-        print(jsonEncoder.convert(tokenPayload));
-      } else {
-        print('🔑 Token Payload: null');
-      }
-
-      // Use GPS coordinates from request (real device location)
-      // If lat/lng is 0 or null, it means GPS is not available - should not happen in production
-      if (request.latitude == null || request.latitude == 0 || 
-          request.longitude == null || request.longitude == 0) {
-        print('⚠️ Warning: GPS coordinates are missing or invalid');
-        print('  Latitude: ${request.latitude ?? "null"}');
-        print('  Longitude: ${request.longitude ?? "null"}');
-        // Still use the provided values (even if 0) - let backend handle validation
-      }
       
       final latitude = request.latitude ?? 0.0;
       final longitude = request.longitude ?? 0.0;
-      
-      print('📍 Location (GPS real device):');
-      print('  Latitude: $latitude');
-      print('  Longitude: $longitude');
 
       final Map<String, dynamic> apiBody = {
         'PhotoAbsen': photoAbsen,
@@ -232,85 +174,21 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
           'IdShiftDetail': request.shiftDetailId!,
       }..removeWhere((key, value) => value == null);
 
-      // Log full payload (with base64 truncated for readability)
-      print('📦 Full Payload:');
-      final payloadForLog = Map<String, dynamic>.from(apiBody);
-      
-      // Truncate base64 strings for logging (show first 50 chars)
-      if (payloadForLog['PhotoAbsen'] is Map) {
-        final photoAbsenMap = Map<String, dynamic>.from(payloadForLog['PhotoAbsen'] as Map);
-        if (photoAbsenMap['Base64'] is String) {
-          final base64 = photoAbsenMap['Base64'] as String;
-          photoAbsenMap['Base64'] = base64.length > 50 
-              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
-              : base64;
-        }
-        payloadForLog['PhotoAbsen'] = photoAbsenMap;
-      }
-      
-      if (payloadForLog['PhotoPakaian'] is Map) {
-        final photoPakaianMap = Map<String, dynamic>.from(payloadForLog['PhotoPakaian'] as Map);
-        if (photoPakaianMap['Base64'] is String) {
-          final base64 = photoPakaianMap['Base64'] as String;
-          photoPakaianMap['Base64'] = base64.length > 50 
-              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
-              : base64;
-        }
-        payloadForLog['PhotoPakaian'] = photoPakaianMap;
-      }
-      
-      if (payloadForLog['PhotoPengamanan'] is Map) {
-        final photoPengamananMap = Map<String, dynamic>.from(payloadForLog['PhotoPengamanan'] as Map);
-        if (photoPengamananMap['Base64'] is String) {
-          final base64 = photoPengamananMap['Base64'] as String;
-          photoPengamananMap['Base64'] = base64.length > 50 
-              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
-              : base64;
-        }
-        payloadForLog['PhotoPengamanan'] = photoPengamananMap;
-      }
-      
-      // Print formatted JSON
-      final jsonEncoder = JsonEncoder.withIndent('  ');
-      print(jsonEncoder.convert(payloadForLog));
-      
-      print('═══════════════════════════════════════════════════════════');
-      // ========== LOGGING END ==========
-
       final response = await dio.post(
         '/Attendance/check_in',
         data: apiBody,
       );
-
-      // ========== RESPONSE LOGGING ==========
-      print('═══════════════════════════════════════════════════════════');
-      print('✅ [Attendance/check_in] RESPONSE RECEIVED');
-      print('═══════════════════════════════════════════════════════════');
-      print('📊 Response Status: ${response.statusCode}');
-      print('📊 Response Headers:');
-      response.headers.forEach((key, values) {
-        print('  $key: ${values.join(", ")}');
-      });
-      print('📊 Response Data:');
-      print(jsonEncoder.convert(response.data));
-      print('═══════════════════════════════════════════════════════════');
-      // ========== RESPONSE LOGGING END ==========
 
       // Handle response wrapper: {"Code":200,"Succeeded":true,"Message":"All OK","Description":""}
       final responseData = response.data;
       if (responseData is Map<String, dynamic>) {
         final code = responseData['Code'] as int?;
         final succeeded = responseData['Succeeded'] as bool?;
-        
-        print('📊 Response Analysis:');
-        print('  Code: $code');
-        print('  Succeeded: $succeeded');
-        print('  Message: ${responseData['Message'] ?? "null"}');
-        print('  Description: ${responseData['Description'] ?? "null"}');
+        final message = responseData['Message']?.toString().trim();
+        final description = responseData['Description']?.toString().trim();
         
         // Jika response sukses (Code 200 dan Succeeded true), buat AttendanceModel dari request data
         if (code == 200 && succeeded == true) {
-          print('✅ [Attendance/check_in] SUCCESS');
           final now = DateTime.now();
           // Buat AttendanceModel minimal dari request data karena response tidak mengembalikan data attendance
           return AttendanceModel(
@@ -333,103 +211,31 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
             updatedAt: now,
           );
         } else {
-          print('❌ [Attendance/check_in] FAILED: Code=$code, Succeeded=$succeeded');
+          final backendMessage = (message != null && message.isNotEmpty)
+              ? message
+              : ((description != null && description.isNotEmpty)
+                  ? description
+                  : 'Failed to check in');
+          throw Exception(backendMessage);
         }
       }
       
       // Fallback: coba parse sebagai AttendanceModel langsung jika format berbeda
-      print('⚠️ [Attendance/check_in] Using fallback parsing');
       return AttendanceModel.fromJson(response.data);
     } on DioException catch (e) {
-      // ========== ERROR LOGGING ==========
-      print('═══════════════════════════════════════════════════════════');
-      print('❌ [Attendance/check_in] DIO EXCEPTION');
-      print('═══════════════════════════════════════════════════════════');
-      print('Error Type: DioException');
-      print('Error Message: ${e.message}');
-      print('Error Type: ${e.type}');
-      
-      if (e.response != null) {
-        print('Response Status Code: ${e.response?.statusCode}');
-        print('Response Status Message: ${e.response?.statusMessage}');
-        print('Response Data:');
-        try {
-          final jsonEncoder = JsonEncoder.withIndent('  ');
-          print(jsonEncoder.convert(e.response?.data));
-        } catch (_) {
-          print(e.response?.data);
-        }
-        
-        final errorMessage = e.response?.data['Message'] ??
-            e.response?.data['Description'] ??
-            'Failed to check in';
-        print('Extracted Error Message: $errorMessage');
-      } else {
-        print('No response data available');
-        print('Request Options:');
-        print('  Method: ${e.requestOptions.method}');
-        print('  URL: ${e.requestOptions.uri}');
-        print('  Headers: ${e.requestOptions.headers}');
-      }
-      print('═══════════════════════════════════════════════════════════');
-      // ========== ERROR LOGGING END ==========
-      
       throw _handleDioError(e);
     } catch (e) {
-      // ========== GENERAL ERROR LOGGING ==========
-      print('═══════════════════════════════════════════════════════════');
-      print('❌ [Attendance/check_in] GENERAL EXCEPTION');
-      print('═══════════════════════════════════════════════════════════');
-      print('Error Type: ${e.runtimeType}');
-      print('Error Message: $e');
-      print('Stack Trace:');
-      print(StackTrace.current);
-      print('═══════════════════════════════════════════════════════════');
-      // ========== GENERAL ERROR LOGGING END ==========
-      
-      throw Exception('Failed to check in: $e');
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception(e.toString());
     }
   }
 
   @override
   Future<AttendanceModel> checkOut(CheckOutRequest request) async {
     try {
-      // ========== LOGGING START ==========
-      print('═══════════════════════════════════════════════════════════');
-      print('🚀 [Attendance/check_out] REQUEST START');
-      print('═══════════════════════════════════════════════════════════');
-      
-      // Log request details
-      print('📋 Request Details:');
-      print('  Endpoint: /Attendance/check_out');
-      print('  Method: POST');
-      print('  userId: ${request.userId}');
-      print('  attendanceId: ${request.attendanceId}');
-      print('  shiftDetailId: ${request.shiftDetailId ?? "null"}');
-      print('  lokasiPenugasanAkhir: ${request.lokasiPenugasanAkhir}');
-      print('  statusTugas: ${request.statusTugas}');
-      print('  laporanPengamanan: ${request.laporanPengamanan}');
-      print('  coTask: ${request.coTask ?? "null"}');
-      print('  isOvertime: ${request.isOvertime}');
-      print('  latitude: ${request.latitude ?? "null"}');
-      print('  longitude: ${request.longitude ?? "null"}');
-      
-      // Log photo paths
-      print('📸 Photo Paths:');
-      print('  fotoWajah: ${request.fotoWajah ?? "null"}');
-      print('  pakaianPersonil: ${request.pakaianPersonil}');
-      print('  fotoPengamanan count: ${request.fotoPengamanan.length}');
-      for (int i = 0; i < request.fotoPengamanan.length; i++) {
-        print('    fotoPengamanan[$i]: ${request.fotoPengamanan[i]}');
-      }
-      print('  buktiLaporan count: ${request.buktiLaporan.length}');
-      for (int i = 0; i < request.buktiLaporan.length; i++) {
-        print('    buktiLaporan[$i]: ${request.buktiLaporan[i]}');
-      }
-      
       final deviceName = await _resolveDeviceName();
-      print('📱 Device Info:');
-      print('  DeviceName: $deviceName');
       
       final photoAbsen = await _encodePhoto(request.fotoWajah);
       final photoPengamanan = request.fotoPengamanan.isNotEmpty
@@ -438,29 +244,9 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
       final photoLembur = request.buktiLaporan.isNotEmpty
           ? await _encodePhoto(request.buktiLaporan.first)
           : null;
-
-      // Log encoded photos summary
-      print('📸 Encoded Photos Summary:');
-      print('  photoAbsen: ${photoAbsen != null ? "✅ encoded (${photoAbsen['Filename']}, ${photoAbsen['MimeType']}, base64Length: ${(photoAbsen['Base64'] as String).length})" : "❌ null"}');
-      print('  photoPengamanan: ${photoPengamanan != null ? "✅ encoded (${photoPengamanan['Filename']}, ${photoPengamanan['MimeType']}, base64Length: ${(photoPengamanan['Base64'] as String).length})" : "❌ null"}');
-      print('  photoLembur: ${photoLembur != null ? "✅ encoded (${photoLembur['Filename']}, ${photoLembur['MimeType']}, base64Length: ${(photoLembur['Base64'] as String).length})" : "❌ null"}');
-
-      // Use GPS coordinates from request (real device location)
-      // If lat/lng is 0 or null, it means GPS is not available - should not happen in production
-      if (request.latitude == null || request.latitude == 0 || 
-          request.longitude == null || request.longitude == 0) {
-        print('⚠️ Warning: GPS coordinates are missing or invalid');
-        print('  Latitude: ${request.latitude ?? "null"}');
-        print('  Longitude: ${request.longitude ?? "null"}');
-        // Still use the provided values (even if 0) - let backend handle validation
-      }
       
       final latitude = request.latitude ?? 0.0;
       final longitude = request.longitude ?? 0.0;
-      
-      print('📍 Location (GPS real device):');
-      print('  Latitude: $latitude');
-      print('  Longitude: $longitude');
       
       final Map<String, dynamic> apiBody = {
         if (photoAbsen != null) 'PhotoAbsen': photoAbsen,
@@ -480,85 +266,21 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
           'IdShiftDetail': request.shiftDetailId!,
       }..removeWhere((key, value) => value == null);
 
-      // Log full payload (with base64 truncated for readability)
-      print('📦 Full Payload:');
-      final payloadForLog = Map<String, dynamic>.from(apiBody);
-      
-      // Truncate base64 strings for logging (show first 50 chars)
-      if (payloadForLog['PhotoAbsen'] is Map) {
-        final photoAbsenMap = Map<String, dynamic>.from(payloadForLog['PhotoAbsen'] as Map);
-        if (photoAbsenMap['Base64'] is String) {
-          final base64 = photoAbsenMap['Base64'] as String;
-          photoAbsenMap['Base64'] = base64.length > 50 
-              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
-              : base64;
-        }
-        payloadForLog['PhotoAbsen'] = photoAbsenMap;
-      }
-      
-      if (payloadForLog['PhotoPengamanan'] is Map) {
-        final photoPengamananMap = Map<String, dynamic>.from(payloadForLog['PhotoPengamanan'] as Map);
-        if (photoPengamananMap['Base64'] is String) {
-          final base64 = photoPengamananMap['Base64'] as String;
-          photoPengamananMap['Base64'] = base64.length > 50 
-              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
-              : base64;
-        }
-        payloadForLog['PhotoPengamanan'] = photoPengamananMap;
-      }
-      
-      if (payloadForLog['PhotoLembur'] is Map) {
-        final photoLemburMap = Map<String, dynamic>.from(payloadForLog['PhotoLembur'] as Map);
-        if (photoLemburMap['Base64'] is String) {
-          final base64 = photoLemburMap['Base64'] as String;
-          photoLemburMap['Base64'] = base64.length > 50 
-              ? '${base64.substring(0, 50)}... (truncated, total length: ${base64.length})'
-              : base64;
-        }
-        payloadForLog['PhotoLembur'] = photoLemburMap;
-      }
-      
-      // Print formatted JSON
-      final jsonEncoder = JsonEncoder.withIndent('  ');
-      print(jsonEncoder.convert(payloadForLog));
-      
-      print('═══════════════════════════════════════════════════════════');
-      // ========== LOGGING END ==========
-
       final response = await dio.post(
         '/Attendance/check_out',
         data: apiBody,
       );
-
-      // ========== RESPONSE LOGGING ==========
-      print('═══════════════════════════════════════════════════════════');
-      print('✅ [Attendance/check_out] RESPONSE RECEIVED');
-      print('═══════════════════════════════════════════════════════════');
-      print('📊 Response Status: ${response.statusCode}');
-      print('📊 Response Headers:');
-      response.headers.forEach((key, values) {
-        print('  $key: ${values.join(", ")}');
-      });
-      print('📊 Response Data:');
-      print(jsonEncoder.convert(response.data));
-      print('═══════════════════════════════════════════════════════════');
-      // ========== RESPONSE LOGGING END ==========
 
       // Handle response wrapper: {"Code":200,"Succeeded":true,"Message":"All OK","Description":""}
       final responseData = response.data;
       if (responseData is Map<String, dynamic>) {
         final code = responseData['Code'] as int?;
         final succeeded = responseData['Succeeded'] as bool?;
-        
-        print('📊 Response Analysis:');
-        print('  Code: $code');
-        print('  Succeeded: $succeeded');
-        print('  Message: ${responseData['Message'] ?? "null"}');
-        print('  Description: ${responseData['Description'] ?? "null"}');
+        final message = responseData['Message']?.toString().trim();
+        final description = responseData['Description']?.toString().trim();
         
         // Jika response sukses (Code 200 dan Succeeded true), buat AttendanceModel dari request data
         if (code == 200 && succeeded == true) {
-          print('✅ [Attendance/check_out] SUCCESS');
           final now = DateTime.now();
           // Buat AttendanceModel minimal dari request data karena response tidak mengembalikan data attendance
           return AttendanceModel(
@@ -581,61 +303,24 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
             updatedAt: now,
           );
         } else {
-          print('❌ [Attendance/check_out] FAILED: Code=$code, Succeeded=$succeeded');
+          final backendMessage = (message != null && message.isNotEmpty)
+              ? message
+              : ((description != null && description.isNotEmpty)
+                  ? description
+                  : 'Failed to check out');
+          throw Exception(backendMessage);
         }
       }
       
       // Fallback: coba parse sebagai AttendanceModel langsung jika format berbeda
-      print('⚠️ [Attendance/check_out] Using fallback parsing');
       return AttendanceModel.fromJson(response.data);
     } on DioException catch (e) {
-      // ========== ERROR LOGGING ==========
-      print('═══════════════════════════════════════════════════════════');
-      print('❌ [Attendance/check_out] DIO EXCEPTION');
-      print('═══════════════════════════════════════════════════════════');
-      print('Error Type: DioException');
-      print('Error Message: ${e.message}');
-      print('Error Type: ${e.type}');
-      
-      if (e.response != null) {
-        print('Response Status Code: ${e.response?.statusCode}');
-        print('Response Status Message: ${e.response?.statusMessage}');
-        print('Response Data:');
-        try {
-          final jsonEncoder = JsonEncoder.withIndent('  ');
-          print(jsonEncoder.convert(e.response?.data));
-        } catch (_) {
-          print(e.response?.data);
-        }
-        
-        final errorMessage = e.response?.data['Message'] ??
-            e.response?.data['Description'] ??
-            'Failed to check out';
-        print('Extracted Error Message: $errorMessage');
-      } else {
-        print('No response data available');
-        print('Request Options:');
-        print('  Method: ${e.requestOptions.method}');
-        print('  URL: ${e.requestOptions.uri}');
-        print('  Headers: ${e.requestOptions.headers}');
-      }
-      print('═══════════════════════════════════════════════════════════');
-      // ========== ERROR LOGGING END ==========
-      
       throw _handleDioError(e);
     } catch (e) {
-      // ========== GENERAL ERROR LOGGING ==========
-      print('═══════════════════════════════════════════════════════════');
-      print('❌ [Attendance/check_out] GENERAL EXCEPTION');
-      print('═══════════════════════════════════════════════════════════');
-      print('Error Type: ${e.runtimeType}');
-      print('Error Message: $e');
-      print('Stack Trace:');
-      print(StackTrace.current);
-      print('═══════════════════════════════════════════════════════════');
-      // ========== GENERAL ERROR LOGGING END ==========
-      
-      throw Exception('Failed to check out: $e');
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception(e.toString());
     }
   }
 
@@ -669,11 +354,10 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
   Future<Map<String, dynamic>?> _encodePhoto(String? path) async {
     if (path == null || path.isEmpty) return null;
     try {
-      final file = File(path);
-      if (!await file.exists()) return null;
+      final file = await ImageCompressUtil.ensureMax1MbIfImage(path);
       final bytes = await file.readAsBytes();
       final base64Str = base64Encode(bytes);
-      final filename = path.split(RegExp(r'[\/\\]')).last;
+      final filename = file.path.split(RegExp(r'[\/\\]')).last;
       final ext = filename.contains('.') ? filename.split('.').last.toLowerCase() : '';
       final mime = _guessMimeType(ext);
       return {
@@ -746,20 +430,48 @@ class AttendanceRemoteDataSourceImpl implements AttendanceRemoteDataSource {
     };
   }
 
+  String? _extractBackendMessage(DioException error) {
+    final data = error.response?.data;
+    Map<String, dynamic>? asMap;
+    if (data is Map) {
+      asMap = Map<String, dynamic>.from(data);
+    } else if (data is String) {
+      try {
+        final decoded = jsonDecode(data);
+        if (decoded is Map) {
+          asMap = Map<String, dynamic>.from(decoded);
+        }
+      } catch (_) {}
+    }
+
+    if (asMap != null) {
+      final dynamic message = asMap['Message'] ?? asMap['message'];
+      final dynamic description = asMap['Description'] ?? asMap['description'];
+      final messageStr = message?.toString().trim();
+      final descriptionStr = description?.toString().trim();
+      if (messageStr != null && messageStr.isNotEmpty) return messageStr;
+      if (descriptionStr != null && descriptionStr.isNotEmpty) {
+        return descriptionStr;
+      }
+    }
+    return null;
+  }
+
   Exception _handleDioError(DioException error) {
+    final backendMessage = _extractBackendMessage(error);
     switch (error.response?.statusCode) {
       case 400:
-        return Exception('Bad request: ${error.response?.data['message']}');
+        return Exception(backendMessage ?? 'Bad request');
       case 401:
-        return Exception('Unauthorized');
+        return Exception(backendMessage ?? 'Unauthorized');
       case 403:
-        return Exception('Forbidden');
+        return Exception(backendMessage ?? 'Forbidden');
       case 404:
-        return Exception('Not found');
+        return Exception(backendMessage ?? 'Not found');
       case 500:
-        return Exception('Internal server error');
+        return Exception(backendMessage ?? 'Internal server error');
       default:
-        return Exception('Network error: ${error.message}');
+        return Exception(backendMessage ?? 'Network error: ${error.message}');
     }
   }
 }

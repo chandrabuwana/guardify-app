@@ -42,6 +42,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   final ImagePicker _imagePicker = ImagePicker();
   File? _selectedImage;
   String? _currentUserId;
+  late final Future<void> _loadCurrentUserIdFuture;
   final Map<String, Uint8List?> _imageCache = {}; // Cache untuk image bytes
   ChatBloc? _chatBloc; // Store ChatBloc reference to use in dispose
   final Map<String, File> _pendingLocalFiles = {}; // Map untuk menyimpan local file yang baru dikirim (key: timestamp_content)
@@ -57,7 +58,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
   @override
   void initState() {
     super.initState();
-    _loadCurrentUserId();
+    _loadCurrentUserIdFuture = _loadCurrentUserId();
     
     // Use WidgetsBinding to ensure context is available
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,7 +68,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
         _chatBloc?.add(ChatMarkAsRead(widget.chat.id));
         
         // Join conversation via SignalR after loading user ID
-        _loadCurrentUserId().then((_) {
+        _loadCurrentUserIdFuture.then((_) {
           if (_currentUserId != null && _chatBloc != null && mounted) {
             _chatBloc!.add(
                   ChatJoinConversation(

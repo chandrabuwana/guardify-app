@@ -56,8 +56,8 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
           }
         ],
         "Sort": {
-          "Field": "",
-          "Type": 0,
+          "Field": "createDate",
+          "Type": 1,
         },
         "Start": 0,
         "Length": 0,

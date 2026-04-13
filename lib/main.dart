@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:io';
@@ -316,7 +317,8 @@ class _GuardifyAppState extends State<GuardifyApp> {
             return Stack(
               children: [
                 child ?? const SizedBox.shrink(),
-                ApiLogOverlayButton(navigatorKey: AppNavigatorKey.navigatorKey),
+                if (!kReleaseMode)
+                  ApiLogOverlayButton(navigatorKey: AppNavigatorKey.navigatorKey),
               ],
             );
           },

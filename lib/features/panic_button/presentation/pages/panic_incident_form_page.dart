@@ -11,6 +11,7 @@ import '../../../../shared/widgets/app_scaffold.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../../core/utils/image_compress_util.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
 import '../../../patrol/domain/repositories/patrol_repository.dart';
 import '../../data/models/incident_request_model.dart';
@@ -535,7 +536,9 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
   /// Convert image file to base64
   Future<String> _convertImageToBase64(File imageFile) async {
     try {
-      final bytes = await imageFile.readAsBytes();
+      final compressed =
+          await ImageCompressUtil.ensureMax1MbIfImage(imageFile.path);
+      final bytes = await compressed.readAsBytes();
       return base64Encode(bytes);
     } catch (e) {
       throw Exception('Failed to convert image to base64: $e');

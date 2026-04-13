@@ -3,6 +3,13 @@ set -e
 
 PUBSPEC_FILE="pubspec.yaml"
 
+APP_ENV="${1:-prod}"
+
+if [[ "$APP_ENV" != "prod" && "$APP_ENV" != "dev" ]]; then
+  echo "Usage: $0 [prod|dev]"
+  exit 1
+fi
+
 echo "🔢 Auto-incrementing version..."
 current_version=$(grep "^version:" $PUBSPEC_FILE | sed 's/version: //')
 version_name=$(echo $current_version | cut -d'+' -f1)
@@ -34,29 +41,12 @@ flutter clean
 echo "📦 Getting dependencies..."
 flutter pub get
 
-echo "🔧 Installing pods..."
-cd ios
-pod install
-
-echo "📱 Building archive..."
-xcodebuild -workspace Runner.xcworkspace \
-  -scheme Runner \
-  -configuration Release \
-  -sdk iphoneos \
-  -destination 'generic/platform=iOS' \
-  -archivePath build/Runner.xcarchive \
-  -allowProvisioningUpdates \
-  archive
-
-echo "📦 Exporting IPA..."
-xcodebuild -exportArchive \
-  -archivePath build/Runner.xcarchive \
-  -exportPath build/ipa \
-  -exportOptionsPlist exportOptions.plist \
-  -allowProvisioningUpdates
-
-cd ..
+echo "📱 Building IPA (APP_ENV=$APP_ENV)..."
+flutter build ipa \
+  --release \
+  --export-options-plist=ios/exportOptions.plist \
+  --dart-define=APP_ENV=$APP_ENV
 echo ""
 echo "✅ Build complete!"
 echo "   Version: $new_version"
-echo "   IPA: ios/build/ipa/Runner.ipa"
+echo "   IPA: build/ios/ipa/*.ipa"

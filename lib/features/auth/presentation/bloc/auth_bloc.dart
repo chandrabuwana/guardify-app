@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/utils/validators.dart' as validator;
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/security/security_manager.dart';
 import '../../domain/usecases/login_use_case.dart';
 import '../../data/datasources/auth_remote_data_source.dart';
 
@@ -292,9 +294,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
+      final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+      if (userId == null || userId.trim().isEmpty) {
+        emit(AuthState.error('User tidak ditemukan. Silakan login ulang.'));
+        return;
+      }
+
       final response = await authRemoteDataSource.changePassword(
-        event.currentPassword.trim(),
-        event.newPassword.trim(),
+        {
+          'UserId': userId,
+          'NewPassword': event.newPassword.trim(),
+          'Password': event.currentPassword.trim(),
+        },
       );
 
       final succeeded = response.succeeded == true;

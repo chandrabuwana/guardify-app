@@ -9,6 +9,7 @@ import 'package:path/path.dart' as path;
 import '../../../../core/constants/enums.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
+import '../../../../core/utils/image_compress_util.dart';
 import '../../../../core/utils/user_role_helper.dart';
 import '../../data/models/panic_button_edit_request.dart';
 import '../../domain/entities/panic_button_history_item.dart';
@@ -40,7 +41,9 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
   bool _isLoadingRole = true;
 
   Future<String> _convertImageToBase64(File imageFile) async {
-    final bytes = await imageFile.readAsBytes();
+    final compressed =
+        await ImageCompressUtil.ensureMax1MbIfImage(imageFile.path);
+    final bytes = await compressed.readAsBytes();
     return base64Encode(bytes);
   }
 

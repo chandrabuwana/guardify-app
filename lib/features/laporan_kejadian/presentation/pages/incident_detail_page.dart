@@ -7,6 +7,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
+
+import '../../../../core/utils/image_compress_util.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/utils/user_role_helper.dart';
@@ -3357,4 +3359,3 @@ class _IncidentDetailPageState extends State<IncidentDetailPage> {
     );
   }
 }
-

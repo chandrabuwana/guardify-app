@@ -21,6 +21,8 @@ import '../../../patrol/data/models/area_list_api_response.dart';
 import '../../../patrol/data/models/route_detail_api_response.dart' as patrol_models;
 import 'incident_remote_datasource.dart';
 
+import '../../../../core/utils/image_compress_util.dart';
+
 @LazySingleton(as: IncidentRemoteDataSource)
 class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
   final Dio _dio;
@@ -366,7 +368,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
       Map<String, dynamic>? incidentImage;
       if (fotoInsiden != null && fotoInsiden.isNotEmpty) {
         try {
-          final imageFile = File(fotoInsiden);
+          final imageFile = await ImageCompressUtil.ensureMax1MbIfImage(fotoInsiden);
           if (await imageFile.exists()) {
             final bytes = await imageFile.readAsBytes();
             final base64Image = base64Encode(bytes);

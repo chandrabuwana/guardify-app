@@ -240,10 +240,13 @@ class _AttendanceRekapDetailScreenContentState
                     ],
 
                     // Tugas Tertunda
-                    if (detail.carryOver != null && detail.carryOver!.isNotEmpty) ...[
-                      16.verticalSpace,
-                      _buildTextAreaFieldInCard('Tugas Tertunda', detail.carryOver!),
-                    ],
+                    16.verticalSpace,
+                    _buildTextAreaFieldInCard(
+                      'Tugas Tertunda',
+                      (detail.carryOver ?? '').trim().isNotEmpty
+                          ? detail.carryOver!.trim()
+                          : '-',
+                    ),
 
                     // Jam Selesai Bekerja
                     16.verticalSpace,

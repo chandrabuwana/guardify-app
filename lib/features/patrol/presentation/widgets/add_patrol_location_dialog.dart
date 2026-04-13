@@ -28,6 +28,136 @@ class AddPatrolLocationDialog extends StatefulWidget {
       _AddPatrolLocationDialogState();
 }
 
+class _SearchablePatrolLocationSheet extends StatefulWidget {
+  final List<PatrolLocation> availableAreas;
+  final String? selectedLocation;
+
+  const _SearchablePatrolLocationSheet({
+    required this.availableAreas,
+    required this.selectedLocation,
+  });
+
+  @override
+  State<_SearchablePatrolLocationSheet> createState() =>
+      _SearchablePatrolLocationSheetState();
+}
+
+class _SearchablePatrolLocationSheetState
+    extends State<_SearchablePatrolLocationSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  late List<PatrolLocation> _filtered;
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.availableAreas;
+    _searchController.addListener(_applyFilter);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_applyFilter);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _applyFilter() {
+    final q = _searchController.text.trim().toLowerCase();
+    setState(() {
+      _filtered = q.isEmpty
+          ? widget.availableAreas
+          : widget.availableAreas
+              .where((a) => a.name.toLowerCase().contains(q))
+              .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.of(context).size.height * 0.75;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 48,
+                height: 5,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const Text(
+              'Pilih lokasi patroli',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Cari lokasi...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _filtered.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Text(
+                          'Lokasi tidak ditemukan',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: _filtered.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final area = _filtered[index];
+                        return ListTile(
+                          title: Text(
+                            area.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: (widget.selectedLocation == area.name)
+                              ? const Icon(Icons.check)
+                              : null,
+                          onTap: () => Navigator.of(context).pop(area.name),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _imagePicker = ImagePicker();
@@ -50,6 +180,22 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
     super.initState();
     _loadAreas();
     _getCurrentLocation();
+  }
+
+  Future<String?> _showSearchableLocationPicker() {
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return _SearchablePatrolLocationSheet(
+          availableAreas: _availableAreas,
+          selectedLocation: _selectedLocation,
+        );
+      },
+    );
   }
 
   @override
@@ -549,137 +695,166 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                                     ],
                                   ),
                                 )
-                              : _availableAreas.isEmpty
-                                  ? Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[100],
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Text(
-                                        'Tidak ada lokasi patroli yang tersedia',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    )
-                                  : DropdownButtonFormField<String>(
-                                      value: _selectedLocation,
-                                      isExpanded: true,
-                                      decoration: InputDecoration(
-                                        filled: true,
-                                        fillColor: Colors.grey[100],
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                        contentPadding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                        hintText: 'Pilih lokasi patroli',
-                                      ),
-                                      items: _availableAreas.map((area) {
-                                        return DropdownMenuItem(
-                                          value: area.name,
-                                          child: Text(
-                                            area.name,
-                                            overflow: TextOverflow.ellipsis,
+                                  : _availableAreas.isEmpty
+                                      ? Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[100],
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
-                                        );
-                                      }).toList(),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedLocation = value;
-                                          _isLocationVerified = false;
-                                          _verificationMessage = null;
-                                        });
-                                        // Verify location with selected area
-                                        if (_latitude != null && _longitude != null) {
-                                          _verifyLocationWithArea();
-                                        } else {
-                                          // Get GPS location first, then verify
-                                          _getCurrentLocation();
-                                        }
-                                      },
+                                          child: const Text(
+                                            'Tidak ada lokasi patroli yang tersedia',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        )
+                                  : FormField<String>(
+                                      initialValue: _selectedLocation,
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
                                           return 'Lokasi patroli harus dipilih';
                                         }
                                         return null;
                                       },
+                                      builder: (field) {
+                                        return Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            InkWell(
+                                              onTap: () async {
+                                                final selected =
+                                                    await _showSearchableLocationPicker();
+                                                if (selected == null) return;
+                                                field.didChange(selected);
+                                                setState(() {
+                                                  _selectedLocation = selected;
+                                                  _isLocationVerified = false;
+                                                  _verificationMessage = null;
+                                                });
+                                                if (_latitude != null && _longitude != null) {
+                                                  _verifyLocationWithArea();
+                                                } else {
+                                                  _getCurrentLocation();
+                                                }
+                                              },
+                                              borderRadius: BorderRadius.circular(12),
+                                              child: InputDecorator(
+                                                decoration: InputDecoration(
+                                                  filled: true,
+                                                  fillColor: Colors.grey[100],
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(12),
+                                                    borderSide: BorderSide.none,
+                                                  ),
+                                                  contentPadding:
+                                                      const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 12,
+                                                  ),
+                                                  hintText: 'Pilih lokasi patroli',
+                                                  errorText: field.errorText,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        (_selectedLocation ?? '').isNotEmpty
+                                                            ? _selectedLocation!
+                                                            : 'Pilih lokasi patroli',
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: TextStyle(
+                                                          color: (_selectedLocation ?? '')
+                                                                  .isNotEmpty
+                                                              ? Colors.black87
+                                                              : Colors.grey,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const Icon(
+                                                      Icons.search,
+                                                      color: Colors.grey,
+                                                      size: 20,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     ),
 
-                      const SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                      // Lokasi Saat Ini
-                      const Text(
-                        'Lokasi Saat Ini',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _isLoadingLocation
-                                  ? const Row(
-                                      children: [
-                                        SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                        SizedBox(width: 12),
-                                        Text(
-                                          'Mengambil lokasi...',
+                          const Text(
+                            'Lokasi Saat Ini',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _isLoadingLocation
+                                      ? const Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                            SizedBox(width: 12),
+                                            Text(
+                                              'Mengambil lokasi...',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : Text(
+                                          _currentLocationText,
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: Colors.black87,
+                                            color: _isLocationVerified
+                                                ? Colors.black87
+                                                : Colors.red,
                                           ),
                                         ),
-                                      ],
-                                    )
-                                  : Text(
-                                      _currentLocationText,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: _isLocationVerified
-                                            ? Colors.black87
-                                            : Colors.red,
-                                      ),
-                                    ),
+                                ),
+                                if (_isLocationVerified)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                    size: 20,
+                                  ),
+                                if (!_isLocationVerified && !_isLoadingLocation)
+                                  IconButton(
+                                    icon: const Icon(Icons.refresh),
+                                    iconSize: 20,
+                                    color: primaryColor,
+                                    onPressed: _getCurrentLocation,
+                                    tooltip: 'Refresh Lokasi',
+                                  ),
+                              ],
                             ),
-                            if (_isLocationVerified)
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                                size: 20,
-                              ),
-                            if (!_isLocationVerified && !_isLoadingLocation)
-                              IconButton(
-                                icon: const Icon(Icons.refresh),
-                                iconSize: 20,
-                                color: primaryColor,
-                                onPressed: _getCurrentLocation,
-                                tooltip: 'Refresh Lokasi',
-                              ),
-                          ],
-                        ),
-                      ),
+                          ),
 
                       const SizedBox(height: 20),
 

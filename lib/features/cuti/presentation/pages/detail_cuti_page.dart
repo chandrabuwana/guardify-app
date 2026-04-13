@@ -36,6 +36,7 @@ class DetailCutiPage extends StatefulWidget {
 class _DetailCutiPageState extends State<DetailCutiPage> {
   final _feedbackController = TextEditingController();
   late CutiBloc _cutiBloc;
+  CutiEntity? _lastLoadedCuti;
 
   @override
   void initState() {
@@ -53,6 +54,14 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
 
   void _loadDetailCuti() {
     _cutiBloc.add(GetDetailCutiEvent(widget.cutiId));
+  }
+
+  bool _isQuotaNotEnoughMessage(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains('quota') ||
+        lower.contains('kuota') ||
+        lower.contains('jatah cuti') ||
+        lower.contains('tidak cukup');
   }
 
   @override
@@ -145,10 +154,16 @@ class _DetailCutiPageState extends State<DetailCutiPage> {
               }
 
               if (state is CutiError) {
+                if (_lastLoadedCuti != null &&
+                    _isQuotaNotEnoughMessage(state.message)) {
+                  return _buildDetailContent(_lastLoadedCuti!);
+                }
+
                 return _buildErrorWidget(state.message);
               }
 
               if (state is DetailCutiLoaded) {
+                _lastLoadedCuti = state.cuti;
                 return _buildDetailContent(state.cuti);
               }
 
