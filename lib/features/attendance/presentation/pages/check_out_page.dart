@@ -97,11 +97,6 @@ class _CheckOutPageState extends State<CheckOutPage> {
     if (outfit != null && outfit.isNotEmpty) {
       _pakaianPersonil = outfit;
     }
-
-    final pendingTasks = detail.pendingTasksDescription;
-    if (pendingTasks != null && pendingTasks.isNotEmpty) {
-      _tugasTertundaController.text = pendingTasks;
-    }
   }
 
   @override
@@ -400,10 +395,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
         print('📋 CheckOut - shiftDetailId from checkoutDetail: $shiftDetailId');
       }
 
-      // Get coTask from pendingTasksDescription or statusTugas
-      final coTask = _checkoutDetail?.pendingTasksDescription?.isNotEmpty == true
-          ? _checkoutDetail!.pendingTasksDescription
-          : (_statusTugas == 'tidak_selesai' ? 'Tugas belum selesai' : null);
+      final coTask = _statusTugas == 'tidak_selesai' ? 'Tugas belum selesai' : null;
 
       print('📤 CheckOut - Submitting checkout request:');
       print('  - userId: ${widget.userId}');
@@ -446,9 +438,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
         fotoPengamanan: _fotoPengamanan,
         buktiLaporan: _buktiLembur,
         fotoWajah: _pakaianPersonil.isNotEmpty ? _pakaianPersonil : null, // Foto pakaian dikirim sebagai PhotoAbsen
-        coTask: _tugasTertundaController.text.isNotEmpty
-            ? _tugasTertundaController.text
-            : coTask,
+        coTask: _tugasTertundaController.text.isNotEmpty ? _tugasTertundaController.text : coTask,
         isOvertime: _lembur == 'Ya',
         latitude: _currentLatitude, // Use GPS real device location
         longitude: _currentLongitude, // Use GPS real device location

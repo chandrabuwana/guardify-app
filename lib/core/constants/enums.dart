@@ -35,10 +35,20 @@ enum UserRole {
   /// Check apakah role memiliki akses tingkat tinggi (non-anggota)
   bool get isHighAccess => !isAnggota;
 
-  /// Get role berdasarkan value string (ID dari database)
+  /// Get role berdasarkan value string (ID dari database, e.g. "AGT", "PGW")
   static UserRole fromValue(String value) {
     return UserRole.values.firstWhere(
       (role) => role.value == value,
+      orElse: () => UserRole.anggota,
+    );
+  }
+
+  /// Get role berdasarkan display name (e.g. "Anggota", "Pengawas") as returned by API Jabatan field
+  static UserRole fromJabatan(String jabatan) {
+    return UserRole.values.firstWhere(
+      (role) =>
+          role.displayName.toLowerCase() == jabatan.toLowerCase() ||
+          role.value.toLowerCase() == jabatan.toLowerCase(),
       orElse: () => UserRole.anggota,
     );
   }

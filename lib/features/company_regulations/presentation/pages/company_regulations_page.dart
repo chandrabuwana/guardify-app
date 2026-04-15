@@ -817,6 +817,32 @@ class _CompanyRegulationsFilterSheetState
               ),
               16.horizontalSpace,
               Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    setState(() {
+                      _nameController.clear();
+                      _codeController.clear();
+                      _selectedIdCompanyCategory = null;
+                      _sortField = 'CreateDate';
+                      _sortType = 1;
+                    });
+
+                    context.read<DocumentBloc>().add(
+                          ApplyCompanyRuleFilterEvent(
+                            name: '',
+                            code: '',
+                            idCompanyCategory: null,
+                            sortField: 'CreateDate',
+                            sortType: 1,
+                          ),
+                        );
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Reset'),
+                ),
+              ),
+              16.horizontalSpace,
+              Expanded(
                 child: ElevatedButton(
                   onPressed: () {
                     context.read<DocumentBloc>().add(

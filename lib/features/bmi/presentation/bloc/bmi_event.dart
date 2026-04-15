@@ -56,6 +56,12 @@ class BMIDeleteRecord extends BMIEvent {
   BMIDeleteRecord(this.recordId);
 }
 
+// Filter Events
+class BMIFilterByCategory extends BMIEvent {
+  final String category;
+  BMIFilterByCategory(this.category);
+}
+
 // Reset Events
 class BMIReset extends BMIEvent {}
 

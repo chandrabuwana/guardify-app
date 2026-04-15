@@ -168,6 +168,9 @@ class UserDataModel {
   @JsonKey(name: 'Status')
   final String? status;
 
+  @JsonKey(name: 'Jabatan')
+  final String? jabatan;
+
   UserDataModel({
     required this.id,
     this.username,
@@ -178,6 +181,7 @@ class UserDataModel {
     this.personnelNo,
     this.lastSynchronize,
     this.status,
+    this.jabatan,
   });
 
   factory UserDataModel.fromJson(Map<String, dynamic> json) =>

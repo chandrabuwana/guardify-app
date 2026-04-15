@@ -415,17 +415,6 @@ class _AttendanceRekapKehadiranDetailScreenContentState
           _buildPatrolSectionInCard(detail.route!, detail.listRoute, detail.listCarryOver),
         ],
         16.verticalSpace,
-        if (detail.photoOvertime?.url != null)
-          _buildImageCard(
-            'Bukti Penyelesaian Tugas Lanjutan',
-            detail.photoOvertime?.url,
-          )
-        else
-          _buildInfoFieldInCard(
-            'Bukti Penyelesaian Tugas Lanjutan',
-            'tidak ada foto',
-          ),
-        16.verticalSpace,
         canEdit
             ? _buildEditableTextAreaFieldInCard(
                 label: 'Laporan Pengamanan',

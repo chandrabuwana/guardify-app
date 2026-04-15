@@ -137,11 +137,14 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
     } else if (_isHighAccessRole) {
       // For danton, pjo, deputy: Tab 0 = "Tugas Saya", Tab 1 = "Tugas Anggota"
       if (_tabController.index == 0) {
-        // Tab "Tugas Saya": Filter by reportId (userId) and status
+        // Tab "Tugas Saya":
+        // - Danton: filter by Jabatan = "Danton"
+        // - PJO/Deputy: keep existing behavior (SolverId)
         _bloc.add(GetTugasLanjutanListEvent(
           filterByToday: false,
           userId: _currentUserId,
-          filterByJabatan: false,
+          filterByJabatan: _userRole == UserRole.danton,
+          jabatan: _userRole == UserRole.danton ? 'Danton' : null,
           status: 'closed', // Add status filter for Tugas Saya tab
         ));
       } else {

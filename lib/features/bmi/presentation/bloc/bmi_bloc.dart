@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import '../../../../core/constants/enums.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/entities/bmi_record.dart';
 import '../../domain/entities/bmi_input.dart';
@@ -39,6 +40,7 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     on<BMICalculate>(_onCalculate);
     on<BMILoadHistory>(_onLoadHistory);
     on<BMIDeleteRecord>(_onDeleteRecord);
+    on<BMIFilterByCategory>(_onFilterByCategory);
     on<BMIReset>(_onReset);
     on<BMIClearError>(_onClearError);
   }
@@ -214,6 +216,20 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     BMITogglePin event,
     Emitter<BMIState> emit,
   ) async {
+    // Prevent pinning pengawas users
+    final userToPin = state.searchResults.firstWhere(
+      (user) => user.id == event.userId,
+      orElse: () => state.pinnedUsers.firstWhere(
+        (user) => user.id == event.userId,
+        orElse: () => state.currentUserProfile!,
+      ),
+    );
+
+    if (userToPin.role == UserRole.pengawas) {
+      print('⏭️ BMI Bloc: Skip pin toggle for pengawas user ${event.userId}');
+      return;
+    }
+
     final result =
         await managePinnedProfiles.togglePin(event.userId, event.isPinned);
 
@@ -353,6 +369,28 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
       bmiHistory: updatedHistory,
       error: null,
     ));
+  }
+
+  Future<void> _onFilterByCategory(
+    BMIFilterByCategory event,
+    Emitter<BMIState> emit,
+  ) async {
+    emit(state.copyWith(isSearching: true, error: null));
+
+    final result = await managePinnedProfiles.repository
+        .filterByCategory(event.category);
+
+    result.fold(
+      (failure) => emit(state.copyWith(
+        isSearching: false,
+        error: _mapFailureToMessage(failure),
+      )),
+      (userProfiles) => emit(state.copyWith(
+        isSearching: false,
+        searchResults: userProfiles,
+        error: null,
+      )),
+    );
   }
 
   void _onReset(BMIReset event, Emitter<BMIState> emit) {

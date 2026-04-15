@@ -6,6 +6,7 @@ import '../../../../core/security/security_manager.dart';
 import '../../../../core/utils/user_role_helper.dart';
 import '../../../patrol/domain/usecases/get_patrol_routes_paginated.dart';
 import '../../../patrol/domain/entities/patrol_location.dart';
+import '../../../profile/domain/repositories/profile_repository.dart';
 import '../../../schedule/domain/usecases/get_current_shift.dart';
 import '../../../schedule/domain/usecases/get_current_task.dart';
 import '../../../schedule/domain/usecases/get_shift_now.dart';
@@ -19,8 +20,15 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final GetCurrentShift _getCurrentShift;
   final GetCurrentTask _getCurrentTask;
   final GetShiftNow _getShiftNow;
+  final ProfileRepository _profileRepository;
 
-  HomeBloc(this._getPatrolRoutesPaginated, this._getCurrentShift, this._getCurrentTask, this._getShiftNow) : super(const HomeInitial()) {
+  HomeBloc(
+    this._getPatrolRoutesPaginated,
+    this._getCurrentShift,
+    this._getCurrentTask,
+    this._getShiftNow,
+    this._profileRepository,
+  ) : super(const HomeInitial()) {
     on<HomeInitialEvent>(_onHomeInitial);
     on<BottomNavigationTappedEvent>(_onBottomNavigationTapped);
     on<ShowSnackbarEvent>(_onShowSnackbar);
@@ -73,7 +81,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     // print('');
     
     // Initialize with default data
-    final userProfile = UserProfile(
+    var userProfile = UserProfile(
       name: (savedFullName != null && savedFullName.trim().isNotEmpty)
           ? savedFullName.trim()
           : 'User',
@@ -83,6 +91,19 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
     // Get user ID for API calls
     final userId = await SecurityManager.readSecurely(AppConstants.userIdKey) ?? '';
+
+    // Load profile photo (best effort). If it fails, keep avatar empty.
+    if (userId.isNotEmpty) {
+      try {
+        final profile = await _profileRepository.getProfileDetails(userId);
+        final url = profile.profileImageUrl;
+        if (url != null && url.trim().isNotEmpty) {
+          userProfile = userProfile.copyWith(profileImageUrl: url.trim());
+        }
+      } catch (_) {
+        // Ignore profile load errors on home init
+      }
+    }
 
     // For pengawas, use get_shift_now endpoint
     // For other roles, use get_current endpoint

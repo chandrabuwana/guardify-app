@@ -617,6 +617,7 @@ Future<_i174.GetIt> init(
         gh<_i206.GetCurrentShift>(),
         gh<_i420.GetCurrentTask>(),
         gh<_i666.GetShiftNow>(),
+        gh<_i894.ProfileRepository>(),
       ));
   gh.factory<_i301.GetUserProfilesPaginated>(
       () => _i301.GetUserProfilesPaginated(gh<_i804.BMIRepository>()));

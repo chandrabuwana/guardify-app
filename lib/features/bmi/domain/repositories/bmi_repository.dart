@@ -49,6 +49,9 @@ abstract class BMIRepository {
   /// Delete BMI record
   Future<Either<Failure, void>> deleteBMIRecord(String recordId);
 
+  /// Filter user profiles by BMI category
+  Future<Either<Failure, List<UserProfile>>> filterByCategory(String category);
+
   /// Get BMI statistics untuk user
   Future<Either<Failure, Map<String, dynamic>>> getBMIStatistics(String userId);
 }
