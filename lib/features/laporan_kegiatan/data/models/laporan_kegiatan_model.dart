@@ -1,0 +1,319 @@
+import '../../../../core/constants/enums.dart';
+import '../../domain/entities/laporan_kegiatan_entity.dart';
+
+/// Model untuk Laporan Kegiatan
+class LaporanKegiatanModel extends LaporanKegiatanEntity {
+  const LaporanKegiatanModel({
+    required super.id,
+    required super.namaPersonil,
+    required super.userId,
+    required super.role,
+    super.profileImageUrl,
+    required super.nrp,
+    required super.tanggal,
+    required super.shift,
+    required super.jamKerja,
+    required super.lokasiJaga,
+    super.jamAbsensi,
+    super.pakaianPersonil,
+    super.fotoPakaianPersonil,
+    super.fotoCheckoutPakaian,
+    required super.laporanPengamanan,
+    super.laporanPengamananCheckout,
+    super.fotoPengamanan,
+    super.fotoPengamananCheckout,
+    super.tugasLanjutan,
+    required super.tugasTertunda,
+    super.carryOver,
+    super.listCarryOver,
+    required super.status,
+    required super.kehadiran,
+    required super.lembur,
+    super.fotoLembur,
+    super.jamSelesaiBekerja,
+    super.umpanBalik,
+    super.statusKerja,
+    super.routeName,
+    super.checkpoints,
+    super.reviewerId,
+    super.reviewerName,
+    super.tanggalReview,
+    super.updateBy,
+    super.updateDate,
+    super.idAttendance,
+    super.checkIn,
+    super.checkOut,
+  });
+
+  factory LaporanKegiatanModel.fromJson(Map<String, dynamic> json) {
+    return LaporanKegiatanModel(
+      id: json['id'] as String,
+      namaPersonil: json['nama_personil'] as String,
+      userId: json['user_id'] as String,
+      role: UserRole.fromValue(json['role'] as String? ?? 'anggota'),
+      profileImageUrl: json['profile_image_url'] as String?,
+      nrp: json['nrp'] as String,
+      tanggal: DateTime.parse(json['tanggal'] as String),
+      shift: json['shift'] as String,
+      jamKerja: json['jam_kerja'] as String,
+      lokasiJaga: json['lokasi_jaga'] as String,
+      jamAbsensi: json['jam_absensi'] as String?,
+      pakaianPersonil: json['pakaian_personil'] as String?,
+      fotoPakaianPersonil: json['foto_pakaian_personil'] as String?,
+      fotoCheckoutPakaian: json['foto_checkout_pakaian'] as String?,
+      laporanPengamanan: json['laporan_pengamanan'] as String,
+      laporanPengamananCheckout: json['laporan_pengamanan_checkout'] as String?,
+      fotoPengamanan: json['foto_pengamanan'] != null
+          ? List<String>.from(json['foto_pengamanan'] as List)
+          : null,
+      fotoPengamananCheckout: json['foto_pengamanan_checkout'] != null
+          ? List<String>.from(json['foto_pengamanan_checkout'] as List)
+          : null,
+      tugasLanjutan: json['tugas_lanjutan'] as String?,
+      tugasTertunda: json['tugas_tertunda'] as bool? ?? false,
+      carryOver: json['carry_over'] as String?,
+      listCarryOver: json['list_carry_over'] != null
+          ? (json['list_carry_over'] as List)
+              .map((e) => CarryOverItemModel.fromJson(
+                    e as Map<String, dynamic>,
+                  ))
+              .toList()
+              .cast<LaporanCarryOverItem>()
+          : null,
+      status: LaporanStatus.fromValue(
+        json['status'] as String? ?? 'menunggu_verifikasi',
+      ),
+      kehadiran: json['kehadiran'] as String? ?? 'Masuk',
+      lembur: json['lembur'] as bool? ?? false,
+      fotoLembur: json['foto_lembur'] as String?,
+      jamSelesaiBekerja: json['jam_selesai_bekerja'] as String?,
+      umpanBalik: json['umpan_balik'] as String?,
+      statusKerja: json['status_kerja'] as String?,
+      routeName: json['route_name'] as String?,
+      checkpoints: json['checkpoints'] != null
+          ? (json['checkpoints'] as List)
+              .map((e) => PatrolCheckpointModel.fromJson(e))
+              .toList()
+          : null,
+      reviewerId: json['reviewer_id'] as String?,
+      reviewerName: json['reviewer_name'] as String?,
+      tanggalReview: json['tanggal_review'] != null
+          ? DateTime.parse(json['tanggal_review'] as String)
+          : null,
+      updateBy: json['update_by'] as String?,
+      updateDate: json['update_date'] != null
+          ? DateTime.parse(json['update_date'] as String)
+          : null,
+      idAttendance: json['id_attendance'] as String?,
+      checkIn: json['check_in'] != null
+          ? DateTime.parse(json['check_in'] as String)
+          : null,
+      checkOut: json['check_out'] != null
+          ? DateTime.parse(json['check_out'] as String)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nama_personil': namaPersonil,
+      'user_id': userId,
+      'role': role.value,
+      'profile_image_url': profileImageUrl,
+      'nrp': nrp,
+      'tanggal': tanggal.toIso8601String(),
+      'shift': shift,
+      'jam_kerja': jamKerja,
+      'lokasi_jaga': lokasiJaga,
+      'jam_absensi': jamAbsensi,
+      'pakaian_personil': pakaianPersonil,
+      'foto_pakaian_personil': fotoPakaianPersonil,
+      'foto_checkout_pakaian': fotoCheckoutPakaian,
+      'laporan_pengamanan': laporanPengamanan,
+      'laporan_pengamanan_checkout': laporanPengamananCheckout,
+      'foto_pengamanan': fotoPengamanan,
+      'foto_pengamanan_checkout': fotoPengamananCheckout,
+      'tugas_lanjutan': tugasLanjutan,
+      'tugas_tertunda': tugasTertunda,
+      'carry_over': carryOver,
+      'list_carry_over': listCarryOver
+          ?.map((e) => (e as CarryOverItemModel).toJson())
+          .toList(),
+      'status': status.value,
+      'kehadiran': kehadiran,
+      'lembur': lembur,
+      'foto_lembur': fotoLembur,
+      'jam_selesai_bekerja': jamSelesaiBekerja,
+      'umpan_balik': umpanBalik,
+      'status_kerja': statusKerja,
+      'route_name': routeName,
+      'checkpoints': checkpoints
+          ?.map((e) => (e as PatrolCheckpointModel).toJson())
+          .toList(),
+      'reviewer_id': reviewerId,
+      'reviewer_name': reviewerName,
+      'tanggal_review': tanggalReview?.toIso8601String(),
+      'update_by': updateBy,
+      'update_date': updateDate?.toIso8601String(),
+      'id_attendance': idAttendance,
+      'check_in': checkIn?.toIso8601String(),
+      'check_out': checkOut?.toIso8601String(),
+    };
+  }
+
+  factory LaporanKegiatanModel.fromEntity(LaporanKegiatanEntity entity) {
+    return LaporanKegiatanModel(
+      id: entity.id,
+      namaPersonil: entity.namaPersonil,
+      userId: entity.userId,
+      role: entity.role,
+      profileImageUrl: entity.profileImageUrl,
+      nrp: entity.nrp,
+      tanggal: entity.tanggal,
+      shift: entity.shift,
+      jamKerja: entity.jamKerja,
+      lokasiJaga: entity.lokasiJaga,
+      jamAbsensi: entity.jamAbsensi,
+      pakaianPersonil: entity.pakaianPersonil,
+      fotoPakaianPersonil: entity.fotoPakaianPersonil,
+      fotoCheckoutPakaian: entity.fotoCheckoutPakaian,
+      laporanPengamanan: entity.laporanPengamanan,
+      laporanPengamananCheckout: entity.laporanPengamananCheckout,
+      fotoPengamanan: entity.fotoPengamanan,
+      fotoPengamananCheckout: entity.fotoPengamananCheckout,
+      tugasLanjutan: entity.tugasLanjutan,
+      tugasTertunda: entity.tugasTertunda,
+      carryOver: entity.carryOver,
+      listCarryOver: entity.listCarryOver
+          ?.map((e) => CarryOverItemModel.fromEntity(e))
+          .toList()
+          .cast<LaporanCarryOverItem>(),
+      status: entity.status,
+      kehadiran: entity.kehadiran,
+      lembur: entity.lembur,
+      fotoLembur: entity.fotoLembur,
+      jamSelesaiBekerja: entity.jamSelesaiBekerja,
+      umpanBalik: entity.umpanBalik,
+      statusKerja: entity.statusKerja,
+      routeName: entity.routeName,
+      checkpoints: entity.checkpoints,
+      reviewerId: entity.reviewerId,
+      reviewerName: entity.reviewerName,
+      tanggalReview: entity.tanggalReview,
+      updateBy: entity.updateBy,
+      updateDate: entity.updateDate,
+      idAttendance: entity.idAttendance,
+      checkIn: entity.checkIn,
+      checkOut: entity.checkOut,
+    );
+  }
+
+  LaporanKegiatanEntity toEntity() {
+    return LaporanKegiatanEntity(
+      id: id,
+      namaPersonil: namaPersonil,
+      userId: userId,
+      role: role,
+      profileImageUrl: profileImageUrl,
+      nrp: nrp,
+      tanggal: tanggal,
+      shift: shift,
+      jamKerja: jamKerja,
+      lokasiJaga: lokasiJaga,
+      jamAbsensi: jamAbsensi,
+      pakaianPersonil: pakaianPersonil,
+      fotoPakaianPersonil: fotoPakaianPersonil,
+      fotoCheckoutPakaian: fotoCheckoutPakaian,
+      laporanPengamanan: laporanPengamanan,
+      laporanPengamananCheckout: laporanPengamananCheckout,
+      fotoPengamanan: fotoPengamanan,
+      fotoPengamananCheckout: fotoPengamananCheckout,
+      tugasLanjutan: tugasLanjutan,
+      tugasTertunda: tugasTertunda,
+      carryOver: carryOver,
+      listCarryOver: listCarryOver,
+      status: status,
+      kehadiran: kehadiran,
+      lembur: lembur,
+      fotoLembur: fotoLembur,
+      jamSelesaiBekerja: jamSelesaiBekerja,
+      umpanBalik: umpanBalik,
+      statusKerja: statusKerja,
+      routeName: routeName,
+      checkpoints: checkpoints,
+      reviewerId: reviewerId,
+      reviewerName: reviewerName,
+      tanggalReview: tanggalReview,
+      updateBy: updateBy,
+      updateDate: updateDate,
+      idAttendance: idAttendance,
+      checkIn: checkIn,
+      checkOut: checkOut,
+    );
+  }
+}
+
+class CarryOverItemModel extends LaporanCarryOverItem {
+  const CarryOverItemModel({
+    required super.note,
+    required super.status,
+  });
+
+  factory CarryOverItemModel.fromJson(Map<String, dynamic> json) {
+    return CarryOverItemModel(
+      note: (json['note'] as String?) ?? (json['Note'] as String?) ?? '',
+      status: (json['status'] as String?) ?? (json['Status'] as String?) ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'note': note,
+      'status': status,
+    };
+  }
+
+  factory CarryOverItemModel.fromEntity(LaporanCarryOverItem entity) {
+    return CarryOverItemModel(
+      note: entity.note,
+      status: entity.status,
+    );
+  }
+}
+
+/// Model untuk PatrolCheckpoint
+class PatrolCheckpointModel extends PatrolCheckpoint {
+  const PatrolCheckpointModel({
+    required super.id,
+    required super.name,
+    required super.status,
+    super.timestamp,
+    super.buktiUrl,
+    super.isDiperiksa,
+  });
+
+  factory PatrolCheckpointModel.fromJson(Map<String, dynamic> json) {
+    return PatrolCheckpointModel(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      status: json['status'] as String,
+      timestamp: json['timestamp'] != null
+          ? DateTime.parse(json['timestamp'] as String)
+          : null,
+      buktiUrl: json['bukti_url'] as String?,
+      isDiperiksa: json['is_diperiksa'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'status': status,
+      'timestamp': timestamp?.toIso8601String(),
+      'bukti_url': buktiUrl,
+      'is_diperiksa': isDiperiksa,
+    };
+  }
+}
