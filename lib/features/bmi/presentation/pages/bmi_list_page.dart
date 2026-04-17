@@ -513,7 +513,7 @@ class _BMIListPageState extends State<BMIListPage> {
           crossAxisCount: 2,
           crossAxisSpacing: 12.w,
           mainAxisSpacing: 12.h,
-          childAspectRatio: 0.68,
+          childAspectRatio: 0.62,
         ),
         itemCount: combinedList.length + (state.isLoadingMore ? 2 : 0),
         itemBuilder: (context, index) {
@@ -718,10 +718,10 @@ class _BMIListPageState extends State<BMIListPage> {
                               fontSize: 16.sp,
                             ),
                           ),
-                          if (bmiStatus != null) ...[
+                          if (userProfile.bmiCategory != null) ...[
                             4.verticalSpace,
                             Text(
-                              bmiStatus.label,
+                              userProfile.bmiCategory!,
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: const Color(0xFF2C5F7C),
@@ -989,10 +989,12 @@ class _BMIListPageState extends State<BMIListPage> {
                 runSpacing: 8.h,
                 alignment: WrapAlignment.center,
                 children: [
-                  _buildBMICategoryChip('Kurus', const Color(0xFF42A5F5)),
+                  _buildBMICategoryChip('Underweight', const Color(0xFF42A5F5)),
                   _buildBMICategoryChip('Normal', const Color(0xFF66BB6A)),
-                  _buildBMICategoryChip('Gemuk', const Color(0xFFFFA726)),
-                  _buildBMICategoryChip('Obesitas', const Color(0xFFEF5350)),
+                  _buildBMICategoryChip('Overweight', const Color(0xFFFFA726)),
+                  _buildBMICategoryChip('Obesity I', const Color(0xFFFF7043)),
+                  _buildBMICategoryChip('Obesity II', const Color(0xFFF4511E)),
+                  _buildBMICategoryChip('Obesity III', const Color(0xFFEF5350)),
                 ],
               ),
 
@@ -1216,7 +1218,7 @@ class _BMIListSkeletonState extends State<_BMIListSkeleton>
             crossAxisCount: 2,
             crossAxisSpacing: 12.w,
             mainAxisSpacing: 12.h,
-            childAspectRatio: 0.68,
+            childAspectRatio: 0.62,
           ),
           itemCount: 6,
           itemBuilder: (_, __) => _SkeletonCard(shimmer: shimmer),

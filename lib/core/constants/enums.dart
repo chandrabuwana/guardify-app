@@ -76,7 +76,7 @@ enum BMIStatus {
   final String label;
   final String description;
 
-  /// Get status BMI berdasarkan nilai BMI
+  /// Get status BMI berdasarkan nilai BMI //langusng pakai return category dari API
   static BMIStatus fromBMI(double bmi) {
     if (bmi < 18.5) {
       return BMIStatus.underweight;
