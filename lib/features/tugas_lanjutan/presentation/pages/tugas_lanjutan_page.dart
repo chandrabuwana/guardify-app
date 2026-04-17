@@ -137,11 +137,14 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
     } else if (_isHighAccessRole) {
       // For danton, pjo, deputy: Tab 0 = "Tugas Saya", Tab 1 = "Tugas Anggota"
       if (_tabController.index == 0) {
-        // Tab "Tugas Saya": Filter by reportId (userId) and status
+        // Tab "Tugas Saya":
+        // - Danton: filter by Jabatan = "Danton"
+        // - PJO/Deputy: keep existing behavior (SolverId)
         _bloc.add(GetTugasLanjutanListEvent(
           filterByToday: false,
           userId: _currentUserId,
-          filterByJabatan: false,
+          filterByJabatan: _userRole == UserRole.danton,
+          jabatan: _userRole == UserRole.danton ? 'Danton' : null,
           status: 'closed', // Add status filter for Tugas Saya tab
         ));
       } else {
@@ -1468,15 +1471,30 @@ class _CameraCapturePage extends StatefulWidget {
 class _CameraCapturePageState extends State<_CameraCapturePage> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
+  int _currentCameraIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _controller = CameraController(
-      widget.cameras.first,
+      widget.cameras[0],
       ResolutionPreset.high,
     );
     _initializeControllerFuture = _controller.initialize();
+  }
+
+  void _switchCamera() {
+    if (widget.cameras.length < 2) return;
+    
+    _controller.dispose();
+    setState(() {
+      _currentCameraIndex = (_currentCameraIndex + 1) % widget.cameras.length;
+      _controller = CameraController(
+        widget.cameras[_currentCameraIndex],
+        ResolutionPreset.high,
+      );
+      _initializeControllerFuture = _controller.initialize();
+    });
   }
 
   @override
@@ -1521,7 +1539,27 @@ class _CameraCapturePageState extends State<_CameraCapturePage> {
             return Column(
               children: [
                 Expanded(
-                  child: CameraPreview(_controller),
+                  child: Stack(
+                    children: [
+                      CameraPreview(_controller),
+                      if (widget.cameras.length > 1)
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: IconButton(
+                            onPressed: _switchCamera,
+                            icon: const Icon(
+                              Icons.flip_camera_ios,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.black.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
                 Container(
                   height: 120,

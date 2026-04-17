@@ -850,20 +850,12 @@ class __HomePageViewState extends State<_HomePageView> {
                       borderRadius: BorderRadius.circular(20.r),
                       onTap: () => _navigateToProfile(context, userProfile),
                       child: Container(
-                        padding: EdgeInsets.all(
-                            2.r), // Small padding for better tap area
+                        padding: EdgeInsets.all(2.r),
                         child: CircleAvatar(
                           radius: 20.r,
                           backgroundColor: Colors.white.withValues(alpha: 0.2),
                           backgroundImage: userProfile.profileImageUrl != null
                               ? NetworkImage(userProfile.profileImageUrl!)
-                              : null,
-                          child: userProfile.profileImageUrl == null
-                              ? Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                  size: 24.sp,
-                                )
                               : null,
                         ),
                       ),
@@ -873,10 +865,7 @@ class __HomePageViewState extends State<_HomePageView> {
               ),
             ],
           ),
-
           16.verticalSpace,
-
-          // Greeting and Name
           Align(
             alignment: Alignment.centerLeft,
             child: Column(
@@ -1193,11 +1182,21 @@ class __HomePageViewState extends State<_HomePageView> {
                 );
               }
 
+              final isShiftFinished = state is HomeLoaded &&
+                  state.currentShift?.checkin == true &&
+                  state.currentShift?.checkout == true;
+
               return Column(
                 children: tasks
-                    .map((task) => TaskCard(
+                    .map((task) {
+                      final isPatrolOrTugasLanjutanCard =
+                          task.id == 'patrol_summary' || task.id == 'patrol_continue';
+
+                      return TaskCard(
                           task: task,
-                          onTap: () async {
+                          onTap: (isShiftFinished && isPatrolOrTugasLanjutanCard)
+                              ? null
+                              : () async {
                             print('🖱️ Task card tapped! Task ID: ${task.id}, Title: ${task.title}');
 
                             // Validasi: tidak bisa absen patroli/patroli tambahan jika belum check in
@@ -1436,7 +1435,8 @@ class __HomePageViewState extends State<_HomePageView> {
                                   );
                             }
                           },
-                        ))
+                        );
+                    })
                     .toList(),
               );
             },

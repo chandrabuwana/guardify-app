@@ -75,7 +75,7 @@ class _PersonnelListViewState extends State<_PersonnelListView> with SingleTicke
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
 
-    const tabApiStatus = ['Active', 'Pending', 'Non Active'];
+    const tabApiStatus = ['Active', 'Pending', 'InActive'];
     final idx = _tabController.index;
     if (idx < 0 || idx >= tabApiStatus.length) return;
 

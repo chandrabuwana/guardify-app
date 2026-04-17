@@ -67,6 +67,7 @@ CurrentShiftDataModel _$CurrentShiftDataModelFromJson(
           idShiftDetail: $checkedConvert('IdShiftDetail', (v) => v as String?),
           shiftDate: $checkedConvert('ShiftDate', (v) => v as String?),
           location: $checkedConvert('Location', (v) => v as String?),
+          isOnLeave: $checkedConvert('IsOnLeave', (v) => v as bool? ?? false),
         );
         return val;
       },
@@ -81,7 +82,8 @@ CurrentShiftDataModel _$CurrentShiftDataModelFromJson(
         'listPersonel': 'ListPersonel',
         'idShiftDetail': 'IdShiftDetail',
         'shiftDate': 'ShiftDate',
-        'location': 'Location'
+        'location': 'Location',
+        'isOnLeave': 'IsOnLeave'
       },
     );
 
@@ -99,4 +101,5 @@ Map<String, dynamic> _$CurrentShiftDataModelToJson(
       'IdShiftDetail': instance.idShiftDetail,
       'ShiftDate': instance.shiftDate,
       'Location': instance.location,
+      'IsOnLeave': instance.isOnLeave,
     };

@@ -323,7 +323,10 @@ class _BMIListPageState extends State<BMIListPage> {
                           onPressed: () {
                             _searchController.clear();
                             setState(() {});
-                            // Jangan hit API saat clear, biarkan data yang sudah ada
+                            // Saat clear search, kembalikan ke list semua anggota
+                            bmiBloc.add(BMIReset());
+                            bmiBloc.add(BMILoadAllUsers());
+                            bmiBloc.add(BMILoadPinnedUsers());
                           },
                           icon: Icon(
                             Icons.clear,
@@ -464,7 +467,8 @@ class _BMIListPageState extends State<BMIListPage> {
         }
       }
 
-      return isNormalList ? _prioritizeCurrentUser(list) : list;
+      final filtered = list.where((u) => u.role != UserRole.pengawas).toList();
+      return isNormalList ? _prioritizeCurrentUser(filtered) : filtered;
     })();
 
     // Show empty state if not loading and not searching
@@ -509,7 +513,7 @@ class _BMIListPageState extends State<BMIListPage> {
           crossAxisCount: 2,
           crossAxisSpacing: 12.w,
           mainAxisSpacing: 12.h,
-          childAspectRatio: 0.68,
+          childAspectRatio: 0.62,
         ),
         itemCount: combinedList.length + (state.isLoadingMore ? 2 : 0),
         itemBuilder: (context, index) {
@@ -714,10 +718,10 @@ class _BMIListPageState extends State<BMIListPage> {
                               fontSize: 16.sp,
                             ),
                           ),
-                          if (bmiStatus != null) ...[
+                          if (userProfile.bmiCategory != null) ...[
                             4.verticalSpace,
                             Text(
-                              bmiStatus.label,
+                              userProfile.bmiCategory!,
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: const Color(0xFF2C5F7C),
@@ -843,8 +847,8 @@ class _BMIListPageState extends State<BMIListPage> {
               ),
             ),
 
-            // Pin icon at top left
-            if (userProfile.isPinned)
+            // Pin icon at top left (not shown for pengawas)
+            if (userProfile.isPinned && userProfile.role != UserRole.pengawas)
               Positioned(
                 top: 10,
                 left: 10,
@@ -985,10 +989,12 @@ class _BMIListPageState extends State<BMIListPage> {
                 runSpacing: 8.h,
                 alignment: WrapAlignment.center,
                 children: [
-                  _buildBMICategoryChip('Kurus', const Color(0xFF42A5F5)),
+                  _buildBMICategoryChip('Underweight', const Color(0xFF42A5F5)),
                   _buildBMICategoryChip('Normal', const Color(0xFF66BB6A)),
-                  _buildBMICategoryChip('Gemuk', const Color(0xFFFFA726)),
-                  _buildBMICategoryChip('Obesitas', const Color(0xFFEF5350)),
+                  _buildBMICategoryChip('Overweight', const Color(0xFFFFA726)),
+                  _buildBMICategoryChip('Obesity I', const Color(0xFFFF7043)),
+                  _buildBMICategoryChip('Obesity II', const Color(0xFFF4511E)),
+                  _buildBMICategoryChip('Obesity III', const Color(0xFFEF5350)),
                 ],
               ),
 
@@ -1095,55 +1101,110 @@ class _BMIListPageState extends State<BMIListPage> {
   }
 
   void _showFilterDialog() {
+    const categories = [
+      'Normal',
+      'Overweight',
+      'Obesity I',
+      'Obesity II',
+      'Obesity III',
+      'Kelebihan berat badan',
+      'Obesitas III',
+      'Underweight',
+    ];
+
+    const jabatans = [
+      'Anggota',
+      'Pengawas',
+      'Admin',
+      'Deputy',
+      'PJO',
+      'Danton',
+    ];
+
+    String? selectedCategory;
+    String? selectedJabatan;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Filter',
-          style: TS.titleLarge.copyWith(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.people_outline),
-              title: const Text('Semua'),
-              onTap: () {
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(
+            'Filter BMI',
+            style: TS.titleLarge.copyWith(fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Kategori BMI',
+                style: TS.bodyMedium.copyWith(color: neutral70),
+              ),
+              8.verticalSpace,
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                hint: const Text('Semua Kategori'),
+                isExpanded: true,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  contentPadding: REdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                items: categories.map((cat) {
+                  return DropdownMenuItem(value: cat, child: Text(cat));
+                }).toList(),
+                onChanged: (value) {
+                  setDialogState(() => selectedCategory = value);
+                },
+              ),
+              16.verticalSpace,
+              Text(
+                'Jabatan',
+                style: TS.bodyMedium.copyWith(color: neutral70),
+              ),
+              8.verticalSpace,
+              DropdownButtonFormField<String>(
+                value: selectedJabatan,
+                hint: const Text('Semua Jabatan'),
+                isExpanded: true,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  contentPadding: REdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                items: jabatans.map((jab) {
+                  return DropdownMenuItem(value: jab, child: Text(jab));
+                }).toList(),
+                onChanged: (value) {
+                  setDialogState(() => selectedJabatan = value);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
                 Navigator.pop(context);
-                // Hanya load jika belum pernah attempt atau data kosong
-                final state = bmiBloc.state;
-                if (!state.hasInitialLoadAttempted || 
-                    (state.hasInitialLoadAttempted && state.searchResults.isEmpty && !state.hasLoadedEmpty)) {
-                  bmiBloc.add(BMILoadAllUsers());
-                } else {
-                  print('⏭️ Filter: Skip BMILoadAllUsers - already has data or already attempted');
-                }
+                bmiBloc.add(BMILoadAllUsers());
               },
+              child: const Text('Reset'),
             ),
-            ListTile(
-              leading: const Icon(Icons.push_pin_outlined),
-              title: const Text('Yang Disematkan'),
-              onTap: () {
-                Navigator.pop(context);
-                bmiBloc.add(BMILoadPinnedUsers());
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.check_circle_outline),
-              title: const Text('Ada Data Body Mass Index'),
-              onTap: () {
-                Navigator.pop(context);
-                // Filter users with BMI data
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.cancel_outlined),
-              title: const Text('Belum Ada Data Body Mass Index'),
-              onTap: () {
-                Navigator.pop(context);
-                // Filter users without BMI data
-              },
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+              onPressed: selectedCategory == null && selectedJabatan == null
+                  ? null
+                  : () {
+                      Navigator.pop(context);
+                      if (selectedCategory != null) {
+                        bmiBloc.add(BMIFilterByCategory(selectedCategory!));
+                      }
+                      if (selectedJabatan != null) {
+                        bmiBloc.add(BMIFilterByJabatan(selectedJabatan!));
+                      }
+                    },
+              child: const Text('Terapkan', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -1195,7 +1256,7 @@ class _BMIListSkeletonState extends State<_BMIListSkeleton>
             crossAxisCount: 2,
             crossAxisSpacing: 12.w,
             mainAxisSpacing: 12.h,
-            childAspectRatio: 0.68,
+            childAspectRatio: 0.62,
           ),
           itemCount: 6,
           itemBuilder: (_, __) => _SkeletonCard(shimmer: shimmer),

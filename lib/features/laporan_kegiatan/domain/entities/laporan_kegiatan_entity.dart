@@ -5,7 +5,7 @@ import '../../../../core/constants/enums.dart';
 enum LaporanStatus {
   checkIn('check_in', 'Check In'),
   waiting('waiting', 'Waiting'),
-  verified('verified', 'Verified'),
+  verified('verified', 'Verifikasi'),
   revision('revision', 'Revision');
 
   const LaporanStatus(this.value, this.displayName);
@@ -26,12 +26,12 @@ enum LaporanStatus {
       case 'check_in':
       case 'check in':
         return LaporanStatus.checkIn;
-      case 'verification':
-      case 'verify':
       case 'waiting':
       case 'menunggu':
       case 'menunggu_verifikasi':
         return LaporanStatus.waiting;
+      case 'verification':
+      case 'verify':
       case 'verified':
       case 'verifikasi':
       case 'terverifikasi':

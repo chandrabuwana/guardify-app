@@ -1288,50 +1288,10 @@ class _FilterDialogState extends State<_FilterDialog> {
                 _selectedFilter = value;
               });
             },
-          ),
-          RadioListTile<String>(
-            title: const Text('Masuk'),
-            value: 'Masuk',
-            groupValue: _selectedFilter ?? '',
-            onChanged: (value) {
-              setState(() {
-                _selectedFilter = value;
-              });
-            },
-          ),
-          RadioListTile<String>(
-            title: const Text('Terlambat'),
-            value: 'Terlambat',
-            groupValue: _selectedFilter ?? '',
-            onChanged: (value) {
-              setState(() {
-                _selectedFilter = value;
-              });
-            },
-          ),
-          RadioListTile<String>(
-            title: const Text('Tidak Masuk'),
-            value: 'Tidak Masuk',
-            groupValue: _selectedFilter ?? '',
-            onChanged: (value) {
-              setState(() {
-                _selectedFilter = value;
-              });
-            },
-          ),
+          ),          
           RadioListTile<String>(
             title: const Text('Check In'),
             value: 'CHECKIN',
-            groupValue: _selectedFilter ?? '',
-            onChanged: (value) {
-              setState(() {
-                _selectedFilter = value;
-              });
-            },
-          ),
-          RadioListTile<String>(
-            title: const Text('Check Out'),
-            value: 'CHECKOUT',
             groupValue: _selectedFilter ?? '',
             onChanged: (value) {
               setState(() {

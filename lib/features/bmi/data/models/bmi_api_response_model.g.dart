@@ -136,6 +136,7 @@ UserDataModel _$UserDataModelFromJson(Map<String, dynamic> json) =>
           lastSynchronize: $checkedConvert('LastSynchronize',
               (v) => v == null ? null : DateTime.parse(v as String)),
           status: $checkedConvert('Status', (v) => v as String?),
+          jabatan: $checkedConvert('Jabatan', (v) => v as String?),
         );
         return val;
       },
@@ -148,7 +149,8 @@ UserDataModel _$UserDataModelFromJson(Map<String, dynamic> json) =>
         'phoneNumber': 'PhoneNumber',
         'personnelNo': 'PersonnelNo',
         'lastSynchronize': 'LastSynchronize',
-        'status': 'Status'
+        'status': 'Status',
+        'jabatan': 'Jabatan'
       },
     );
 
@@ -163,6 +165,7 @@ Map<String, dynamic> _$UserDataModelToJson(UserDataModel instance) =>
       'PersonnelNo': instance.personnelNo,
       'LastSynchronize': instance.lastSynchronize?.toIso8601String(),
       'Status': instance.status,
+      'Jabatan': instance.jabatan,
     };
 
 BmiListRequestModel _$BmiListRequestModelFromJson(Map<String, dynamic> json) =>

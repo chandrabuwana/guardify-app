@@ -161,6 +161,12 @@ class _SchedulePJODeputyPageState extends State<SchedulePJODeputyPage> {
       selectedDayPredicate: (day) {
         return isSameDay(_selectedDay, day);
       },
+      onPageChanged: (focusedDay) {
+        setState(() {
+          _focusedDay = focusedDay;
+        });
+        _loadSchedule(context);
+      },
       onDaySelected: (selectedDay, focusedDay) async {
         setState(() {
           _selectedDay = selectedDay;

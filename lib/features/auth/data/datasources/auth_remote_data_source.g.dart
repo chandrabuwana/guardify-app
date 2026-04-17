@@ -77,8 +77,7 @@ class _AuthRemoteDataSource implements AuthRemoteDataSource {
 
   @override
   Future<PasswordActionResponseModel> changePassword(
-    Map<String, dynamic> body,
-  ) async {
+      Map<String, dynamic> body) async {
     const _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};

@@ -82,6 +82,7 @@ class AttendanceInfo {
   final String position;
   final DateTime date;
   final bool hasShift; // Flag to indicate if there's shift data available
+  final bool isOnLeave; // Flag to indicate if user is on leave
 
   const AttendanceInfo({
     required this.isCheckedIn,
@@ -91,6 +92,7 @@ class AttendanceInfo {
     required this.position,
     required this.date,
     required this.hasShift,
+    this.isOnLeave = false,
   });
 
   AttendanceInfo copyWith({
@@ -101,6 +103,7 @@ class AttendanceInfo {
     String? position,
     DateTime? date,
     bool? hasShift,
+    bool? isOnLeave,
   }) {
     return AttendanceInfo(
       isCheckedIn: isCheckedIn ?? this.isCheckedIn,
@@ -110,6 +113,7 @@ class AttendanceInfo {
       position: position ?? this.position,
       date: date ?? this.date,
       hasShift: hasShift ?? this.hasShift,
+      isOnLeave: isOnLeave ?? this.isOnLeave,
     );
   }
 }

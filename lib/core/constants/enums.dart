@@ -35,10 +35,20 @@ enum UserRole {
   /// Check apakah role memiliki akses tingkat tinggi (non-anggota)
   bool get isHighAccess => !isAnggota;
 
-  /// Get role berdasarkan value string (ID dari database)
+  /// Get role berdasarkan value string (ID dari database, e.g. "AGT", "PGW")
   static UserRole fromValue(String value) {
     return UserRole.values.firstWhere(
       (role) => role.value == value,
+      orElse: () => UserRole.anggota,
+    );
+  }
+
+  /// Get role berdasarkan display name (e.g. "Anggota", "Pengawas") as returned by API Jabatan field
+  static UserRole fromJabatan(String jabatan) {
+    return UserRole.values.firstWhere(
+      (role) =>
+          role.displayName.toLowerCase() == jabatan.toLowerCase() ||
+          role.value.toLowerCase() == jabatan.toLowerCase(),
       orElse: () => UserRole.anggota,
     );
   }
@@ -66,7 +76,7 @@ enum BMIStatus {
   final String label;
   final String description;
 
-  /// Get status BMI berdasarkan nilai BMI
+  /// Get status BMI berdasarkan nilai BMI //langusng pakai return category dari API
   static BMIStatus fromBMI(double bmi) {
     if (bmi < 18.5) {
       return BMIStatus.underweight;

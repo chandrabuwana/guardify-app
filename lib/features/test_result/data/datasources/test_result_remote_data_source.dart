@@ -91,23 +91,23 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
     try {
       print('');
       print('🌐 ========================================');
-      print('🌐 API Test Result: FETCH MEMBER TESTS BY PIC');
+      print('🌐 API Test Result: FETCH MEMBER TESTS BY SPV');
       print('🌐 ========================================');
-      print('🌐 Received PIC ID parameter: "$picId"');
-      print('🌐 PIC ID length: ${picId.length}');
-      print('🌐 PIC ID isEmpty: ${picId.isEmpty}');
+      print('🌐 Received SPV ID parameter: "$picId"');
+      print('🌐 SPV ID length: ${picId.length}');
+      print('🌐 SPV ID isEmpty: ${picId.isEmpty}');
       
       // Validasi picId tidak boleh kosong
       if (picId.isEmpty) {
-        print('❌ ERROR: PIC ID is empty! Cannot fetch member tests.');
-        throw Exception('PIC ID cannot be empty');
+        print('❌ ERROR: SPV ID is empty! Cannot fetch member tests.');
+        throw Exception('SPV ID cannot be empty');
       }
       
-      // Build request body dengan filter IdPic
+      // Build request body dengan filter IdSpv
       final requestBody = {
         "Filter": [
           {
-            "Field": "IdPic",
+            "Field": "IdSpv",
             "Search": picId,
           }
         ],
@@ -119,7 +119,7 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
         "Length": 0,
       };
 
-      print('🌐 Request Body (IdPic filter):');
+      print('🌐 Request Body (IdSpv filter):');
       print('🌐 ${requestBody.toString()}');
       print('🌐 About to call API endpoint: /AssesmentDetail/list');
       print('🌐 ========================================');

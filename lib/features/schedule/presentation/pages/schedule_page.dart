@@ -393,6 +393,12 @@ class _SchedulePageState extends State<SchedulePage> {
       calendarFormat: CalendarFormat.month,
       startingDayOfWeek: StartingDayOfWeek.sunday,
       headerVisible: false,
+      onPageChanged: (focusedDay) {
+        setState(() {
+          _focusedDay = focusedDay;
+        });
+        _loadSchedule(context);
+      },
       daysOfWeekHeight: 20.h,
       rowHeight: 70.h,
       calendarStyle: CalendarStyle(

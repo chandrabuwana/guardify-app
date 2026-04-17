@@ -521,6 +521,21 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                   margin: const EdgeInsets.symmetric(vertical: 16),
                   child: ElevatedButton(
                     onPressed: () async {
+                      // Validasi check-in: cek apakah user sudah check-in
+                      final homeBloc = context.read<HomeBloc>();
+                      final homeState = homeBloc.state;
+                      if (homeState is HomeLoaded && !homeState.attendanceInfo.isCheckedIn) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Silakan check in terlebih dahulu sebelum menambah lokasi patroli',
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
                       final patrolBloc = context.read<PatrolBloc>();
                       final result = await showDialog<bool>(
                         context: context,

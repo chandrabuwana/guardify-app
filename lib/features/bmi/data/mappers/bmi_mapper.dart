@@ -11,7 +11,7 @@ class BmiMapper {
       id: userItem.id,
       name: userItem.fullname,
       profileImageUrl: userItem.urlFoto,
-      role: UserRole.anggota, // Default role, can be updated based on requirements
+      role: UserRole.fromJabatan(userItem.jabatan ?? 'Anggota'),
       currentWeight: null, // Will be loaded from BMI API when detail is clicked
       height: null, // Will be loaded from BMI API when detail is clicked
       currentBMI: null, // Will be loaded from BMI API when detail is clicked
@@ -52,8 +52,7 @@ class BmiMapper {
       id: profileId,
       name: user?.fullname ?? bmiData.fullname ?? 'Unknown',
       profileImageUrl: null, // API doesn't provide profile image
-      role: UserRole
-          .anggota, // Default role, can be updated based on requirements
+      role: UserRole.fromJabatan(user?.jabatan ?? 'Anggota'),
       currentWeight: bmiData.weight,
       height: bmiData.height,
       currentBMI: bmiData.bmi,

@@ -464,6 +464,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
         idShiftDetail: response.data!.idShiftDetail,
         shiftDate: response.data!.shiftDate,
         location: response.data!.location,
+        isOnLeave: response.data!.isOnLeave,
       );
 
       print('[ScheduleRepository] ✅ Found current shift: ${currentShift.name}');

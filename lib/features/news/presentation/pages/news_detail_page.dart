@@ -240,8 +240,18 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   }
 
   Future<void> _launchUrl(String source) async {
-    final url = Uri.tryParse(source);
-    if (url != null && await canLaunchUrl(url)) {
+    final raw = source.trim();
+    if (raw.isEmpty) return;
+
+    final withScheme =
+        raw.startsWith('http://') || raw.startsWith('https://')
+            ? raw
+            : 'https://$raw';
+
+    final url = Uri.tryParse(withScheme);
+    if (url == null) return;
+
+    if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
