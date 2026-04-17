@@ -1112,14 +1112,24 @@ class _BMIListPageState extends State<BMIListPage> {
       'Underweight',
     ];
 
+    const jabatans = [
+      'Anggota',
+      'Pengawas',
+      'Admin',
+      'Deputy',
+      'PJO',
+      'Danton',
+    ];
+
     String? selectedCategory;
+    String? selectedJabatan;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: Text(
-            'Filter Kategori BMI',
+            'Filter BMI',
             style: TS.titleLarge.copyWith(fontWeight: FontWeight.bold),
           ),
           content: Column(
@@ -1127,7 +1137,7 @@ class _BMIListPageState extends State<BMIListPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Pilih Kategori',
+                'Kategori BMI',
                 style: TS.bodyMedium.copyWith(color: neutral70),
               ),
               8.verticalSpace,
@@ -1148,6 +1158,29 @@ class _BMIListPageState extends State<BMIListPage> {
                   setDialogState(() => selectedCategory = value);
                 },
               ),
+              16.verticalSpace,
+              Text(
+                'Jabatan',
+                style: TS.bodyMedium.copyWith(color: neutral70),
+              ),
+              8.verticalSpace,
+              DropdownButtonFormField<String>(
+                value: selectedJabatan,
+                hint: const Text('Semua Jabatan'),
+                isExpanded: true,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  contentPadding: REdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                items: jabatans.map((jab) {
+                  return DropdownMenuItem(value: jab, child: Text(jab));
+                }).toList(),
+                onChanged: (value) {
+                  setDialogState(() => selectedJabatan = value);
+                },
+              ),
             ],
           ),
           actions: [
@@ -1160,11 +1193,16 @@ class _BMIListPageState extends State<BMIListPage> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-              onPressed: selectedCategory == null
+              onPressed: selectedCategory == null && selectedJabatan == null
                   ? null
                   : () {
                       Navigator.pop(context);
-                      bmiBloc.add(BMIFilterByCategory(selectedCategory!));
+                      if (selectedCategory != null) {
+                        bmiBloc.add(BMIFilterByCategory(selectedCategory!));
+                      }
+                      if (selectedJabatan != null) {
+                        bmiBloc.add(BMIFilterByJabatan(selectedJabatan!));
+                      }
                     },
               child: const Text('Terapkan', style: TextStyle(color: Colors.white)),
             ),

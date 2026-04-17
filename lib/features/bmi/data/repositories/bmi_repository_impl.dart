@@ -427,6 +427,38 @@ class BMIRepositoryImpl implements BMIRepository {
   }
 
   @override
+  Future<Either<Failure, List<UserProfile>>> filterByJabatan(
+      String jabatan) async {
+    try {
+      final request = BmiListRequestModel(
+        filter: [
+          FilterModel(field: 'Jabatan', search: jabatan),
+        ],
+        sort: SortModel(field: '', type: 0),
+        start: 1,
+        length: 20,
+      );
+
+      final response = await remoteDataSource.getBmiList(request);
+
+      if (!response.succeeded) {
+        return Left(ServerFailure(response.message));
+      }
+
+      final userProfiles = _mapBmiRecordsToUniqueUserProfiles(response.list);
+
+      final pinnedIds = await localDataSource.getPinnedUserIds();
+      final updatedProfiles = userProfiles.map((profile) {
+        return profile.copyWith(isPinned: pinnedIds.contains(profile.id));
+      }).toList();
+
+      return Right(updatedProfiles);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, Map<String, dynamic>>> getBMIStatistics(
       String userId) async {
     try {

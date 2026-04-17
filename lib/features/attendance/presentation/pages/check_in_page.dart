@@ -302,7 +302,7 @@ class _CheckInPageState extends State<CheckInPage> {
 
     final image = await Navigator.of(context).push<XFile?>(
       MaterialPageRoute(
-        builder: (_) => _SelfieCameraPage(camera: frontCamera),
+        builder: (_) => _SelfieCameraPage(cameras: cameras),
       ),
     );
 
@@ -1579,9 +1579,9 @@ class _CheckInPageState extends State<CheckInPage> {
 }
 
 class _SelfieCameraPage extends StatefulWidget {
-  const _SelfieCameraPage({required this.camera});
+  const _SelfieCameraPage({required this.cameras});
 
-  final CameraDescription camera;
+  final List<CameraDescription> cameras;
 
   @override
   State<_SelfieCameraPage> createState() => _SelfieCameraPageState();
@@ -1590,16 +1590,37 @@ class _SelfieCameraPage extends StatefulWidget {
 class _SelfieCameraPageState extends State<_SelfieCameraPage> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
+  int _currentCameraIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    // Default to front camera for selfie if available
+    final frontIndex = widget.cameras.indexWhere(
+      (c) => c.lensDirection == CameraLensDirection.front,
+    );
+    _currentCameraIndex = frontIndex >= 0 ? frontIndex : 0;
     _controller = CameraController(
-      widget.camera,
+      widget.cameras[_currentCameraIndex],
       ResolutionPreset.high,
       enableAudio: false,
     );
     _initializeControllerFuture = _controller.initialize();
+  }
+
+  void _switchCamera() {
+    if (widget.cameras.length < 2) return;
+    
+    _controller.dispose();
+    setState(() {
+      _currentCameraIndex = (_currentCameraIndex + 1) % widget.cameras.length;
+      _controller = CameraController(
+        widget.cameras[_currentCameraIndex],
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+      _initializeControllerFuture = _controller.initialize();
+    });
   }
 
   @override
@@ -1623,14 +1644,33 @@ class _SelfieCameraPageState extends State<_SelfieCameraPage> {
             return Column(
               children: [
                 Expanded(
-                  child:
-                      widget.camera.lensDirection == CameraLensDirection.front
+                  child: Stack(
+                    children: [
+                      widget.cameras[_currentCameraIndex].lensDirection == CameraLensDirection.front
                           ? Transform(
                               alignment: Alignment.center,
                               transform: Matrix4.identity()..rotateY(math.pi),
                               child: CameraPreview(_controller),
                             )
                           : CameraPreview(_controller),
+                      if (widget.cameras.length > 1)
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: IconButton(
+                            onPressed: _switchCamera,
+                            icon: const Icon(
+                              Icons.flip_camera_ios,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.black.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
                 Container(
                   width: double.infinity,

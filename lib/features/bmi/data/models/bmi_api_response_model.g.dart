@@ -150,7 +150,7 @@ UserDataModel _$UserDataModelFromJson(Map<String, dynamic> json) =>
         'personnelNo': 'PersonnelNo',
         'lastSynchronize': 'LastSynchronize',
         'status': 'Status',
-        'jabatan': 'Jabatan',
+        'jabatan': 'Jabatan'
       },
     );
 

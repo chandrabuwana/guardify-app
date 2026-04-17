@@ -219,6 +219,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           position: 'Security', // Position might need to come from another API
           date: shiftDate,
           hasShift: true, // There is shift data available
+          isOnLeave: shift.isOnLeave, // IsOnLeave flag from API
         );
       } else {
         // No shift data available - hide work button

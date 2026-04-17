@@ -167,6 +167,7 @@ class CurrentShiftData {
   final String? idShiftDetail;
   final String? shiftDate;
   final String? location;
+  final bool isOnLeave;
 
   const CurrentShiftData({
     required this.id,
@@ -180,6 +181,7 @@ class CurrentShiftData {
     this.idShiftDetail,
     this.shiftDate,
     this.location,
+    this.isOnLeave = false,
   });
 }
 

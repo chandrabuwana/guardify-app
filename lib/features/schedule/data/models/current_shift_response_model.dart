@@ -71,6 +71,9 @@ class CurrentShiftDataModel {
   @JsonKey(name: 'Location')
   final String? location;
 
+  @JsonKey(name: 'IsOnLeave')
+  final bool isOnLeave;
+
   CurrentShiftDataModel({
     required this.id,
     required this.name,
@@ -83,6 +86,7 @@ class CurrentShiftDataModel {
     this.idShiftDetail,
     this.shiftDate,
     this.location,
+    this.isOnLeave = false,
   });
 
   factory CurrentShiftDataModel.fromJson(Map<String, dynamic> json) =>

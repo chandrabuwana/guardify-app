@@ -123,7 +123,7 @@ class _PhotoPickerFieldState extends State<PhotoPickerField> {
         context,
         MaterialPageRoute(
           builder: (context) => _CameraCaptureScreen(
-            camera: _cameras!.first,
+            cameras: _cameras!,
           ),
         ),
       );
@@ -514,8 +514,8 @@ class _PhotoPickerFieldState extends State<PhotoPickerField> {
 }
 
 class _CameraCaptureScreen extends StatefulWidget {
-  final CameraDescription camera;
-  const _CameraCaptureScreen({required this.camera});
+  final List<CameraDescription> cameras;
+  const _CameraCaptureScreen({required this.cameras});
 
   @override
   State<_CameraCaptureScreen> createState() => _CameraCaptureScreenState();
@@ -524,16 +524,32 @@ class _CameraCaptureScreen extends StatefulWidget {
 class _CameraCaptureScreenState extends State<_CameraCaptureScreen> {
   late CameraController _cameraController;
   late Future<void> _initializeControllerFuture;
+  int _currentCameraIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _cameraController = CameraController(
-      widget.camera,
+      widget.cameras[0],
       ResolutionPreset.high,
       enableAudio: false,
     );
     _initializeControllerFuture = _cameraController.initialize();
+  }
+
+  void _switchCamera() {
+    if (widget.cameras.length < 2) return;
+    
+    _cameraController.dispose();
+    setState(() {
+      _currentCameraIndex = (_currentCameraIndex + 1) % widget.cameras.length;
+      _cameraController = CameraController(
+        widget.cameras[_currentCameraIndex],
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+      _initializeControllerFuture = _cameraController.initialize();
+    });
   }
 
   @override
@@ -558,7 +574,27 @@ class _CameraCaptureScreenState extends State<_CameraCaptureScreen> {
               future: _initializeControllerFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
-                  return CameraPreview(_cameraController);
+                  return Stack(
+                    children: [
+                      CameraPreview(_cameraController),
+                      if (widget.cameras.length > 1)
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: IconButton(
+                            onPressed: _switchCamera,
+                            icon: const Icon(
+                              Icons.flip_camera_ios,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.black.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
                 }
                 return const Center(
                   child: CircularProgressIndicator(),

@@ -922,22 +922,14 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
         return;
       }
 
-      // Initialize camera controller
-      _cameraController = CameraController(
-        _cameras!.first,
-        ResolutionPreset.high,
-      );
-
-      await _cameraController!.initialize();
-
       // Navigate to camera screen
       if (mounted) {
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => _CameraScreen(
-              cameraController: _cameraController!,
               fieldType: fieldType,
+              cameras: _cameras!,
             ),
           ),
         );
@@ -1050,12 +1042,12 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
 
 // Camera Screen Widget
 class _CameraScreen extends StatefulWidget {
-  final CameraController cameraController;
   final String fieldType;
+  final List<CameraDescription> cameras;
 
   const _CameraScreen({
-    required this.cameraController,
     required this.fieldType,
+    required this.cameras,
   });
 
   @override
@@ -1063,6 +1055,40 @@ class _CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<_CameraScreen> {
+  late CameraController _controller;
+  late Future<void> _initializeControllerFuture;
+  int _currentCameraIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = CameraController(
+      widget.cameras[0],
+      ResolutionPreset.high,
+    );
+    _initializeControllerFuture = _controller.initialize();
+  }
+
+  void _switchCamera() {
+    if (widget.cameras.length < 2) return;
+    
+    _controller.dispose();
+    setState(() {
+      _currentCameraIndex = (_currentCameraIndex + 1) % widget.cameras.length;
+      _controller = CameraController(
+        widget.cameras[_currentCameraIndex],
+        ResolutionPreset.high,
+      );
+      _initializeControllerFuture = _controller.initialize();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1075,7 +1101,35 @@ class _CameraScreenState extends State<_CameraScreen> {
       body: Column(
         children: [
           Expanded(
-            child: CameraPreview(widget.cameraController),
+            child: FutureBuilder<void>(
+              future: _initializeControllerFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return Stack(
+                    children: [
+                      CameraPreview(_controller),
+                      if (widget.cameras.length > 1)
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: IconButton(
+                            onPressed: _switchCamera,
+                            icon: const Icon(
+                              Icons.flip_camera_ios,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.black.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                }
+                return const Center(child: CircularProgressIndicator());
+              },
+            ),
           ),
           Container(
             height: 100.h,
@@ -1107,14 +1161,6 @@ class _CameraScreenState extends State<_CameraScreen> {
                     ),
                   ),
                 ),
-                IconButton(
-                  onPressed: _switchCamera,
-                  icon: Icon(
-                    Icons.flip_camera_ios,
-                    color: Colors.white,
-                    size: 30.r,
-                  ),
-                ),
               ],
             ),
           ),
@@ -1125,7 +1171,8 @@ class _CameraScreenState extends State<_CameraScreen> {
 
   Future<void> _takePicture() async {
     try {
-      final image = await widget.cameraController.takePicture();
+      await _initializeControllerFuture;
+      final image = await _controller.takePicture();
       final file = File(image.path);
       if (mounted) {
         Navigator.pop(context, file);
@@ -1138,16 +1185,5 @@ class _CameraScreenState extends State<_CameraScreen> {
         ),
       );
     }
-  }
-
-  Future<void> _switchCamera() async {
-    // Implementation for switching camera would require getting available cameras
-    // and reinitializing with different camera
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur ganti kamera akan ditambahkan'),
-        backgroundColor: Colors.orange,
-      ),
-    );
   }
 }

@@ -62,6 +62,11 @@ class BMIFilterByCategory extends BMIEvent {
   BMIFilterByCategory(this.category);
 }
 
+class BMIFilterByJabatan extends BMIEvent {
+  final String jabatan;
+  BMIFilterByJabatan(this.jabatan);
+}
+
 // Reset Events
 class BMIReset extends BMIEvent {}
 

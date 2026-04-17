@@ -92,10 +92,10 @@ import '../../features/company_regulations/domain/usecases/download_document_use
     as _i347;
 import '../../features/company_regulations/domain/usecases/filter_documents_usecase.dart'
     as _i641;
+import '../../features/company_regulations/domain/usecases/get_company_rule_categories_usecase.dart'
+    as _i551;
 import '../../features/company_regulations/domain/usecases/get_documents_usecase.dart'
     as _i368;
-import '../../features/company_regulations/domain/usecases/get_company_rule_categories_usecase.dart'
-    as _i1200;
 import '../../features/company_regulations/domain/usecases/search_documents_usecase.dart'
     as _i463;
 import '../../features/company_regulations/presentation/bloc/document_bloc.dart'
@@ -557,10 +557,10 @@ Future<_i174.GetIt> init(
       () => _i463.SearchDocumentsUseCase(gh<_i875.DocumentRepository>()));
   gh.factory<_i641.FilterDocumentsUseCase>(
       () => _i641.FilterDocumentsUseCase(gh<_i875.DocumentRepository>()));
+  gh.factory<_i551.GetCompanyRuleCategoriesUseCase>(() =>
+      _i551.GetCompanyRuleCategoriesUseCase(gh<_i875.DocumentRepository>()));
   gh.factory<_i368.GetDocumentsUseCase>(
       () => _i368.GetDocumentsUseCase(gh<_i875.DocumentRepository>()));
-  gh.factory<_i1200.GetCompanyRuleCategoriesUseCase>(
-      () => _i1200.GetCompanyRuleCategoriesUseCase(gh<_i875.DocumentRepository>()));
   gh.factory<_i347.DownloadDocumentUseCase>(
       () => _i347.DownloadDocumentUseCase(gh<_i875.DocumentRepository>()));
   gh.factory<_i804.BMIRepository>(() => _i10.BMIRepositoryImpl(
@@ -607,17 +607,10 @@ Future<_i174.GetIt> init(
   gh.factory<_i1030.DocumentBloc>(() => _i1030.DocumentBloc(
         getDocumentsUseCase: gh<_i368.GetDocumentsUseCase>(),
         getCompanyRuleCategoriesUseCase:
-            gh<_i1200.GetCompanyRuleCategoriesUseCase>(),
+            gh<_i551.GetCompanyRuleCategoriesUseCase>(),
         searchDocumentsUseCase: gh<_i463.SearchDocumentsUseCase>(),
         filterDocumentsUseCase: gh<_i641.FilterDocumentsUseCase>(),
         downloadDocumentUseCase: gh<_i347.DownloadDocumentUseCase>(),
-      ));
-  gh.factory<_i202.HomeBloc>(() => _i202.HomeBloc(
-        gh<_i865.GetPatrolRoutesPaginated>(),
-        gh<_i206.GetCurrentShift>(),
-        gh<_i420.GetCurrentTask>(),
-        gh<_i666.GetShiftNow>(),
-        gh<_i894.ProfileRepository>(),
       ));
   gh.factory<_i301.GetUserProfilesPaginated>(
       () => _i301.GetUserProfilesPaginated(gh<_i804.BMIRepository>()));
@@ -653,6 +646,13 @@ Future<_i174.GetIt> init(
       () => _i303.GetProgressSummary(gh<_i506.TugasLanjutanRepository>()));
   gh.factory<_i648.GetTugasLanjutanList>(
       () => _i648.GetTugasLanjutanList(gh<_i506.TugasLanjutanRepository>()));
+  gh.factory<_i202.HomeBloc>(() => _i202.HomeBloc(
+        gh<_i865.GetPatrolRoutesPaginated>(),
+        gh<_i206.GetCurrentShift>(),
+        gh<_i420.GetCurrentTask>(),
+        gh<_i666.GetShiftNow>(),
+        gh<_i894.ProfileRepository>(),
+      ));
   gh.factory<_i926.UpdateAttendanceRekapUseCase>(() =>
       _i926.UpdateAttendanceRekapUseCase(
           gh<_i117.AttendanceRekapRepository>()));

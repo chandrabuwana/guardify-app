@@ -41,6 +41,7 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
     on<BMILoadHistory>(_onLoadHistory);
     on<BMIDeleteRecord>(_onDeleteRecord);
     on<BMIFilterByCategory>(_onFilterByCategory);
+    on<BMIFilterByJabatan>(_onFilterByJabatan);
     on<BMIReset>(_onReset);
     on<BMIClearError>(_onClearError);
   }
@@ -379,6 +380,28 @@ class BMIBloc extends Bloc<BMIEvent, BMIState> {
 
     final result = await managePinnedProfiles.repository
         .filterByCategory(event.category);
+
+    result.fold(
+      (failure) => emit(state.copyWith(
+        isSearching: false,
+        error: _mapFailureToMessage(failure),
+      )),
+      (userProfiles) => emit(state.copyWith(
+        isSearching: false,
+        searchResults: userProfiles,
+        error: null,
+      )),
+    );
+  }
+
+  Future<void> _onFilterByJabatan(
+    BMIFilterByJabatan event,
+    Emitter<BMIState> emit,
+  ) async {
+    emit(state.copyWith(isSearching: true, error: null));
+
+    final result = await managePinnedProfiles.repository
+        .filterByJabatan(event.jabatan);
 
     result.fold(
       (failure) => emit(state.copyWith(

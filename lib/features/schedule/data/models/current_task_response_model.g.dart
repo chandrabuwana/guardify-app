@@ -196,7 +196,8 @@ Map<String, dynamic> _$CarryOverTaskModelToJson(CarryOverTaskModel instance) =>
       'EvidenceUrl': instance.evidenceUrl,
     };
 
-CarryOverSolverModel _$CarryOverSolverModelFromJson(Map<String, dynamic> json) =>
+CarryOverSolverModel _$CarryOverSolverModelFromJson(
+        Map<String, dynamic> json) =>
     $checkedCreate(
       'CarryOverSolverModel',
       json,
@@ -210,7 +211,8 @@ CarryOverSolverModel _$CarryOverSolverModelFromJson(Map<String, dynamic> json) =
       fieldKeyMap: const {'id': 'Id', 'fullname': 'Fullname'},
     );
 
-Map<String, dynamic> _$CarryOverSolverModelToJson(CarryOverSolverModel instance) =>
+Map<String, dynamic> _$CarryOverSolverModelToJson(
+        CarryOverSolverModel instance) =>
     <String, dynamic>{
       'Id': instance.id,
       'Fullname': instance.fullname,
