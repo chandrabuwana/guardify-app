@@ -362,6 +362,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           break;
         case 3:
           message = 'Notifikasi';
+          navigationRoute = '/notification';
           break;
         default:
           message = 'Menu';

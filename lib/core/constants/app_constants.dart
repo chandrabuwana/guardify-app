@@ -28,7 +28,7 @@ class AppConstants {
       return 'https://api-guardify.abb-apps.com/api/v1';
     }
 
-    return 'https://api-devguardify.abb-apps.com/api/v1';
+    return 'https://api-guardify.abb-apps.com/api/v1';
   }
   static const int connectTimeout = 60000; // Increased to 60 seconds
   static const int receiveTimeout = 60000; // Increased to 60 seconds
@@ -43,8 +43,9 @@ class AppConstants {
       return 'https://api-guardify.abb-apps.com/hubs/chat';
     }
 
-    return 'https://api-devguardify.abb-apps.com/hubs/chat';
+    return 'https://api-guardify.abb-apps.com/hubs/chat';
   }
+
 
   // Storage Keys
   static const String tokenKey = 'token_guardify';

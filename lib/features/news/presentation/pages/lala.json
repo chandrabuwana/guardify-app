@@ -1,0 +1,21 @@
+{
+  "Id": "46f80496-9e40-4709-b489-f739aa87e67e",
+  "Action": null,
+  "AreasId": "7b1b04e0-6ac3-4826-ab26-d4a5b0f9b584",
+  "Description": "lalala",
+  "Feedback": "INI TINDAKAN",
+  "IdIncidentType": 2,
+  "ReporterDate": "2026-05-04T15:33:49.199356Z",
+  "ReporterId": "569b2c49-2be5-4793-9e9a-6bea84590177",
+  "ResolveAction": "mantap",
+  "SolverDate": "2026-05-06T22:41:41.619528",
+  "SolverId": "569b2c49-2be5-4793-9e9a-6bea84590177",
+  "Status": "COMPLETED",
+  "Files": [],
+  "EvidenceFile": {
+    "Filename": "image_picker_6D557783-CB25-48F9-9677-72B59A8C7298-19129-0000058B65983CF6.jpg",
+    "MimeType": "image/jpeg",
+    "Base64": "",
+    "FileSize": 989042
+  }
+}

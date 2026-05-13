@@ -5,21 +5,25 @@ import '../../../../core/constants/enums.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../domain/entities/test_summary_entity.dart';
+import '../../domain/entities/test_result_entity.dart';
 
 /// Widget untuk menampilkan ringkasan hasil Test
 /// Layout berbeda berdasarkan role:
 /// - PJO/Deputy/Pengawas: Tampilkan Jml Lulus & Tidak Lulus
 /// - Danton: Tidak tampilkan Jml Lulus & Tidak Lulus
+/// UJIAN PENGETAHUAN UMUM
 class TestResultHeaderWidget extends StatelessWidget {
   final TestSummaryEntity summary;
   final UserRole userRole;
   final bool showPassFailCount;
+  final List<TestResultEntity>? assessmentDetailList;
 
   const TestResultHeaderWidget({
     Key? key,
     required this.summary,
     required this.userRole,
     this.showPassFailCount = false,
+    this.assessmentDetailList,
   }) : super(key: key);
 
   @override
@@ -45,34 +49,6 @@ class TestResultHeaderWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Test Pengetahuan Umum
-          Container(
-            padding: REdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F8F8),
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(12.r),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.assignment,
-                  color: primaryColor,
-                  size: 24.w,
-                ),
-                12.horizontalSpace,
-                Text(
-                  'Test Pengetahuan Umum',
-                  style: TS.titleMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: neutral90,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
           // Summary Cards
           Padding(
             padding: REdgeInsets.all(16),
@@ -86,7 +62,8 @@ class TestResultHeaderWidget extends StatelessWidget {
                         child: _buildSummaryCard(
                           value: summary.jumlahPesertaLulus.toString(),
                           label: 'Jumlah\nPeserta Lulus',
-                          color: successColor,
+                          color: const Color(0xFFFFBCB7),
+                          backgroundColor: const Color(0x33FFBCB7),
                         ),
                       ),
                       12.horizontalSpace,
@@ -94,7 +71,8 @@ class TestResultHeaderWidget extends StatelessWidget {
                         child: _buildSummaryCard(
                           value: summary.jumlahPesertaTidakLulus.toString(),
                           label: 'Peserta\nTidak Lulus',
-                          color: errorColor,
+                          color: const Color(0xFFFFBCB7),
+                          backgroundColor: const Color(0x33FFBCB7),
                         ),
                       ),
                     ],
@@ -105,19 +83,13 @@ class TestResultHeaderWidget extends StatelessWidget {
                 // Row kedua: Rata-rata & Minimal
                 Row(
                   children: [
-                    Expanded(
-                      child: _buildSummaryCard(
-                        value: summary.nilaiRataRata.toStringAsFixed(1),
-                        label: 'Nilai\nRata Rata',
-                        color: const Color(0xFF2196F3),
-                      ),
-                    ),
-                    12.horizontalSpace,
+                   
                     Expanded(
                       child: _buildSummaryCard(
                         value: summary.nilaiMinimal.toInt().toString(),
                         label: 'Nilai\nMinimal',
-                        color: const Color(0xFFFF9800),
+                        color: const Color(0xFFFFBCB7),
+                        backgroundColor: const Color(0x33FFBCB7),
                       ),
                     ),
                   ],
@@ -136,10 +108,26 @@ class TestResultHeaderWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildDetailRow('PIC', summary.picPeserta ?? '-'),
-                      if (summary.anggotaList != null &&
-                          summary.anggotaList!.isNotEmpty)
+                      if (assessmentDetailList != null && assessmentDetailList!.isNotEmpty)
                         _buildDetailRow(
-                            'Peserta', summary.anggotaList!.join(', ')),
+                            'Peserta',
+                            (() {
+                              final jabatanList = assessmentDetailList!
+                                  .map((e) => (e.userJabatan ?? '').trim())
+                                  .where((v) => v.isNotEmpty)
+                                  .toList();
+
+                              final uniqueJabatan = <String>[];
+                              for (final j in jabatanList) {
+                                if (!uniqueJabatan.contains(j)) {
+                                  uniqueJabatan.add(j);
+                                }
+                              }
+
+                              return uniqueJabatan.isEmpty
+                                  ? '-'
+                                  : uniqueJabatan.join(', ');
+                            })()),
                       _buildDetailRow('Tipe Test', summary.tipeTest ?? '-'),
                       if (summary.tanggalPelaksanaan != null)
                         _buildDetailRow(
@@ -162,11 +150,12 @@ class TestResultHeaderWidget extends StatelessWidget {
     required String value,
     required String label,
     required Color color,
+    Color? backgroundColor,
   }) {
     return Container(
       padding: REdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: backgroundColor ?? color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(
           color: color.withOpacity(0.3),

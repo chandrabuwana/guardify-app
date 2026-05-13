@@ -188,8 +188,8 @@ class TugasLanjutanRemoteDataSourceImpl
             {'Field': 'Jabatan', 'Search': jabatan}
           ],
           'Sort': {'Field': '', 'Type': 0},
-          'Start': 0,
-          'Length': 0, // Get all records
+          'Start': 1,
+          'Length': 20,
         };
       } else {
         // Tab "Riwayat": Filter by SolverId
@@ -202,8 +202,8 @@ class TugasLanjutanRemoteDataSourceImpl
             {'Field': 'SolverId', 'Search': userId}
           ],
           'Sort': {'Field': '', 'Type': 0},
-          'Start': 0,
-          'Length': 0, // Get all records
+          'Start': 1,
+          'Length': 20,
         };
       }
 

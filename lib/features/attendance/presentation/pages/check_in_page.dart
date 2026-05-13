@@ -76,6 +76,7 @@ class _CheckInPageState extends State<CheckInPage> {
   void initState() {
     super.initState();
     _attendanceBloc = getIt<AttendanceBloc>();
+    _attendanceBloc.add(const CheckInStartedEvent());
     _namaPersonilController.text =
         widget.prefillFullname ?? widget.namaPersonil;
     if (widget.prefillLocation != null) {
@@ -102,47 +103,30 @@ class _CheckInPageState extends State<CheckInPage> {
     }
     
     // Prefill tugas lanjutan dari ListCarryOver
-    print('📋 CheckInPage initState - prefillTugasLanjutan: ${widget.prefillTugasLanjutan}');
     if (widget.prefillTugasLanjutan != null && widget.prefillTugasLanjutan!.isNotEmpty) {
       final tasks = widget.prefillTugasLanjutan!.split('\n').where((task) => task.trim().isNotEmpty).toList();
       _tugasLanjutan = tasks;
       if (_tugasLanjutan.isNotEmpty) {
-        final textToSet = _tugasLanjutan.join('\n');
-        _tugasLanjutanController.text = textToSet;
-        print('✅ CheckInPage initState - Tugas lanjutan filled: ${_tugasLanjutan.length} tasks');
-        print('✅ CheckInPage initState - Tugas lanjutan text: ${_tugasLanjutanController.text}');
-        print('✅ CheckInPage initState - _tugasLanjutan list: $_tugasLanjutan');
+        _tugasLanjutanController.text = _tugasLanjutan.join('\n');
+        print('✅ CheckInPage initState - Tugas lanjutan: ${_tugasLanjutan.length} tasks');
       }
-    } else {
-      print('⚠️ CheckInPage initState - prefillTugasLanjutan is null or empty');
     }
     
     // Verify dan update UI setelah initState selesai
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        print('🔍 CheckInPage - PostFrameCallback: _tugasLanjutan.length = ${_tugasLanjutan.length}');
-        print('🔍 CheckInPage - PostFrameCallback: controller.text = "${_tugasLanjutanController.text}"');
-        
-        // Pastikan controller terisi jika prefill ada
-        if (widget.prefillTugasLanjutan != null && widget.prefillTugasLanjutan!.isNotEmpty) {
-          if (_tugasLanjutanController.text != widget.prefillTugasLanjutan) {
-            _tugasLanjutanController.text = widget.prefillTugasLanjutan!;
-            _tugasLanjutan = widget.prefillTugasLanjutan!.split('\n').where((task) => task.trim().isNotEmpty).toList();
-            print('🔄 CheckInPage - PostFrameCallback: Re-set controller from prefill: "${_tugasLanjutanController.text}"');
-          }
-        } else if (_tugasLanjutanController.text.isNotEmpty && _tugasLanjutan.isEmpty) {
-          // Sync _tugasLanjutan dari controller jika controller sudah terisi
-          _tugasLanjutan = _tugasLanjutanController.text.split('\n').where((task) => task.trim().isNotEmpty).toList();
-          print('🔄 CheckInPage - PostFrameCallback: Synced _tugasLanjutan from controller');
+      if (!mounted) return;
+      
+      // Pastikan controller terisi jika prefill ada
+      if (widget.prefillTugasLanjutan != null && widget.prefillTugasLanjutan!.isNotEmpty) {
+        if (_tugasLanjutanController.text != widget.prefillTugasLanjutan) {
+          _tugasLanjutanController.text = widget.prefillTugasLanjutan!;
+          _tugasLanjutan = widget.prefillTugasLanjutan!.split('\n').where((task) => task.trim().isNotEmpty).toList();
         }
-        
-        // Trigger rebuild untuk update UI
-        if (mounted) {
-          setState(() {
-            print('🔄 CheckInPage - PostFrameCallback: Triggered setState to update UI');
-          });
-        }
+      } else if (_tugasLanjutanController.text.isNotEmpty && _tugasLanjutan.isEmpty) {
+        _tugasLanjutan = _tugasLanjutanController.text.split('\n').where((task) => task.trim().isNotEmpty).toList();
       }
+      
+      setState(() {});
     });
   }
 
@@ -228,21 +212,12 @@ class _CheckInPageState extends State<CheckInPage> {
         }
         
         // Ambil tugas lanjutan dari ListCarryOver (status OPEN)
-        print('📋 _prefillFromShiftApi - Checking carryOverTasks');
         final carryOverTasks = data?.carryOverTasks;
-        print('📋 _prefillFromShiftApi - carryOverTasks: $carryOverTasks');
         
         if (carryOverTasks != null && carryOverTasks.isNotEmpty) {
           _tugasLanjutan = carryOverTasks.split('\n').where((task) => task.trim().isNotEmpty).toList();
           _tugasLanjutanController.text = carryOverTasks;
-          print('✅ _prefillFromShiftApi - Tugas lanjutan loaded: ${_tugasLanjutan.length} tasks');
-          print('✅ _prefillFromShiftApi - Tugas lanjutan text: ${_tugasLanjutanController.text}');
-        } else {
-          print('⚠️ _prefillFromShiftApi - No carry over tasks found');
-          print('⚠️ _prefillFromShiftApi - data is null: ${data == null}');
-          if (data != null) {
-            print('⚠️ _prefillFromShiftApi - data.raw keys: ${data.raw.keys.toList()}');
-          }
+          print('✅ _prefillFromShiftApi - Tugas lanjutan: ${_tugasLanjutan.length} tasks');
         }
         
         if (newShiftDetailId == null || newShiftDetailId.isEmpty) {
@@ -315,33 +290,12 @@ class _CheckInPageState extends State<CheckInPage> {
 
   @override
   Widget build(BuildContext context) {
-    // PENTING: Sync _tugasLanjutan dari controller TERLEBIH DAHULU jika controller sudah punya nilai
-    // Ini untuk handle case ketika controller terisi di initState tapi _tugasLanjutan belum sync
-    if (_tugasLanjutanController.text.isNotEmpty && _tugasLanjutan.isEmpty) {
-      _tugasLanjutan = _tugasLanjutanController.text.split('\n').where((task) => task.trim().isNotEmpty).toList();
-      print('🔄 Build - Synced _tugasLanjutan from controller: ${_tugasLanjutan.length} tasks');
-    }
-    
-    // JANGAN overwrite controller jika sudah punya nilai (dari prefill)
-    // Hanya update controller jika:
-    // 1. _tugasLanjutan tidak kosong DAN
-    // 2. Controller KOSONG (belum terisi)
-    // JANGAN overwrite controller yang sudah punya nilai
-    final tugasDisplayText =
-        _tugasLanjutan.isEmpty ? '' : _tugasLanjutan.join('\n');
-    
-    // JANGAN overwrite controller jika sudah punya nilai dari prefill
-    if (tugasDisplayText.isNotEmpty && 
-        _tugasLanjutanController.text.isEmpty) {
-      // Hanya update jika controller KOSONG, jangan overwrite yang sudah ada
-      _tugasLanjutanController.text = tugasDisplayText;
-      print('🔄 Build - Updated tugas lanjutan controller (only if empty): $tugasDisplayText');
-    }
-    
-    print('🔍 Build - Final check: _tugasLanjutan.length = ${_tugasLanjutan.length}, controller.text = "${_tugasLanjutanController.text}"');
+    // NOTE: Build method should NOT do state mutation - this causes infinite rebuilds
+    // Sync logic is handled in initState and PostFrameCallback only
+    // Only display the current state without modifying it
 
     return BlocProvider.value(
-      value: _attendanceBloc..add(const CheckInStartedEvent()),
+      value: _attendanceBloc,
       child: Scaffold(
         backgroundColor: const Color(0xFFF6F6F8),
         appBar: AppBar(
@@ -1468,6 +1422,13 @@ class _CheckInPageState extends State<CheckInPage> {
       }
       
       // Submit to bloc - success dialog will be shown by listener
+      // Safety limit: prevent sending massive tugasLanjutan lists
+      List<String> safeTugasLanjutan = _tugasLanjutan;
+      if (_tugasLanjutan.length > 100) {
+        print('⚠️ [CheckIn] tugasLanjutan list too large (${_tugasLanjutan.length}), limiting to first 100');
+        safeTugasLanjutan = _tugasLanjutan.take(100).toList();
+      }
+      
       final request = CheckInRequest(
         userId: widget.userId,
         shift: 'Pagi',
@@ -1479,7 +1440,7 @@ class _CheckInPageState extends State<CheckInPage> {
         pakaianPersonil: _pakaianPersonil,
         laporanPengamanan: _laporanPengamananController.text,
         fotoPengamanan: _fotoPengamanan,
-        tugasLanjutan: _tugasLanjutan,
+        tugasLanjutan: safeTugasLanjutan,
         fotoWajah: _fotoWajah,
         shiftDetailId: shiftDetailId, // Pastikan ini tidak null/kosong
       );
@@ -1591,35 +1552,33 @@ class _SelfieCameraPageState extends State<_SelfieCameraPage> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   int _currentCameraIndex = 0;
+  bool _isControllerCreated = false;
 
   @override
   void initState() {
     super.initState();
-    // Default to front camera for selfie if available
-    final frontIndex = widget.cameras.indexWhere(
-      (c) => c.lensDirection == CameraLensDirection.front,
-    );
-    _currentCameraIndex = frontIndex >= 0 ? frontIndex : 0;
+    _initializeCamera(0);
+  }
+
+  void _initializeCamera(int index) {
+    if (_isControllerCreated) {
+      _controller.dispose();
+    }
     _controller = CameraController(
-      widget.cameras[_currentCameraIndex],
+      widget.cameras[index],
       ResolutionPreset.high,
       enableAudio: false,
     );
+    _isControllerCreated = true;
     _initializeControllerFuture = _controller.initialize();
   }
 
   void _switchCamera() {
     if (widget.cameras.length < 2) return;
     
-    _controller.dispose();
     setState(() {
       _currentCameraIndex = (_currentCameraIndex + 1) % widget.cameras.length;
-      _controller = CameraController(
-        widget.cameras[_currentCameraIndex],
-        ResolutionPreset.high,
-        enableAudio: false,
-      );
-      _initializeControllerFuture = _controller.initialize();
+      _initializeCamera(_currentCameraIndex);
     });
   }
 

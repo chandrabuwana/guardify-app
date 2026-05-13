@@ -29,52 +29,54 @@ class ShiftCurrentLocationData {
 
   /// Get tugas lanjutan dari ListCarryOver yang statusnya "OPEN"
   /// Mengambil ReportNote dari setiap item yang Status = "OPEN"
+  /// Deduplicates notes within and across items, limits to 50 tasks max
   String? get carryOverTasks {
-    print('🔍 carryOverTasks - Checking raw data for ListCarryOver');
-    print('🔍 carryOverTasks - raw keys: ${raw.keys.toList()}');
-    
     final listCarryOver = raw['ListCarryOver'];
-    print('🔍 carryOverTasks - listCarryOver: $listCarryOver');
-    print('🔍 carryOverTasks - listCarryOver is List: ${listCarryOver is List}');
     
     if (listCarryOver == null || listCarryOver is! List) {
-      print('❌ carryOverTasks - ListCarryOver is null or not a List');
       return null;
     }
 
-    print('✅ carryOverTasks - Found ${listCarryOver.length} items in ListCarryOver');
+    print('📋 carryOverTasks - Processing ${listCarryOver.length} items');
     
+    final seenNotes = <String>{}; // Deduplication across all items
     final openTasks = <String>[];
-    int index = 0;
-    for (final item in listCarryOver) {
-      if (item is! Map<String, dynamic>) {
-        print('⚠️ carryOverTasks - Item[$index] is not a Map');
-        index++;
-        continue;
-      }
+    
+    for (int i = 0; i < listCarryOver.length; i++) {
+      // Safety limit: stop processing after collecting 50 unique tasks
+      if (openTasks.length >= 50) break;
+      
+      final item = listCarryOver[i];
+      if (item is! Map<String, dynamic>) continue;
       
       final status = (item['Status'] as String?)?.toUpperCase();
-      print('🔍 carryOverTasks - Item[$index] Status: $status');
+      if (status != 'OPEN') continue;
       
-      if (status == 'OPEN') {
-        final note = item['ReportNote'] as String?;
-        print('🔍 carryOverTasks - Item[$index] ReportNote: $note');
-        
-        if (note != null && note.isNotEmpty) {
-          openTasks.add(note);
-          print('✅ carryOverTasks - Added ReportNote: $note');
+      final note = item['ReportNote'] as String?;
+      if (note == null || note.isEmpty) continue;
+      
+      // Deduplicate lines within the note (API returns notes with duplicated content)
+      final noteLines = note.split('\n').where((line) => line.trim().isNotEmpty).toList();
+      final uniqueLines = <String>[];
+      final lineSet = <String>{};
+      for (final line in noteLines) {
+        final trimmed = line.trim();
+        if (lineSet.add(trimmed)) {
+          uniqueLines.add(trimmed);
         }
       }
-      index++;
+      final cleanedNote = uniqueLines.join('\n');
+      
+      // Skip if this cleaned note was already seen from another item
+      if (cleanedNote.isNotEmpty && seenNotes.add(cleanedNote)) {
+        openTasks.add(cleanedNote);
+      }
     }
     
-    if (openTasks.isEmpty) {
-      print('❌ carryOverTasks - No OPEN tasks found');
-      return null;
-    }
+    if (openTasks.isEmpty) return null;
     
     final result = openTasks.join('\n');
-    print('✅ carryOverTasks - Final result: $result');
+    print('✅ carryOverTasks - ${openTasks.length} unique tasks extracted');
     return result;
   }
 }

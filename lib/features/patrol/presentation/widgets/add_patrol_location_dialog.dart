@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:math';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/di/injection.dart';
@@ -10,17 +11,20 @@ import '../../../../core/constants/app_constants.dart';
 import '../../domain/entities/patrol_location.dart';
 import '../../domain/repositories/patrol_repository.dart';
 import '../../domain/usecases/verify_location.dart';
+import '../../../schedule/domain/repositories/schedule_repository.dart';
 
 class AddPatrolLocationDialog extends StatefulWidget {
   final String routeId;
   final List<String> existingLocations; // Locations already in the route
   final VoidCallback onLocationAdded;
+  final List<RouteTask>? listRoute;
 
   const AddPatrolLocationDialog({
     super.key,
     required this.routeId,
     required this.existingLocations,
     required this.onLocationAdded,
+    this.listRoute,
   });
 
   @override
@@ -223,9 +227,15 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
         },
         (areas) {
           // Filter out existing locations
+          print('🔍 [AddPatrolLocationDialog] Total areas from API: ${areas.length}');
+          print('🔍 [AddPatrolLocationDialog] Existing locations to exclude: ${widget.existingLocations}');
+          
           final filteredAreas = areas
               .where((area) => !widget.existingLocations.contains(area.name))
               .toList();
+
+          print('🔍 [AddPatrolLocationDialog] Filtered areas (available to add): ${filteredAreas.length}');
+          print('🔍 [AddPatrolLocationDialog] Available area names: ${filteredAreas.map((a) => a.name).toList()}');
 
           setState(() {
             _isLoadingAreas = false;
@@ -257,7 +267,9 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
         setState(() {
           _latitude = position.lat;
           _longitude = position.lng;
-          _currentLocationText =
+          // Show area name if within radius, otherwise show lat/long
+          final areaName = _getClosestAreaInRadius();
+          _currentLocationText = areaName ?? 
               '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}';
           _isLoadingLocation = false;
         });
@@ -301,6 +313,79 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
           ),
         );
       }
+    }
+  }
+
+  /// Calculate distance between two coordinates using Haversine formula
+  /// Returns distance in meters
+  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    const earthRadiusMeters = 6371000; // Earth radius in meters
+    
+    final dLat = _degreesToRadians(lat2 - lat1);
+    final dLon = _degreesToRadians(lon2 - lon1);
+    
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degreesToRadians(lat1)) * cos(_degreesToRadians(lat2)) *
+        sin(dLon / 2) * sin(dLon / 2);
+    
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadiusMeters * c;
+  }
+
+  /// Convert degrees to radians
+  double _degreesToRadians(double degrees) {
+    return degrees * pi / 180;
+  }
+
+  /// Find the closest area within radius
+  /// Returns area name if found, otherwise null
+  String? _getClosestAreaInRadius() {
+    if (widget.listRoute == null || widget.listRoute!.isEmpty) {
+      print('🔴 [AddPatrolLocationDialog] listRoute is null or empty');
+      return null;
+    }
+
+    if (_latitude == null || _longitude == null) {
+      print('🔴 [AddPatrolLocationDialog] Current location is null');
+      return null;
+    }
+
+    print('🟡 [AddPatrolLocationDialog] Checking ${widget.listRoute!.length} areas');
+    print('🟡 [AddPatrolLocationDialog] Current location: $_latitude, $_longitude');
+
+    RouteTask? closestArea;
+    double closestDistance = double.infinity;
+
+    for (final area in widget.listRoute!) {
+      // Skip if latitude, longitude, or radius is null
+      if (area.latitude == null || area.longitude == null || area.radius == null) {
+        print('🔴 [AddPatrolLocationDialog] Skipping ${area.areasName} - missing data');
+        continue;
+      }
+
+      final distance = _calculateDistance(
+        _latitude!,
+        _longitude!,
+        area.latitude!,
+        area.longitude!,
+      );
+
+      print('🟡 [AddPatrolLocationDialog] ${area.areasName}: distance=${distance.toStringAsFixed(2)}m, radius=${area.radius}m, inRadius=${distance <= area.radius!}');
+
+      // Check if within radius and closer than previous closest
+      if (distance <= area.radius! && distance < closestDistance) {
+        closestArea = area;
+        closestDistance = distance;
+        print('✅ [AddPatrolLocationDialog] Found closest area: ${area.areasName} (${distance.toStringAsFixed(2)}m)');
+      }
+    }
+
+    if (closestArea != null) {
+      print('✅ [AddPatrolLocationDialog] Returning area name: ${closestArea.areasName}');
+      return closestArea.areasName;
+    } else {
+      print('🔴 [AddPatrolLocationDialog] No area found within radius');
+      return null;
     }
   }
 
@@ -802,55 +887,76 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.grey[100],
+                              color: _latitude != null && _longitude != null
+                                  ? (_getClosestAreaInRadius() != null ? Colors.green[100] : Colors.red[100])
+                                  : Colors.grey[100],
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: _isLoadingLocation
-                                      ? const Row(
-                                          children: [
-                                            SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                              ),
-                                            ),
-                                            SizedBox(width: 12),
-                                            Text(
-                                              'Mengambil lokasi...',
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _isLoadingLocation
+                                          ? const Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 12),
+                                                Text(
+                                                  'Mengambil lokasi...',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          : Text(
+                                              _currentLocationText,
                                               style: TextStyle(
                                                 fontSize: 14,
-                                                color: Colors.black87,
+                                                color: _isLocationVerified
+                                                    ? Colors.black87
+                                                    : Colors.red,
                                               ),
                                             ),
-                                          ],
-                                        )
-                                      : Text(
-                                          _currentLocationText,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: _isLocationVerified
-                                                ? Colors.black87
-                                                : Colors.red,
-                                          ),
-                                        ),
+                                    ),
+                                    if (_isLocationVerified)
+                                      const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                    if (!_isLocationVerified && !_isLoadingLocation)
+                                      IconButton(
+                                        icon: const Icon(Icons.refresh),
+                                        iconSize: 20,
+                                        color: primaryColor,
+                                        onPressed: _getCurrentLocation,
+                                        tooltip: 'Refresh Lokasi',
+                                      ),
+                                  ],
                                 ),
-                                if (_isLocationVerified)
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                    size: 20,
-                                  ),
-                                if (!_isLocationVerified && !_isLoadingLocation)
-                                  IconButton(
-                                    icon: const Icon(Icons.refresh),
-                                    iconSize: 20,
-                                    color: primaryColor,
-                                    onPressed: _getCurrentLocation,
-                                    tooltip: 'Refresh Lokasi',
+                                if (_latitude != null && _longitude != null && !_isLoadingLocation)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      _getClosestAreaInRadius() != null
+                                          ? 'Anda sudah berada di lokasi patroli'
+                                          : 'Silahkan mendekati lokasi patroli',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: _getClosestAreaInRadius() != null ? Colors.green[800] : Colors.red[800],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
                                   ),
                               ],
                             ),

@@ -9,9 +9,12 @@ class TestResultModel extends TestResultEntity {
     required super.tanggalTest,
     required super.nilaiTest,
     required super.nilaiKKM,
+    super.remedialGrade,
     required super.status,
     super.tipeTest,
     super.keterangan,
+    super.userFullname,
+    super.userJabatan,
   });
 
   /// Create model dari JSON
@@ -23,10 +26,13 @@ class TestResultModel extends TestResultEntity {
       tanggalTest: DateTime.parse(json['tanggal_Test'] as String),
       nilaiTest: json['nilai_Test'] as int,
       nilaiKKM: json['nilai_kkm'] as int,
+      remedialGrade: json['remedial_grade'] as int?,
       status: TestKelulusanStatus.fromValue(
           json['status'] as String? ?? 'belum_dinilai'),
       tipeTest: json['tipe_Test'] as String?,
       keterangan: json['keterangan'] as String?,
+      userFullname: json['UserFullname'] as String?,
+      userJabatan: json['UserJabatan'] as String?,
     );
   }
 
@@ -39,9 +45,12 @@ class TestResultModel extends TestResultEntity {
       'tanggal_Test': tanggalTest.toIso8601String(),
       'nilai_Test': nilaiTest,
       'nilai_kkm': nilaiKKM,
+      'remedial_grade': remedialGrade,
       'status': status.value,
       'tipe_Test': tipeTest,
       'keterangan': keterangan,
+      'UserFullname': userFullname,
+      'UserJabatan': userJabatan,
     };
   }
 
@@ -54,9 +63,12 @@ class TestResultModel extends TestResultEntity {
       tanggalTest: tanggalTest,
       nilaiTest: nilaiTest,
       nilaiKKM: nilaiKKM,
+      remedialGrade: remedialGrade,
       status: status,
       tipeTest: tipeTest,
       keterangan: keterangan,
+      userFullname: userFullname,
+      userJabatan: userJabatan,
     );
   }
 
@@ -69,9 +81,12 @@ class TestResultModel extends TestResultEntity {
       tanggalTest: entity.tanggalTest,
       nilaiTest: entity.nilaiTest,
       nilaiKKM: entity.nilaiKKM,
+      remedialGrade: entity.remedialGrade,
       status: entity.status,
       tipeTest: entity.tipeTest,
       keterangan: entity.keterangan,
+      userFullname: entity.userFullname,
+      userJabatan: entity.userJabatan,
     );
   }
 }

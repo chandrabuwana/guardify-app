@@ -161,6 +161,7 @@ class _SchedulePJODeputyPageState extends State<SchedulePJODeputyPage> {
       selectedDayPredicate: (day) {
         return isSameDay(_selectedDay, day);
       },
+      availableGestures: AvailableGestures.none,
       onPageChanged: (focusedDay) {
         setState(() {
           _focusedDay = focusedDay;

@@ -26,6 +26,7 @@ class TestResultLoaded extends TestResultState {
   final List<TestMemberResultEntity> filteredMemberResults;
   final TestSummaryEntity? summary;
   final UserRole userRole;
+  final String? userId;
   final int currentTabIndex;
   final String? searchQuery;
   final String? selectedJabatan;
@@ -37,6 +38,17 @@ class TestResultLoaded extends TestResultState {
   final bool isLoadingMemberResults;
   final String? memberTestsError;
 
+  // Fields for Ujian Anggota tab (assessment list)
+  final List<AssessmentEntity> assessmentList;
+  final List<AssessmentEntity> filteredAssessmentList;
+  final bool isLoadingAssessmentList;
+  final String? assessmentListError;
+
+  // Fields for Assessment Detail Page
+  final List<TestResultEntity> assessmentDetailList;
+  final bool isLoadingAssessmentDetail;
+  final String? assessmentDetailError;
+
   const TestResultLoaded({
     required this.myResults,
     required this.filteredMyResults,
@@ -44,6 +56,7 @@ class TestResultLoaded extends TestResultState {
     required this.filteredMemberResults,
     this.summary,
     required this.userRole,
+    this.userId,
     this.currentTabIndex = 0,
     this.searchQuery,
     this.selectedJabatan,
@@ -52,6 +65,13 @@ class TestResultLoaded extends TestResultState {
     this.filteredMemberTests = const [],
     this.isLoadingMemberResults = false,
     this.memberTestsError,
+    this.assessmentList = const [],
+    this.filteredAssessmentList = const [],
+    this.isLoadingAssessmentList = false,
+    this.assessmentListError,
+    this.assessmentDetailList = const [],
+    this.isLoadingAssessmentDetail = false,
+    this.assessmentDetailError,
   });
 
   TestResultLoaded copyWith({
@@ -61,6 +81,7 @@ class TestResultLoaded extends TestResultState {
     List<TestMemberResultEntity>? filteredMemberResults,
     TestSummaryEntity? summary,
     UserRole? userRole,
+    String? userId,
     int? currentTabIndex,
     String? searchQuery,
     String? selectedJabatan,
@@ -69,6 +90,13 @@ class TestResultLoaded extends TestResultState {
     List<TestResultEntity>? filteredMemberTests,
     bool? isLoadingMemberResults,
     String? memberTestsError,
+    List<AssessmentEntity>? assessmentList,
+    List<AssessmentEntity>? filteredAssessmentList,
+    bool? isLoadingAssessmentList,
+    String? assessmentListError,
+    List<TestResultEntity>? assessmentDetailList,
+    bool? isLoadingAssessmentDetail,
+    String? assessmentDetailError,
   }) {
     return TestResultLoaded(
       myResults: myResults ?? this.myResults,
@@ -77,6 +105,7 @@ class TestResultLoaded extends TestResultState {
       filteredMemberResults: filteredMemberResults ?? this.filteredMemberResults,
       summary: summary ?? this.summary,
       userRole: userRole ?? this.userRole,
+      userId: userId ?? this.userId,
       currentTabIndex: currentTabIndex ?? this.currentTabIndex,
       searchQuery: searchQuery ?? this.searchQuery,
       selectedJabatan: selectedJabatan ?? this.selectedJabatan,
@@ -85,6 +114,13 @@ class TestResultLoaded extends TestResultState {
       filteredMemberTests: filteredMemberTests ?? this.filteredMemberTests,
       isLoadingMemberResults: isLoadingMemberResults ?? this.isLoadingMemberResults,
       memberTestsError: memberTestsError,
+      assessmentList: assessmentList ?? this.assessmentList,
+      filteredAssessmentList: filteredAssessmentList ?? this.filteredAssessmentList,
+      isLoadingAssessmentList: isLoadingAssessmentList ?? this.isLoadingAssessmentList,
+      assessmentListError: assessmentListError,
+      assessmentDetailList: assessmentDetailList ?? this.assessmentDetailList,
+      isLoadingAssessmentDetail: isLoadingAssessmentDetail ?? this.isLoadingAssessmentDetail,
+      assessmentDetailError: assessmentDetailError,
     );
   }
 
@@ -96,6 +132,7 @@ class TestResultLoaded extends TestResultState {
         filteredMemberResults,
         summary,
         userRole,
+        userId,
         currentTabIndex,
         searchQuery,
         selectedJabatan,
@@ -104,6 +141,13 @@ class TestResultLoaded extends TestResultState {
         filteredMemberTests,
         isLoadingMemberResults,
         memberTestsError,
+        assessmentList,
+        filteredAssessmentList,
+        isLoadingAssessmentList,
+        assessmentListError,
+        assessmentDetailList,
+        isLoadingAssessmentDetail,
+        assessmentDetailError,
       ];
 }
 

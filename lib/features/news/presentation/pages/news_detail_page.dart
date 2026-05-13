@@ -241,18 +241,42 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   Future<void> _launchUrl(String source) async {
     final raw = source.trim();
-    if (raw.isEmpty) return;
+    if (raw.isEmpty) {
+      print('❌ Source is empty');
+      return;
+    }
 
     final withScheme =
         raw.startsWith('http://') || raw.startsWith('https://')
             ? raw
             : 'https://$raw';
 
-    final url = Uri.tryParse(withScheme);
-    if (url == null) return;
+    print('🌐 Launching URL: $withScheme');
 
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+    final url = Uri.tryParse(withScheme);
+    if (url == null) {
+      print('❌ Failed to parse URL: $withScheme');
+      return;
+    }
+
+    print('🌐 Parsed URL: $url');
+
+    try {
+      print('🌐 Attempting to launch URL...');
+      final launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+      print('🌐 Launch result: $launched');
+      if (!launched) {
+        print('❌ Launch failed, trying with in-app browser mode...');
+        await launchUrl(
+          url,
+          mode: LaunchMode.inAppBrowserView,
+        );
+      }
+    } catch (e) {
+      print('❌ Exception launching URL: $e');
     }
   }
 

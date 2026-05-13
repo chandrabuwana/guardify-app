@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
@@ -719,12 +720,21 @@ class _EmployeeLocationTrackingPageState extends State<EmployeeLocationTrackingP
             _buildDetailRow('Latitude', employee.latitude.toStringAsFixed(6)),
             _buildDetailRow('Longitude', employee.longitude.toStringAsFixed(6)),
             if (employee.updateDate.isNotEmpty)
-              _buildDetailRow('Terakhir Update', employee.updateDate),
+              _buildDetailRow('Terakhir Update', _formatDate(employee.updateDate)),
             16.verticalSpace,
           ],
         ),
       ),
     );
+  }
+
+  String _formatDate(String dateString) {
+    try {
+      final dateTime = DateTime.parse(dateString);
+      return DateFormat('dd MMMM yyyy, HH:mm', 'id').format(dateTime);
+    } catch (e) {
+      return dateString; // Return original if parsing fails
+    }
   }
 
   Widget _buildDetailRow(String label, String value) {

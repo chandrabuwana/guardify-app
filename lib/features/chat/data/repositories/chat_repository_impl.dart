@@ -409,6 +409,7 @@ class ChatRepositoryImpl implements ChatRepository {
           attachmentUrl: attachmentUrl,
           attachmentType: attachmentType,
           // Header information
+          fullname: item.header?.fullname,
           isOnline: item.header?.isOnline,
           lastSeen: item.header?.lastSeen,
           opponentFoto: item.header?.opponentFoto,

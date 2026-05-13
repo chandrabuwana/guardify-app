@@ -109,11 +109,15 @@ class TeamMemberModel {
   @JsonKey(name: 'PhotoUrl')
   final String? photoUrl;
 
+  @JsonKey(name: 'AreasName')
+  final String? areasName;
+
   const TeamMemberModel({
     required this.id,
     required this.name,
     required this.position,
     this.photoUrl,
+    this.areasName,
   });
 
   factory TeamMemberModel.fromJson(Map<String, dynamic> json) =>
@@ -127,6 +131,7 @@ class TeamMemberModel {
       name: name,
       position: position,
       photoUrl: photoUrl,
+      areasName: areasName,
     );
   }
 }

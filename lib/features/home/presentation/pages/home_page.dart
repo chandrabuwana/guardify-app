@@ -38,6 +38,7 @@ import '../../../news/presentation/bloc/news_bloc.dart';
 import '../../../personnel/presentation/pages/personnel_list_page.dart';
 import '../../../tugas_lanjutan/presentation/pages/tugas_lanjutan_page.dart';
 import '../../../tugas_lanjutan/presentation/bloc/tugas_lanjutan_bloc.dart';
+import '../../../notification/presentation/pages/notification_list_page.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
@@ -323,6 +324,19 @@ class __HomePageViewState extends State<_HomePageView> {
                       create: (context) => getIt<PanicButtonBloc>(),
                       child: const PanicButtonHistoryPage(),
                     ),
+                  ),
+                ).then((_) {
+                  context
+                      .read<HomeBloc>()
+                      .add(const BottomNavigationTappedEvent(0));
+                });
+                context.read<HomeBloc>().add(const ClearNavigationEvent());
+                break;
+              case '/notification':
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationListPage(),
                   ),
                 ).then((_) {
                   context
@@ -1185,6 +1199,9 @@ class __HomePageViewState extends State<_HomePageView> {
               final isShiftFinished = state is HomeLoaded &&
                   state.currentShift?.checkin == true &&
                   state.currentShift?.checkout == true;
+              
+              final isNotCheckedIn = state is HomeLoaded &&
+                  state.currentShift?.checkin != true;
 
               return Column(
                 children: tasks
@@ -1194,28 +1211,8 @@ class __HomePageViewState extends State<_HomePageView> {
 
                       return TaskCard(
                           task: task,
-                          onTap: (isShiftFinished && isPatrolOrTugasLanjutanCard)
-                              ? null
-                              : () async {
+                          onTap: () async {
                             print('🖱️ Task card tapped! Task ID: ${task.id}, Title: ${task.title}');
-
-                            // Validasi: tidak bisa absen patroli/patroli tambahan jika belum check in
-                            final homeState = context.read<HomeBloc>().state;
-                            if (homeState is HomeLoaded &&
-                                (task.id == 'patrol_continue' ||
-                                    task.id == 'patrol_summary' ||
-                                    task.id.startsWith('patrol_')) &&
-                                !homeState.attendanceInfo.isCheckedIn) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Silakan check in terlebih dahulu sebelum melakukan absen patroli',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                              return;
-                            }
 
                             // Navigate to Tugas Lanjutan page first (before patrol check)
                             if (task.id == 'patrol_continue') {
@@ -1223,6 +1220,14 @@ class __HomePageViewState extends State<_HomePageView> {
                                     AppConstants.userIdKey,
                                   ) ??
                                   'user_1';
+                              final isCheckedIn = state is HomeLoaded ? state.currentShift?.checkin : null;
+                              final isCheckedOut = state is HomeLoaded ? (state.currentShift?.checkin == true && state.currentShift?.checkout == true) : null;
+                              debugPrint('🔍 [HOME] Navigating to TugasLanjutanPage');
+                              debugPrint('  - isCheckedIn: $isCheckedIn');
+                              debugPrint('  - isCheckedOut: $isCheckedOut');
+                              debugPrint('  - currentShift.checkin: ${state is HomeLoaded ? state.currentShift?.checkin : "N/A"}');
+                              debugPrint('  - currentShift.checkout: ${state is HomeLoaded ? state.currentShift?.checkout : "N/A"}');
+                              
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -1230,6 +1235,8 @@ class __HomePageViewState extends State<_HomePageView> {
                                     create: (context) => getIt<TugasLanjutanBloc>(),
                                     child: TugasLanjutanPage(
                                       userId: userId,
+                                      isCheckedIn: isCheckedIn,
+                                      isCheckedOut: isCheckedOut,
                                     ),
                                   ),
                                 ),
@@ -1275,6 +1282,7 @@ class __HomePageViewState extends State<_HomePageView> {
                                   );
 
                                   // Navigate with ListRoute data - bloc will use it instead of calling API
+                                  final isCheckedOut = homeState.currentShift?.checkin == true && homeState.currentShift?.checkout == true;
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -1282,6 +1290,7 @@ class __HomePageViewState extends State<_HomePageView> {
                                         route: patrolRoute,
                                         listRoute: currentTask.listRoute, // Pass ListRoute data
                                         isCheckedIn: homeState.currentShift?.checkin,
+                                        isCheckedOut: isCheckedOut,
                                       ),
                                     ),
                                   ).then((shouldReload) async {
@@ -1352,6 +1361,7 @@ class __HomePageViewState extends State<_HomePageView> {
                                     );
 
                                     // Navigate with ListRoute data - bloc will use it instead of calling API
+                                    final isCheckedOut = homeState.currentShift?.checkin == true && homeState.currentShift?.checkout == true;
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -1360,6 +1370,7 @@ class __HomePageViewState extends State<_HomePageView> {
                                               route: patrolRoute,
                                               listRoute: currentTask.listRoute, // Pass ListRoute data
                                               isCheckedIn: homeState.currentShift?.checkin,
+                                              isCheckedOut: isCheckedOut,
                                             ),
                                       ),
                                     ).then((shouldReload) async {
@@ -1404,6 +1415,7 @@ class __HomePageViewState extends State<_HomePageView> {
                                     ? homeState.patrolRoutes[routeIndex]
                                     : homeState.patrolRoutes.first;
 
+                                final isCheckedOut = homeState.currentShift?.checkin == true && homeState.currentShift?.checkout == true;
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -1411,6 +1423,7 @@ class __HomePageViewState extends State<_HomePageView> {
                                         PatrolDetailPage(
                                           route: route,
                                           isCheckedIn: homeState.currentShift?.checkin,
+                                          isCheckedOut: isCheckedOut,
                                         ),
                                   ),
                                 ).then((shouldReload) async {

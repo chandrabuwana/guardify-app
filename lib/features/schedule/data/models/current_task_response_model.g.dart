@@ -97,6 +97,7 @@ RouteTaskModel _$RouteTaskModelFromJson(Map<String, dynamic> json) =>
           latitude: $checkedConvert('Latitude', (v) => (v as num?)?.toDouble()),
           longitude:
               $checkedConvert('Longitude', (v) => (v as num?)?.toDouble()),
+          radius: $checkedConvert('Radius', (v) => (v as num?)?.toDouble()),
         );
         return val;
       },
@@ -108,7 +109,8 @@ RouteTaskModel _$RouteTaskModelFromJson(Map<String, dynamic> json) =>
         'fileUrl': 'FileUrl',
         'status': 'Status',
         'latitude': 'Latitude',
-        'longitude': 'Longitude'
+        'longitude': 'Longitude',
+        'radius': 'Radius'
       },
     );
 
@@ -122,6 +124,7 @@ Map<String, dynamic> _$RouteTaskModelToJson(RouteTaskModel instance) =>
       'Status': instance.status,
       'Latitude': instance.latitude,
       'Longitude': instance.longitude,
+      'Radius': instance.radius,
     };
 
 CarryOverTaskModel _$CarryOverTaskModelFromJson(Map<String, dynamic> json) =>

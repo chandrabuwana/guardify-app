@@ -12,6 +12,7 @@ class PatrolLocation extends Equatable {
   final String? proofImagePath;
   final String? notes;
   final bool isAdditional;
+  final double? radius;
 
   const PatrolLocation({
     required this.id,
@@ -25,6 +26,7 @@ class PatrolLocation extends Equatable {
     this.proofImagePath,
     this.notes,
     this.isAdditional = false,
+    this.radius,
   });
 
   PatrolLocation copyWith({
@@ -39,6 +41,7 @@ class PatrolLocation extends Equatable {
     String? proofImagePath,
     String? notes,
     bool? isAdditional,
+    double? radius,
   }) {
     return PatrolLocation(
       id: id ?? this.id,
@@ -52,6 +55,7 @@ class PatrolLocation extends Equatable {
       proofImagePath: proofImagePath ?? this.proofImagePath,
       notes: notes ?? this.notes,
       isAdditional: isAdditional ?? this.isAdditional,
+      radius: radius ?? this.radius,
     );
   }
 
@@ -68,6 +72,7 @@ class PatrolLocation extends Equatable {
         proofImagePath,
         notes,
         isAdditional,
+        radius,
       ];
 }
 

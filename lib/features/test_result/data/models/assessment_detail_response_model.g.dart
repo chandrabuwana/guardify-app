@@ -62,7 +62,9 @@ AssessmentDetailItemModel _$AssessmentDetailItemModelFromJson(
           createBy: $checkedConvert('CreateBy', (v) => v as String?),
           createDate: $checkedConvert('CreateDate', (v) => v as String?),
           grade: $checkedConvert('Grade', (v) => (v as num).toInt()),
-          idAssessment: $checkedConvert('IdAssesment', (v) => v as String),
+          remedialGrade:
+              $checkedConvert('RemedialGrade', (v) => (v as num?)?.toInt()),
+          idAssesment: $checkedConvert('IdAssesment', (v) => v as String),
           assessment: $checkedConvert(
               'Assesment',
               (v) => v == null
@@ -72,6 +74,8 @@ AssessmentDetailItemModel _$AssessmentDetailItemModelFromJson(
           updateBy: $checkedConvert('UpdateBy', (v) => v as String?),
           updateDate: $checkedConvert('UpdateDate', (v) => v as String?),
           userId: $checkedConvert('UserId', (v) => v as String),
+          userFullname: $checkedConvert('UserFullname', (v) => v as String?),
+          userJabatan: $checkedConvert('UserJabatan', (v) => v as String?),
         );
         return val;
       },
@@ -80,12 +84,15 @@ AssessmentDetailItemModel _$AssessmentDetailItemModelFromJson(
         'createBy': 'CreateBy',
         'createDate': 'CreateDate',
         'grade': 'Grade',
-        'idAssessment': 'IdAssesment',
+        'remedialGrade': 'RemedialGrade',
+        'idAssesment': 'IdAssesment',
         'assessment': 'Assesment',
         'status': 'Status',
         'updateBy': 'UpdateBy',
         'updateDate': 'UpdateDate',
-        'userId': 'UserId'
+        'userId': 'UserId',
+        'userFullname': 'UserFullname',
+        'userJabatan': 'UserJabatan'
       },
     );
 
@@ -96,12 +103,15 @@ Map<String, dynamic> _$AssessmentDetailItemModelToJson(
       'CreateBy': instance.createBy,
       'CreateDate': instance.createDate,
       'Grade': instance.grade,
-      'IdAssesment': instance.idAssessment,
+      'RemedialGrade': instance.remedialGrade,
+      'IdAssesment': instance.idAssesment,
       'Assesment': instance.assessment?.toJson(),
       'Status': instance.status,
       'UpdateBy': instance.updateBy,
       'UpdateDate': instance.updateDate,
       'UserId': instance.userId,
+      'UserFullname': instance.userFullname,
+      'UserJabatan': instance.userJabatan,
     };
 
 AssessmentInfoModel _$AssessmentInfoModelFromJson(Map<String, dynamic> json) =>
@@ -111,10 +121,11 @@ AssessmentInfoModel _$AssessmentInfoModelFromJson(Map<String, dynamic> json) =>
       ($checkedConvert) {
         final val = AssessmentInfoModel(
           id: $checkedConvert('Id', (v) => v as String),
+          code: $checkedConvert('Code', (v) => v as String?),
           assessmentDate: $checkedConvert('AssesmentDate', (v) => v as String?),
           createBy: $checkedConvert('CreateBy', (v) => v as String?),
           createDate: $checkedConvert('CreateDate', (v) => v as String?),
-          idAssessmentCategory: $checkedConvert(
+          idAssesmentCategory: $checkedConvert(
               'IdAssesmentCategory', (v) => (v as num?)?.toInt()),
           assessmentCategory: $checkedConvert('AssesmentCategory', (v) => v),
           idPic: $checkedConvert('IdPic', (v) => v as String?),
@@ -129,10 +140,11 @@ AssessmentInfoModel _$AssessmentInfoModelFromJson(Map<String, dynamic> json) =>
       },
       fieldKeyMap: const {
         'id': 'Id',
+        'code': 'Code',
         'assessmentDate': 'AssesmentDate',
         'createBy': 'CreateBy',
         'createDate': 'CreateDate',
-        'idAssessmentCategory': 'IdAssesmentCategory',
+        'idAssesmentCategory': 'IdAssesmentCategory',
         'assessmentCategory': 'AssesmentCategory',
         'idPic': 'IdPic',
         'minValue': 'MinValue',
@@ -148,10 +160,11 @@ Map<String, dynamic> _$AssessmentInfoModelToJson(
         AssessmentInfoModel instance) =>
     <String, dynamic>{
       'Id': instance.id,
+      'Code': instance.code,
       'AssesmentDate': instance.assessmentDate,
       'CreateBy': instance.createBy,
       'CreateDate': instance.createDate,
-      'IdAssesmentCategory': instance.idAssessmentCategory,
+      'IdAssesmentCategory': instance.idAssesmentCategory,
       'AssesmentCategory': instance.assessmentCategory,
       'IdPic': instance.idPic,
       'MinValue': instance.minValue,

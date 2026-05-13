@@ -42,12 +42,14 @@ class TeamMember {
   final String name;
   final String position;
   final String? photoUrl;
+  final String? areasName;
 
   const TeamMember({
     required this.id,
     required this.name,
     required this.position,
     this.photoUrl,
+    this.areasName,
   });
 }
 

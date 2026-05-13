@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:vibration/vibration.dart';
 import '../../core/design/colors.dart';
+import '../../core/services/push_notification_service.dart';
 import '../../features/panic_button/data/models/panic_button_notification_model.dart';
 import '../../features/panic_button/data/models/panic_button_mobile_response_model.dart';
 
@@ -29,7 +30,9 @@ class PanicButtonPopup extends StatefulWidget {
 class _PanicButtonPopupState extends State<PanicButtonPopup> {
   Timer? _vibrationTimer;
   Timer? _durationTimer;
+  Timer? _countdownTimer;
   bool _isVibrating = false;
+  int _remainingSeconds = 0;
 
   @override
   void initState() {
@@ -136,36 +139,77 @@ class _PanicButtonPopupState extends State<PanicButtonPopup> {
   }
 
   void _startDurationTimer() {
-    _durationTimer = Timer(Duration(seconds: widget.durationSeconds), () {
-      _stopVibration();
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
+    _remainingSeconds = widget.durationSeconds;
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _remainingSeconds--;
+      });
+      if (_remainingSeconds <= 0) {
+        timer.cancel();
+        _closePopup();
       }
     });
   }
 
+  void _closePopup() {
+    _stopVibration();
+    _countdownTimer?.cancel();
+    _durationTimer?.cancel();
+
+    // NOTE: Cancel notification sound to stop alarm ringing
+    // The alarm sound comes from Android system notification (Firebase Cloud Messaging).
+    // Even if vibration stops, the notification sound might still play until dismissed.
+    // Calling cancelAllNotifications() ensures both vibration and sound stop immediately.
+    // This is especially important for devices where vibration.cancel() doesn't work reliably.
+    PushNotificationService.instance.cancelAllNotifications();
+
+    if (mounted) {
+      try {
+        Navigator.of(context, rootNavigator: true).pop();
+      } catch (e) {
+        try {
+          Navigator.of(context).pop();
+        } catch (_) {}
+      }
+    }
+  }
+
   void _stopVibration() async {
+    print('🛑 [PanicButtonPopup] Stopping vibration...');
     setState(() {
       _isVibrating = false;
     });
     _vibrationTimer?.cancel();
-    
+
     // Stop vibration if using vibration package
     try {
       final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator) {
+        // Try multiple times to ensure vibration stops
+        await Vibration.cancel();
+        await Future.delayed(const Duration(milliseconds: 100));
         await Vibration.cancel();
         print('✅ [PanicButtonPopup] Vibration stopped');
       }
     } catch (e) {
       print('⚠️ [PanicButtonPopup] Could not cancel vibration: $e');
     }
+
+    // Additional: try to stop any haptic feedback
+    try {
+      HapticFeedback.heavyImpact(); // One final impact to reset
+    } catch (_) {}
   }
 
   @override
   void dispose() {
     _stopVibration();
     _durationTimer?.cancel();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -456,13 +500,38 @@ class _PanicButtonPopupState extends State<PanicButtonPopup> {
 
               // Countdown or status
               Text(
-                'Popup ini akan tertutup otomatis dalam beberapa saat',
+                'Popup akan tertutup dalam $_remainingSeconds detik',
                 style: TextStyle(
                   fontSize: 12.sp,
                   color: neutral50,
                   fontStyle: FontStyle.italic,
                 ),
                 textAlign: TextAlign.center,
+              ),
+              16.verticalSpace,
+
+              // Stop button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _closePopup,
+                  icon: const Icon(Icons.stop, color: Colors.white),
+                  label: Text(
+                    'Stop Alarm',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: errorColor,
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

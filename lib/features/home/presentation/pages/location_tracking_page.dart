@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
+import '../../../chat/domain/entities/chat.dart';
+import '../../../chat/presentation/bloc/chat_bloc.dart';
+import '../../../chat/presentation/bloc/chat_event.dart';
+import '../../../chat/presentation/pages/chat_conversation_page.dart';
 import '../../../schedule/domain/repositories/schedule_repository.dart';
 
 /// Model untuk personil dengan lokasi
@@ -282,12 +288,54 @@ class _LocationTrackingPageState extends State<LocationTrackingPage> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: Implement send message
+                    onPressed: () async {
+                      // Get or create ChatBloc
+                      ChatBloc chatBloc;
+                      try {
+                        chatBloc = context.read<ChatBloc>();
+                      } catch (e) {
+                        // If ChatBloc is not available in context, create new one
+                        chatBloc = getIt<ChatBloc>();
+                      }
+
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Fitur kirim pesan sedang dalam pengembangan')),
-                      );
+
+                      // Create conversation with the personnel
+                      chatBloc.add(ChatCreateConversation(memberUserIds: [personnel.userId], name: personnel.fullname));
+
+                      // Wait for conversation to be created
+                      await Future.delayed(const Duration(milliseconds: 500));
+
+                      // Navigate to conversation page
+                      if (mounted) {
+                        final currentState = chatBloc.state;
+                        if (currentState.selectedChatId != null) {
+                          // Find the chat that was just created
+                          final newChat = currentState.chats.firstWhere(
+                            (chat) => chat.id == currentState.selectedChatId,
+                            orElse: () => Chat(
+                              id: currentState.selectedChatId!,
+                              name: personnel.fullname,
+                              type: ChatType.direct,
+                              participantIds: [personnel.userId],
+                              unreadCount: 0,
+                              isActive: true,
+                              createdAt: DateTime.now(),
+                              updatedAt: DateTime.now(),
+                            ),
+                          );
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BlocProvider.value(
+                                value: chatBloc,
+                                child: ChatConversationPage(chat: newChat),
+                              ),
+                            ),
+                          );
+                        }
+                      }
                     },
                     icon: Icon(Icons.message, size: 20.sp),
                     label: Text('Kirim Pesan', style: TS.bodyMedium),

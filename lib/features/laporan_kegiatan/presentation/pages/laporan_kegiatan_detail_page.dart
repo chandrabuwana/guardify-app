@@ -82,6 +82,20 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
             _isSubmittingRevisi = false;
           }
 
+          // Handle mark as tidak masuk success
+          if (state is LaporanDetailLoaded && state.showMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.showMessage!),
+                backgroundColor: Colors.green,
+              ),
+            );
+            // If laporan is null (data not found), navigate back to list
+            if (state.laporan == null) {
+              Navigator.of(context).pop(true);
+            }
+          }
+
           if (state is LaporanUpdated) {
             // Show success dialog
             showDialog(
@@ -141,7 +155,11 @@ class _LaporanKegiatanDetailPageState extends State<LaporanKegiatanDetailPage> {
           }
 
           if (state is LaporanDetailLoaded) {
-            return _buildDetailContent(state.laporan);
+            if (state.laporan == null) {
+              // Data not found case - show loading or navigate back (handled in listener)
+              return const Center(child: CircularProgressIndicator());
+            }
+            return _buildDetailContent(state.laporan!);
           }
 
           return const SizedBox();

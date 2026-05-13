@@ -3,10 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:io';
+import 'dart:developer' as developer;
+import 'core/utils/logger.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_alert_window/system_alert_window.dart';
 import 'dart:typed_data';
 import 'features/home/presentation/pages/home_page.dart';
@@ -49,7 +52,7 @@ import 'core/navigation/app_navigator_key.dart';
 import 'core/design/colors.dart';
 import 'core/services/background_location_task.dart';
 import 'core/services/push_notification_service.dart';
-import 'shared/widgets/api_log_overlay_button.dart';
+// import 'shared/widgets/api_log_overlay_button.dart';  // Debug tool disabled
 
 @pragma('vm:entry-point')
 void overlayMain() {
@@ -163,12 +166,13 @@ Future<void> _showBackgroundPanicNotification(Map<String, dynamic> rawData) asyn
   // changed programmatically for the same channel id. Use a new id when adjusting
   // vibration behavior.
   final panicChannel = AndroidNotificationChannel(
-    'guardify_panic_v2',
+    'guardify_panic_v3',
     'Guardify Panic Alerts',
     description: 'Panic button emergency alerts',
     importance: Importance.max,
     playSound: true,
     enableVibration: true,
+    sound: const RawResourceAndroidNotificationSound('notification'),
     vibrationPattern: Int64List.fromList(
       <int>[0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
     ),
@@ -215,6 +219,7 @@ Future<void> _showBackgroundPanicNotification(Map<String, dynamic> rawData) asyn
       category: AndroidNotificationCategory.call,
       fullScreenIntent: true,
       playSound: true,
+      sound: const RawResourceAndroidNotificationSound('notification'),
       enableVibration: true,
       visibility: NotificationVisibility.public,
       // Pattern is set at channel-level (Android 8+). Kept here for completeness.
@@ -234,23 +239,40 @@ Future<void> _showBackgroundPanicNotification(Map<String, dynamic> rawData) asyn
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   
-  print('🚨 [BackgroundHandler] Received message: ${message.data}');
+  // Debug prints disabled
+  // print('🚨 [BackgroundHandler] Received message: ${message.data}');
   
   // Check if this is a panic button notification
   final type = message.data['type']?.toString();
   
   if (type == 'panic_button') {
-    print('🚨 [BackgroundHandler] Panic button notification received in background');
+    // Debug prints disabled
+    // print('🚨 [BackgroundHandler] Panic button notification received in background');
     try {
       await _showBackgroundPanicNotification(message.data);
     } catch (e) {
-      print('⚠️ [BackgroundHandler] Failed to show panic notification: $e');
+      // Debug prints disabled
+      // print('⚠️ [BackgroundHandler] Failed to show panic notification: $e');
     }
   }
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  debugPrint('✅ [Main] App starting...');
+  AppLogger.info('✅ [Main] App starting...');
+
+  // Filter out S3 image loading errors to reduce console noise
+  FlutterError.onError = (FlutterErrorDetails details) {
+    final errorString = details.exceptionAsString();
+    if (errorString.contains('HTTP request failed, statusCode: 403') &&
+        errorString.contains('bnp-s3-abb.s3')) {
+      // Suppress S3 image loading errors - don't print anything
+      return;
+    }
+    FlutterError.presentError(details);
+  };
 
   final isMobile = Platform.isAndroid || Platform.isIOS;
   if (isMobile) {
@@ -260,12 +282,26 @@ void main() async {
           firebaseMessagingBackgroundHandler);
       await PushNotificationService.instance.initialize();
     } catch (e) {
-      print('⚠️ [Main] Firebase init failed: $e');
+      debugPrint('⚠️ [Main] Firebase init failed: $e');
     }
   }
 
   // Initialize date formatting for Indonesian locale
   await initializeDateFormatting('id_ID', null);
+
+  // Safety: clear corrupted SharedPreferences data before DI init
+  // SharedPreferences.getInstance() loads ALL keys into memory
+  // If api_logs key is corrupted (>2MB), it causes OOM crash
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final logsData = prefs.getString('api_logs');
+    if (logsData != null && logsData.length > 2 * 1024 * 1024) {
+      debugPrint('⚠️ [Main] Clearing corrupted api_logs (${logsData.length} bytes)');
+      await prefs.remove('api_logs');
+    }
+  } catch (e) {
+    debugPrint('⚠️ [Main] Error checking SharedPreferences: $e');
+  }
 
   await configureDependencies();
   
@@ -276,8 +312,8 @@ void main() async {
     await BackgroundLocationTaskManager.initialize();
     await BackgroundLocationTaskManager.registerPeriodicTask();
   } catch (e) {
-    print('⚠️ [Main] Failed to initialize workmanager: $e');
-    print('⚠️ [Main] Background location updates will be disabled');
+    debugPrint('⚠️ [Main] Failed to initialize workmanager: $e');
+    debugPrint('⚠️ [Main] Background location updates will be disabled');
   }
   
   runApp(const GuardifyApp());
@@ -314,13 +350,7 @@ class _GuardifyAppState extends State<GuardifyApp> {
             ),
           ),
           builder: (context, child) {
-            return Stack(
-              children: [
-                child ?? const SizedBox.shrink(),
-                if (!kReleaseMode)
-                  ApiLogOverlayButton(navigatorKey: AppNavigatorKey.navigatorKey),
-              ],
-            );
+            return child ?? const SizedBox.shrink();
           },
           routes: {
             '/': (context) => const _AuthGate(),

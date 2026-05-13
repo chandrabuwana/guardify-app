@@ -36,6 +36,8 @@ abstract class LaporanKegiatanRemoteDataSource {
     required bool isVerif,
     String? feedback,
   });
+
+  Future<bool> deleteAttendance(String attendanceId);
 }
 
 @LazySingleton(as: LaporanKegiatanRemoteDataSource)
@@ -758,6 +760,44 @@ class LaporanKegiatanRemoteDataSourceImpl
       throw Exception('Network error: ${e.message}');
     } catch (e) {
       throw Exception('Failed to verify laporan: $e');
+    }
+  }
+
+  @override
+  Future<bool> deleteAttendance(String attendanceId) async {
+    try {
+      final token = await SecurityManager.readSecurely(AppConstants.tokenKey);
+      if (token == null || token.isEmpty) {
+        throw Exception('Token not found');
+      }
+
+      final response = await dio.delete(
+        '/Attendance/delete/$attendanceId',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      // Check if response indicates success
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      }
+
+      throw Exception('Failed to delete attendance');
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorData = e.response!.data;
+        final errorMessage = errorData['Message'] as String? ?? 
+                           errorData['message'] as String? ?? 
+                           'Failed to delete attendance';
+        throw Exception(errorMessage);
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to delete attendance: $e');
     }
   }
 }

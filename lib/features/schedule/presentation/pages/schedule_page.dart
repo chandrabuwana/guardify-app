@@ -390,6 +390,7 @@ class _SchedulePageState extends State<SchedulePage> {
       focusedDay: _focusedDay,
       currentDay: today,
       selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+      availableGestures: AvailableGestures.none,
       calendarFormat: CalendarFormat.month,
       startingDayOfWeek: StartingDayOfWeek.sunday,
       headerVisible: false,

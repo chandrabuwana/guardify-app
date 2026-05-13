@@ -27,9 +27,12 @@ class TestResultEntity extends Equatable {
   final DateTime tanggalTest;
   final int nilaiTest;
   final int nilaiKKM;
+  final int? remedialGrade;
   final TestKelulusanStatus status;
   final String? tipeTest;
   final String? keterangan;
+  final String? userFullname;
+  final String? userJabatan;
 
   const TestResultEntity({
     required this.id,
@@ -38,9 +41,12 @@ class TestResultEntity extends Equatable {
     required this.tanggalTest,
     required this.nilaiTest,
     required this.nilaiKKM,
+    this.remedialGrade,
     required this.status,
     this.tipeTest,
     this.keterangan,
+    this.userFullname,
+    this.userJabatan,
   });
 
   /// Check apakah Test lulus
@@ -54,9 +60,12 @@ class TestResultEntity extends Equatable {
         tanggalTest,
         nilaiTest,
         nilaiKKM,
+        remedialGrade,
         status,
         tipeTest,
         keterangan,
+        userFullname,
+        userJabatan,
       ];
 }
 

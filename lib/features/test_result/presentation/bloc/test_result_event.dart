@@ -98,3 +98,24 @@ class FetchMemberTestsEvent extends TestResultEvent {
   List<Object?> get props => [picId];
 }
 
+/// Event untuk fetch assessment list (untuk Ujian Anggota tab)
+class FetchAssessmentListEvent extends TestResultEvent {
+  final String picId;
+
+  const FetchAssessmentListEvent(this.picId);
+
+  @override
+  List<Object?> get props => [picId];
+}
+
+/// Event untuk fetch assessment detail (untuk Assessment Detail Page)
+class FetchAssessmentDetailEvent extends TestResultEvent {
+  final String assessmentId;
+  final String idSpv;
+
+  const FetchAssessmentDetailEvent(this.assessmentId, this.idSpv);
+
+  @override
+  List<Object?> get props => [assessmentId, idSpv];
+}
+

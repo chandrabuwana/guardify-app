@@ -114,11 +114,12 @@ class ChatLoadUsers extends ChatEvent {
 
 class ChatCreateConversation extends ChatEvent {
   final List<String> memberUserIds;
+  final String? name; // Optional name from card to avoid API call
 
-  const ChatCreateConversation({required this.memberUserIds});
+  const ChatCreateConversation({required this.memberUserIds, this.name});
 
   @override
-  List<Object?> get props => [memberUserIds];
+  List<Object?> get props => [memberUserIds, name];
 }
 
 class ChatJoinConversation extends ChatEvent {

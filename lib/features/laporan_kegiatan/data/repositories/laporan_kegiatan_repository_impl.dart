@@ -134,4 +134,14 @@ class LaporanKegiatanRepositoryImpl implements LaporanKegiatanRepository {
       return Left(ServerFailure('Failed to verify laporan: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, bool>> deleteAttendance(String attendanceId) async {
+    try {
+      final result = await remoteDataSource.deleteAttendance(attendanceId);
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure('Failed to delete attendance: $e'));
+    }
+  }
 }

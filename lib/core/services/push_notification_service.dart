@@ -31,12 +31,13 @@ class PushNotificationService {
 
   static const AndroidNotificationChannel _panicAndroidChannel =
       AndroidNotificationChannel(
-    'guardify_panic',
+    'guardify_panic_v3',
     'Guardify Panic Alerts',
     description: 'Panic button emergency alerts',
     importance: Importance.max,
     playSound: true,
     enableVibration: true,
+    sound: const RawResourceAndroidNotificationSound('notification'),
   );
 
   Future<void> initialize() async {
@@ -331,6 +332,7 @@ class PushNotificationService {
         importance: Importance.high,
         priority: Priority.high,
         playSound: true,
+        sound: const RawResourceAndroidNotificationSound('notification'),
         enableVibration: true,
       ),
       iOS: const DarwinNotificationDetails(),
@@ -342,6 +344,16 @@ class PushNotificationService {
       body,
       details,
     );
+  }
+
+  /// Cancel all active notifications (used when stopping panic alarm)
+  Future<void> cancelAllNotifications() async {
+    try {
+      await _localNotifications.cancelAll();
+      print('✅ [PushNotificationService] All notifications cancelled');
+    } catch (e) {
+      print('⚠️ [PushNotificationService] Error cancelling notifications: $e');
+    }
   }
 
   Future<void> showPanicFullScreenNotification(Map<String, dynamic> rawData) async {
@@ -441,6 +453,7 @@ class PushNotificationService {
         // Don't auto-launch UI while app is in background. User must tap notification.
         fullScreenIntent: false,
         playSound: true,
+        sound: const RawResourceAndroidNotificationSound('notification'),
         enableVibration: true,
         ticker: 'panic',
       ),
