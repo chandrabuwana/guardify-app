@@ -9,12 +9,14 @@ class TugasLanjutanCard extends StatelessWidget {
   final TugasLanjutanEntity tugas;
   final VoidCallback onTap;
   final bool? isCheckedIn; // Checkin status from get_current API
+  final bool? isCheckedOut; // Checkout status from get_current API
 
   const TugasLanjutanCard({
     Key? key,
     required this.tugas,
     required this.onTap,
     this.isCheckedIn,
+    this.isCheckedOut,
   }) : super(key: key);
 
   Color _getStatusColor(TugasLanjutanStatus status) {
@@ -115,8 +117,9 @@ class TugasLanjutanCard extends StatelessWidget {
 
               // Description
               if (tugas.deskripsi.isNotEmpty)
-                Text(
+                _ExpandableText(
                   tugas.deskripsi,
+                  maxChars: 400,
                   style: TS.bodySmall.copyWith(color: Colors.grey[700]),
                 ),
 
@@ -149,7 +152,7 @@ class TugasLanjutanCard extends StatelessWidget {
                         style: TS.bodySmall.copyWith(color: Colors.grey[600]),
                       ),
                     8.verticalSpace,
-                    Row(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -159,32 +162,53 @@ class TugasLanjutanCard extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
+                        8.verticalSpace,
                         if (tugas.buktiUrl != null &&
-                            tugas.buktiUrl!.isNotEmpty) ...[
-                          Text(
-                            ' ',
-                            style: TS.bodySmall,
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                // Show proof image
-                              },
-                              child: Text(
+                            tugas.buktiUrl!.isNotEmpty)
+                          GestureDetector(
+                            onTap: () => _showFullImageModal(context, tugas.buktiUrl!),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8.r),
+                              child: Image.network(
                                 tugas.buktiUrl!,
-                                style: TS.bodySmall.copyWith(
-                                  color: primaryColor,
-                                  decoration: TextDecoration.underline,
-                                ),
+                                width: double.infinity,
+                                height: 120.h,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: double.infinity,
+                                    height: 120.h,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(8.r),
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.broken_image_outlined,
+                                        color: Colors.grey[400],
+                                        size: 32.sp,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            width: double.infinity,
+                            height: 120.h,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '-',
+                                style: TS.bodyMedium.copyWith(color: Colors.grey[400]),
                               ),
                             ),
                           ),
-                        ] else ...[
-                          Text(
-                            ' -',
-                            style: TS.bodySmall,
-                          ),
-                        ],
                       ],
                     ),
                     16.verticalSpace,
@@ -197,14 +221,17 @@ class TugasLanjutanCard extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: (tugas.status == TugasLanjutanStatus.belum &&
-                          (isCheckedIn == null || isCheckedIn == true))
-                      ? onTap
-                      : null,
+                  onPressed:
+                      (tugas.status == TugasLanjutanStatus.belum &&
+                              isCheckedIn == true &&
+                              (isCheckedOut ?? false) == false)
+                          ? onTap
+                          : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
                         (tugas.status == TugasLanjutanStatus.belum &&
-                                (isCheckedIn == null || isCheckedIn == true))
+                                isCheckedIn == true &&
+                                (isCheckedOut ?? false) == false)
                             ? primaryColor
                             : Colors.grey[400],
                     disabledBackgroundColor: Colors.grey[400],
@@ -218,7 +245,8 @@ class TugasLanjutanCard extends StatelessWidget {
                     'Tandai Sebagai Selesai',
                     style: TS.labelLarge.copyWith(
                       color: (tugas.status == TugasLanjutanStatus.belum &&
-                              (isCheckedIn == null || isCheckedIn == true))
+                              isCheckedIn == true &&
+                              (isCheckedOut ?? false) == false)
                           ? Colors.white
                           : Colors.grey[600],
                     ),
@@ -292,28 +320,31 @@ class TugasLanjutanCard extends StatelessWidget {
                           ),
                           8.verticalSpace,
                           if (tugas.buktiUrl?.isNotEmpty == true)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12.r),
-                              child: Image.network(
-                                tugas.buktiUrl!,
-                                width: double.infinity,
-                                height: 180.h,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    width: double.infinity,
-                                    padding: REdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(12.r),
-                                    ),
-                                    child: Text(
-                                      tugas.buktiUrl!,
-                                      style: TS.bodySmall
-                                          .copyWith(color: Colors.black54),
-                                    ),
-                                  );
-                                },
+                            GestureDetector(
+                              onTap: () => _showFullImageModal(context, tugas.buktiUrl!),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12.r),
+                                child: Image.network(
+                                  tugas.buktiUrl!,
+                                  width: double.infinity,
+                                  height: 180.h,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: double.infinity,
+                                      padding: REdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(12.r),
+                                      ),
+                                      child: Text(
+                                        tugas.buktiUrl!,
+                                        style: TS.bodySmall
+                                            .copyWith(color: Colors.black54),
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             )
                           else
@@ -388,6 +419,125 @@ class TugasLanjutanCard extends StatelessWidget {
             style: TS.bodySmall,
           ),
         ),
+      ],
+    );
+  }
+
+  Future<void> _showFullImageModal(BuildContext context, String imageUrl) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.all(16.w),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Full image
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(),
+              child: InteractiveViewer(
+                panEnabled: true,
+                boundaryMargin: const EdgeInsets.all(80),
+                minScale: 0.5,
+                maxScale: 4,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.black87,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.broken_image_outlined,
+                              color: Colors.white,
+                              size: 64.sp,
+                            ),
+                            16.verticalSpace,
+                            Text(
+                              'Gagal memuat gambar',
+                              style: TS.bodyMedium.copyWith(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            // Close button
+            Positioned(
+              top: 16.h,
+              right: 16.w,
+              child: GestureDetector(
+                onTap: () => Navigator.of(ctx).pop(),
+                child: Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 24.sp,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpandableText extends StatefulWidget {
+  final String text;
+  final int maxChars;
+  final TextStyle? style;
+
+  const _ExpandableText(
+    this.text, {
+    required this.maxChars,
+    this.style,
+  });
+
+  @override
+  State<_ExpandableText> createState() => _ExpandableTextState();
+}
+
+class _ExpandableTextState extends State<_ExpandableText> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fullText = widget.text;
+    final isLong = fullText.length > widget.maxChars;
+    final displayText = !_expanded && isLong
+        ? '${fullText.substring(0, widget.maxChars)}...'
+        : fullText;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(displayText, style: widget.style),
+        if (isLong)
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: REdgeInsets.only(top: 4),
+              child: Text(
+                _expanded ? 'Less' : 'More',
+                style: (widget.style ?? const TextStyle())
+                    .copyWith(color: primaryColor, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
       ],
     );
   }

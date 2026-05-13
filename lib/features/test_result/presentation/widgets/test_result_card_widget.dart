@@ -45,7 +45,7 @@ class TestResultCardWidget extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header dengan ID & Tipe
+                  // Header dengan Code & Tipe
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,7 +54,7 @@ class TestResultCardWidget extends StatelessWidget {
                         'ID : ${result.id}',
                         style: TS.bodyMedium.copyWith(
                           color: Colors.black87,
-                          fontWeight: FontWeight.w400,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       if (result.tipeTest != null)
@@ -137,6 +137,20 @@ class TestResultCardWidget extends StatelessWidget {
                       children: [
                         const TextSpan(text: 'Nilai KKM         : '),
                         TextSpan(text: '${result.nilaiKKM}'),
+                      ],
+                    ),
+                  ),
+
+                  8.verticalSpace,
+                  RichText(
+                    text: TextSpan(
+                      style: TS.bodyMedium.copyWith(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      children: [
+                        const TextSpan(text: 'Nilai Remedial         : '),
+                        TextSpan(text: '${result.remedialGrade ?? '-'}'),
                       ],
                     ),
                   ),

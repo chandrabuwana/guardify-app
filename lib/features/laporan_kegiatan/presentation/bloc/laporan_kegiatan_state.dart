@@ -55,12 +55,16 @@ class LaporanListLoaded extends LaporanKegiatanState {
 
 /// Detail loaded state
 class LaporanDetailLoaded extends LaporanKegiatanState {
-  final LaporanKegiatanEntity laporan;
+  final LaporanKegiatanEntity? laporan;
+  final String? showMessage;
 
-  const LaporanDetailLoaded({required this.laporan});
+  const LaporanDetailLoaded({
+    this.laporan,
+    this.showMessage,
+  });
 
   @override
-  List<Object?> get props => [laporan];
+  List<Object?> get props => [laporan, showMessage];
 }
 
 /// Updated state

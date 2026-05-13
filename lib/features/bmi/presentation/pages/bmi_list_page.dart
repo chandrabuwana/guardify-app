@@ -1102,14 +1102,12 @@ class _BMIListPageState extends State<BMIListPage> {
 
   void _showFilterDialog() {
     const categories = [
+      'Underweight',
       'Normal',
       'Overweight',
       'Obesity I',
       'Obesity II',
       'Obesity III',
-      'Kelebihan berat badan',
-      'Obesitas III',
-      'Underweight',
     ];
 
     const jabatans = [

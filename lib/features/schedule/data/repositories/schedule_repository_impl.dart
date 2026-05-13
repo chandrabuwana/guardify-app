@@ -523,6 +523,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
             status: r.status,
             latitude: r.latitude,
             longitude: r.longitude,
+            radius: r.radius,
           );
         }).toList(),
         listCarryOver: response.data!.listCarryOver.map((c) {
@@ -643,7 +644,8 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
               teamMembersForShift[key] = TeamMemberModel(
                 id: personnel.userId,
                 name: personnel.fullname,
-                position: route.areasName, // Use route/area as position
+                position: personnel.areasName ?? route.areasName, // Use personnel's AreasName first, fallback to route area
+                areasName: personnel.areasName, // Store the AreasName from personnel
                 photoUrl: (personnel.images != null && personnel.images!.isNotEmpty) ? personnel.images : null,
               );
             }

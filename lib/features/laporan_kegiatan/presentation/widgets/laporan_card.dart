@@ -134,10 +134,12 @@ class LaporanCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        laporan.kehadiran,
+                        laporan.idAttendance == null ? 'Absent' : laporan.kehadiran,
                         style: TS.bodySmall.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: _getKehadiranColor(laporan.kehadiran),
+                          color: laporan.idAttendance == null
+                              ? errorColor
+                              : _getKehadiranColor(laporan.kehadiran),
                         ),
                       ),
                     ],

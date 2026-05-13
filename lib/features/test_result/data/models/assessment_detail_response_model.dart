@@ -1,10 +1,43 @@
+import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'test_result_model.dart';
 import '../../domain/entities/test_result_entity.dart';
 
 part 'assessment_detail_response_model.g.dart';
+// When Ujian Anggota pakai assesment/list .
+//ketika card di click pakai AssesmentDetail/list 
+// untuk UI yang atas
+// {
+//   "Filter": [
+//     {
+//       "Field": "IdAssesment",
+//       "Search": "4e7c022e-1cca-4561-8fbb-093099a1e6aa"
+//     }
+//   ],
+//   "Sort": {
+//     "Field": "string",
+//     "Type": 0
+//   },
+//   "Start": 0,
+//   "Length": 0
+// }
+// untuk UI yang bawah
+// {
+//   "Filter": [
+//     {
+//       "Field": "IdSpv",
+//       "Search": ""
+//     }
+//   ],
+//   "Sort": {
+//     "Field": "string",
+//     "Type": 0
+//   },
+//   "Start": 0,
+//   "Length": 0
+// }
+//trus di hitung 
 
-/// Response model untuk API AssessmentDetail/list
 @JsonSerializable()
 class AssessmentDetailResponseModel {
   @JsonKey(name: 'Count')
@@ -59,8 +92,11 @@ class AssessmentDetailItemModel {
   @JsonKey(name: 'Grade')
   final int grade;
 
+  @JsonKey(name: 'RemedialGrade')
+  final int? remedialGrade;
+
   @JsonKey(name: 'IdAssesment')
-  final String idAssessment;
+  final String idAssesment;
 
   @JsonKey(name: 'Assesment')
   final AssessmentInfoModel? assessment;
@@ -77,17 +113,26 @@ class AssessmentDetailItemModel {
   @JsonKey(name: 'UserId')
   final String userId;
 
+  @JsonKey(name: 'UserFullname')
+  final String? userFullname;
+
+  @JsonKey(name: 'UserJabatan')
+  final String? userJabatan;
+
   const AssessmentDetailItemModel({
     required this.id,
     this.createBy,
     this.createDate,
     required this.grade,
-    required this.idAssessment,
+    this.remedialGrade,
+    required this.idAssesment,
     this.assessment,
     required this.status,
     this.updateBy,
     this.updateDate,
     required this.userId,
+    this.userFullname,
+    this.userJabatan,
   });
 
   factory AssessmentDetailItemModel.fromJson(Map<String, dynamic> json) =>
@@ -128,19 +173,39 @@ class AssessmentDetailItemModel {
     // Ambil nama assessment dari nested object atau gunakan default
     String namaTest = assessment?.name ?? 'Assessment';
     
-    // Generate ID pendek dari full UUID (ambil 8 karakter pertama + huruf acak)
-    String shortId = 'PNC${id.substring(0, 5).toUpperCase()}';
+    // Gunakan Code dari Assessment, fallback ke ID pendek jika tidak ada
+    // Prioritas: Assessment.Code > fallback
+    String assessmentCode;
+    if (assessment != null && assessment!.code != null && assessment!.code!.isNotEmpty) {
+      assessmentCode = assessment!.code!;
+    } else {
+      assessmentCode = 'PNC${id.substring(0, 5).toUpperCase()}';
+    }
+    
+    // Debug logging
+    debugPrint('📋 [AssessmentDetailItemModel] Assessment Code Mapping:');
+    debugPrint('  - id: $id');
+    debugPrint('  - assessment is null: ${assessment == null}');
+    if (assessment != null) {
+      debugPrint('  - assessment.id: ${assessment!.id}');
+      debugPrint('  - assessment.code: ${assessment!.code}');
+      debugPrint('  - assessment.name: ${assessment!.name}');
+    }
+    debugPrint('  - Final assessmentCode: $assessmentCode');
 
     return TestResultModel(
-      id: shortId, // ID pendek untuk display
+      id: assessmentCode, // Code dari Assessment
       userId: userId,
       namaTest: namaTest, // Nama dari Assessment.Name
       tanggalTest: tanggalTest,
       nilaiTest: grade, // Grade dari response
       nilaiKKM: assessment?.minValue ?? 80, // MinValue dari Assessment
+      remedialGrade: remedialGrade, // RemedialGrade dari response
       status: parseStatus,
       tipeTest: 'Ujian Tahunan', // Hardcode karena tidak ada di API
       keterangan: createBy,
+      userFullname: userFullname,
+      userJabatan: userJabatan,
     );
   }
 }
@@ -150,6 +215,9 @@ class AssessmentDetailItemModel {
 class AssessmentInfoModel {
   @JsonKey(name: 'Id')
   final String id;
+
+  @JsonKey(name: 'Code')
+  final String? code;
 
   @JsonKey(name: 'AssesmentDate')
   final String? assessmentDate;
@@ -161,7 +229,7 @@ class AssessmentInfoModel {
   final String? createDate;
 
   @JsonKey(name: 'IdAssesmentCategory')
-  final int? idAssessmentCategory;
+  final int? idAssesmentCategory;
 
   @JsonKey(name: 'AssesmentCategory')
   final dynamic assessmentCategory;
@@ -189,10 +257,11 @@ class AssessmentInfoModel {
 
   const AssessmentInfoModel({
     required this.id,
+    this.code,
     this.assessmentDate,
     this.createBy,
     this.createDate,
-    this.idAssessmentCategory,
+    this.idAssesmentCategory,
     this.assessmentCategory,
     this.idPic,
     required this.minValue,

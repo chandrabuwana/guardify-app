@@ -65,6 +65,80 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
     _loadAreas();
   }
 
+  Future<void> _pickLocation() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        final searchController = TextEditingController();
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final query = searchController.text.trim().toLowerCase();
+            final filtered = query.isEmpty
+                ? _availableAreas
+                : _availableAreas
+                    .where((a) => a.name.toLowerCase().contains(query))
+                    .toList();
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: searchController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'Cari lokasi...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: searchController.text.isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: () {
+                                  searchController.clear();
+                                  setModalState(() {});
+                                },
+                                icon: const Icon(Icons.close),
+                              ),
+                      ),
+                      onChanged: (_) => setModalState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final area = filtered[index];
+                          return ListTile(
+                            title: Text(area.name),
+                            onTap: () => Navigator.pop(context, area.name),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || selected == null) return;
+    setState(() {
+      _selectedLocation = selected;
+    });
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -235,35 +309,31 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
                                       ),
                                     ),
                                   )
-                                : DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value: _selectedLocation,
-                                      hint: Text(
-                                        'Lokasi Kejadian ---',
-                                        style: TextStyle(
-                                          fontSize: 14.sp,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      isExpanded: true,
-                                      icon: Icon(
-                                        Icons.keyboard_arrow_down,
-                                        color: Colors.grey[600],
-                                      ),
-                                      items: _availableAreas.map((area) {
-                                        return DropdownMenuItem<String>(
-                                          value: area.name,
-                                          child: Text(
-                                            area.name,
-                                            style: TextStyle(fontSize: 14.sp),
+                                : InkWell(
+                                    onTap: _pickLocation,
+                                    child: Padding(
+                                      padding: REdgeInsets.symmetric(
+                                          vertical: 12),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              _selectedLocation ??
+                                                  'Lokasi Kejadian ---',
+                                              style: TextStyle(
+                                                fontSize: 14.sp,
+                                                color: _selectedLocation == null
+                                                    ? Colors.grey[600]
+                                                    : Colors.black87,
+                                              ),
+                                            ),
                                           ),
-                                        );
-                                      }).toList(),
-                                      onChanged: (String? newValue) {
-                                        setState(() {
-                                          _selectedLocation = newValue;
-                                        });
-                                      },
+                                          Icon(
+                                            Icons.search,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                   ),
@@ -676,14 +746,14 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       print('✅ Reporter Date: $reporterDate');
       final description = _kejadianController.text; // Hanya kejadian
-      final feedback = _tindakanController.text.isNotEmpty
+      final resolveAction = _tindakanController.text.isNotEmpty
           ? _tindakanController.text
-          : null; // Feedback dari tindakan, null jika kosong
+          : null; // ResolveAction dari tindakan, null jika kosong
       print('✅ Description: $description');
       print('✅ Description length: ${description.length} characters');
-      print('✅ Feedback: ${feedback ?? "null"}');
-      if (feedback != null) {
-        print('✅ Feedback length: ${feedback.length} characters');
+      print('✅ ResolveAction: ${resolveAction ?? "null"}');
+      if (resolveAction != null) {
+        print('✅ ResolveAction length: ${resolveAction.length} characters');
       }
 
       // Get selected incident type ID
@@ -700,11 +770,11 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
         action: null,
         areasId: selectedArea.id,
         description: description,
-        feedback: feedback, // Feedback dari tindakan
+        feedback: null,
         idIncidentType: _selectedIncidentTypeId!,
         reporterDate: reporterDate,
         reporterId: reporterId,
-        resolveAction: null,
+        resolveAction: resolveAction, // ResolveAction dari tindakan
         solverDate: null,
         solverId: null,
         status: 'OPEN',
@@ -1058,28 +1128,32 @@ class _CameraScreenState extends State<_CameraScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   int _currentCameraIndex = 0;
+  bool _isControllerCreated = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeCamera(0);
+  }
+
+  void _initializeCamera(int index) {
+    if (_isControllerCreated) {
+      _controller.dispose();
+    }
     _controller = CameraController(
-      widget.cameras[0],
+      widget.cameras[index],
       ResolutionPreset.high,
     );
+    _isControllerCreated = true;
     _initializeControllerFuture = _controller.initialize();
   }
 
   void _switchCamera() {
     if (widget.cameras.length < 2) return;
     
-    _controller.dispose();
     setState(() {
       _currentCameraIndex = (_currentCameraIndex + 1) % widget.cameras.length;
-      _controller = CameraController(
-        widget.cameras[_currentCameraIndex],
-        ResolutionPreset.high,
-      );
-      _initializeControllerFuture = _controller.initialize();
+      _initializeCamera(_currentCameraIndex);
     });
   }
 

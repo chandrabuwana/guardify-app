@@ -32,7 +32,7 @@ class _PersonnelListView extends StatefulWidget {
 const Map<String, String> _displayToApiStatus = {
   'Aktif': 'Active',
   'Pending': 'Pending',
-  'Non Aktif': 'Non Active', // API expects 'Non Active' not 'Inactive'
+  'Non Aktif': 'InActive', // API expects 'InActive'
 };
 
 class _PersonnelListViewState extends State<_PersonnelListView> with SingleTickerProviderStateMixin {

@@ -11,6 +11,7 @@ class Message {
   final String? attachmentUrl;
   final String? attachmentType;
   // Header information from API response
+  final String? fullname;
   final bool? isOnline;
   final DateTime? lastSeen;
   final String? opponentFoto;
@@ -30,6 +31,7 @@ class Message {
     required this.status,
     this.attachmentUrl,
     this.attachmentType,
+    this.fullname,
     this.isOnline,
     this.lastSeen,
     this.opponentFoto,
@@ -49,6 +51,7 @@ class Message {
     MessageStatus? status,
     String? attachmentUrl,
     String? attachmentType,
+    String? fullname,
     bool? isOnline,
     DateTime? lastSeen,
     String? opponentFoto,
@@ -68,6 +71,7 @@ class Message {
       status: status ?? this.status,
       attachmentUrl: attachmentUrl ?? this.attachmentUrl,
       attachmentType: attachmentType ?? this.attachmentType,
+      fullname: fullname ?? this.fullname,
       isOnline: isOnline ?? this.isOnline,
       lastSeen: lastSeen ?? this.lastSeen,
       opponentFoto: opponentFoto ?? this.opponentFoto,
@@ -91,6 +95,7 @@ class Message {
         other.status == status &&
         other.attachmentUrl == attachmentUrl &&
         other.attachmentType == attachmentType &&
+        other.fullname == fullname &&
         other.isOnline == isOnline &&
         other.lastSeen == lastSeen &&
         other.opponentFoto == opponentFoto &&
@@ -112,6 +117,7 @@ class Message {
       status,
       attachmentUrl,
       attachmentType,
+      fullname,
       isOnline,
       lastSeen,
       opponentFoto,
@@ -122,7 +128,7 @@ class Message {
 
   @override
   String toString() {
-    return 'Message(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImageUrl: $senderProfileImageUrl, content: $content, type: $type, timestamp: $timestamp, status: $status, attachmentUrl: $attachmentUrl, attachmentType: $attachmentType, isOnline: $isOnline, lastSeen: $lastSeen, opponentFoto: $opponentFoto, selfFoto: $selfFoto, sentAt: $sentAt)';
+    return 'Message(id: $id, chatId: $chatId, senderId: $senderId, senderName: $senderName, senderProfileImageUrl: $senderProfileImageUrl, content: $content, type: $type, timestamp: $timestamp, status: $status, attachmentUrl: $attachmentUrl, attachmentType: $attachmentType, fullname: $fullname, isOnline: $isOnline, lastSeen: $lastSeen, opponentFoto: $opponentFoto, selfFoto: $selfFoto, sentAt: $sentAt)';
   }
 }
 

@@ -245,6 +245,7 @@ class RouteTask {
   final String status;
   final double? latitude;
   final double? longitude;
+  final double? radius;
 
   const RouteTask({
     required this.idAreas,
@@ -256,6 +257,7 @@ class RouteTask {
     required this.status,
     this.latitude,
     this.longitude,
+    this.radius,
   });
 }
 

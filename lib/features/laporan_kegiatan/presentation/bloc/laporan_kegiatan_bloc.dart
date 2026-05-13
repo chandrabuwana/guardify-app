@@ -7,6 +7,7 @@ import '../../domain/usecases/get_laporan_list.dart';
 import '../../domain/usecases/get_laporan_detail.dart';
 import '../../domain/usecases/update_status_laporan.dart';
 import '../../domain/usecases/verif_laporan.dart';
+import '../../domain/usecases/delete_attendance.dart';
 
 part 'laporan_kegiatan_event.dart';
 part 'laporan_kegiatan_state.dart';
@@ -18,12 +19,14 @@ class LaporanKegiatanBloc
   final GetLaporanDetail getLaporanDetail;
   final UpdateStatusLaporan updateStatusLaporan;
   final VerifLaporan verifLaporan;
+  final DeleteAttendance deleteAttendance;
 
   LaporanKegiatanBloc({
     required this.getLaporanList,
     required this.getLaporanDetail,
     required this.updateStatusLaporan,
     required this.verifLaporan,
+    required this.deleteAttendance,
   }) : super(LaporanInitial()) {
     on<GetLaporanListEvent>(_onGetLaporanList);
     on<GetLaporanDetailEvent>(_onGetLaporanDetail);
@@ -198,18 +201,35 @@ class LaporanKegiatanBloc
   ) async {
     emit(LaporanLoading());
 
-    // Mark as tidak masuk - this would typically update the kehadiran status
-    // For now, we'll just reload the detail
-    final result = await getLaporanDetail(event.id);
+    // Call delete attendance API
+    final deleteResult = await deleteAttendance(event.id);
 
-    result.fold(
-      (failure) => emit(LaporanError(message: failure.message)),
-      (laporan) {
-        // Update kehadiran to "Tidak Masuk"
-        final updatedLaporan = laporan.copyWith(
-          kehadiran: 'Tidak Masuk',
+    await deleteResult.fold(
+      (failure) async => emit(LaporanError(message: failure.message)),
+      (success) async {
+        // After successful deletion, reload the detail
+        final detailResult = await getLaporanDetail(event.id);
+        detailResult.fold(
+          (failure) {
+            // If detail is not found (404), it means the attendance was successfully deleted
+            // Show success message instead of error
+            if (failure.message.contains('Data not found') ||
+                failure.message.contains('404')) {
+              // Emit empty state or navigate back - for now emit success with empty data
+              // The UI should handle this by showing a success toast and navigating back
+              emit(LaporanDetailLoaded(laporan: null, showMessage: 'Tandai Sebagai tidak masuk success'));
+            } else {
+              emit(LaporanError(message: failure.message));
+            }
+          },
+          (laporan) {
+            // Update kehadiran to "Tidak Masuk"
+            final updatedLaporan = laporan.copyWith(
+              kehadiran: 'Tidak Masuk',
+            );
+            emit(LaporanDetailLoaded(laporan: updatedLaporan, showMessage: 'Tandai Sebagai tidak masuk success'));
+          },
         );
-        emit(LaporanDetailLoaded(laporan: updatedLaporan));
       },
     );
   }

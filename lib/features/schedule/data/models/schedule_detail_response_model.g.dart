@@ -104,13 +104,15 @@ PersonnelModel _$PersonnelModelFromJson(Map<String, dynamic> json) =>
           userId: $checkedConvert('UserId', (v) => v as String),
           fullname: $checkedConvert('Fullname', (v) => v as String),
           images: $checkedConvert('Images', (v) => v as String?),
+          areasName: $checkedConvert('AreasName', (v) => v as String?),
         );
         return val;
       },
       fieldKeyMap: const {
         'userId': 'UserId',
         'fullname': 'Fullname',
-        'images': 'Images'
+        'images': 'Images',
+        'areasName': 'AreasName'
       },
     );
 
@@ -119,6 +121,7 @@ Map<String, dynamic> _$PersonnelModelToJson(PersonnelModel instance) =>
       'UserId': instance.userId,
       'Fullname': instance.fullname,
       'Images': instance.images,
+      'AreasName': instance.areasName,
     };
 
 RouteAreaModel _$RouteAreaModelFromJson(Map<String, dynamic> json) =>

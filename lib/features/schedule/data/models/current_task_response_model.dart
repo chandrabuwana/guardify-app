@@ -85,6 +85,9 @@ class RouteTaskModel {
   @JsonKey(name: 'Longitude')
   final double? longitude;
 
+  @JsonKey(name: 'Radius')
+  final double? radius;
+
   RouteTaskModel({
     required this.idAreas,
     required this.areasName,
@@ -94,6 +97,7 @@ class RouteTaskModel {
     required this.status,
     this.latitude,
     this.longitude,
+    this.radius,
   });
 
   factory RouteTaskModel.fromJson(Map<String, dynamic> json) =>

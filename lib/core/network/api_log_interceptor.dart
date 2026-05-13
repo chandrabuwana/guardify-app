@@ -44,9 +44,9 @@ class ApiLogInterceptor extends Interceptor {
         method: requestOptions.method,
         url: '${requestOptions.baseUrl}${requestOptions.path}',
         headers: _sanitizeHeaders(requestOptions.headers),
-        requestBody: requestOptions.data,
+        requestBody: _truncateBody(requestOptions.data),
         statusCode: response.statusCode,
-        responseBody: response.data,
+        responseBody: _truncateBody(response.data),
         durationMs: duration,
       );
 
@@ -73,9 +73,9 @@ class ApiLogInterceptor extends Interceptor {
         method: requestOptions.method,
         url: '${requestOptions.baseUrl}${requestOptions.path}',
         headers: _sanitizeHeaders(requestOptions.headers),
-        requestBody: requestOptions.data,
+        requestBody: _truncateBody(requestOptions.data),
         statusCode: err.response?.statusCode,
-        responseBody: err.response?.data,
+        responseBody: _truncateBody(err.response?.data),
         error: err.message,
         durationMs: duration,
       );
@@ -92,6 +92,23 @@ class ApiLogInterceptor extends Interceptor {
     final sanitized = Map<String, dynamic>.from(headers);
     // Keep headers as is, we'll handle masking in the display
     return sanitized;
+  }
+
+  /// Truncate body to prevent storing massive data in SharedPreferences
+  /// Max 10KB per body to keep total log size under control
+  static const int _maxBodyLength = 10240;
+
+  dynamic _truncateBody(dynamic body) {
+    if (body == null) return null;
+    try {
+      final str = body is String ? body : body.toString();
+      if (str.length > _maxBodyLength) {
+        return '${str.substring(0, _maxBodyLength)}... [TRUNCATED - original size: ${str.length} chars]';
+      }
+      return body;
+    } catch (e) {
+      return '[Error truncating body]';
+    }
   }
 }
 

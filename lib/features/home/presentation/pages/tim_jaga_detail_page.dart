@@ -6,6 +6,10 @@ import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/utils/user_role_helper.dart';
+import '../../../chat/domain/entities/chat.dart';
+import '../../../chat/presentation/bloc/chat_bloc.dart';
+import '../../../chat/presentation/bloc/chat_event.dart';
+import '../../../chat/presentation/pages/chat_conversation_page.dart';
 import '../../../laporan_kegiatan/domain/entities/laporan_kegiatan_entity.dart';
 import '../../../laporan_kegiatan/domain/repositories/laporan_kegiatan_repository.dart';
 import '../../../laporan_kegiatan/presentation/bloc/laporan_kegiatan_bloc.dart';
@@ -488,7 +492,7 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage>
           ),
           4.verticalSpace,
           Text(
-            '$area Masuk',
+            '$area',
             style: TextStyle(
               fontSize: 10.sp,
               color: neutral70,
@@ -503,13 +507,52 @@ class _TimJagaDetailPageState extends State<TimJagaDetailPage>
             width: double.infinity,
             height: 28.h,
             child: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Kirim pesan ke ${member.name}'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+              onPressed: () async {
+                // Get or create ChatBloc
+                ChatBloc chatBloc;
+                try {
+                  chatBloc = context.read<ChatBloc>();
+                } catch (e) {
+                  // If ChatBloc is not available in context, create new one
+                  chatBloc = getIt<ChatBloc>();
+                }
+
+                // Create conversation with the team member
+                chatBloc.add(ChatCreateConversation(memberUserIds: [member.id], name: member.name));
+
+                // Wait for conversation to be created
+                await Future.delayed(const Duration(milliseconds: 500));
+
+                // Navigate to conversation page
+                if (mounted) {
+                  final currentState = chatBloc.state;
+                  if (currentState.selectedChatId != null) {
+                    // Find the chat that was just created
+                    final newChat = currentState.chats.firstWhere(
+                      (chat) => chat.id == currentState.selectedChatId,
+                      orElse: () => Chat(
+                        id: currentState.selectedChatId!,
+                        name: member.name,
+                        type: ChatType.direct,
+                        participantIds: [member.id],
+                        unreadCount: 0,
+                        isActive: true,
+                        createdAt: DateTime.now(),
+                        updatedAt: DateTime.now(),
+                      ),
+                    );
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BlocProvider.value(
+                          value: chatBloc,
+                          child: ChatConversationPage(chat: newChat),
+                        ),
+                      ),
+                    );
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,

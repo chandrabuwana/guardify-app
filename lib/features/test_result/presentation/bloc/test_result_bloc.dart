@@ -9,6 +9,9 @@ import '../../domain/usecases/get_my_test_results_usecase.dart';
 import '../../domain/usecases/get_member_test_results_usecase.dart';
 import '../../domain/usecases/get_test_summary_usecase.dart';
 import '../../domain/usecases/get_member_tests_by_pic_usecase.dart';
+import '../../domain/usecases/get_assessment_list_usecase.dart';
+import '../../domain/usecases/get_assessment_detail_usecase.dart';
+import '../../domain/entities/assessment_entity.dart';
 
 part 'test_result_event.dart';
 part 'test_result_state.dart';
@@ -19,12 +22,16 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
   final GetMemberTestResultsUseCase getMemberResultsUseCase;
   final GetTestSummaryUseCase getSummaryUseCase;
   final GetMemberTestsByPicUseCase getMemberTestsByPicUseCase;
+  final GetAssessmentListUseCase getAssessmentListUseCase;
+  final GetAssessmentDetailUseCase getAssessmentDetailUseCase;
 
   TestResultBloc({
     required this.getMyResultsUseCase,
     required this.getMemberResultsUseCase,
     required this.getSummaryUseCase,
     required this.getMemberTestsByPicUseCase,
+    required this.getAssessmentListUseCase,
+    required this.getAssessmentDetailUseCase,
   }) : super(const TestResultInitial()) {
     on<FetchTestResultEvent>(_onFetchTestResult);
     on<SearchTestEvent>(_onSearchTest);
@@ -34,6 +41,8 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
     on<SearchMyTestEvent>(_onSearchMyTest);
     on<FilterMyTestEvent>(_onFilterMyTest);
     on<FetchMemberTestsEvent>(_onFetchMemberTests);
+    on<FetchAssessmentListEvent>(_onFetchAssessmentList);
+    on<FetchAssessmentDetailEvent>(_onFetchAssessmentDetail);
   }
 
   Future<void> _onFetchTestResult(
@@ -50,16 +59,6 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
         return;
       }
 
-      print('');
-      print('🔵 ========================================');
-      print('🔵 TEST RESULT BLOC: FETCH EVENT');
-      print('🔵 ========================================');
-      print('🔵 Event userId: "${event.userId}"');
-      print('🔵 Event userId length: ${event.userId.length}');
-      print('🔵 User role: ${event.role.displayName}');
-      print('🔵 ========================================');
-      print('');
-
       // Get summary untuk semua role
       final summaryResult = await getSummaryUseCase(userId: event.userId);
       
@@ -70,7 +69,8 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
       );
 
       // Untuk role yang bisa lihat member results
-      if (_canViewMemberResults(event.role)) {
+      // Pengawas uses assessment list instead of member results
+      if (_canViewMemberResults(event.role) && event.role != UserRole.pengawas) {
         final memberResultsResult = await getMemberResultsUseCase();
         final myResultsResult = await getMyResultsUseCase(event.userId);
 
@@ -94,6 +94,35 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
           filteredMemberResults: memberResults,
           summary: summary,
           userRole: event.role,
+          userId: event.userId,
+        ));
+      } else if (event.role == UserRole.pengawas) {
+        // Untuk Pengawas, fetch assessment list directly (Assesment/list)
+        print('🔵 Pengawas: Fetching assessment list directly...');
+        final assessmentListResult = await getAssessmentListUseCase(event.userId);
+
+        List<AssessmentEntity> assessmentList = [];
+        assessmentListResult.fold(
+          (failure) {
+            print('❌ Pengawas: Failed to fetch assessment list: ${failure.message}');
+            assessmentList = [];
+          },
+          (data) {
+            print('✅ Pengawas: Fetched ${data.length} assessments');
+            assessmentList = data;
+          },
+        );
+
+        emit(TestResultLoaded(
+          myResults: const [],
+          filteredMyResults: const [],
+          memberResults: const [],
+          filteredMemberResults: const [],
+          assessmentList: assessmentList,
+          filteredAssessmentList: assessmentList,
+          summary: summary,
+          userRole: event.role,
+          userId: event.userId,
         ));
       } else {
         // Untuk Anggota, hanya show my results
@@ -113,6 +142,7 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
           filteredMemberResults: const [],
           summary: summary,
           userRole: event.role,
+          userId: event.userId,
         ));
       }
     } catch (e) {
@@ -189,35 +219,28 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
     SwitchTestTabEvent event,
     Emitter<TestResultState> emit,
   ) {
-    print('');
-    print('🔄 ========================================');
-    print('🔄 SWITCH TAB EVENT');
-    print('🔄 ========================================');
-    print('🔄 Tab index: ${event.tabIndex}');
-    print('🔄 UserId from event: ${event.userId}');
-    print('🔄 Current state type: ${state.runtimeType}');
-    
+   
     if (state is TestResultLoaded) {
       final currentState = state as TestResultLoaded;
-      print('🔄 Current memberTests count: ${currentState.memberTests.length}');
-      print('🔄 Is loading member results: ${currentState.isLoadingMemberResults}');
-      
+      print('🔄 Current assessmentList count: ${currentState.assessmentList.length}');
+      print('🔄 Is loading assessment list: ${currentState.isLoadingAssessmentList}');
+
       emit(currentState.copyWith(currentTabIndex: event.tabIndex));
-      
-      // Fetch member tests when switching to "Test Anggota" tab (index 1)
+
+      // Fetch assessment list when switching to "Ujian Anggota" tab (index 1)
       // and data hasn't been loaded yet or userId is available
       if (event.tabIndex == 1) {
-        print('🔄 Switched to Test Anggota tab');
-        
+        print('🔄 Switched to Ujian Anggota tab');
+
         if (event.userId == null || event.userId!.isEmpty) {
-          print('❌ ERROR: UserId is null/empty, cannot fetch member tests');
-        } else if (currentState.memberTests.isNotEmpty) {
-          print('ℹ️ Member tests already loaded (${currentState.memberTests.length} items)');
-        } else if (currentState.isLoadingMemberResults) {
-          print('ℹ️ Member tests are already being loaded');
+          print('❌ ERROR: UserId is null/empty, cannot fetch assessment list');
+        } else if (currentState.assessmentList.isNotEmpty) {
+          print('ℹ️ Assessment list already loaded (${currentState.assessmentList.length} items)');
+        } else if (currentState.isLoadingAssessmentList) {
+          print('ℹ️ Assessment list is already being loaded');
         } else {
-          print('🔵 Fetching member tests with PIC ID: ${event.userId}');
-          add(FetchMemberTestsEvent(event.userId!));
+          print('🔵 Fetching assessment list with PIC ID: ${event.userId}');
+          add(FetchAssessmentListEvent(event.userId!));
         }
       }
     } else {
@@ -377,6 +400,114 @@ class TestResultBloc extends Bloc<TestResultEvent, TestResultState> {
     String status,
   ) {
     return results.where((result) => result.status.value == status).toList();
+  }
+
+  Future<void> _onFetchAssessmentList(
+    FetchAssessmentListEvent event,
+    Emitter<TestResultState> emit,
+  ) async {
+    if (state is TestResultLoaded) {
+      final currentState = state as TestResultLoaded;
+      
+      emit(currentState.copyWith(isLoadingAssessmentList: true));
+      
+      try {
+        print('');
+        print('🔵 ========================================');
+        print('🔵 FETCH ASSESSMENT LIST (Ujian Anggota Tab)');
+        print('🔵 ========================================');
+        print('🔵 PIC ID: "${event.picId}"');
+        print('🔵 ========================================');
+
+        final assessmentListResult = await getAssessmentListUseCase(event.picId);
+
+        assessmentListResult.fold(
+          (failure) {
+            print('❌ Failed to fetch assessment list: ${failure.message}');
+            emit(currentState.copyWith(
+              isLoadingAssessmentList: false,
+              assessmentListError: failure.message,
+            ));
+          },
+          (assessmentList) {
+            print('✅ Successfully fetched ${assessmentList.length} assessments');
+            
+            emit(currentState.copyWith(
+              assessmentList: assessmentList,
+              filteredAssessmentList: assessmentList,
+              isLoadingAssessmentList: false,
+              assessmentListError: null,
+            ));
+          },
+        );
+      } catch (e) {
+        print('❌ Exception: $e');
+        emit(currentState.copyWith(
+          isLoadingAssessmentList: false,
+          assessmentListError: 'Terjadi kesalahan: ${e.toString()}',
+        ));
+      }
+    }
+  }
+
+  Future<void> _onFetchAssessmentDetail(
+    FetchAssessmentDetailEvent event,
+    Emitter<TestResultState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! TestResultLoaded) {
+      emit(const TestResultLoading());
+    } else {
+      emit(currentState.copyWith(isLoadingAssessmentDetail: true));
+    }
+
+    try {
+      final result = await getAssessmentDetailUseCase(event.assessmentId, event.idSpv);
+
+      result.fold(
+        (failure) {
+          print('❌ Failed to fetch assessment detail: $failure');
+          if (currentState is TestResultLoaded) {
+            emit(currentState.copyWith(
+              isLoadingAssessmentDetail: false,
+              assessmentDetailError: failure.message,
+            ));
+          } else {
+            emit(TestResultError(failure.message));
+          }
+        },
+        (assessmentDetailList) {
+          print('✅ Successfully fetched ${assessmentDetailList.length} assessment details');
+          if (currentState is TestResultLoaded) {
+            emit(currentState.copyWith(
+              assessmentDetailList: assessmentDetailList,
+              isLoadingAssessmentDetail: false,
+              assessmentDetailError: null,
+            ));
+          } else {
+            emit(TestResultLoaded(
+              myResults: [],
+              filteredMyResults: [],
+              memberResults: [],
+              filteredMemberResults: [],
+              userRole: UserRole.pjo,
+              assessmentDetailList: assessmentDetailList,
+              isLoadingAssessmentDetail: false,
+            ));
+          }
+        },
+      );
+    } catch (e) {
+      print('❌ Exception in _onFetchAssessmentDetail: $e');
+      if (currentState is TestResultLoaded) {
+        emit(currentState.copyWith(
+          isLoadingAssessmentDetail: false,
+          assessmentDetailError: 'Terjadi kesalahan: ${e.toString()}',
+        ));
+      } else {
+        emit(TestResultError('Terjadi kesalahan: ${e.toString()}'));
+      }
+    }
   }
 
   /// Helper untuk check apakah role bisa lihat member results

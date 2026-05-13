@@ -56,4 +56,7 @@ abstract class LaporanKegiatanRepository {
     required bool isVerif,
     String? feedback,
   });
+
+  /// Delete attendance (mark as tidak masuk) menggunakan API Attendance/delete
+  Future<Either<Failure, bool>> deleteAttendance(String attendanceId);
 }

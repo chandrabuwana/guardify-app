@@ -234,11 +234,19 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
           }
           
           // Get opponent info from Header (for direct chat) or from Chat entity
-          final opponentFoto = lastMessage?.opponentFoto ?? 
-                              widget.chat.opponentFoto ?? 
+          final opponentFoto = lastMessage?.opponentFoto ??
+                              widget.chat.opponentFoto ??
                               widget.chat.profileImageUrl;
           final isOnline = lastMessage?.isOnline ?? widget.chat.isOnline ?? false;
           final lastSeen = lastMessage?.lastSeen;
+          final opponentName = lastMessage?.fullname ?? widget.chat.name;
+
+          // Debug logging to track name fallback
+          print('🔍 Chat Header Debug:');
+          print('  - widget.chat.name: "${widget.chat.name}"');
+          print('  - lastMessage: ${lastMessage != null ? "exists" : "null"}');
+          print('  - lastMessage?.fullname: ${lastMessage?.fullname ?? "null"}');
+          print('  - opponentName (final): "$opponentName"');
           
           // Format last seen text
           String statusText = widget.chat.type == ChatType.group
@@ -298,7 +306,7 @@ class _ChatConversationPageState extends State<ChatConversationPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.chat.name,
+                        opponentName,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16.sp,

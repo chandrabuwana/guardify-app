@@ -37,11 +37,10 @@ class AttendanceRekapRequestEntity {
       filters.add({'Field': 'search', 'Search': search.trim()});
     }
 
-    return {
+    final json = <String, dynamic>{
       'IdUser': idUser,
       'WithSubordinate': withSubordinate,
       'IsAdmin': isAdmin,
-      'Status': status,
       'Search': search,
       'StartDate': startDate != null ? _formatDate(startDate!) : null,
       'EndDate': endDate != null ? _formatDate(endDate!) : null,
@@ -51,6 +50,13 @@ class AttendanceRekapRequestEntity {
       'Jabatan': jabatan,
       'IsOvertime': isOvertime,
     };
+
+    final normalizedStatus = status.trim().toUpperCase();
+    if (normalizedStatus.isNotEmpty && normalizedStatus != 'WAITING') {
+      json['Status'] = status.trim();
+    }
+
+    return json;
   }
 
   static String _formatDate(DateTime date) {

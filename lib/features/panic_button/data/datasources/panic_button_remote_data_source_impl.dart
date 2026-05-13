@@ -329,11 +329,17 @@ class PanicButtonRemoteDataSourceImpl implements PanicButtonDataSource {
       print('  - Endpoint: /PanicButton/edit/$id');
       print('  - Method: PUT');
       print('  - Status: ${request.status}');
+      print('  - SolverDate: ${request.solverDate}');
+      print('  - SolverId: ${request.solverId}');
       print('  - ResolveAction: ${request.resolveAction ?? "null"}');
       print('  - EvidenceFile: ${request.evidenceFile != null ? "Available" : "Null"}');
 
+      final requestJson = request.toJson();
+      print('🌐 Full Request JSON:');
+      print('  - SolverDate in JSON: ${requestJson['SolverDate']}');
+
       final startTime = DateTime.now();
-      final response = await apiClient.editPanicButton(id, request.toJson());
+      final response = await apiClient.editPanicButton(id, requestJson);
       final endTime = DateTime.now();
       final duration = endTime.difference(startTime);
 

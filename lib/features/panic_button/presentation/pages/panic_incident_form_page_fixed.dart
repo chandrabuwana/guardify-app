@@ -27,6 +27,94 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
   String? _selectedLocation;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> _pickLocation() async {
+    const options = <String>[
+      'Gedung A',
+      'Gedung B',
+      'Gedung C',
+      'Area Parkir',
+      'Kantin',
+      'Lainnya',
+    ];
+
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        final searchController = TextEditingController();
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final query = searchController.text.trim().toLowerCase();
+            final filtered = query.isEmpty
+                ? options
+                : options
+                    .where((o) => o.toLowerCase().contains(query))
+                    .toList();
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: searchController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'Cari lokasi...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: searchController.text.isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: () {
+                                  searchController.clear();
+                                  setModalState(() {});
+                                },
+                                icon: const Icon(Icons.close),
+                              ),
+                      ),
+                      onChanged: (_) => setModalState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final value = filtered[index];
+                          return ListTile(
+                            title: Text(value),
+                            onTap: () => Navigator.pop(context, value),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || selected == null) return;
+    setState(() {
+      _selectedLocation = selected;
+    });
+  }
+
+  @override
   void dispose() {
     _kejadianController.dispose();
     _tindakanController.dispose();
@@ -81,42 +169,29 @@ class _PanicIncidentFormViewState extends State<_PanicIncidentFormView> {
                       border: Border.all(color: const Color(0xFFE74C3C)),
                       borderRadius: BorderRadius.circular(8.r),
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedLocation,
-                        hint: Text(
-                          'Lokasi Kejadian ---',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        isExpanded: true,
-                        icon: Icon(
-                          Icons.keyboard_arrow_down,
-                          color: Colors.grey[600],
-                        ),
-                        items: [
-                          'Gedung A',
-                          'Gedung B',
-                          'Gedung C',
-                          'Area Parkir',
-                          'Kantin',
-                          'Lainnya'
-                        ].map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(
-                              value,
-                              style: TextStyle(fontSize: 14.sp),
+                    child: InkWell(
+                      onTap: _pickLocation,
+                      child: Padding(
+                        padding: REdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _selectedLocation ?? 'Lokasi Kejadian ---',
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: _selectedLocation == null
+                                      ? Colors.grey[600]
+                                      : Colors.black87,
+                                ),
+                              ),
                             ),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            _selectedLocation = newValue;
-                          });
-                        },
+                            Icon(
+                              Icons.search,
+                              color: Colors.grey[600],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

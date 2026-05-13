@@ -170,11 +170,11 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
             if (state.detailItem != null) {
               // Pre-fill editable fields if they exist
               final item = state.detailItem!;
-              final resolveAction = item.resolveAction?.trim();
-              if (resolveAction != null &&
-                  resolveAction.isNotEmpty &&
+              final action = item.action?.trim();
+              if (action != null &&
+                  action.isNotEmpty &&
                   _tindakanPenyelesaianController.text.isEmpty) {
-                _tindakanPenyelesaianController.text = resolveAction;
+                _tindakanPenyelesaianController.text = action;
               }
 
               final feedback = item.feedback?.trim();
@@ -291,16 +291,14 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                                   _buildPhotoGrid(historyItem.files),
                                   12.verticalSpace,
                                 ],
-                                if (historyItem.feedback != null &&
-                                    historyItem.feedback!
-                                        .trim()
-                                        .isNotEmpty) ...[
-                                  _buildFieldLabel('Tindakan Yang Dibutuhkan'),
-                                  8.verticalSpace,
-                                  _buildGreyField(historyItem.feedback!,
-                                      isMultiline: true),
-                                  12.verticalSpace,
-                                ],
+                                _buildFieldLabel('Tindakan Yang Dibutuhkan'),
+                                8.verticalSpace,
+                                _buildGreyField(
+                                    historyItem.resolveAction?.trim().isNotEmpty == true
+                                        ? historyItem.resolveAction!
+                                        : '-',
+                                    isMultiline: true),
+                                12.verticalSpace,
                                 _buildFieldLabel('Pelapor'),
                                 8.verticalSpace,
                                 _buildGreyField(_formatReporter(historyItem)),
@@ -321,11 +319,11 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
                                             'Masukkan tindakan penyelesaian...',
                                       )
                                     : _buildGreyField(
-                                        historyItem.resolveAction
+                                        historyItem.action
                                                     ?.trim()
                                                     .isNotEmpty ==
                                                 true
-                                            ? historyItem.resolveAction!.trim()
+                                            ? historyItem.action!.trim()
                                             : '-',
                                         isMultiline: true),
                                 12.verticalSpace,
@@ -1382,7 +1380,17 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
       try {
         final solverId =
             await SecurityManager.readSecurely(AppConstants.userIdKey);
-        final now = DateTime.now().toUtc().toIso8601String();
+        final now = DateTime.now().toIso8601String();
+
+        // Debug prints disabled temporarily
+        // print('');
+        // print('🎯 ========================================');
+        // print('🎯 [PanicButtonDetailPage] SUBMIT MARK COMPLETED');
+        // print('🎯 ========================================');
+        // print('🎯 SolverDate being sent: $now');
+        // print('🎯 SolverId being sent: $solverId');
+        // print('🎯 ========================================');
+        // print('');
 
         final proofImage = _proofImage!;
         final fileName = path.basename(proofImage.path);
@@ -1392,7 +1400,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
 
         final request = PanicButtonEditRequest(
           id: item.id,
-          action: item.action,
+          action: completionAction,
           areasId: item.areasId,
           description: item.description,
           feedback: item.feedback,
@@ -1401,7 +1409,7 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
               .toUtc()
               .toIso8601String(),
           reporterId: item.reporterId,
-          resolveAction: completionAction,
+          resolveAction: item.resolveAction,
           solverDate: now,
           solverId: (solverId != null && solverId.isNotEmpty) ? solverId : null,
           status: 'COMPLETED',
@@ -1413,6 +1421,17 @@ class _PanicButtonDetailPageState extends State<PanicButtonDetailPage> {
             fileSize: fileSize,
           ),
         );
+
+        // Debug prints disabled temporarily
+        // print('');
+        // print('🎯 ========================================');
+        // print('🎯 [PanicButtonDetailPage] REQUEST CREATED');
+        // print('🎯 ========================================');
+        // print('🎯 Request solverDate: ${request.solverDate}');
+        // print('🎯 Expected solverDate (now): $now');
+        // print('🎯 Match: ${request.solverDate == now}');
+        // print('🎯 ========================================');
+        // print('');
 
         if (!mounted) return;
         context.read<PanicButtonBloc>().add(

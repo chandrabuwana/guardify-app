@@ -128,6 +128,8 @@ import '../../features/laporan_kegiatan/data/repositories/laporan_kegiatan_repos
     as _i1049;
 import '../../features/laporan_kegiatan/domain/repositories/laporan_kegiatan_repository.dart'
     as _i198;
+import '../../features/laporan_kegiatan/domain/usecases/delete_attendance.dart'
+    as _i1035;
 import '../../features/laporan_kegiatan/domain/usecases/get_laporan_detail.dart'
     as _i313;
 import '../../features/laporan_kegiatan/domain/usecases/get_laporan_list.dart'
@@ -276,6 +278,10 @@ import '../../features/test_result/data/repositories/test_result_repository_impl
     as _i128;
 import '../../features/test_result/domain/repositories/test_result_repository.dart'
     as _i87;
+import '../../features/test_result/domain/usecases/get_assessment_detail_usecase.dart'
+    as _i213;
+import '../../features/test_result/domain/usecases/get_assessment_list_usecase.dart'
+    as _i633;
 import '../../features/test_result/domain/usecases/get_member_test_results_usecase.dart'
     as _i727;
 import '../../features/test_result/domain/usecases/get_member_tests_by_pic_usecase.dart'
@@ -472,6 +478,8 @@ Future<_i174.GetIt> init(
       () => _i96.UpdateStatusLaporan(gh<_i198.LaporanKegiatanRepository>()));
   gh.factory<_i313.GetLaporanDetail>(
       () => _i313.GetLaporanDetail(gh<_i198.LaporanKegiatanRepository>()));
+  gh.factory<_i1035.DeleteAttendance>(
+      () => _i1035.DeleteAttendance(gh<_i198.LaporanKegiatanRepository>()));
   gh.factory<_i117.AttendanceRekapRepository>(() =>
       _i195.AttendanceRekapRepositoryImpl(
           remoteDataSource: gh<_i832.AttendanceRekapRemoteDataSource>()));
@@ -517,12 +525,6 @@ Future<_i174.GetIt> init(
         updateIncidentStatus: gh<_i109.UpdateIncidentStatus>(),
         editIncident: gh<_i609.EditIncident>(),
         updateAllIncident: gh<_i455.UpdateAllIncident>(),
-      ));
-  gh.factory<_i996.LaporanKegiatanBloc>(() => _i996.LaporanKegiatanBloc(
-        getLaporanList: gh<_i830.GetLaporanList>(),
-        getLaporanDetail: gh<_i313.GetLaporanDetail>(),
-        updateStatusLaporan: gh<_i96.UpdateStatusLaporan>(),
-        verifLaporan: gh<_i956.VerifLaporan>(),
       ));
   gh.factory<_i1063.ScheduleBloc>(() => _i1063.ScheduleBloc(
         getMonthlySchedule: gh<_i401.GetMonthlySchedule>(),
@@ -580,6 +582,13 @@ Future<_i174.GetIt> init(
         editCuti: gh<_i98.EditCuti>(),
         deleteCuti: gh<_i106.DeleteCuti>(),
       ));
+  gh.factory<_i996.LaporanKegiatanBloc>(() => _i996.LaporanKegiatanBloc(
+        getLaporanList: gh<_i830.GetLaporanList>(),
+        getLaporanDetail: gh<_i313.GetLaporanDetail>(),
+        updateStatusLaporan: gh<_i96.UpdateStatusLaporan>(),
+        verifLaporan: gh<_i956.VerifLaporan>(),
+        deleteAttendance: gh<_i1035.DeleteAttendance>(),
+      ));
   gh.factory<_i0.PatrolBloc>(() => _i0.PatrolBloc(
         getPatrolRoutes: gh<_i835.GetPatrolRoutes>(),
         getPatrolRoutesPaginated: gh<_i865.GetPatrolRoutesPaginated>(),
@@ -589,8 +598,12 @@ Future<_i174.GetIt> init(
       ));
   gh.factory<_i727.GetMemberTestResultsUseCase>(
       () => _i727.GetMemberTestResultsUseCase(gh<_i87.TestResultRepository>()));
+  gh.factory<_i213.GetAssessmentDetailUseCase>(
+      () => _i213.GetAssessmentDetailUseCase(gh<_i87.TestResultRepository>()));
   gh.factory<_i609.GetMemberTestsByPicUseCase>(
       () => _i609.GetMemberTestsByPicUseCase(gh<_i87.TestResultRepository>()));
+  gh.factory<_i633.GetAssessmentListUseCase>(
+      () => _i633.GetAssessmentListUseCase(gh<_i87.TestResultRepository>()));
   gh.factory<_i888.GetTestSummaryUseCase>(
       () => _i888.GetTestSummaryUseCase(gh<_i87.TestResultRepository>()));
   gh.factory<_i247.GetMyTestResultsUseCase>(
@@ -705,6 +718,8 @@ Future<_i174.GetIt> init(
         getMemberResultsUseCase: gh<_i727.GetMemberTestResultsUseCase>(),
         getSummaryUseCase: gh<_i888.GetTestSummaryUseCase>(),
         getMemberTestsByPicUseCase: gh<_i609.GetMemberTestsByPicUseCase>(),
+        getAssessmentListUseCase: gh<_i633.GetAssessmentListUseCase>(),
+        getAssessmentDetailUseCase: gh<_i213.GetAssessmentDetailUseCase>(),
       ));
   gh.factory<_i598.AttendanceRekapBloc>(() => _i598.AttendanceRekapBloc(
       getAttendanceRekapUseCase: gh<_i665.GetAttendanceRekapUseCase>()));

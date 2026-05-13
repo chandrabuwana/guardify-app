@@ -13,6 +13,9 @@ class ApiLogService {
 
   ApiLogService(this._prefs);
 
+  // Max total size for all logs stored in SharedPreferences (2MB)
+  static const int _maxTotalSize = 2 * 1024 * 1024;
+
   /// Simpan log baru
   Future<void> saveLog(ApiLogModel log) async {
     try {
@@ -28,7 +31,26 @@ class ApiLogService {
       
       // Simpan ke SharedPreferences
       final logsJson = logs.map((log) => log.toJson()).toList();
-      await _prefs.setString(_logsKey, json.encode(logsJson));
+      final encoded = json.encode(logsJson);
+      
+      // Safety: prevent storing data larger than 2MB
+      if (encoded.length > _maxTotalSize) {
+        print('⚠️ ApiLogService - Log data too large (${encoded.length} bytes), trimming...');
+        // Remove oldest logs until size is under limit
+        while (logs.length > 1) {
+          logs.removeLast();
+          final trimmed = json.encode(logs.map((l) => l.toJson()).toList());
+          if (trimmed.length <= _maxTotalSize) {
+            await _prefs.setString(_logsKey, trimmed);
+            return;
+          }
+        }
+        // If still too large, clear all
+        await _prefs.remove(_logsKey);
+        return;
+      }
+      
+      await _prefs.setString(_logsKey, encoded);
     } catch (e) {
       // Silent fail untuk logging service
       print('Error saving API log: $e');
@@ -40,6 +62,13 @@ class ApiLogService {
     try {
       final logsJsonString = _prefs.getString(_logsKey);
       if (logsJsonString == null || logsJsonString.isEmpty) {
+        return [];
+      }
+      
+      // Safety: if stored data is too large, clear it
+      if (logsJsonString.length > _maxTotalSize) {
+        print('⚠️ ApiLogService - Stored logs too large (${logsJsonString.length} bytes), clearing...');
+        await _prefs.remove(_logsKey);
         return [];
       }
       

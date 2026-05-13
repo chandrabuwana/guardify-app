@@ -21,6 +21,7 @@ class PatrolDetailPage extends StatefulWidget {
   final PatrolBloc? bloc; // Optional bloc from parent
   final List<RouteTask>? listRoute; // Optional ListRoute data from get_current_task
   final bool? isCheckedIn; // Checkin status from get_current API
+  final bool? isCheckedOut; // Checkout status from get_current API
 
   const PatrolDetailPage({
     super.key,
@@ -28,6 +29,7 @@ class PatrolDetailPage extends StatefulWidget {
     this.bloc,
     this.listRoute,
     this.isCheckedIn,
+    this.isCheckedOut,
   });
 
   @override
@@ -84,6 +86,11 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('🔍 [PatrolDetailPage] build called');
+    debugPrint('  - widget.isCheckedIn: ${widget.isCheckedIn}');
+    debugPrint('  - route.id: ${widget.route.id}');
+    debugPrint('  - route.status: ${widget.route.status}');
+    
     // If bloc provided from parent, use it. Otherwise create new one.
     if (widget.bloc != null) {
       // Load get_current_task after build
@@ -298,6 +305,7 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                       location: location,
                       locationNumber: index + 1,
                       isCheckedIn: widget.isCheckedIn,
+                      isCheckedOut: widget.isCheckedOut,
                       onAbsenTap: () async {
                         final result = await showDialog<bool>(
                           context: context,
@@ -308,6 +316,7 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                               routeId: currentRoute.id,
                               locations: currentRoute.locations,
                               currentLocation: location,
+                              listRoute: widget.listRoute,
                             ),
                           ),
                         );
@@ -418,6 +427,7 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                         location: location,
                         locationNumber: currentRoute.locations.length + entry.key + 1,
                         isCheckedIn: widget.isCheckedIn,
+                        isCheckedOut: widget.isCheckedOut,
                         onAbsenTap: () async {
                           final result = await showDialog<bool>(
                             context: context,
@@ -429,6 +439,7 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                                 locations:
                                     currentRoute.locations + currentRoute.additionalLocations,
                                 currentLocation: location,
+                                listRoute: widget.listRoute,
                               ),
                             ),
                           );
@@ -520,22 +531,11 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                   width: double.infinity,
                   margin: const EdgeInsets.symmetric(vertical: 16),
                   child: ElevatedButton(
-                    onPressed: () async {
-                      // Validasi check-in: cek apakah user sudah check-in
-                      final homeBloc = context.read<HomeBloc>();
-                      final homeState = homeBloc.state;
-                      if (homeState is HomeLoaded && !homeState.attendanceInfo.isCheckedIn) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Silakan check in terlebih dahulu sebelum menambah lokasi patroli',
-                            ),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
+                    onPressed: (widget.isCheckedIn != true || (widget.isCheckedOut ?? false) || (currentRoute.status == PatrolRouteStatus.completed)) ? null : () async {
+                      debugPrint('🔍 [PatrolDetailPage] Tambah Lokasi Patroli button pressed');
+                      debugPrint('  - widget.isCheckedIn: ${widget.isCheckedIn}');
+                      debugPrint('  - widget.isCheckedOut: ${widget.isCheckedOut}');
+                      debugPrint('  - currentRoute.status: ${currentRoute.status}');
                       final patrolBloc = context.read<PatrolBloc>();
                       final result = await showDialog<bool>(
                         context: context,
@@ -549,6 +549,7 @@ class _PatrolDetailPageState extends State<PatrolDetailPage> {
                               // Data already reloaded by BLoC
                               // No need to do anything here
                             },
+                            listRoute: widget.listRoute,
                           ),
                         ),
                       );
@@ -594,12 +595,14 @@ class _LocationCard extends StatelessWidget {
   final int locationNumber;
   final VoidCallback onAbsenTap;
   final bool? isCheckedIn; // Checkin status from get_current API
+  final bool? isCheckedOut; // Checkout status from get_current API
 
   const _LocationCard({
     required this.location,
     required this.locationNumber,
     required this.onAbsenTap,
     this.isCheckedIn,
+    this.isCheckedOut,
   });
 
   @override
@@ -794,16 +797,24 @@ class _LocationCard extends StatelessWidget {
 
               const SizedBox(width: 12),
 
-              // Absen Button - disabled jika belum check in
+              // Absen Button - disabled jika belum check in atau sudah check out
               ElevatedButton(
                 onPressed: (location.status == PatrolLocationStatus.completed || 
-                           isCheckedIn != true)
+                           isCheckedIn != true ||
+                           (isCheckedOut ?? false))
                     ? null
-                    : onAbsenTap,
+                    : () {
+                      debugPrint('🔍 [PatrolDetailPage] Absen button pressed');
+                      debugPrint('  - isCheckedIn: $isCheckedIn');
+                      debugPrint('  - isCheckedOut: $isCheckedOut');
+                      debugPrint('  - location.status: ${location.status}');
+                      onAbsenTap();
+                    },
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
                       (location.status == PatrolLocationStatus.completed || 
-                       isCheckedIn != true)
+                       isCheckedIn != true ||
+                       (isCheckedOut ?? false))
                           ? Colors.grey[400]
                           : primaryColor,
                   disabledBackgroundColor: Colors.grey[400],

@@ -60,6 +60,9 @@ class PanicButtonBloc extends Bloc<PanicButtonEvent, PanicButtonState> {
       print('🎯 Event Details:');
       print('  - Id: ${event.id}');
       print('  - Status: ${event.request.status}');
+      print('  - SolverDate: ${event.request.solverDate}');
+      print('  - SolverId: ${event.request.solverId}');
+      print('  - ResolveAction: ${event.request.resolveAction}');
 
       await panicButtonRepository.editPanicButton(event.id, event.request);
 

@@ -440,18 +440,19 @@ ChatCreateConversation event,
 
     try {
       final conversationId = await chatRepository.createConversation(event.memberUserIds);
-      
-      // Get user names for the conversation
-      String conversationName = 'New Conversation';
-      if (event.memberUserIds.isNotEmpty) {
+
+      // Use provided name from event if available, otherwise fetch from API
+      String conversationName = event.name ?? 'New Conversation';
+
+      if (event.name == null && event.memberUserIds.isNotEmpty) {
         // Get current user ID to exclude from name
         final currentUserId = await SecurityManager.readSecurely(AppConstants.userIdKey);
-        
+
         // Get names of other participants (exclude current user)
         final otherUserIds = event.memberUserIds
             .where((id) => id != currentUserId)
             .toList();
-        
+
         if (otherUserIds.isNotEmpty) {
           // Try to get names from cache first
           final names = <String>[];
@@ -484,7 +485,7 @@ ChatCreateConversation event,
               }
             }
           }
-          
+
           // Set conversation name based on number of participants
           if (names.length == 1) {
             conversationName = names.first;
@@ -493,7 +494,7 @@ ChatCreateConversation event,
           }
         }
       }
-      
+
       // Create a new chat entity from the conversation
       final newChat = Chat(
         id: conversationId,

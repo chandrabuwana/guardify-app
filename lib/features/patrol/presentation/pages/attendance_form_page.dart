@@ -786,28 +786,32 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   int _currentCameraIndex = 0;
+  bool _isControllerCreated = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeCamera(0);
+  }
+
+  void _initializeCamera(int index) {
+    if (_isControllerCreated) {
+      _controller.dispose();
+    }
     _controller = CameraController(
-      widget.cameras[0],
+      widget.cameras[index],
       ResolutionPreset.high,
     );
+    _isControllerCreated = true;
     _initializeControllerFuture = _controller.initialize();
   }
 
   void _switchCamera() {
     if (widget.cameras.length < 2) return;
     
-    _controller.dispose();
     setState(() {
       _currentCameraIndex = (_currentCameraIndex + 1) % widget.cameras.length;
-      _controller = CameraController(
-        widget.cameras[_currentCameraIndex],
-        ResolutionPreset.high,
-      );
-      _initializeControllerFuture = _controller.initialize();
+      _initializeCamera(_currentCameraIndex);
     });
   }
 

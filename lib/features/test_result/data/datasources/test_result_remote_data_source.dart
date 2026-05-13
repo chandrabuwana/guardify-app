@@ -3,11 +3,12 @@ import '../models/test_result_model.dart';
 import '../models/test_summary_model.dart';
 import '../models/test_member_result_model.dart';
 import '../../domain/entities/test_result_entity.dart';
+import '../../domain/entities/assessment_entity.dart';
 import 'test_result_api_data_source.dart';
 
 /// Remote data source untuk Test Result
 abstract class TestResultRemoteDataSource {
-  Future<List<TestResultModel>> fetchMyResults(String userId);
+  Future<List<TestResultModel>> fetchMyResults(String userId, {int start = 0, int length = 20});
   
   Future<List<TestMemberResultModel>> fetchMemberResults({
     String? examId,
@@ -20,7 +21,13 @@ abstract class TestResultRemoteDataSource {
   });
   
   /// Fetch member tests menggunakan IdPic filter (untuk Danton)
-  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId);
+  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId, {int start = 0, int length = 20});
+
+  /// Fetch assessment list (untuk Ujian Anggota tab)
+  Future<List<AssessmentEntity>> fetchAssessmentList(String picId, {int start = 1, int length = 20});
+
+  /// Fetch assessment detail (untuk Assessment Detail Page)
+  Future<List<TestResultModel>> fetchAssessmentDetail(String assessmentId, String idSpv, {int start = 1, int length = 20});
 }
 
 /// Implementation dengan Real API
@@ -31,7 +38,7 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
   TestResultRemoteDataSourceImpl(this._apiDataSource);
 
   @override
-  Future<List<TestResultModel>> fetchMyResults(String userId) async {
+  Future<List<TestResultModel>> fetchMyResults(String userId, {int start = 0, int length = 20}) async {
     try {
       print('');
       print('🌐 ========================================');
@@ -40,6 +47,7 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
       print('🌐 Received userId parameter: "$userId"');
       print('🌐 userId length: ${userId.length}');
       print('🌐 userId isEmpty: ${userId.isEmpty}');
+      print('🌐 Pagination: start=$start, length=$length');
       
       // Validasi userId tidak boleh kosong
       if (userId.isEmpty) {
@@ -59,8 +67,8 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
           "Field": "createDate",
           "Type": 1,
         },
-        "Start": 0,
-        "Length": 0,
+        "Start": start,
+        "Length": length,
       };
 
       print('🌐 Request Body:');
@@ -87,7 +95,7 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
   }
 
   @override
-  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId) async {
+  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId, {int start = 0, int length = 20}) async {
     try {
       print('');
       print('🌐 ========================================');
@@ -96,6 +104,7 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
       print('🌐 Received SPV ID parameter: "$picId"');
       print('🌐 SPV ID length: ${picId.length}');
       print('🌐 SPV ID isEmpty: ${picId.isEmpty}');
+      print('🌐 Pagination: start=$start, length=$length');
       
       // Validasi picId tidak boleh kosong
       if (picId.isEmpty) {
@@ -115,8 +124,8 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
           "Field": "",
           "Type": 0,
         },
-        "Start": 0,
-        "Length": 0,
+        "Start": start,
+        "Length": length,
       };
 
       print('🌐 Request Body (IdSpv filter):');
@@ -151,6 +160,121 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
       return convertedResults;
     } catch (e) {
       print('❌ Exception in fetchMemberTestsByPic: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<AssessmentEntity>> fetchAssessmentList(String picId, {int start = 1, int length = 20}) async {
+    try {
+      print('');
+      print('🌐 ========================================');
+      print('🌐 API: FETCH ASSESSMENT LIST (Ujian Anggota)');
+      print('🌐 ========================================');
+      print('🌐 No filter (fetching all assessments)');
+      print('🌐 Pagination: start=$start, length=$length');
+
+      final requestBody = {
+        "Sort": {
+          "Field": "AssesmentDate",
+          "Type": 1,
+        },
+        "Start": start,
+        "Length": length,
+      };
+
+      print('🌐 Request Body: $requestBody');
+      print('🌐 Endpoint: /Assesment/list');
+      print('🌐 ========================================');
+
+      final response = await _apiDataSource.fetchAssessmentList(requestBody);
+
+      print('🌐 Response succeeded: ${response.succeeded}');
+      print('🌐 Response count: ${response.list.length}');
+
+      if (!response.succeeded) {
+        throw Exception(response.message);
+      }
+
+      return response.list.map((item) {
+        DateTime? assessmentDate;
+        if (item.assessmentDate != null) {
+          try {
+            assessmentDate = DateTime.parse(item.assessmentDate!);
+          } catch (_) {}
+        }
+
+        return AssessmentEntity(
+          id: item.id,
+          code: item.code,
+          name: item.name ?? 'Assessment',
+          assessmentDate: assessmentDate,
+          categoryName: item.assessmentCategory?.name,
+          categoryCode: item.assessmentCategory?.code,
+          minValue: item.minValue,
+          status: item.status,
+          idPic: item.idPic,
+          picName: item.picName,
+          idSpv: item.idSpv,
+        );
+      }).toList();
+    } catch (e) {
+      print('❌ Exception in fetchAssessmentList: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<TestResultModel>> fetchAssessmentDetail(String assessmentId, String idSpv, {int start = 1, int length = 20}) async {
+    try {
+      print('');
+      print('🌐 ========================================');
+      print('🌐 API Test Result: FETCH ASSESSMENT DETAIL');
+      print('🌐 ========================================');
+      print('🌐 Received assessmentId parameter: "$assessmentId"');
+      print('🌐 Received idSpv parameter: "$idSpv"');
+      print('🌐 assessmentId length: ${assessmentId.length}');
+      print('🌐 assessmentId isEmpty: ${assessmentId.isEmpty}');
+      print('🌐 Pagination: start=$start, length=$length');
+
+      // Validasi assessmentId tidak boleh kosong
+      if (assessmentId.isEmpty) {
+        print('❌ ERROR: Assessment ID is empty! Cannot fetch assessment detail.');
+        throw Exception('Assessment ID cannot be empty');
+      }
+
+      // Build request body dengan filter IdAssesment only
+      final requestBody = {
+        "Filter": [
+          {
+            "Field": "IdAssesment",
+            "Search": assessmentId,
+          }
+        ],
+        "Sort": {
+          "Field": "",
+          "Type": 0,
+        },
+        "Start": start,
+        "Length": length,
+      };
+
+      print('🌐 Request Body (IdAssesment filter only):');
+      print('🌐 ${requestBody.toString()}');
+      print('🌐 About to call API endpoint: /AssesmentDetail/list');
+      print('🌐 ========================================');
+      print('');
+
+      final response = await _apiDataSource.fetchAssessmentDetails(requestBody);
+
+      if (!response.succeeded) {
+        throw Exception(response.message);
+      }
+
+      // Convert API response ke TestResultModel
+      return response.list.map((item) => item.toTestResultModel()).toList();
+    } catch (e) {
+      print('❌ Exception in fetchAssessmentDetail: $e');
       rethrow;
     }
   }
@@ -289,21 +413,24 @@ class TestResultRemoteDataSourceMockImpl implements TestResultRemoteDataSource {
   ];
 
   @override
-  Future<List<TestResultModel>> fetchMyResults(String userId) async {
+  Future<List<TestResultModel>> fetchMyResults(String userId, {int start = 0, int length = 20}) async {
     // Simulate API call
     await Future.delayed(const Duration(milliseconds: 500));
     
     // Filter by userId
-    return _mockMyResults.where((r) => r.userId == userId).toList();
+    final filtered = _mockMyResults.where((r) => r.userId == userId).toList();
+    // Apply pagination
+    return filtered.skip(start).take(length).toList();
   }
 
   @override
-  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId) async {
+  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId, {int start = 0, int length = 20}) async {
     // Simulate API call
     await Future.delayed(const Duration(milliseconds: 500));
     
     // Mock: return all results (in real API, filter by IdPic)
-    return _mockMyResults;
+    // Apply pagination
+    return _mockMyResults.skip(start).take(length).toList();
   }
 
   @override
@@ -343,6 +470,19 @@ class TestResultRemoteDataSourceMockImpl implements TestResultRemoteDataSource {
       tanggalPelaksanaan: null,
       namaPenguji: 'Ambul Test',
     );
+  }
+
+  @override
+  Future<List<AssessmentEntity>> fetchAssessmentList(String picId, {int start = 1, int length = 20}) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    return [];
+  }
+
+  @override
+  Future<List<TestResultModel>> fetchAssessmentDetail(String assessmentId, String idSpv, {int start = 1, int length = 20}) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    // Apply pagination
+    return _mockMyResults.skip(start).take(length).toList();
   }
 }
 

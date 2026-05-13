@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/design/colors.dart';
+import '../../../chat/domain/entities/chat.dart';
+import '../../../chat/presentation/bloc/chat_bloc.dart';
+import '../../../chat/presentation/bloc/chat_event.dart';
+import '../../../chat/presentation/pages/chat_conversation_page.dart';
 import '../bloc/schedule_bloc.dart';
 import '../../domain/entities/shift_schedule.dart';
 
@@ -483,8 +488,52 @@ class _ShiftDetailPJODeputyPageState extends State<ShiftDetailPJODeputyPage>
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Implement kirim pesan
+              onPressed: () async {
+                // Get or create ChatBloc
+                ChatBloc chatBloc;
+                try {
+                  chatBloc = context.read<ChatBloc>();
+                } catch (e) {
+                  // If ChatBloc is not available in context, create new one
+                  chatBloc = getIt<ChatBloc>();
+                }
+
+                // Create conversation with the team member
+                chatBloc.add(ChatCreateConversation(memberUserIds: [member.id], name: member.name));
+
+                // Wait for conversation to be created
+                await Future.delayed(const Duration(milliseconds: 500));
+
+                // Navigate to conversation page
+                if (mounted) {
+                  final currentState = chatBloc.state;
+                  if (currentState.selectedChatId != null) {
+                    // Find the chat that was just created
+                    final newChat = currentState.chats.firstWhere(
+                      (chat) => chat.id == currentState.selectedChatId,
+                      orElse: () => Chat(
+                        id: currentState.selectedChatId!,
+                        name: member.name,
+                        type: ChatType.direct,
+                        participantIds: [member.id],
+                        unreadCount: 0,
+                        isActive: true,
+                        createdAt: DateTime.now(),
+                        updatedAt: DateTime.now(),
+                      ),
+                    );
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BlocProvider.value(
+                          value: chatBloc,
+                          child: ChatConversationPage(chat: newChat),
+                        ),
+                      ),
+                    );
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,

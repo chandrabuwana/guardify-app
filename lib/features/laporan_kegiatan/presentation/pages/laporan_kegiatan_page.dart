@@ -88,10 +88,10 @@ class _LaporanKegiatanPageState extends State<LaporanKegiatanPage>
   }
 
   void _loadData({String? search, bool resetPagination = true}) {
-    // Tab 0: Menunggu Verifikasi -> default tanpa filter status (Status: "")
+    // Tab 0: Menunggu Verifikasi -> status waiting
     // Tab 1: Terverifikasi -> default status verified
     final LaporanStatus? tabDefaultStatus =
-        _tabController.index == 0 ? null : LaporanStatus.verified;
+        _tabController.index == 0 ? LaporanStatus.waiting : LaporanStatus.verified;
 
     // If user explicitly applies a status chip, use it (including "Semua" => null)
     // Otherwise follow tab default behavior

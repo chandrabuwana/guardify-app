@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'dart:math';
 import '../../../../core/di/injection.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/security/security_manager.dart';
@@ -17,12 +18,14 @@ class PatrolAttendanceDialog extends StatefulWidget {
   final String routeId;
   final List<PatrolLocation> locations;
   final PatrolLocation currentLocation;
+  final List<RouteTask>? listRoute;
 
   const PatrolAttendanceDialog({
     super.key,
     required this.routeId,
     required this.locations,
     required this.currentLocation,
+    this.listRoute,
   });
 
   @override
@@ -58,6 +61,79 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
       _cameras = await availableCameras();
     } catch (e) {
       debugPrint('Error initializing cameras: $e');
+    }
+  }
+
+  /// Calculate distance between two coordinates using Haversine formula
+  /// Returns distance in meters
+  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    const earthRadiusMeters = 6371000; // Earth radius in meters
+    
+    final dLat = _degreesToRadians(lat2 - lat1);
+    final dLon = _degreesToRadians(lon2 - lon1);
+    
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degreesToRadians(lat1)) * cos(_degreesToRadians(lat2)) *
+        sin(dLon / 2) * sin(dLon / 2);
+    
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadiusMeters * c;
+  }
+
+  /// Convert degrees to radians
+  double _degreesToRadians(double degrees) {
+    return degrees * pi / 180;
+  }
+
+  /// Find the closest area within radius
+  /// Returns area name if found, otherwise null
+  String? _getClosestAreaInRadius() {
+    if (widget.listRoute == null || widget.listRoute!.isEmpty) {
+      print('🔴 [PatrolAttendanceDialog] listRoute is null or empty');
+      return null;
+    }
+
+    if (_currentLatitude == null || _currentLongitude == null) {
+      print('🔴 [PatrolAttendanceDialog] Current location is null');
+      return null;
+    }
+
+    print('🟡 [PatrolAttendanceDialog] Checking ${widget.listRoute!.length} areas');
+    print('🟡 [PatrolAttendanceDialog] Current location: $_currentLatitude, $_currentLongitude');
+
+    RouteTask? closestArea;
+    double closestDistance = double.infinity;
+
+    for (final area in widget.listRoute!) {
+      // Skip if latitude, longitude, or radius is null
+      if (area.latitude == null || area.longitude == null || area.radius == null) {
+        print('🔴 [PatrolAttendanceDialog] Skipping ${area.areasName} - missing data');
+        continue;
+      }
+
+      final distance = _calculateDistance(
+        _currentLatitude!,
+        _currentLongitude!,
+        area.latitude!,
+        area.longitude!,
+      );
+
+      print('🟡 [PatrolAttendanceDialog] ${area.areasName}: distance=${distance.toStringAsFixed(2)}m, radius=${area.radius}m, inRadius=${distance <= area.radius!}');
+
+      // Check if within radius and closer than previous closest
+      if (distance <= area.radius! && distance < closestDistance) {
+        closestArea = area;
+        closestDistance = distance;
+        print('✅ [PatrolAttendanceDialog] Found closest area: ${area.areasName} (${distance.toStringAsFixed(2)}m)');
+      }
+    }
+
+    if (closestArea != null) {
+      print('✅ [PatrolAttendanceDialog] Returning area name: ${closestArea.areasName}');
+      return closestArea.areasName;
+    } else {
+      print('🔴 [PatrolAttendanceDialog] No area found within radius');
+      return null;
     }
   }
 
@@ -477,18 +553,39 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.grey[200],
+                            color: _currentLatitude != null && _currentLongitude != null
+                                ? (_getClosestAreaInRadius() != null ? Colors.green[100] : Colors.red[100])
+                                : Colors.grey[200],
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(
-                            _currentLatitude != null &&
-                                    _currentLongitude != null
-                                ? 'Lat: ${_currentLatitude!.toStringAsFixed(6)}, Long: ${_currentLongitude!.toStringAsFixed(6)}'
-                                : 'Mendeteksi lokasi...',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _currentLatitude != null &&
+                                        _currentLongitude != null
+                                    ? (_getClosestAreaInRadius() ?? 'Lat: ${_currentLatitude!.toStringAsFixed(6)}, Long: ${_currentLongitude!.toStringAsFixed(6)}')
+                                    : 'Mendeteksi lokasi...',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              if (_currentLatitude != null && _currentLongitude != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    _getClosestAreaInRadius() != null
+                                        ? 'Anda sudah berada di lokasi patroli'
+                                        : 'Silahkan mendekati lokasi patroli',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: _getClosestAreaInRadius() != null ? Colors.green[800] : Colors.red[800],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -736,28 +833,32 @@ class _CameraCapturePageState extends State<_CameraCapturePage> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   int _currentCameraIndex = 0;
+  bool _isControllerCreated = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeCamera(0);
+  }
+
+  void _initializeCamera(int index) {
+    if (_isControllerCreated) {
+      _controller.dispose();
+    }
     _controller = CameraController(
-      widget.cameras[0],
+      widget.cameras[index],
       ResolutionPreset.high,
     );
+    _isControllerCreated = true;
     _initializeControllerFuture = _controller.initialize();
   }
 
   void _switchCamera() {
     if (widget.cameras.length < 2) return;
     
-    _controller.dispose();
     setState(() {
       _currentCameraIndex = (_currentCameraIndex + 1) % widget.cameras.length;
-      _controller = CameraController(
-        widget.cameras[_currentCameraIndex],
-        ResolutionPreset.high,
-      );
-      _initializeControllerFuture = _controller.initialize();
+      _initializeCamera(_currentCameraIndex);
     });
   }
 

@@ -13,6 +13,7 @@ class PatrolLocationModel extends PatrolLocation {
     super.proofImagePath,
     super.notes,
     super.isAdditional,
+    super.radius,
   });
 
   factory PatrolLocationModel.fromJson(Map<String, dynamic> json) {
@@ -65,6 +66,7 @@ class PatrolLocationModel extends PatrolLocation {
     String? proofImagePath,
     String? notes,
     bool? isAdditional,
+    double? radius,
   }) {
     return PatrolLocationModel(
       id: id ?? this.id,
@@ -78,6 +80,7 @@ class PatrolLocationModel extends PatrolLocation {
       proofImagePath: proofImagePath ?? this.proofImagePath,
       notes: notes ?? this.notes,
       isAdditional: isAdditional ?? this.isAdditional,
+      radius: radius ?? this.radius,
     );
   }
 }

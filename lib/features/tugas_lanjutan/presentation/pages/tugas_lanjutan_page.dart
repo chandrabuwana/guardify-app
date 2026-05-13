@@ -8,6 +8,7 @@ import 'dart:io';
 import '../../../../core/design/colors.dart';
 import '../../../../core/design/styles.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/utils/user_role_helper.dart';
 import '../../../../core/security/security_manager.dart';
@@ -23,10 +24,14 @@ import '../../../schedule/domain/usecases/get_current_shift.dart';
 
 class TugasLanjutanPage extends StatefulWidget {
   final String? userId;
+  final bool? isCheckedIn;
+  final bool? isCheckedOut;
 
   const TugasLanjutanPage({
     Key? key,
     this.userId,
+    this.isCheckedIn,
+    this.isCheckedOut,
   }) : super(key: key);
 
   @override
@@ -54,6 +59,11 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
     _currentUserId = widget.userId ?? 'user_1';
     _bloc = getIt<TugasLanjutanBloc>();
 
+    debugPrint('🔍 [TugasLanjutanPage] initState called');
+    debugPrint('  - widget.isCheckedIn: ${widget.isCheckedIn}');
+    debugPrint('  - widget.isCheckedOut: ${widget.isCheckedOut}');
+    AppLogger.info('🔍 [TugasLanjutanPage] initState called - isCheckedIn: ${widget.isCheckedIn}, isCheckedOut: ${widget.isCheckedOut}');
+    
     _tabController = TabController(length: 2, vsync: this);
     
     // Add listener to reload data when tab changes
@@ -600,6 +610,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
               return TugasLanjutanCard(
                 tugas: tugas,
                 isCheckedIn: _isCheckedIn,
+                isCheckedOut: widget.isCheckedOut,
                 onTap: () {
                   _showSelesaikanDialog(context, tugas);
                 },
@@ -619,6 +630,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
                 return TugasLanjutanCard(
                   tugas: tugas,
                   isCheckedIn: _isCheckedIn,
+                  isCheckedOut: widget.isCheckedOut,
                   onTap: () {
                     _showSelesaikanDialog(context, tugas);
                   },
@@ -685,6 +697,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
               return TugasLanjutanCard(
                 tugas: tugas,
                 isCheckedIn: _isCheckedIn,
+                isCheckedOut: widget.isCheckedOut,
                 onTap: () {
                   _showSelesaikanDialog(context, tugas);
                 },
@@ -732,6 +745,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
               return TugasLanjutanCard(
                 tugas: tugas,
                 isCheckedIn: _isCheckedIn,
+                isCheckedOut: widget.isCheckedOut,
                 onTap: () {
                   _showSelesaikanDialog(context, tugas);
                 },
@@ -751,6 +765,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
                 return TugasLanjutanCard(
                   tugas: tugas,
                   isCheckedIn: _isCheckedIn,
+                  isCheckedOut: widget.isCheckedOut,
                   onTap: () {
                     _showSelesaikanDialog(context, tugas);
                   },
@@ -772,6 +787,7 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
               return TugasLanjutanCard(
                 tugas: tugas,
                 isCheckedIn: _isCheckedIn,
+                isCheckedOut: widget.isCheckedOut,
                 onTap: () {
                   _showSelesaikanDialog(context, tugas);
                 },
@@ -827,6 +843,8 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
                 tugas: tugas,
                 userId: userId,
                 bloc: _bloc,
+                isCheckedIn: widget.isCheckedIn,
+                isCheckedOut: widget.isCheckedOut,
               ),
             );
           }
@@ -886,15 +904,66 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
   }
 }
 
+class _ExpandableText extends StatefulWidget {
+  final String text;
+  final int maxChars;
+  final TextStyle? style;
+
+  const _ExpandableText(
+    this.text, {
+    required this.maxChars,
+    this.style,
+  });
+
+  @override
+  State<_ExpandableText> createState() => _ExpandableTextState();
+}
+
+class _ExpandableTextState extends State<_ExpandableText> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fullText = widget.text;
+    final isLong = fullText.length > widget.maxChars;
+    final displayText = !_expanded && isLong
+        ? '${fullText.substring(0, widget.maxChars)}...'
+        : fullText;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(displayText, style: widget.style),
+        if (isLong)
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: REdgeInsets.only(top: 4),
+              child: Text(
+                _expanded ? 'Less' : 'More',
+                style: (widget.style ?? const TextStyle())
+                    .copyWith(color: primaryColor, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _SelesaikanTugasDialog extends StatefulWidget {
   final TugasLanjutanEntity tugas;
   final String userId;
   final TugasLanjutanBloc bloc;
+  final bool? isCheckedIn;
+  final bool? isCheckedOut;
 
   const _SelesaikanTugasDialog({
     required this.tugas,
     required this.userId,
     required this.bloc,
+    this.isCheckedIn,
+    this.isCheckedOut,
   });
 
   @override
@@ -1226,8 +1295,9 @@ class _SelesaikanTugasDialogState extends State<_SelesaikanTugasDialog> {
                               ),
                             ),
                             4.verticalSpace,
-                            Text(
+                            _ExpandableText(
                               widget.tugas.deskripsi,
+                              maxChars: 400,
                               style: TS.bodyMedium.copyWith(
                                 color: Colors.black87,
                               ),
@@ -1423,7 +1493,14 @@ class _SelesaikanTugasDialogState extends State<_SelesaikanTugasDialog> {
                   12.horizontalSpace,
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleSelesaikan,
+                      onPressed: (_isLoading || widget.isCheckedIn != true || (widget.isCheckedOut ?? false)) ? null : () {
+                        debugPrint('🔍 [TugasLanjutanPage] Selesaikan button pressed');
+                        debugPrint('  - _isLoading: $_isLoading');
+                        debugPrint('  - widget.isCheckedIn: ${widget.isCheckedIn}');
+                        debugPrint('  - widget.isCheckedOut: ${widget.isCheckedOut}');
+                        AppLogger.info('🔍 [TugasLanjutanPage] Selesaikan button pressed - isCheckedIn: ${widget.isCheckedIn}, isCheckedOut: ${widget.isCheckedOut}');
+                        _handleSelesaikan();
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
                         padding: REdgeInsets.symmetric(vertical: 12),
@@ -1472,28 +1549,32 @@ class _CameraCapturePageState extends State<_CameraCapturePage> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   int _currentCameraIndex = 0;
+  bool _isControllerCreated = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeCamera(0);
+  }
+
+  void _initializeCamera(int index) {
+    if (_isControllerCreated) {
+      _controller.dispose();
+    }
     _controller = CameraController(
-      widget.cameras[0],
+      widget.cameras[index],
       ResolutionPreset.high,
     );
+    _isControllerCreated = true;
     _initializeControllerFuture = _controller.initialize();
   }
 
   void _switchCamera() {
     if (widget.cameras.length < 2) return;
     
-    _controller.dispose();
     setState(() {
       _currentCameraIndex = (_currentCameraIndex + 1) % widget.cameras.length;
-      _controller = CameraController(
-        widget.cameras[_currentCameraIndex],
-        ResolutionPreset.high,
-      );
-      _initializeControllerFuture = _controller.initialize();
+      _initializeCamera(_currentCameraIndex);
     });
   }
 

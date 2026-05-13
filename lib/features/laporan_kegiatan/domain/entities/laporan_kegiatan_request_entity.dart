@@ -25,11 +25,10 @@ class LaporanKegiatanRequestEntity {
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    final json = <String, dynamic>{
       'IdUser': idUser,
       'WithSubordinate': withSubordinate,
       'IsAdmin': isAdmin,
-      'Status': status,
       'Search': search,
       'Start': start,
       'Length': length,
@@ -37,6 +36,13 @@ class LaporanKegiatanRequestEntity {
       'EndDate': endDate,
       'Filter': filter,
     };
+
+    final normalizedStatus = status.trim().toUpperCase();
+    if (normalizedStatus.isNotEmpty && normalizedStatus != 'WAITING') {
+      json['Status'] = status.trim();
+    }
+
+    return json;
   }
 }
 

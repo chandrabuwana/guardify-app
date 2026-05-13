@@ -94,6 +94,7 @@ TeamMemberModel _$TeamMemberModelFromJson(Map<String, dynamic> json) =>
           name: $checkedConvert('Name', (v) => v as String),
           position: $checkedConvert('Position', (v) => v as String),
           photoUrl: $checkedConvert('PhotoUrl', (v) => v as String?),
+          areasName: $checkedConvert('AreasName', (v) => v as String?),
         );
         return val;
       },
@@ -101,7 +102,8 @@ TeamMemberModel _$TeamMemberModelFromJson(Map<String, dynamic> json) =>
         'id': 'Id',
         'name': 'Name',
         'position': 'Position',
-        'photoUrl': 'PhotoUrl'
+        'photoUrl': 'PhotoUrl',
+        'areasName': 'AreasName'
       },
     );
 
@@ -111,6 +113,7 @@ Map<String, dynamic> _$TeamMemberModelToJson(TeamMemberModel instance) =>
       'Name': instance.name,
       'Position': instance.position,
       'PhotoUrl': instance.photoUrl,
+      'AreasName': instance.areasName,
     };
 
 DailyAgendaModel _$DailyAgendaModelFromJson(Map<String, dynamic> json) =>

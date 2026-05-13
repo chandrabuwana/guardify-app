@@ -3,8 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/design/colors.dart';
+import '../../../../core/di/injection.dart';
 import '../bloc/schedule_bloc.dart';
 import '../../domain/entities/shift_schedule.dart';
+import '../../../chat/presentation/bloc/chat_bloc.dart';
+import '../../../chat/presentation/bloc/chat_event.dart';
+import '../../../chat/presentation/pages/chat_conversation_page.dart';
+import '../../../chat/domain/entities/chat.dart';
 
 /// Shift Detail Page - Detail Jadwal Shift
 ///
@@ -291,6 +296,7 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
       spacing: 12.w,
       runSpacing: 12.h,
       children: members.map((member) {
+        print('🔍 [ShiftDetailPage] TeamMember: id=${member.id}, name=${member.name}, areasName=${member.areasName}, position=${member.position}');
         return Container(
           width: (MediaQuery.of(context).size.width - 64.w) / 3,
           padding: EdgeInsets.all(12.w),
@@ -331,9 +337,9 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
               ),
               SizedBox(height: 4.h),
 
-              // Position
+              // AreasName
               Text(
-                member.position,
+                member.areasName ?? '-',
                 style: TextStyle(
                   fontSize: 10.sp,
                   color: primaryColor,
@@ -348,8 +354,52 @@ class _ShiftDetailPageState extends State<ShiftDetailPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement send message
+                  onPressed: () async {
+                    // Get or create ChatBloc
+                    ChatBloc chatBloc;
+                    try {
+                      chatBloc = context.read<ChatBloc>();
+                    } catch (e) {
+                      // If ChatBloc is not available in context, create new one
+                      chatBloc = getIt<ChatBloc>();
+                    }
+                    
+                    // Create conversation with the team member
+                    chatBloc.add(ChatCreateConversation(memberUserIds: [member.id], name: member.name));
+                    
+                    // Wait for conversation to be created
+                    await Future.delayed(const Duration(milliseconds: 500));
+                    
+                    // Navigate to conversation page
+                    if (mounted) {
+                      final currentState = chatBloc.state;
+                      if (currentState.selectedChatId != null) {
+                        // Find the chat that was just created
+                        final newChat = currentState.chats.firstWhere(
+                          (chat) => chat.id == currentState.selectedChatId,
+                          orElse: () => Chat(
+                            id: currentState.selectedChatId!,
+                            name: member.name,
+                            type: ChatType.direct,
+                            participantIds: [member.id],
+                            unreadCount: 0,
+                            isActive: true,
+                            createdAt: DateTime.now(),
+                            updatedAt: DateTime.now(),
+                          ),
+                        );
+                        
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BlocProvider.value(
+                              value: chatBloc,
+                              child: ChatConversationPage(chat: newChat),
+                            ),
+                          ),
+                        );
+                      }
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,

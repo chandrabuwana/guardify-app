@@ -39,6 +39,7 @@ class RouteTaskMapper {
       proofImagePath: routeTask.fileUrl,
       notes: routeTask.filename,
       isAdditional: false,
+      radius: routeTask.radius,
     );
   }
 }
