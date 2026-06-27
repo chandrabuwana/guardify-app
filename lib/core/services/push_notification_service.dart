@@ -31,13 +31,13 @@ class PushNotificationService {
 
   static const AndroidNotificationChannel _panicAndroidChannel =
       AndroidNotificationChannel(
-    'guardify_panic_v3',
+    'guardify_panic_v4',
     'Guardify Panic Alerts',
     description: 'Panic button emergency alerts',
     importance: Importance.max,
     playSound: true,
     enableVibration: true,
-    sound: const RawResourceAndroidNotificationSound('notification'),
+    sound: const UriAndroidNotificationSound('android.resource://android/raw/alarm'), // System alarm sound
   );
 
   Future<void> initialize() async {
@@ -332,7 +332,7 @@ class PushNotificationService {
         importance: Importance.high,
         priority: Priority.high,
         playSound: true,
-        sound: const RawResourceAndroidNotificationSound('notification'),
+        // Use system default notification sound (no custom file needed)
         enableVibration: true,
       ),
       iOS: const DarwinNotificationDetails(),
@@ -453,7 +453,7 @@ class PushNotificationService {
         // Don't auto-launch UI while app is in background. User must tap notification.
         fullScreenIntent: false,
         playSound: true,
-        sound: const RawResourceAndroidNotificationSound('notification'),
+        sound: const UriAndroidNotificationSound('android.resource://android/raw/alarm'), // System alarm sound
         enableVibration: true,
         ticker: 'panic',
       ),

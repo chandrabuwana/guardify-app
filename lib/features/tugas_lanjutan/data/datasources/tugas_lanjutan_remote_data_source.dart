@@ -8,6 +8,7 @@ import '../models/submit_carried_over_task_request_model.dart';
 import '../../domain/entities/tugas_lanjutan_entity.dart';
 import '../../../../core/security/security_manager.dart';
 import '../../../../core/utils/image_compress_util.dart';
+import '../../../schedule/data/datasources/schedule_remote_data_source.dart';
 
 part 'tugas_lanjutan_remote_data_source.g.dart';
 
@@ -42,6 +43,7 @@ abstract class TugasLanjutanRemoteDataSource {
     bool filterByJabatan = false,
     String? jabatan,
     String? status,
+    bool useCurrentShift = false,
   });
 
   Future<TugasLanjutanModel> getTugasLanjutanDetail(String id);
@@ -170,6 +172,7 @@ class TugasLanjutanRemoteDataSourceImpl
     bool filterByJabatan = false,
     String? jabatan,
     String? status,
+    bool useCurrentShift = false,
   }) async {
     // Tab "Hari Ini" is handled in repository using GetCurrentTask
     // This method is for tab "Riwayat" and "Tugas Anggota"
@@ -182,11 +185,27 @@ class TugasLanjutanRemoteDataSourceImpl
       Map<String, dynamic> requestBody;
 
       if (filterByJabatan && jabatan != null) {
-        // Tab "Tugas Anggota": Filter by Jabatan
+        // Tab "Hari ini" for Danton/PJO/Deputy: Filter by Jabatan + IdShift
+        List<Map<String, dynamic>> filters = [
+          {'Field': 'Jabatan', 'Search': jabatan}
+        ];
+
+        if (useCurrentShift && userId != null) {
+          // Get current shift to add IdShift filter
+          try {
+            final scheduleDs = ScheduleRemoteDataSourceImpl(dio);
+            final shiftResponse = await scheduleDs.getCurrentShift({'IdUser': userId});
+            if (shiftResponse.succeeded && shiftResponse.data != null) {
+              final currentShiftId = shiftResponse.data!.id;
+              filters.add({'Field': 'IdShift', 'Search': currentShiftId});
+            }
+          } catch (e) {
+            print('Error getting current shift for IdShift filter: $e');
+          }
+        }
+
         requestBody = {
-          'Filter': [
-            {'Field': 'Jabatan', 'Search': jabatan}
-          ],
+          'Filter': filters,
           'Sort': {'Field': '', 'Type': 0},
           'Start': 1,
           'Length': 20,

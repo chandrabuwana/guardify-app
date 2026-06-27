@@ -8,7 +8,7 @@ import 'test_result_api_data_source.dart';
 
 /// Remote data source untuk Test Result
 abstract class TestResultRemoteDataSource {
-  Future<List<TestResultModel>> fetchMyResults(String userId, {int start = 0, int length = 20});
+  Future<List<TestResultModel>> fetchMyResults(String userId, {int start = 1, int length = 20});
   
   Future<List<TestMemberResultModel>> fetchMemberResults({
     String? examId,
@@ -21,7 +21,7 @@ abstract class TestResultRemoteDataSource {
   });
   
   /// Fetch member tests menggunakan IdPic filter (untuk Danton)
-  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId, {int start = 0, int length = 20});
+  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId, {int start = 1, int length = 20});
 
   /// Fetch assessment list (untuk Ujian Anggota tab)
   Future<List<AssessmentEntity>> fetchAssessmentList(String picId, {int start = 1, int length = 20});
@@ -38,7 +38,7 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
   TestResultRemoteDataSourceImpl(this._apiDataSource);
 
   @override
-  Future<List<TestResultModel>> fetchMyResults(String userId, {int start = 0, int length = 20}) async {
+  Future<List<TestResultModel>> fetchMyResults(String userId, {int start = 1, int length = 20}) async {
     try {
       print('');
       print('🌐 ========================================');
@@ -95,7 +95,7 @@ class TestResultRemoteDataSourceImpl implements TestResultRemoteDataSource {
   }
 
   @override
-  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId, {int start = 0, int length = 20}) async {
+  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId, {int start = 1, int length = 20}) async {
     try {
       print('');
       print('🌐 ========================================');
@@ -413,7 +413,7 @@ class TestResultRemoteDataSourceMockImpl implements TestResultRemoteDataSource {
   ];
 
   @override
-  Future<List<TestResultModel>> fetchMyResults(String userId, {int start = 0, int length = 20}) async {
+  Future<List<TestResultModel>> fetchMyResults(String userId, {int start = 1, int length = 20}) async {
     // Simulate API call
     await Future.delayed(const Duration(milliseconds: 500));
     
@@ -424,7 +424,7 @@ class TestResultRemoteDataSourceMockImpl implements TestResultRemoteDataSource {
   }
 
   @override
-  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId, {int start = 0, int length = 20}) async {
+  Future<List<TestResultModel>> fetchMemberTestsByPic(String picId, {int start = 1, int length = 20}) async {
     // Simulate API call
     await Future.delayed(const Duration(milliseconds: 500));
     

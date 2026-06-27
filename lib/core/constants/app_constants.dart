@@ -44,6 +44,7 @@ class AppConstants {
     }
 
     return 'https://api-guardify.abb-apps.com/hubs/chat';
+    // return 'https://api-devguardify.abb-apps.com/hubs/chat';
   }
 
 

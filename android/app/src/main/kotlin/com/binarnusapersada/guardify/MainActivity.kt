@@ -1,12 +1,20 @@
 package com.binarnusapersada.guardify
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
+// Import panic service
+import com.binarnusapersada.guardify.panic.PanicOverlayService
+
 class MainActivity : FlutterActivity() {
+
+    private val CHANNEL = "com.binarnusapersada.guardify/panic"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Clear corrupted SharedPreferences BEFORE Flutter engine starts
@@ -15,6 +23,29 @@ class MainActivity : FlutterActivity() {
         // serialize all data to send back to Dart via platform channels.
         clearCorruptedPrefsIfNeeded()
         super.onCreate(savedInstanceState)
+    }
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "stopPanicService" -> {
+                    try {
+                        val intent = Intent(this, PanicOverlayService::class.java).apply {
+                            action = "com.binarnusapersada.guardify.panic.ACTION_STOP"
+                        }
+                        startService(intent)
+                        Log.d("Guardify", "Stop panic service intent sent")
+                        result.success(true)
+                    } catch (e: Exception) {
+                        Log.e("Guardify", "Error stopping panic service: ${e.message}")
+                        result.error("ERROR", e.message, null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     private fun clearCorruptedPrefsIfNeeded() {

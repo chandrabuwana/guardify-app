@@ -71,88 +71,168 @@ class TestResultCardWidget extends StatelessWidget {
                   8.verticalSpace,
 
                   // Nama Ujian
-                  RichText(
-                    text: TextSpan(
-                      style: TS.bodyMedium.copyWith(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      children: [
-                        const TextSpan(text: 'Nama Ujian        : '),
-                        TextSpan(
-                          text: result.namaTest,
-                          style: const TextStyle(fontWeight: FontWeight.w400),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110.w,
+                        child: Text(
+                          'Nama Ujian',
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Text(
+                        ' : ',
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          result.namaTest,
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
 
                   4.verticalSpace,
 
                   // Tanggal Ujian
-                  RichText(
-                    text: TextSpan(
-                      style: TS.bodyMedium.copyWith(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      children: [
-                        const TextSpan(text: 'Tanggal Ujian   : '),
-                        TextSpan(
-                          text: DateFormat('dd MMMM yyyy', 'id').format(result.tanggalTest),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110.w,
+                        child: Text(
+                          'Tanggal Ujian',
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Text(
+                        ' : ',
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      Text(
+                        DateFormat('dd MMMM yyyy', 'id').format(result.tanggalTest),
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
 
                   4.verticalSpace,
 
                   // Nilai Ujian
-                  RichText(
-                    text: TextSpan(
-                      style: TS.bodyMedium.copyWith(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      children: [
-                        const TextSpan(text: 'Nilai Ujian        : '),
-                        TextSpan(
-                          text: result.status == TestKelulusanStatus.belumDinilai 
-                              ? '-'
-                              : '${result.nilaiTest}',
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110.w,
+                        child: Text(
+                          'Nilai Ujian',
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Text(
+                        ' : ',
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      Text(
+                        result.status == TestKelulusanStatus.belumDinilai
+                            ? '-'
+                            : '${result.nilaiTest}',
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
 
                   4.verticalSpace,
 
                   // Nilai KKM
-                  RichText(
-                    text: TextSpan(
-                      style: TS.bodyMedium.copyWith(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w400,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110.w,
+                        child: Text(
+                          'Nilai KKM',
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
                       ),
-                      children: [
-                        const TextSpan(text: 'Nilai KKM         : '),
-                        TextSpan(text: '${result.nilaiKKM}'),
-                      ],
-                    ),
+                      Text(
+                        ' : ',
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      Text(
+                        '${result.nilaiKKM}',
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
 
                   8.verticalSpace,
-                  RichText(
-                    text: TextSpan(
-                      style: TS.bodyMedium.copyWith(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w400,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110.w,
+                        child: Text(
+                          'Nilai Remedial',
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
                       ),
-                      children: [
-                        const TextSpan(text: 'Nilai Remedial         : '),
-                        TextSpan(text: '${result.remedialGrade ?? '-'}'),
-                      ],
-                    ),
+                      Text(
+                        ' : ',
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      Text(
+                        '${result.remedialGrade ?? '-'}',
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
 
                   8.verticalSpace,

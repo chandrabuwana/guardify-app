@@ -88,57 +88,105 @@ class AssessmentCardWidget extends StatelessWidget {
                   8.verticalSpace,
 
                   // Nama Assessment
-                  RichText(
-                    text: TextSpan(
-                      style: TS.bodyMedium.copyWith(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      children: [
-                        const TextSpan(text: 'Nama Ujian: '),
-                        TextSpan(
-                          text: assessment.name,
-                          style: const TextStyle(fontWeight: FontWeight.w400),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110.w,
+                        child: Text(
+                          'Nama Ujian',
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Text(
+                        ' : ',
+                        style: TS.bodyMedium.copyWith(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          assessment.name,
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
 
                   4.verticalSpace,
 
                   // Tanggal Assessment
                   if (assessment.assessmentDate != null)
-                    RichText(
-                      text: TextSpan(
-                        style: TS.bodyMedium.copyWith(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        children: [
-                          const TextSpan(text: 'Tanggal Ujian: '),
-                          TextSpan(
-                            text: DateFormat('dd MMMM yyyy', 'id')
-                                .format(assessment.assessmentDate!),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 110.w,
+                          child: Text(
+                            'Tanggal Ujian',
+                            style: TS.bodyMedium.copyWith(
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w400,
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                        Text(
+                          ' : ',
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        Text(
+                          DateFormat('dd MMMM yyyy', 'id')
+                              .format(assessment.assessmentDate!),
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
                     ),
 
                   4.verticalSpace,
 
                   // Min Value
                   if (assessment.minValue != null)
-                    RichText(
-                      text: TextSpan(
-                        style: TS.bodyMedium.copyWith(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w400,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 110.w,
+                          child: Text(
+                            'Nilai KKM',
+                            style: TS.bodyMedium.copyWith(
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
                         ),
-                        children: [
-                          const TextSpan(text: 'Nilai Minimum    : '),
-                          TextSpan(text: '${assessment.minValue}'),
-                        ],
-                      ),
+                        Text(
+                          ' : ',
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        Text(
+                          '${assessment.minValue}',
+                          style: TS.bodyMedium.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
                     ),
 
                   8.verticalSpace,

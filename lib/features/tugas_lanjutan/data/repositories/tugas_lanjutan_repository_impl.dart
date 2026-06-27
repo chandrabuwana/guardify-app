@@ -26,6 +26,7 @@ class TugasLanjutanRepositoryImpl implements TugasLanjutanRepository {
     bool filterByJabatan = false,
     String? jabatan,
     String? status,
+    bool useCurrentShift = false,
   }) async {
     try {
       if (filterByToday) {
@@ -103,6 +104,7 @@ class TugasLanjutanRepositoryImpl implements TugasLanjutanRepository {
           filterByJabatan: filterByJabatan,
           jabatan: jabatan,
           status: status,
+          useCurrentShift: useCurrentShift,
         );
         return Right(result.map((model) => model.toEntity()).toList());
       }

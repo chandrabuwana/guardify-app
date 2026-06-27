@@ -34,12 +34,15 @@ class ShiftCard extends StatelessWidget {
     final isCheckedOut = attendanceInfo.isCheckedOut;
     final hasShift = attendanceInfo.hasShift;
     final isOnLeave = attendanceInfo.isOnLeave;
+    
     // Untuk pengawas, tidak perlu validasi shift (selalu tampilkan tombol kecuali sudah checkout)
-    // Untuk role lain, validasi shift tetap diperlukan
-    // Juga disable tombol jika user sedang cuti (isOnLeave)
+    // Untuk role lain:
+    // - Jika sudah checkin, WAJIB tampilkan tombol checkout (untuk handle kasus hari berganti)
+    // - Jika belum checkin, perlu validasi shift dan tidak sedang cuti
+    // Juga disable tombol jika user sedang cuti (kecuali jika sudah checkin)
     final shouldShowButton = userRole == UserRole.pengawas
         ? !isCheckedOut
-        : (!isCheckedOut && hasShift && !isOnLeave);
+        : (isCheckedIn ? !isCheckedOut : (!isCheckedOut && hasShift && !isOnLeave));
 
     Widget cardContent = Container(
       padding: const EdgeInsets.all(16),

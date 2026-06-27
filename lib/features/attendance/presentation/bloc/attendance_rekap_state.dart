@@ -19,6 +19,9 @@ class AttendanceRekapLoaded extends AttendanceRekapState {
   final String? statusFilter;
   final int count;
   final int filtered;
+  final int currentStart;
+  final bool hasMoreData;
+  final bool isLoadingMore;
 
   const AttendanceRekapLoaded({
     required this.allItems,
@@ -27,6 +30,9 @@ class AttendanceRekapLoaded extends AttendanceRekapState {
     this.statusFilter,
     required this.count,
     required this.filtered,
+    this.currentStart = 1,
+    this.hasMoreData = true,
+    this.isLoadingMore = false,
   });
 
   AttendanceRekapLoaded copyWith({
@@ -36,6 +42,9 @@ class AttendanceRekapLoaded extends AttendanceRekapState {
     String? statusFilter,
     int? count,
     int? filtered,
+    int? currentStart,
+    bool? hasMoreData,
+    bool? isLoadingMore,
   }) {
     return AttendanceRekapLoaded(
       allItems: allItems ?? this.allItems,
@@ -44,6 +53,9 @@ class AttendanceRekapLoaded extends AttendanceRekapState {
       statusFilter: statusFilter ?? this.statusFilter,
       count: count ?? this.count,
       filtered: filtered ?? this.filtered,
+      currentStart: currentStart ?? this.currentStart,
+      hasMoreData: hasMoreData ?? this.hasMoreData,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
     );
   }
 }

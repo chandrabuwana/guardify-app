@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:vibration/vibration.dart';
 import '../../core/design/colors.dart';
+import '../../core/services/panic_native_service.dart';
 import '../../core/services/push_notification_service.dart';
 import '../../features/panic_button/data/models/panic_button_notification_model.dart';
 import '../../features/panic_button/data/models/panic_button_mobile_response_model.dart';
@@ -33,6 +34,7 @@ class _PanicButtonPopupState extends State<PanicButtonPopup> {
   Timer? _countdownTimer;
   bool _isVibrating = false;
   int _remainingSeconds = 0;
+  int _unlockCountdown = 30; // Seconds before stop button is enabled
 
   @override
   void initState() {
@@ -55,6 +57,7 @@ class _PanicButtonPopupState extends State<PanicButtonPopup> {
     }
     _startVibration();
     _startDurationTimer();
+    _startUnlockTimer();
     print('✅ [PanicButtonPopup] Panic button popup initialized');
   }
 
@@ -155,7 +158,22 @@ class _PanicButtonPopupState extends State<PanicButtonPopup> {
     });
   }
 
-  void _closePopup() {
+  void _startUnlockTimer() {
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _unlockCountdown--;
+      });
+      if (_unlockCountdown <= 0) {
+        timer.cancel();
+      }
+    });
+  }
+
+  void _closePopup() async {
     _stopVibration();
     _countdownTimer?.cancel();
     _durationTimer?.cancel();
@@ -166,6 +184,9 @@ class _PanicButtonPopupState extends State<PanicButtonPopup> {
     // Calling cancelAllNotifications() ensures both vibration and sound stop immediately.
     // This is especially important for devices where vibration.cancel() doesn't work reliably.
     PushNotificationService.instance.cancelAllNotifications();
+
+    // Stop the native PanicOverlayService (stops MediaPlayer alarm sound)
+    await PanicNativeService.stopPanicService();
 
     if (mounted) {
       try {
@@ -510,22 +531,28 @@ class _PanicButtonPopupState extends State<PanicButtonPopup> {
               ),
               16.verticalSpace,
 
-              // Stop button
+              // Stop button (disabled for first 30 seconds)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _closePopup,
-                  icon: const Icon(Icons.stop, color: Colors.white),
+                  onPressed: _unlockCountdown > 0 ? null : _closePopup,
+                  icon: Icon(
+                    Icons.stop,
+                    color: _unlockCountdown > 0 ? neutral50 : Colors.white,
+                  ),
                   label: Text(
-                    'Stop Alarm',
+                    _unlockCountdown > 0
+                        ? 'Stop Alarm ($_unlockCountdown)'
+                        : 'Stop Alarm',
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: _unlockCountdown > 0 ? neutral50 : Colors.white,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: errorColor,
+                    backgroundColor: _unlockCountdown > 0 ? neutral20 : errorColor,
+                    disabledBackgroundColor: neutral20,
                     padding: EdgeInsets.symmetric(vertical: 12.h),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.r),

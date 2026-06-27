@@ -51,8 +51,8 @@ import 'core/di/injection.dart';
 import 'core/navigation/app_navigator_key.dart';
 import 'core/design/colors.dart';
 import 'core/services/background_location_task.dart';
+import 'core/services/background_location_permission_helper.dart';
 import 'core/services/push_notification_service.dart';
-// import 'shared/widgets/api_log_overlay_button.dart';  // Debug tool disabled
 
 @pragma('vm:entry-point')
 void overlayMain() {
@@ -165,14 +165,15 @@ Future<void> _showBackgroundPanicNotification(Map<String, dynamic> rawData) asyn
   // Android notification channels are sticky: once created, sound/vibration cannot be
   // changed programmatically for the same channel id. Use a new id when adjusting
   // vibration behavior.
+  // Use Android system alarm URI for reliable alarm sound (no custom file needed)
   final panicChannel = AndroidNotificationChannel(
-    'guardify_panic_v3',
+    'guardify_panic_v4', // New channel ID to force recreation with alarm sound
     'Guardify Panic Alerts',
     description: 'Panic button emergency alerts',
     importance: Importance.max,
     playSound: true,
     enableVibration: true,
-    sound: const RawResourceAndroidNotificationSound('notification'),
+    sound: const UriAndroidNotificationSound('android.resource://android/raw/alarm'), // System alarm sound
     vibrationPattern: Int64List.fromList(
       <int>[0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
     ),
@@ -219,7 +220,7 @@ Future<void> _showBackgroundPanicNotification(Map<String, dynamic> rawData) asyn
       category: AndroidNotificationCategory.call,
       fullScreenIntent: true,
       playSound: true,
-      sound: const RawResourceAndroidNotificationSound('notification'),
+      sound: const UriAndroidNotificationSound('android.resource://android/raw/alarm'), // System alarm sound
       enableVibration: true,
       visibility: NotificationVisibility.public,
       // Pattern is set at channel-level (Android 8+). Kept here for completeness.
@@ -304,19 +305,29 @@ void main() async {
   }
 
   await configureDependencies();
-  
-  // Initialize background location update service
-  // Temporarily disabled due to Kotlin 2.1.0 compatibility issue with workmanager 0.5.2
-  // TODO: Update workmanager to 0.9.0+3 when ready
-  try {
-    await BackgroundLocationTaskManager.initialize();
-    await BackgroundLocationTaskManager.registerPeriodicTask();
-  } catch (e) {
-    debugPrint('⚠️ [Main] Failed to initialize workmanager: $e');
-    debugPrint('⚠️ [Main] Background location updates will be disabled');
-  }
-  
+
   runApp(const GuardifyApp());
+
+  // Show prominent background location disclosure and initialize the tracking
+  // service only after the user explicitly consents. Google Play requires this
+  // disclosure to be shown before the app accesses background location.
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final hasAccepted =
+        await BackgroundLocationPermissionHelper.hasAcceptedDisclosure();
+    if (!hasAccepted) {
+      final accepted = await BackgroundLocationPermissionHelper
+          .showDisclosureWithNavigatorKey(AppNavigatorKey.navigatorKey);
+      if (!accepted) return;
+    }
+
+    try {
+      await BackgroundLocationTaskManager.initialize();
+      await BackgroundLocationTaskManager.registerPeriodicTask();
+    } catch (e) {
+      debugPrint('⚠️ [Main] Failed to initialize workmanager: $e');
+      debugPrint('⚠️ [Main] Background location updates will be disabled');
+    }
+  });
 }
 
 class GuardifyApp extends StatefulWidget {
@@ -350,7 +361,11 @@ class _GuardifyAppState extends State<GuardifyApp> {
             ),
           ),
           builder: (context, child) {
-            return child ?? const SizedBox.shrink();
+            return Stack(
+              children: [
+                child ?? const SizedBox.shrink(),
+              ],
+            );
           },
           routes: {
             '/': (context) => const _AuthGate(),

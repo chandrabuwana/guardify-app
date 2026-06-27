@@ -15,6 +15,7 @@ class GetTugasLanjutanListEvent extends TugasLanjutanEvent {
   final bool filterByJabatan;
   final String? jabatan;
   final String? status;
+  final bool useCurrentShift;
 
   const GetTugasLanjutanListEvent({
     this.filterByToday = false,
@@ -22,10 +23,11 @@ class GetTugasLanjutanListEvent extends TugasLanjutanEvent {
     this.filterByJabatan = false,
     this.jabatan,
     this.status,
+    this.useCurrentShift = false,
   });
 
   @override
-  List<Object?> get props => [filterByToday, userId, filterByJabatan, jabatan, status];
+  List<Object?> get props => [filterByToday, userId, filterByJabatan, jabatan, status, useCurrentShift];
 }
 
 /// Get detail tugas lanjutan

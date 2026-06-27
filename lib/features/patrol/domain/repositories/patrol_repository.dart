@@ -5,6 +5,7 @@ import '../entities/patrol_route.dart';
 import '../entities/patrol_location.dart';
 import '../entities/patrol_attendance.dart';
 import '../entities/patrol_progress.dart';
+import '../../data/models/route_detail_api_response.dart';
 
 abstract class PatrolRepository {
   /// Get paginated patrol routes from API (using /Route/list for home)
@@ -33,6 +34,14 @@ abstract class PatrolRepository {
 
   /// Get all areas list (for dropdown in add location form)
   Future<Either<Failure, List<PatrolLocation>>> getAllAreas();
+
+  /// Get areas list with optional search filter
+  Future<Either<Failure, List<PatrolLocation>>> getAreaList({
+    required int start,
+    required int length,
+    List<FilterModel>? filter,
+    SortModel? sort,
+  });
 
   /// Submit patrol check point
   Future<Either<Failure, bool>> submitCheckPoint({

@@ -19,6 +19,7 @@ class AttendanceRekapBloc
     on<FilterAttendanceRekapEvent>(_onFilterAttendanceRekap);
     on<ClearSearchAttendanceRekapEvent>(_onClearSearch);
     on<RefreshAttendanceRekapEvent>(_onRefreshAttendanceRekap);
+    on<LoadMoreAttendanceRekapEvent>(_onLoadMoreAttendanceRekap);
   }
 
   Future<void> _onLoadAttendanceRekap(
@@ -55,6 +56,9 @@ class AttendanceRekapBloc
           statusFilter: _pendingStatusFilter,
           count: response.count,
           filtered: response.filtered,
+          currentStart: event.request.start,
+          hasMoreData: response.list.length >= event.request.length,
+          isLoadingMore: false,
         ));
       },
     );
@@ -118,16 +122,14 @@ class AttendanceRekapBloc
     Emitter<AttendanceRekapState> emit,
   ) {
     final currentState = state;
-    
-    // Store search query for later use if data is not loaded yet
-    if (event.query.trim().isEmpty) {
-      _pendingSearchQuery = null;
-    } else {
-      _pendingSearchQuery = event.query;
-    }
 
     // If data is not loaded yet, just store the query
     if (currentState is! AttendanceRekapLoaded) {
+      if (event.query.trim().isEmpty) {
+        _pendingSearchQuery = null;
+      } else {
+        _pendingSearchQuery = event.query;
+      }
       return;
     }
 
@@ -147,7 +149,7 @@ class AttendanceRekapBloc
       return;
     }
 
-    // Perform search on all items
+    // Perform search on all items (client-side search on already loaded data)
     var filteredItems = _performSearch(currentState.allItems, event.query);
 
     // Apply status filter if any
@@ -167,16 +169,14 @@ class AttendanceRekapBloc
     Emitter<AttendanceRekapState> emit,
   ) {
     final currentState = state;
-    
-    // Store status filter for later use if data is not loaded yet
-    if (event.status.trim().isEmpty) {
-      _pendingStatusFilter = null;
-    } else {
-      _pendingStatusFilter = event.status;
-    }
 
     // If data is not loaded yet, just store the filter
     if (currentState is! AttendanceRekapLoaded) {
+      if (event.status.trim().isEmpty) {
+        _pendingStatusFilter = null;
+      } else {
+        _pendingStatusFilter = event.status;
+      }
       return;
     }
 
@@ -229,6 +229,56 @@ class AttendanceRekapBloc
       filteredItems: filteredItems,
       searchQuery: null,
     ));
+  }
+
+  Future<void> _onLoadMoreAttendanceRekap(
+    LoadMoreAttendanceRekapEvent event,
+    Emitter<AttendanceRekapState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AttendanceRekapLoaded) return;
+    if (currentState.isLoadingMore || !currentState.hasMoreData) return;
+
+    // Mark as loading more
+    emit(currentState.copyWith(isLoadingMore: true));
+
+    final result = await getAttendanceRekapUseCase(event.request);
+
+    result.fold(
+      (failure) => emit(currentState.copyWith(isLoadingMore: false)),
+      (response) {
+        if (response.succeeded) {
+          // Append new items to existing items
+          final newItems = response.list;
+          final updatedAllItems = [...currentState.allItems, ...newItems];
+
+          // Apply existing filters to the combined list
+          var filteredItems = updatedAllItems;
+          if (currentState.searchQuery != null &&
+              currentState.searchQuery!.isNotEmpty) {
+            filteredItems = _performSearch(updatedAllItems, currentState.searchQuery!);
+          }
+          if (currentState.statusFilter != null &&
+              currentState.statusFilter!.isNotEmpty) {
+            filteredItems = _performFilter(filteredItems, currentState.statusFilter!);
+          }
+
+          emit(AttendanceRekapLoaded(
+            allItems: updatedAllItems,
+            filteredItems: filteredItems,
+            searchQuery: currentState.searchQuery,
+            statusFilter: currentState.statusFilter,
+            count: response.count,
+            filtered: currentState.filtered + newItems.length,
+            currentStart: event.request.start,
+            hasMoreData: newItems.length >= event.request.length,
+            isLoadingMore: false,
+          ));
+        } else {
+          emit(currentState.copyWith(isLoadingMore: false));
+        }
+      },
+    );
   }
 
   List<AttendanceRekapEntity> _performSearch(

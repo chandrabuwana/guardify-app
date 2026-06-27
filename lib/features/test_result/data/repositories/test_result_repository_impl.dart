@@ -18,7 +18,7 @@ class TestResultRepositoryImpl implements TestResultRepository {
 
   @override
   Future<Either<Failure, List<TestResultEntity>>> getMyResults(
-      String userId, {int start = 0, int length = 20}) async {
+      String userId, {int start = 1, int length = 20}) async {
     try {
       final results = await remoteDataSource.fetchMyResults(userId, start: start, length: length);
       final entities = results.map((model) => model.toEntity()).toList();
@@ -63,7 +63,7 @@ class TestResultRepositoryImpl implements TestResultRepository {
 
   @override
   Future<Either<Failure, List<TestResultEntity>>> getMemberTestsByPic(
-      String picId, {int start = 0, int length = 20}) async {
+      String picId, {int start = 1, int length = 20}) async {
     try {
       final results = await remoteDataSource.fetchMemberTestsByPic(picId, start: start, length: length);
       final entities = results.map((model) => model.toEntity()).toList();

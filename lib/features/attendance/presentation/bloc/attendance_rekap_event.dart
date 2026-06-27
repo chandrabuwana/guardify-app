@@ -28,3 +28,9 @@ class RefreshAttendanceRekapEvent extends AttendanceRekapEvent {
   RefreshAttendanceRekapEvent(this.request);
 }
 
+class LoadMoreAttendanceRekapEvent extends AttendanceRekapEvent {
+  final AttendanceRekapRequestEntity request;
+
+  LoadMoreAttendanceRekapEvent(this.request);
+}
+

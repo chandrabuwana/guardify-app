@@ -230,6 +230,17 @@ class _AssessmentDetailPageState extends State<AssessmentDetailPage> {
                               Expanded(
                                 flex: 1,
                                 child: Text(
+                                  'Nilai Remedial',
+                                  style: TS.bodySmall.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: neutral70,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
                                   'Status',
                                   style: TS.bodySmall.copyWith(
                                     fontWeight: FontWeight.bold,
@@ -285,12 +296,6 @@ class _AssessmentDetailPageState extends State<AssessmentDetailPage> {
   }
 
   Widget _buildParticipantRow(TestResultEntity participant, bool isLast) {
-    final statusText = participant.status == TestKelulusanStatus.lulus
-        ? 'Lulus'
-        : participant.status == TestKelulusanStatus.tidakLulus
-            ? 'Tidak Lulus'
-            : 'Belum Dinilai';
-
     return Container(
       padding: REdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -324,20 +329,32 @@ class _AssessmentDetailPageState extends State<AssessmentDetailPage> {
           ),
           Expanded(
             flex: 1,
-            child: Container(
-              padding: REdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: (participant.status == TestKelulusanStatus.lulus ? successColor : errorColor).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4.r),
+            child: Text(
+              '${participant.remedialGrade ?? '-'}',
+              style: TS.bodySmall.copyWith(
+                color: neutral90,
+                fontWeight: FontWeight.w600,
               ),
-              child: Text(
-                statusText,
-                style: TS.bodySmall.copyWith(
-                  color: participant.status == TestKelulusanStatus.lulus ? successColor : errorColor,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              participant.status == TestKelulusanStatus.lulus
+                  ? 'Lulus'
+                  : participant.status == TestKelulusanStatus.tidakLulus
+                      ? 'Tidak Lulus'
+                      : 'Belum Dinilai',
+              style: TS.bodySmall.copyWith(
+                color: participant.status == TestKelulusanStatus.lulus
+                    ? successColor
+                    : participant.status == TestKelulusanStatus.tidakLulus
+                        ? errorColor
+                        : neutral70,
+                fontWeight: FontWeight.w600,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],

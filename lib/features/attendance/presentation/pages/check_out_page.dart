@@ -48,6 +48,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
   List<String> _fotoPengamanan = [];
   List<String> _buktiLembur = [];
   String _lembur = 'Tidak'; // Lembur dropdown
+  String _adaTugasBelumSelesai = 'Tidak'; // Default Tidak
   ShiftCheckoutDetailData? _checkoutDetail;
   double? _currentLatitude;
   double? _currentLongitude;
@@ -241,15 +242,40 @@ class _CheckOutPageState extends State<CheckOutPage> {
                           margin: REdgeInsets.only(bottom: 16),
                         ),
 
-                        // Tugas Tertunda
+                        // Tugas Belum Selesai Dropdown
+                        CustomDropdown<String>(
+                          label: 'Terdapat tugas yang belum terselesaikan?',
+                          hint: 'Pilih',
+                          value: _adaTugasBelumSelesai.isEmpty ? null : _adaTugasBelumSelesai,
+                          items: [
+                            DropdownItem(value: 'Tidak', text: 'Tidak'),
+                            DropdownItem(value: 'Ya', text: 'Ya'),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _adaTugasBelumSelesai = value ?? 'Tidak';
+                              // Update status tugas based on selection
+                              _statusTugas = (_adaTugasBelumSelesai == 'Ya') ? 'tidak_selesai' : 'selesai';
+                              // Clear tugas tertunda if user selects Tidak
+                              if (_adaTugasBelumSelesai == 'Tidak') {
+                                _tugasTertundaController.clear();
+                              }
+                            });
+                          },
+                          isRequired: true,
+                          margin: REdgeInsets.only(bottom: 16),
+                        ),
+
+                        // Tugas Tertunda (enabled only when Ada Tugas Belum Selesai = Ya)
                         InputPrimary(
-                          label: 'Tugas Tertunda',
+                          label: 'Tugas Lanjutan',
                           controller: _tugasTertundaController,
-                          hint: 'Keterangan Tugas Tertunda',
+                          hint: 'Keterangan Tugas Lanjutan',
                           maxLines: 4,
                           maxLength: TextField.noMaxLength,
                           margin: REdgeInsets.only(bottom: 16),
-                          isRequired: false,
+                          isRequired: _adaTugasBelumSelesai == 'Ya',
+                          enable: _adaTugasBelumSelesai == 'Ya',
                         ),
 
                         // Lembur Dropdown
@@ -395,7 +421,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
         print('📋 CheckOut - shiftDetailId from checkoutDetail: $shiftDetailId');
       }
 
-      final coTask = _statusTugas == 'tidak_selesai' ? 'Tugas belum selesai' : null;
+      final coTask = _statusTugas == 'tidak_selesai' && _tugasTertundaController.text.isNotEmpty
+          ? _tugasTertundaController.text
+          : null;
 
       print('📤 CheckOut - Submitting checkout request:');
       print('  - userId: ${widget.userId}');

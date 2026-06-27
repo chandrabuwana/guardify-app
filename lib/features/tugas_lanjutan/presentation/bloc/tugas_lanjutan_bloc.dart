@@ -44,6 +44,7 @@ class TugasLanjutanBloc
       filterByJabatan: event.filterByJabatan,
       jabatan: event.jabatan,
       status: event.status,
+      useCurrentShift: event.useCurrentShift,
     );
 
     await result.fold(

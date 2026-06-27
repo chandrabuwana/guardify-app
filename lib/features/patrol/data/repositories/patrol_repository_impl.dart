@@ -288,6 +288,34 @@ class PatrolRepositoryImpl implements PatrolRepository {
     }
   }
 
+  /// Get areas list with optional search filter
+  @override
+  Future<Either<Failure, List<PatrolLocation>>> getAreaList({
+    required int start,
+    required int length,
+    List<FilterModel>? filter,
+    SortModel? sort,
+  }) async {
+    try {
+      print('[PatrolRepository] Fetching areas with filter: ${filter?.map((f) => "${f.field}:${f.search}").join(",") ?? "none"}');
+
+      final response = await remoteDataSource.getAreaList(
+        start: start,
+        length: length,
+        filter: filter,
+        sort: sort,
+      );
+
+      // Convert AreaModel list to PatrolLocation list
+      final locations = AreaMapper.toPatrolLocations(response.list);
+      print('[PatrolRepository] Success: ${locations.length} areas loaded');
+      return Right(locations);
+    } catch (e) {
+      print('[PatrolRepository] Error fetching areas: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
   @override
   Future<Either<Failure, bool>> submitCheckPoint({
     required String idShiftDetail,

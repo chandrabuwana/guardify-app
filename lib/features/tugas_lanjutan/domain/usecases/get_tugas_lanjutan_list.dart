@@ -17,6 +17,7 @@ class GetTugasLanjutanList {
     bool filterByJabatan = false,
     String? jabatan,
     String? status,
+    bool useCurrentShift = false,
   }) async {
     return await repository.getTugasLanjutanList(
       filterByToday: filterByToday,
@@ -24,6 +25,7 @@ class GetTugasLanjutanList {
       filterByJabatan: filterByJabatan,
       jabatan: jabatan,
       status: status,
+      useCurrentShift: useCurrentShift,
     );
   }
 }

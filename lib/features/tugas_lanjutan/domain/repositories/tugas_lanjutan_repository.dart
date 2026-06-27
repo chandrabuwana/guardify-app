@@ -16,6 +16,7 @@ abstract class TugasLanjutanRepository {
     bool filterByJabatan = false,
     String? jabatan,
     String? status,
+    bool useCurrentShift = false,
   });
 
   /// Get detail tugas lanjutan by ID

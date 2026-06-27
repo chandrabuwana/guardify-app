@@ -11,7 +11,7 @@ class GetMyTestResultsUseCase {
 
   GetMyTestResultsUseCase(this.repository);
 
-  Future<Either<Failure, List<TestResultEntity>>> call(String userId, {int start = 0, int length = 20}) async {
+  Future<Either<Failure, List<TestResultEntity>>> call(String userId, {int start = 1, int length = 20}) async {
     return await repository.getMyResults(userId, start: start, length: length);
   }
 }

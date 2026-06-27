@@ -145,25 +145,21 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
         ));
       }
     } else if (_isHighAccessRole) {
-      // For danton, pjo, deputy: Tab 0 = "Tugas Saya", Tab 1 = "Tugas Anggota"
+      // For danton, pjo, deputy: Tab 0 = "Hari ini", Tab 1 = "Riwayat"
       if (_tabController.index == 0) {
-        // Tab "Tugas Saya":
-        // - Danton: filter by Jabatan = "Danton"
-        // - PJO/Deputy: keep existing behavior (SolverId)
-        _bloc.add(GetTugasLanjutanListEvent(
-          filterByToday: false,
-          userId: _currentUserId,
-          filterByJabatan: _userRole == UserRole.danton,
-          jabatan: _userRole == UserRole.danton ? 'Danton' : null,
-          status: 'closed', // Add status filter for Tugas Saya tab
-        ));
-      } else {
-        // Tab "Tugas Anggota": Filter by Jabatan = "Anggota"
+        // Tab "Hari ini": Filter by Jabatan + IdShift (current shift)
         _bloc.add(GetTugasLanjutanListEvent(
           filterByToday: false,
           userId: _currentUserId,
           filterByJabatan: true,
-          jabatan: 'Anggota',
+          jabatan: 'Danton', // All high access roles use Danton filter
+          useCurrentShift: true, // Add IdShift filter for current shift
+        ));
+      } else {
+        // Tab "Riwayat": Filter by SolverId (same as anggota)
+        _bloc.add(GetTugasLanjutanListEvent(
+          filterByToday: false,
+          userId: _currentUserId,
         ));
       }
     } else {
@@ -360,8 +356,8 @@ class _TugasLanjutanPageState extends State<TugasLanjutanPage>
                   ]
                 : _isHighAccessRole
                     ? const [
-                        Tab(text: 'Tugas Saya'),
-                        Tab(text: 'Tugas Anggota'),
+                        Tab(text: 'Hari ini'),
+                        Tab(text: 'Riwayat'),
                       ]
                     : const [
                         Tab(text: 'Hari Ini'),

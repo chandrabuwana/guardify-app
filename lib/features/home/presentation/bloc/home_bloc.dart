@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/constants/enums.dart';
@@ -160,7 +161,21 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       // Load current shift from API for other roles
       print('');
       print('🏠 Loading current shift from API...');
-      final currentShiftResult = await _getCurrentShift(userId: userId);
+      CurrentShiftResult currentShiftResult;
+      int retryCount = 0;
+      const maxRetries = 2;
+      
+      // Retry mechanism for API call
+      do {
+        currentShiftResult = await _getCurrentShift(userId: userId);
+        retryCount++;
+        
+        if (!currentShiftResult.isSuccess && retryCount < maxRetries) {
+          print('🏠 ⚠️ API call failed, retrying... (attempt $retryCount/$maxRetries)');
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      } while (!currentShiftResult.isSuccess && retryCount < maxRetries);
+      
       print('🏠 Current shift result:');
       print('  - isSuccess: ${currentShiftResult.isSuccess}');
       print('  - hasData: ${currentShiftResult.currentShift != null}');
@@ -168,11 +183,38 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         print('  - shift.id: ${currentShiftResult.currentShift!.id}');
         print('  - shift.idShiftDetail: ${currentShiftResult.currentShift!.idShiftDetail}');
         print('  - shift.name: ${currentShiftResult.currentShift!.name}');
+        print('  - shift.checkin: ${currentShiftResult.currentShift!.checkin}');
+        print('  - shift.checkout: ${currentShiftResult.currentShift!.checkout}');
       }
+      
+      // Cache successful shift data for fallback
+      if (currentShiftResult.isSuccess && currentShiftResult.currentShift != null) {
+        await _cacheCurrentShift(currentShiftResult.currentShift!);
+      }
+      
       currentShift = currentShiftResult.isSuccess ? currentShiftResult.currentShift : null;
 
-      if (currentShiftResult.isSuccess && currentShiftResult.currentShift != null) {
-        final shift = currentShiftResult.currentShift!;
+      // Check for cached shift data if API failed
+      CurrentShiftData? cachedShift;
+      if (!currentShiftResult.isSuccess || currentShiftResult.currentShift == null) {
+        cachedShift = await _getCachedCurrentShift();
+        if (cachedShift != null) {
+          print('🏠 📦 Using cached shift data as fallback');
+          print('  - cached shift.id: ${cachedShift.id}');
+          print('  - cached shift.checkin: ${cachedShift.checkin}');
+          print('  - cached shift.checkout: ${cachedShift.checkout}');
+        }
+      }
+      
+      // Use API result or fallback to cached data
+      final effectiveShift = currentShiftResult.currentShift ?? cachedShift;
+      
+      // Check for cached checkin status if API returns false but user was previously checked in
+      bool? cachedCheckinStatus = await _getCachedCheckinStatus();
+      print('🏠 📦 Cached checkin status: $cachedCheckinStatus');
+      
+      if (effectiveShift != null) {
+        final shift = effectiveShift;;
         
         // Save shift id to storage for use in AttendanceDetail/insert
         if (shift.id.isNotEmpty) {
@@ -211,8 +253,17 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           shiftDate = DateTime.now();
         }
         
+        // Use cached checkin status if user was checked in but new shift shows false
+        final effectiveCheckin = (cachedCheckinStatus == true && !shift.checkin) ? true : shift.checkin;
+        
+        if (effectiveCheckin != shift.checkin) {
+          print('🏠 🔄 Using cached checkin status: $effectiveCheckin (API shows: ${shift.checkin})');
+          // Cache the current effective checkin status
+          await _cacheCheckinStatus(effectiveCheckin);
+        }
+        
         attendanceInfo = AttendanceInfo(
-          isCheckedIn: shift.checkin,
+          isCheckedIn: effectiveCheckin,
           isCheckedOut: shift.checkout,
           currentTime: checkinTime,
           shift: shift.name,
@@ -221,6 +272,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           hasShift: true, // There is shift data available
           isOnLeave: shift.isOnLeave, // IsOnLeave flag from API
         );
+        
+        print('🔍 [HomeBloc] AttendanceInfo Created:');
+        print('  - isCheckedIn: ${attendanceInfo.isCheckedIn} (cached: $cachedCheckinStatus, api: ${shift.checkin})');
+        print('  - isCheckedOut: ${attendanceInfo.isCheckedOut}');
+        print('  - hasShift: ${attendanceInfo.hasShift}');
+        print('  - isOnLeave: ${attendanceInfo.isOnLeave}');
+        print('  - shift: "${attendanceInfo.shift}"');
       } else {
         // No shift data available - hide work button
         attendanceInfo = AttendanceInfo(
@@ -232,6 +290,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           date: DateTime.now(),
           hasShift: false, // No shift data available
         );
+        
+        print('🔍 [HomeBloc] No Shift Data - AttendanceInfo Created:');
+        print('  - isCheckedIn: ${attendanceInfo.isCheckedIn}');
+        print('  - isCheckedOut: ${attendanceInfo.isCheckedOut}');
+        print('  - hasShift: ${attendanceInfo.hasShift}');
+        print('  - isOnLeave: ${attendanceInfo.isOnLeave}');
+        print('  - shift: "${attendanceInfo.shift}"');
+        print('  - ⚠️ This will hide the button for non-pengawas roles!');
       }
     }
 
@@ -994,6 +1060,65 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     ];
   }
 
+  // Cache helper methods for shift data fallback
+  Future<void> _cacheCurrentShift(CurrentShiftData shift) async {
+    try {
+      final shiftJson = jsonEncode({
+        'id': shift.id,
+        'idShiftDetail': shift.idShiftDetail,
+        'name': shift.name,
+        'startTime': shift.startTime,
+        'checkin': shift.checkin,
+        'checkout': shift.checkout,
+        'checkinTime': shift.checkinTime,
+        'checkoutTime': shift.checkoutTime,
+        'shiftDate': shift.shiftDate,
+        'location': shift.location,
+        'isOnLeave': shift.isOnLeave,
+        'cachedAt': DateTime.now().toIso8601String(),
+      });
+      await SecurityManager.storeSecurely('cached_current_shift', shiftJson);
+      print('🏠 💾 Shift data cached successfully');
+    } catch (e) {
+      print('🏠 ⚠️ Failed to cache shift data: $e');
+    }
+  }
+
+  Future<CurrentShiftData?> _getCachedCurrentShift() async {
+    try {
+      final cachedJson = await SecurityManager.readSecurely('cached_current_shift');
+      if (cachedJson == null || cachedJson.isEmpty) return null;
+      
+      final Map<String, dynamic> data = jsonDecode(cachedJson);
+      final cachedAt = DateTime.parse(data['cachedAt']);
+      
+      // Only use cache if it's less than 24 hours old
+      if (DateTime.now().difference(cachedAt).inHours > 24) {
+        print('🏠 🗑️ Cached shift data expired (older than 24h)');
+        await SecurityManager.deleteSecurely('cached_current_shift');
+        return null;
+      }
+      
+      return CurrentShiftData(
+        id: data['id'] ?? '',
+        idShiftDetail: data['idShiftDetail'],
+        name: data['name'] ?? '',
+        startTime: data['startTime'] ?? '',
+        checkin: data['checkin'] ?? false,
+        checkout: data['checkout'] ?? false,
+        checkinTime: data['checkinTime'],
+        checkoutTime: data['checkoutTime'],
+        shiftDate: data['shiftDate'],
+        location: data['location'],
+        isOnLeave: data['isOnLeave'] ?? false,
+        listPersonel: const [], // Empty list for cached data
+      );
+    } catch (e) {
+      print('🏠 ⚠️ Failed to retrieve cached shift data: $e');
+      return null;
+    }
+  }
+
   // Public methods for external use
   void clearSnackbar() {
     add(const ShowSnackbarEvent(''));
@@ -1005,5 +1130,43 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   void hidePanicDialog() {
     add(const ShowSnackbarEvent(''));
+  }
+
+  // Cache helper methods for checkin status persistence
+  Future<void> _cacheCheckinStatus(bool isCheckedIn) async {
+    try {
+      final statusJson = jsonEncode({
+        'isCheckedIn': isCheckedIn,
+        'cachedAt': DateTime.now().toIso8601String(),
+      });
+      await SecurityManager.storeSecurely('cached_checkin_status', statusJson);
+      print('🏠 💾 Checkin status cached: $isCheckedIn');
+    } catch (e) {
+      print('🏠 ⚠️ Failed to cache checkin status: $e');
+    }
+  }
+
+  Future<bool?> _getCachedCheckinStatus() async {
+    try {
+      final cachedJson = await SecurityManager.readSecurely('cached_checkin_status');
+      if (cachedJson == null || cachedJson.isEmpty) return null;
+      
+      final Map<String, dynamic> data = jsonDecode(cachedJson);
+      final cachedAt = DateTime.parse(data['cachedAt']);
+      
+      // Only use cache if it's less than 24 hours old
+      if (DateTime.now().difference(cachedAt).inHours > 24) {
+        print('🏠 🗑️ Cached checkin status expired (older than 24h)');
+        await SecurityManager.deleteSecurely('cached_checkin_status');
+        return null;
+      }
+      
+      final isCheckedIn = data['isCheckedIn'] as bool;
+      print('🏠 📦 Retrieved cached checkin status: $isCheckedIn');
+      return isCheckedIn;
+    } catch (e) {
+      print('🏠 ⚠️ Failed to retrieve cached checkin status: $e');
+      return null;
+    }
   }
 }

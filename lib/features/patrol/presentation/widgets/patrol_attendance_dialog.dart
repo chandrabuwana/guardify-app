@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'dart:math';
@@ -36,7 +37,7 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
   final _formKey = GlobalKey<FormState>();
   final _proofController = TextEditingController();
   File? _imageFile;
-  // File? _attachmentFile;
+  File? _attachmentFile;
   bool _isLoading = false;
   bool _isLocationVerified = false;
   double? _currentLatitude;
@@ -185,57 +186,108 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
   }
 
   Future<void> _pickImage() async {
+    // Show picker dialog to choose between Camera and Gallery
+    final ImageSource? source = await showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Pilih Sumber Foto'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                title: const Text('Kamera'),
+                onTap: () => Navigator.of(context).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.green),
+                title: const Text('Galeri'),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (source == null) return;
+
     try {
-      // Request camera permission
-      final cameraPermission = await Permission.camera.request();
-      if (cameraPermission != PermissionStatus.granted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Akses kamera ditolak'),
-              backgroundColor: Colors.red,
-            ),
-          );  
+      if (source == ImageSource.camera) {
+        // Request camera permission
+        final cameraPermission = await Permission.camera.request();
+        if (cameraPermission != PermissionStatus.granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Akses kamera ditolak'),
+                backgroundColor: Colors.red,
+              ),
+            );  
+          }
+          return;
         }
-        return;
-      }
 
-      // Initialize cameras if not already done
-      if (_cameras == null) {
-        _cameras = await availableCameras();
-      }
+        // Initialize cameras if not already done
+        if (_cameras == null) {
+          _cameras = await availableCameras();
+        }
 
-      if (_cameras == null || _cameras!.isEmpty) {
-        if (mounted) {
+        if (_cameras == null || _cameras!.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Kamera tidak tersedia'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        // Navigate to camera capture page
+        final result = await Navigator.push<XFile?>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => _CameraCapturePage(cameras: _cameras!),
+          ),
+        );
+
+        if (result != null && mounted) {
+          setState(() {
+            _imageFile = File(result.path);
+          });
+          print('🔍 DEBUG: Camera photo set - path: ${result.path}');
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Kamera tidak tersedia'),
-              backgroundColor: Colors.red,
+              content: Text('Foto berhasil diambil'),
+              backgroundColor: Colors.green,
             ),
           );
         }
-        return;
-      }
-
-      // Navigate to camera capture page
-      final result = await Navigator.push<XFile?>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => _CameraCapturePage(cameras: _cameras!),
-        ),
-      );
-
-      if (result != null && mounted) {
-        setState(() {
-          _imageFile = File(result.path);
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Foto berhasil diambil'),
-            backgroundColor: Colors.green,
-          ),
+      } else {
+        // Pick from gallery
+        final ImagePicker picker = ImagePicker();
+        final XFile? image = await picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 85,
         );
+
+        if (image != null && mounted) {
+          setState(() {
+            _imageFile = File(image.path);
+          });
+          print('🔍 DEBUG: Gallery photo set - path: ${image.path}');
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto berhasil dipilih dari galeri'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -250,9 +302,109 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
   }
 
   Future<void> _pickAttachment() async {
-    // TODO: Implement file picker for attachments
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('File picker belum diimplementasi')),
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _attachmentFile = File(image.path);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto berhasil dipilih dari galeri'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error memilih foto: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _viewFullImage(File imageFile) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              color: Colors.black87,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  InteractiveViewer(
+                    panEnabled: true,
+                    boundaryMargin: const EdgeInsets.all(20),
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Center(
+                      child: Image.file(
+                        imageFile,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  // Close button
+                  Positioned(
+                    top: 40,
+                    right: 20,
+                    child: IconButton(
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                  // Tap hint
+                  Positioned(
+                    bottom: 40,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Tap anywhere to close',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -261,7 +413,8 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
       return;
     }
 
-    if (_imageFile == null) {
+    if (_imageFile == null && _attachmentFile == null) {
+      print('🔍 DEBUG: Both _imageFile and _attachmentFile are null');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Bukti patroli (foto) wajib diisi'),
@@ -269,6 +422,13 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
         ),
       );
       return;
+    } else {
+      if (_imageFile != null) {
+        print('🔍 DEBUG: Using _imageFile - path: ${_imageFile!.path}');
+      }
+      if (_attachmentFile != null) {
+        print('🔍 DEBUG: Using _attachmentFile - path: ${_attachmentFile!.path}');
+      }
     }
 
     if (!_isLocationVerified) {
@@ -334,10 +494,12 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
 
       // Submit check point using new API
       // Use currentLocation.id as idAreas since it's the selected location from the list
+      // Use either _imageFile or _attachmentFile for the photo
+      final photoFile = _imageFile ?? _attachmentFile;
       final result = await patrolRepository.submitCheckPoint(
         idShiftDetail: shiftDetailId,
         idAreas: widget.currentLocation.id, // Use the selected location's id from the list
-        photoPath: _imageFile?.path,
+        photoPath: photoFile?.path,
         latitude: _currentLatitude!,
         longitude: _currentLongitude!,
       );
@@ -694,7 +856,103 @@ class _PatrolAttendanceDialogState extends State<PatrolAttendanceDialog> {
                             ),
                           ),
                         ],
-                        
+
+                        // Attachment Preview (Photo Thumbnail)
+                        if (_attachmentFile != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey[300]!),
+                              color: Colors.grey[50],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Foto Terlampir',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                GestureDetector(
+                                  onTap: () => _viewFullImage(_attachmentFile!),
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.file(
+                                          _attachmentFile!,
+                                          width: double.infinity,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: IconButton(
+                                          icon: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.black54,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _attachmentFile = null;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      // Tap hint overlay
+                                      Positioned(
+                                        bottom: 4,
+                                        left: 4,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black54,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.zoom_in,
+                                                color: Colors.white,
+                                                size: 14,
+                                              ),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                'Tap to view',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
                         const SizedBox(height: 16),
 
                         // Verifikasi Lokasi Button

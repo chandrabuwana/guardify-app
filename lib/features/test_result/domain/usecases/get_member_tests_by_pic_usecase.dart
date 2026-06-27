@@ -11,7 +11,7 @@ class GetMemberTestsByPicUseCase {
 
   GetMemberTestsByPicUseCase(this.repository);
 
-  Future<Either<Failure, List<TestResultEntity>>> call(String picId, {int start = 0, int length = 20}) async {
+  Future<Either<Failure, List<TestResultEntity>>> call(String picId, {int start = 1, int length = 20}) async {
     return await repository.getMemberTestsByPic(picId, start: start, length: length);
   }
 }

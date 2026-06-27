@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:math';
+import 'dart:async';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../../../../core/design/colors.dart';
 import '../../../../core/di/injection.dart';
@@ -11,6 +12,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../domain/entities/patrol_location.dart';
 import '../../domain/repositories/patrol_repository.dart';
 import '../../domain/usecases/verify_location.dart';
+import '../../data/models/route_detail_api_response.dart';
 import '../../../schedule/domain/repositories/schedule_repository.dart';
 
 class AddPatrolLocationDialog extends StatefulWidget {
@@ -33,11 +35,9 @@ class AddPatrolLocationDialog extends StatefulWidget {
 }
 
 class _SearchablePatrolLocationSheet extends StatefulWidget {
-  final List<PatrolLocation> availableAreas;
   final String? selectedLocation;
 
   const _SearchablePatrolLocationSheet({
-    required this.availableAreas,
     required this.selectedLocation,
   });
 
@@ -49,31 +49,87 @@ class _SearchablePatrolLocationSheet extends StatefulWidget {
 class _SearchablePatrolLocationSheetState
     extends State<_SearchablePatrolLocationSheet> {
   final TextEditingController _searchController = TextEditingController();
-  late List<PatrolLocation> _filtered;
+  List<PatrolLocation> _filtered = [];
+  bool _isLoading = false;
+  String? _error;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
-    _filtered = widget.availableAreas;
-    _searchController.addListener(_applyFilter);
+    _searchController.addListener(_onSearchChanged);
+    _loadAreas(); // Load initial areas
   }
 
   @override
   void dispose() {
-    _searchController.removeListener(_applyFilter);
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
-  void _applyFilter() {
-    final q = _searchController.text.trim().toLowerCase();
-    setState(() {
-      _filtered = q.isEmpty
-          ? widget.availableAreas
-          : widget.availableAreas
-              .where((a) => a.name.toLowerCase().contains(q))
-              .toList();
+  void _onSearchChanged() {
+    // Debounce search to avoid too many API calls
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _loadAreas();
     });
+  }
+
+  Future<void> _loadAreas() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final patrolRepository = getIt<PatrolRepository>();
+      final searchQuery = _searchController.text.trim();
+      
+      // Create filter for search if query is not empty
+      List<FilterModel>? filter;
+      if (searchQuery.isNotEmpty) {
+        filter = [
+          FilterModel(
+            field: 'Name',
+            search: searchQuery,
+          ),
+        ];
+      }
+
+      final result = await patrolRepository.getAreaList(
+        start: 0,
+        length: 0, // Get all results
+        filter: filter,
+      );
+
+      result.fold(
+        (failure) {
+          if (mounted) {
+            setState(() {
+              _error = 'Gagal memuat lokasi: ${failure.message}';
+              _isLoading = false;
+            });
+          }
+        },
+        (locations) {
+          if (mounted) {
+            setState(() {
+              _filtered = locations;
+              _isLoading = false;
+            });
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Gagal memuat lokasi: $e';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -126,38 +182,79 @@ class _SearchablePatrolLocationSheetState
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: _filtered.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        child: Text(
-                          'Lokasi tidak ditemukan',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: _filtered.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final area = _filtered[index];
-                        return ListTile(
-                          title: Text(
-                            area.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: (widget.selectedLocation == area.name)
-                              ? const Icon(Icons.check)
-                              : null,
-                          onTap: () => Navigator.of(context).pop(area.name),
-                        );
-                      },
-                    ),
+              child: _buildContent(),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: Colors.red[400],
+                size: 48,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                style: TextStyle(color: Colors.red[600]),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadAreas,
+                child: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_filtered.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            'Lokasi tidak ditemukan',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      itemCount: _filtered.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final area = _filtered[index];
+        return ListTile(
+          title: Text(
+            area.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: (widget.selectedLocation == area.name)
+              ? const Icon(Icons.check)
+              : null,
+          onTap: () => Navigator.of(context).pop(area),
+        );
+      },
     );
   }
 }
@@ -166,6 +263,7 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _imagePicker = ImagePicker();
   String? _selectedLocation;
+  PatrolLocation? _selectedPatrolLocation;
   String _currentLocationText = 'Menunggu...';
   double? _latitude;
   double? _longitude;
@@ -186,8 +284,8 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
     _getCurrentLocation();
   }
 
-  Future<String?> _showSearchableLocationPicker() {
-    return showModalBottomSheet<String>(
+  Future<PatrolLocation?> _showSearchableLocationPicker() {
+    return showModalBottomSheet<PatrolLocation?>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -195,7 +293,6 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
       ),
       builder: (context) {
         return _SearchablePatrolLocationSheet(
-          availableAreas: _availableAreas,
           selectedLocation: _selectedLocation,
         );
       },
@@ -585,9 +682,35 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
       
       print('✅ Shift id dari storage: $idShiftDetail');
 
-      // Get selected area details
-      final selectedArea = _availableAreas.firstWhere(
-        (area) => area.name == _selectedLocation!,
+      // Use the selected PatrolLocation object which contains the actual GUID
+      print('🔍 DEBUG: Using selected location: "$_selectedLocation"');
+      print('🔍 DEBUG: Selected location GUID: "${_selectedPatrolLocation?.id}"');
+      
+      if (_selectedPatrolLocation == null) {
+        print('🔍 DEBUG: _selectedPatrolLocation is null, creating fallback');
+        // Fallback - create area with name as ID (this shouldn't happen with the new flow)
+        final selectedArea = PatrolLocation(
+          id: _selectedLocation!, 
+          name: _selectedLocation!,
+          description: 'Lokasi patroli tambahan',
+          latitude: _latitude!,
+          longitude: _longitude!,
+          address: 'Alamat tidak tersedia',
+          radius: 50.0,
+        );
+        print('🔍 DEBUG: Created fallback area: ${selectedArea.name} (ID: ${selectedArea.id})');
+      } else {
+        print('🔍 DEBUG: Using existing PatrolLocation: ${_selectedPatrolLocation!.name} (ID: ${_selectedPatrolLocation!.id})');
+      }
+      
+      final selectedArea = _selectedPatrolLocation ?? PatrolLocation(
+        id: _selectedLocation!, 
+        name: _selectedLocation!,
+        description: 'Lokasi patroli tambahan',
+        latitude: _latitude!,
+        longitude: _longitude!,
+        address: 'Alamat tidak tersedia',
+        radius: 50.0,
       );
 
       // Get device name
@@ -809,15 +932,19 @@ class _AddPatrolLocationDialogState extends State<AddPatrolLocationDialog> {
                                           children: [
                                             InkWell(
                                               onTap: () async {
-                                                final selected =
+                                                final selectedLocation =
                                                     await _showSearchableLocationPicker();
-                                                if (selected == null) return;
-                                                field.didChange(selected);
+                                                if (selectedLocation == null) return;
+                                                print('🔍 DEBUG: Location selected from picker: "${selectedLocation.name}" (ID: ${selectedLocation.id})');
+                                                field.didChange(selectedLocation.name);
                                                 setState(() {
-                                                  _selectedLocation = selected;
+                                                  _selectedLocation = selectedLocation.name;
+                                                  _selectedPatrolLocation = selectedLocation;
                                                   _isLocationVerified = false;
                                                   _verificationMessage = null;
                                                 });
+                                                print('🔍 DEBUG: _selectedLocation set to: "$_selectedLocation"');
+                                                print('🔍 DEBUG: _selectedPatrolLocation ID: ${_selectedPatrolLocation?.id}');
                                                 if (_latitude != null && _longitude != null) {
                                                   _verifyLocationWithArea();
                                                 } else {

@@ -684,6 +684,7 @@ class _AttendanceRekapScreenContent extends StatefulWidget {
 class _AttendanceRekapScreenContentState
     extends State<_AttendanceRekapScreenContent> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String? _selectedStatusFilter;
 
   @override
@@ -693,6 +694,7 @@ class _AttendanceRekapScreenContentState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadAttendanceRekap();
     });
+    _scrollController.addListener(_onScroll);
   }
 
   void _syncSearchController(String? searchQuery) {
@@ -701,9 +703,53 @@ class _AttendanceRekapScreenContentState
     }
   }
 
+  void _onScroll() {
+    if (_isNearBottom) {
+      _loadMoreData();
+    }
+  }
+
+  bool get _isNearBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    return currentScroll >= (maxScroll * 0.9);
+  }
+
+  Future<void> _loadMoreData() async {
+    final state = context.read<AttendanceRekapBloc>().state;
+    if (state is! AttendanceRekapLoaded) return;
+    if (state.isLoadingMore || !state.hasMoreData) return;
+
+    final userId = await SecurityManager.readSecurely(AppConstants.userIdKey);
+    if (userId != null && mounted) {
+      final userRole = await UserRoleHelper.getUserRole();
+      final isPengawas = userRole == UserRole.pengawas;
+
+      final nextStart = state.currentStart + 1;
+
+      final request = AttendanceRekapRequestEntity(
+        idUser: userId,
+        withSubordinate: isPengawas,
+        isAdmin: false,
+        status: state.statusFilter ?? '',
+        search: state.searchQuery ?? '',
+        startDate: null,
+        endDate: null,
+        start: nextStart,
+        length: 10,
+        shiftName: '',
+        jabatan: '',
+        isOvertime: false,
+      );
+      context.read<AttendanceRekapBloc>().add(LoadMoreAttendanceRekapEvent(request));
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -724,8 +770,8 @@ class _AttendanceRekapScreenContentState
         search: searchQuery,
         startDate: null,
         endDate: null,
-        start: 0,
-        length: 0,
+        start: 1,
+        length: 10,
         shiftName: '',
         jabatan: '',
         isOvertime: false,
@@ -788,9 +834,12 @@ class _AttendanceRekapScreenContentState
                           ),
                         ),
                         onChanged: (value) {
-                          context.read<AttendanceRekapBloc>().add(
-                                SearchAttendanceRekapEvent(value),
-                              );
+                          // Debounce search to avoid too many API calls
+                          Future.delayed(const Duration(milliseconds: 500), () {
+                            if (mounted && _searchController.text == value) {
+                              _loadAttendanceRekap();
+                            }
+                          });
                         },
                       ),
                     ),
@@ -845,7 +894,7 @@ class _AttendanceRekapScreenContentState
                   }
 
                   if (state is AttendanceRekapLoaded) {
-                    if (state.filteredItems.isEmpty) {
+                    if (state.filteredItems.isEmpty && !state.isLoadingMore) {
                       return _buildEmptyState(
                         showTryAnotherFilterHint:
                             _selectedStatusFilter?.trim().isNotEmpty == true,
@@ -858,9 +907,19 @@ class _AttendanceRekapScreenContentState
                       },
                       color: primaryColor,
                       child: ListView.builder(
+                        controller: _scrollController,
                         padding: REdgeInsets.all(16),
-                        itemCount: state.filteredItems.length,
+                        itemCount: state.filteredItems.length + (state.isLoadingMore ? 1 : 0),
                         itemBuilder: (context, index) {
+                          if (index == state.filteredItems.length) {
+                            // Loading indicator at bottom
+                            return Container(
+                              padding: REdgeInsets.symmetric(vertical: 16),
+                              child: const Center(
+                                child: CircularProgressIndicator(color: primaryColor),
+                              ),
+                            );
+                          }
                           final item = state.filteredItems[index];
                           return _buildAttendanceCard(item);
                         },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../../core/di/injection.dart';
 import '../../../../core/services/location_service.dart';
@@ -88,28 +89,77 @@ class _AttendanceFormPageState extends State<AttendanceFormPage> {
   }
 
   Future<void> _pickImage() async {
-    try {
-      // Initialize camera if not already done
-      if (_cameras == null) {
-        _cameras = await availableCameras();
-      }
-      
-      if (_cameras!.isNotEmpty) {
-        final result = await Navigator.push<XFile?>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CameraCapturePage(cameras: _cameras!),
+    // Show picker dialog to choose between Camera and Gallery
+    final ImageSource? source = await showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Pilih Sumber Foto'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                title: const Text('Kamera'),
+                onTap: () => Navigator.of(context).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.green),
+                title: const Text('Galeri'),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+            ],
           ),
         );
-        
-        if (result != null) {
+      },
+    );
+
+    if (source == null) return;
+
+    try {
+      if (source == ImageSource.camera) {
+        // Initialize camera if not already done
+        if (_cameras == null) {
+          _cameras = await availableCameras();
+        }
+
+        if (_cameras!.isNotEmpty) {
+          final result = await Navigator.push<XFile?>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CameraCapturePage(cameras: _cameras!),
+            ),
+          );
+
+          if (result != null) {
+            setState(() {
+              _proofImage = File(result.path);
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Foto berhasil diambil'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      } else {
+        // Pick from gallery
+        final ImagePicker picker = ImagePicker();
+        final XFile? image = await picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 85,
+        );
+
+        if (image != null) {
           setState(() {
-            _proofImage = File(result.path);
+            _proofImage = File(image.path);
           });
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Foto berhasil diambil'),
+              content: Text('Foto berhasil dipilih dari galeri'),
               backgroundColor: Colors.green,
             ),
           );
